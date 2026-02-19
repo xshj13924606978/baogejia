@@ -1,0 +1,32 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: userIdStr } = await params;
+    const userId = parseInt(userIdStr);
+    const { role } = await request.json();
+
+    const validRoles = ['user', 'vip', 'manufacturer', 'super_admin', 'pending'];
+    
+    if (!validRoles.includes(role)) {
+      return NextResponse.json(
+        { error: '无效的角色' },
+        { status: 400 }
+      );
+    }
+
+    // 模拟角色设置
+    console.log(`设置用户 ${userId} 的角色为 ${role}`);
+
+    return NextResponse.json({ success: true, role });
+  } catch (error) {
+    console.error('设置角色失败:', error);
+    return NextResponse.json(
+      { error: '设置角色失败' },
+      { status: 500 }
+    );
+  }
+}

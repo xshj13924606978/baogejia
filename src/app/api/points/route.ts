@@ -1,0 +1,172 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
+
+// 积分奖励规则
+const POINTS_RULES = {
+  register: 10,
+  daily_login: 1,
+  upload_price: 5,
+  upload_doc: 10,
+  upload_case: 20,
+  upload_drawing: 15,
+  data_adopted: 50,
+  invite_friend: 30,
+  redeem: -1 // 兑换消耗
+};
+
+// 增加积分
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { user_id, type, reference_id, description, custom_points } = body;
+
+    if (!user_id || !type) {
+      return NextResponse.json(
+        { error: '缺少必要参数' },
+        { status: 400 }
+      );
+    }
+
+    const db = getSupabaseClient();
+
+    // 获取积分规则
+    const points = custom_points || POINTS_RULES[type as keyof typeof POINTS_RULES] || 0;
+
+    if (points === 0) {
+      return NextResponse.json(
+        { error: '无效的积分类型' },
+        { status: 400 }
+      );
+    }
+
+    // 创建积分记录
+    const { data: record, error: recordError } = await db
+      .from('point_records')
+      .insert({
+        user_id,
+        points,
+        type,
+        reference_id,
+        description: description || `积分奖励：${type}`
+      })
+      .select()
+      .single();
+
+    if (recordError) {
+      console.error('[Points] 创建积分记录失败:', recordError);
+      return NextResponse.json(
+        { error: '创建积分记录失败' },
+        { status: 500 }
+      );
+    }
+
+    // 更新用户积分
+    const { data: user, error: userError } = await db
+      .from('users')
+      .select('points, total_points')
+      .eq('id', user_id)
+      .single();
+
+    if (userError) {
+      console.error('[Points] 查询用户失败:', userError);
+      return NextResponse.json(
+        { error: '查询用户失败' },
+        { status: 500 }
+      );
+    }
+
+    const newPoints = Math.max(0, (user.points || 0) + points);
+    const newTotalPoints = (user.total_points || 0) + Math.max(0, points);
+
+    const { error: updateError } = await db
+      .from('users')
+      .update({
+        points: newPoints,
+        total_points: newTotalPoints
+      })
+      .eq('id', user_id);
+
+    if (updateError) {
+      console.error('[Points] 更新用户积分失败:', updateError);
+      return NextResponse.json(
+        { error: '更新用户积分失败' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      points,
+      new_balance: newPoints,
+      total_points: newTotalPoints,
+      record
+    });
+  } catch (error) {
+    console.error('[Points] 请求失败:', error);
+    return NextResponse.json(
+      { error: '服务器错误' },
+      { status: 500 }
+    );
+  }
+}
+
+// 获取用户积分记录
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const user_id = searchParams.get('user_id');
+
+    if (!user_id) {
+      return NextResponse.json(
+        { error: '缺少用户ID' },
+        { status: 400 }
+      );
+    }
+
+    const db = getSupabaseClient();
+
+    // 获取用户信息
+    const { data: user, error: userError } = await db
+      .from('users')
+      .select('points, total_points')
+      .eq('id', user_id)
+      .single();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: '用户不存在' },
+        { status: 404 }
+      );
+    }
+
+    // 获取积分记录（最近50条）
+    const { data: records, error: recordsError } = await db
+      .from('point_records')
+      .select('*')
+      .eq('user_id', user_id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (recordsError) {
+      console.error('[Points] 查询积分记录失败:', recordsError);
+      return NextResponse.json(
+        { error: '查询积分记录失败' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      user: {
+        points: user.points || 0,
+        total_points: user.total_points || 0
+      },
+      records: records || []
+    });
+  } catch (error) {
+    console.error('[Points] 请求失败:', error);
+    return NextResponse.json(
+      { error: '服务器错误' },
+      { status: 500 }
+    );
+  }
+}
