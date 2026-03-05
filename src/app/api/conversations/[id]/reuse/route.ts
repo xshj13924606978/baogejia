@@ -1,46 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { createClient } from '@supabase/supabase-js';
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: originalId } = await params;
+  console.log('[Conversations/[id]/reuse] POST 请求，原ID:', originalId);
+  
   try {
-    const db = getSupabaseClient();
-    const params = await context.params;
-    const id = parseInt(params.id);
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     // 获取原对话
-    const { data: originalConv, error: fetchError } = await db
+    const { data: original, error: fetchError } = await supabase
       .from('conversations')
-      .select('*')
-      .eq('id', id)
+      .select('title')
+      .eq('id', originalId)
       .single();
 
-    if (fetchError || !originalConv) {
-      throw fetchError || new Error('Conversation not found');
+    if (fetchError || !original) {
+      console.error('[Conversations/[id]/reuse] 原对话不存在:', originalId);
+      return NextResponse.json(
+        { error: '原对话不存在' },
+        { status: 404 }
+      );
     }
 
-    // 创建新对话，复制消息
+    // 创建新对话
     const now = new Date().toISOString();
-    const { data: newConv, error: createError } = await db
+    const { data, error } = await supabase
       .from('conversations')
       .insert({
-        title: `复用: ${originalConv.title}`,
-        messages: originalConv.messages,
-        customer_id: originalConv.customer_id,
-        quote_id: originalConv.quote_id,
+        title: `${original.title} (复用)`,
+        last_message: '',
+        status: 'active',
+        message_count: 0,
         updated_at: now,
+        created_at: now
       })
       .select()
       .single();
 
-    if (createError) {
-      throw createError;
+    if (error) {
+      console.error('[Conversations/[id]/reuse] 创建新对话失败:', error);
+      return NextResponse.json(
+        { error: '创建失败' },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ newConversationId: newConv.id });
+    console.log('[Conversations/[id]/reuse] 复用成功, 新ID:', data.id);
+
+    return NextResponse.json({
+      conversation: {
+        id: data.id,
+        title: data.title,
+        updatedAt: data.updated_at
+      },
+      files: []
+    });
   } catch (error) {
-    console.error('Failed to reuse conversation:', error);
+    console.error('[Conversations/[id]/reuse] 复用异常:', error);
     return NextResponse.json(
-      { error: 'Failed to reuse conversation' },
+      { error: '服务器错误' },
       { status: 500 }
     );
   }

@@ -1,65 +1,60 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface SwitchContextType {
   fileGroupId: string | null;
-  files: any[];
-  currentChoice: string;
-  generatedChoice: string; // 追踪已生成的内容类型
+  currentChoice: string | null;
   isLoading: boolean;
-  setActiveGroup: (fileGroupId: string, files: any[], choice: string) => void;
+  hasFiles: boolean;
+  setActiveGroup: (groupId: string, files: any[], choice: string) => void;
   setLoading: (loading: boolean) => void;
-  setChoice: (choice: string) => void;
-  setGeneratedChoice: (choice: string) => void; // 新增：设置已生成的内容类型
-  clearActiveGroup: () => void;
+  generatedChoice: string | null;
+  setGeneratedChoice: (choice: string | null) => void;
+  resetSwitch: () => void;
 }
 
 const SwitchContext = createContext<SwitchContextType | undefined>(undefined);
 
 export function SwitchProvider({ children }: { children: ReactNode }) {
   const [fileGroupId, setFileGroupId] = useState<string | null>(null);
-  const [files, setFiles] = useState<any[]>([]);
-  const [currentChoice, setCurrentChoice] = useState<string>('quote');
-  const [generatedChoice, setGeneratedChoice] = useState<string>(''); // 追踪已生成的内容类型
+  const [currentChoice, setCurrentChoice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [hasFiles, setHasFiles] = useState<boolean>(false);
+  const [generatedChoice, setGeneratedChoice] = useState<string | null>(null);
 
-  const setActiveGroup = useCallback((id: string, f: any[], choice: string) => {
-    setFileGroupId(id);
-    setFiles(f);
+  const setActiveGroup = (groupId: string, files: any[], choice: string) => {
+    console.log('[SwitchContext] 设置活跃组:', groupId, '文件数:', files?.length, '选择:', choice);
+    setFileGroupId(groupId);
     setCurrentChoice(choice);
-    setGeneratedChoice(''); // 切换文件组时重置已生成的内容类型
-  }, []);
+    setHasFiles(!!files && files.length > 0);
+  };
 
-  const setLoading = useCallback((loading: boolean) => {
+  const setLoading = (loading: boolean) => {
     setIsLoading(loading);
-  }, []);
+  };
 
-  const setChoice = useCallback((choice: string) => {
-    setCurrentChoice(choice);
-  }, []);
-
-  const clearActiveGroup = useCallback(() => {
+  const resetSwitch = () => {
+    console.log('[SwitchContext] 重置所有状态');
     setFileGroupId(null);
-    setFiles([]);
-    setCurrentChoice('quote');
-    setGeneratedChoice(''); // 重置已生成的内容类型
+    setCurrentChoice(null);
     setIsLoading(false);
-  }, []);
+    setHasFiles(false);
+    setGeneratedChoice(null);
+  };
 
   return (
     <SwitchContext.Provider
       value={{
         fileGroupId,
-        files,
         currentChoice,
-        generatedChoice,
         isLoading,
+        hasFiles,
         setActiveGroup,
         setLoading,
-        setChoice,
+        generatedChoice,
         setGeneratedChoice,
-        clearActiveGroup,
+        resetSwitch,
       }}
     >
       {children}
@@ -69,9 +64,8 @@ export function SwitchProvider({ children }: { children: ReactNode }) {
 
 export function useSwitch() {
   const context = useContext(SwitchContext);
-  if (!context) {
-    throw new Error('useSwitch must be used within SwitchProvider');
+  if (context === undefined) {
+    throw new Error('useSwitch must be used within a SwitchProvider');
   }
   return context;
 }
-

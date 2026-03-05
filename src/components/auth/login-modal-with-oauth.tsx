@@ -23,7 +23,7 @@ interface LoginModalProps {
   onLoginSuccess?: (user: any) => void;
 }
 
-export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginModalProps) {
+export default function LoginModalWithOAuth({ isOpen, onClose, onLoginSuccess }: LoginModalProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -49,6 +49,17 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
   });
   const [showBind, setShowBind] = useState(false);
   const [oauthInfo, setOauthInfo] = useState<any>(null);
+  
+  // 添加随机key防止自动填充
+  const [formKey, setFormKey] = useState(Math.random().toString(36));
+  
+  // 当登录模态框打开时重置key
+  useEffect(() => {
+    if (isOpen) {
+      setFormKey(Math.random().toString(36));
+      setLoginForm({ username: '', password: '' });
+    }
+  }, [isOpen]);
 
   // 检查URL参数，判断是否需要显示绑定页面
   useEffect(() => {
@@ -273,6 +284,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
                 value={bindForm.username}
                 onChange={(e) => setBindForm({ ...bindForm, username: e.target.value })}
                 onKeyPress={(e) => e.key === 'Enter' && handleBind()}
+                autoComplete="off"
               />
             </div>
 
@@ -285,6 +297,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
                 value={bindForm.password}
                 onChange={(e) => setBindForm({ ...bindForm, password: e.target.value })}
                 onKeyPress={(e) => e.key === 'Enter' && handleBind()}
+                autoComplete="off"
               />
             </div>
 
@@ -311,7 +324,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" key={formKey}>
         <DialogHeader>
           <DialogTitle>欢迎来到报个价</DialogTitle>
           <DialogDescription>
@@ -335,6 +348,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
                 value={loginForm.username}
                 onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                autoComplete="off"
               />
             </div>
 
@@ -347,6 +361,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
                 value={loginForm.password}
                 onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                autoComplete="off"
               />
             </div>
 
@@ -429,6 +444,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
                 placeholder="请输入用户名"
                 value={registerForm.username}
                 onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
+                autoComplete="off"
               />
             </div>
 
@@ -440,6 +456,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
                 placeholder="至少6位密码"
                 value={registerForm.password}
                 onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                autoComplete="off"
               />
             </div>
 
@@ -451,6 +468,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
                 placeholder="请输入邮箱"
                 value={registerForm.email}
                 onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                autoComplete="off"
               />
             </div>
 

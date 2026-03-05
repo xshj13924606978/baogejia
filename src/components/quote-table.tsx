@@ -1,44 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { domToPng, domToSvg } from 'modern-screenshot';
-import jsPDF from 'jspdf';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  Download,
-  FileSpreadsheet,
-  FileText,
-  Phone,
-  Mail,
-  User,
-  Search,
-  TrendingUp,
-  TrendingDown,
-  Loader2,
-  Building2,
-  DollarSign,
-  Calendar,
-  CheckCircle,
-  FileDown,
-  AlertCircle,
-  Edit,
-  Plus,
-  X,
-  Settings,
-  ArrowUpRight,
-  ArrowDownRight,
-  Truck,
-  Wrench,
-  MoreHorizontal,
-  CreditCard,
-  MapPin,
-  FileText as FileIcon,
-  Info as InfoIcon,
-  Heart,
-  CheckCircle2
-} from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -46,1781 +18,2958 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import type {
-  SupplierInfo,
-  QuoteData,
-  TableColumnConfig,
-  GroupType,
-  FeeConfig,
-  FeeSummary,
-  ProjectField,
-  Product
-} from '@/types/quote';
 import {
-  calculateFeeSummary,
-  groupProducts,
-  formatAmountToChinese,
-  getQuoteTitle,
-  getTotalTitle,
-  calculatePriceDiff,
-  calculateProductTotal
-} from '@/lib/quote-utils';
-import { DEFAULT_TABLE_COLUMNS, DEFAULT_PROJECT_FIELDS, DEFAULT_FEE_CONFIG, COMMON_TAX_RATES } from '@/types/quote';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+
+// 图标导入
+import {
+  FileText,
+  FileSpreadsheet,
+  Download,
+  Edit,
+  Save,
+  X,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+  MoreHorizontal,
+  Settings,
+  Filter,
+  Search,
+  RefreshCw,
+  Copy,
+  Printer,
+  Mail,
+  Share2,
+  Link,
+  ExternalLink,
+  Upload,
+  DownloadCloud,
+  FileUp,
+  FileDown,
+  Eye,
+  EyeOff,
+  Lock,
+  Unlock,
+  Shield,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Info,
+  HelpCircle,
+  Loader2,
+  Sparkles,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Percent,
+  Calendar,
+  Clock,
+  Truck,
+  Package,
+  Building2,
+  Users,
+  User,
+  Phone,
+  Mail as MailIcon,
+  MapPin,
+  Globe,
+  CreditCard,
+  Banknote,
+  Receipt,
+  Calculator,
+  PieChart,
+  BarChart3,
+  LineChart,
+  Activity,
+  Zap,
+  Flame,
+  Snowflake,
+  Wind,
+  Sun,
+  Moon,
+  Cloud,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  Droplets,
+  Waves,
+  Mountain,
+  TreePine,
+  Leaf,
+  Flower2,
+  Sprout,
+  Wheat,
+  Coffee,
+  Pizza,
+  Apple,
+  Banana,
+  Citrus,
+  Cherry,
+  Grape,
+  Wine,
+  Beer,
+  Coffee as CoffeeIcon,
+  Utensils,
+  ChefHat,
+  ShoppingBag,
+  ShoppingCart,
+  Gift,
+  Package2,
+  Box,
+  PackageOpen,
+  PackageCheck,
+  PackageX,
+  PackagePlus,
+  PackageMinus,
+  PackageSearch,
+  Container,
+  Pallet,
+  Crate,
+  Barrel,
+  Tank,
+  FlaskConical,
+  FlaskRound,
+  Beaker,
+  TestTube,
+  Microscope,
+  Dna,
+  DnaOff,
+  Virus,
+  Bacteria,
+  Pill,
+  Tablet,
+  Syringe,
+  Stethoscope,
+  HeartPulse,
+  Bone,
+  Brain,
+  Eye as EyeIcon,
+  Ear,
+  Nose,
+  Mouth,
+  Tooth,
+  Skin,
+  Lungs,
+  Kidney,
+  Liver,
+  Stomach,
+  Intestine,
+  Skeleton,
+  Activity as ActivityIcon,
+  Heart,
+  Droplet,
+  Thermometer,
+  PillBottle,
+  FirstAid,
+  Hospital,
+  Ambulance,
+  Microscope as MicroscopeIcon,
+  Dna as DnaIcon,
+  Atom,
+  FlaskConical as FlaskConicalIcon,
+  TestTubes,
+  Beaker as BeakerIcon,
+  ThermometerSun,
+  ThermometerSnowflake,
+  Fan,
+  AirVent,
+  HVAC,
+  Factory,
+  Warehouse,
+  Building,
+  Home,
+  Store,
+  Hotel,
+  School,
+  Church,
+  Mosque,
+  Temple,
+  Landmark,
+  Bank,
+  Castle,
+  Tent,
+  Campground,
+  Tree,
+  PalmTree,
+  Cactus,
+  Flower,
+  Grass,
+  Fern,
+  Moss,
+  Mushroom,
+  Seedling,
+  Wheat as WheatIcon,
+  Corn,
+  Soybean,
+  Cotton,
+  Wool,
+  Silk,
+  Leather,
+  Fabric,
+  Thread,
+  Needle,
+  Scissors,
+  Ruler,
+  Weight,
+  Scale,
+  Balance,
+  Gauge,
+  Speedometer,
+  Tachometer,
+  Fuel,
+  GasPump,
+  Electric,
+  Battery,
+  BatteryCharging,
+  BatteryFull,
+  BatteryLow,
+  BatteryMedium,
+  BatteryWarning,
+  Plug,
+  PlugZap,
+  Cable,
+  Wifi,
+  Bluetooth,
+  Signal,
+  SignalHigh,
+  SignalLow,
+  SignalMedium,
+  SignalZero,
+  Radio,
+  RadioTower,
+  Satellite,
+  SatelliteDish,
+  Antenna,
+  Router,
+  Server,
+  Database,
+  Cloud as CloudIcon,
+  CloudCog,
+  CloudDrizzle,
+  CloudFog,
+  CloudHail,
+  CloudLightning as CloudLightningIcon,
+  CloudMoon,
+  CloudMoonRain,
+  CloudOff,
+  CloudRain as CloudRainIcon,
+  CloudRainWind,
+  CloudSnow as CloudSnowIcon,
+  CloudSun,
+  CloudSunRain,
+  Cloudy,
+  Humidity,
+  Mist,
+  Rainbow,
+  Snowflake as SnowflakeIcon,
+  Stars,
+  SunDim,
+  SunMedium,
+  SunSnow,
+  Sunset,
+  Sunrise,
+  Sunrise as SunriseIcon,
+  Sunset as SunsetIcon,
+  Twilight,
+  Moon as MoonIcon,
+  MoonStar,
+  Eclipse,
+  Comet,
+  Meteor,
+  Asteroid,
+  Planet,
+  Galaxy,
+  Telescope,
+  Compass,
+  Navigation,
+  Map,
+  MapPin as MapPinIcon,
+  MapPinned,
+  Route,
+  Signpost,
+  Milestone,
+  Flag,
+  FlagTriangleLeft,
+  FlagTriangleRight,
+  FlagOff,
+  FlagPlus,
+  FlagMinus,
+  FlagX,
+  Bookmark,
+  BookmarkPlus,
+  BookmarkMinus,
+  BookmarkX,
+  BookmarkCheck,
+  Star,
+  StarHalf,
+  StarOff,
+  Heart as HeartIcon,
+  HeartCrack,
+  HeartHandshake,
+  HeartOff,
+  HeartPulse as HeartPulseIcon,
+  Ribbon,
+  Medal,
+  Trophy,
+  Award,
+  Crown,
+  Gem,
+  Diamond,
+  Crystal,
+  Sparkle,
+  Sparkles as SparklesIcon,
+  Zap as ZapIcon,
+  Bolt,
+  Lightning,
+  Flame as FlameIcon,
+  Fire,
+  FlameKindling,
+  Fan as FanIcon,
+  Wind as WindIcon,
+  Tornado,
+  Hurricane,
+  Typhoon,
+  Cyclone,
+  Wave,
+  Waves as WavesIcon,
+  TidalWave,
+  Tsunami,
+  Flood,
+  Drought,
+  HeatWave,
+  Cold,
+  Freezing,
+  Ice,
+  Frost,
+  Hail,
+  Sleet,
+  Smoke,
+  Fog,
+  Haze,
+  Dust,
+  Sand,
+  Ash,
+  Volcano,
+  Earthquake,
+  Landslide,
+  Avalanche,
+  Blizzard,
+  Sandstorm,
+  DustStorm,
+  Thunderstorm,
+  Rainstorm,
+  Snowstorm,
+  IceStorm,
+  Hailstorm,
+  Windstorm,
+  Firestorm,
+  Storm,
+  Hurricane as HurricaneIcon,
+  Typhoon as TyphoonIcon,
+  Cyclone as CycloneIcon,
+  Tornado as TornadoIcon,
+  Twister,
+  Whirlwind,
+  Vortex,
+  Spiral,
+  Swirl,
+  Eddy,
+  Current,
+  Stream,
+  Flow,
+  Cascade,
+  Waterfall,
+  Rapids,
+  Whirlpool,
+  Maelstrom,
+  Abyss,
+  Chasm,
+  Canyon,
+  Valley,
+  Gorge,
+  Ravine,
+  Cliff,
+  Bluff,
+  Precipice,
+  Peak,
+  Summit,
+  Crest,
+  Ridge,
+  Range,
+  Massif,
+  Mountain as MountainIcon,
+  Hill,
+  Knoll,
+  Mound,
+  Butte,
+  Mesa,
+  Plateau,
+  Tableland,
+  Highland,
+  Lowland,
+  Plain,
+  Prairie,
+  Steppe,
+  Savannah,
+  Tundra,
+  Taiga,
+  Forest,
+  Woods,
+  Grove,
+  Jungle,
+  Rainforest,
+  Swamp,
+  Marsh,
+  Bog,
+  Fen,
+  Peatland,
+  Wetland,
+  Oasis,
+  Desert,
+  Dune,
+  Erg,
+  Reg,
+  Hamada,
+  Wadi,
+  Canyon as CanyonIcon,
+  Gorge as GorgeIcon,
+  Ravine as RavineIcon,
+  Cliff as CliffIcon,
+  Bluff as BluffIcon,
+  Precipice as PrecipiceIcon,
+  Peak as PeakIcon,
+  Summit as SummitIcon,
+  Crest as CrestIcon,
+  Ridge as RidgeIcon,
+  Range as RangeIcon,
+  Massif as MassifIcon,
+  Hill as HillIcon,
+  Knoll as KnollIcon,
+  Mound as MoundIcon,
+  Butte as ButteIcon,
+  Mesa as MesaIcon,
+  Plateau as PlateauIcon,
+  Tableland as TablelandIcon,
+  Highland as HighlandIcon,
+  Lowland as LowlandIcon,
+  Plain as PlainIcon,
+  Prairie as PrairieIcon,
+  Steppe as SteppeIcon,
+  Savannah as SavannahIcon,
+  Tundra as TundraIcon,
+  Taiga as TaigaIcon,
+  Forest as ForestIcon,
+  Woods as WoodsIcon,
+  Grove as GroveIcon,
+  Jungle as JungleIcon,
+  Rainforest as RainforestIcon,
+  Swamp as SwampIcon,
+  Marsh as MarshIcon,
+  Bog as BogIcon,
+  Fen as FenIcon,
+  Peatland as PeatlandIcon,
+  Wetland as WetlandIcon,
+  Oasis as OasisIcon,
+  Desert as DesertIcon,
+  Dune as DuneIcon,
+  Erg as ErgIcon,
+  Reg as RegIcon,
+  Hamada as HamadaIcon,
+  Wadi as WadiIcon,
+  CheckCircle
+} from 'lucide-react';
+import * as XLSX from 'xlsx';
+
+// 类型定义
+interface Product {
+  id?: number;
+  name: string;
+  model: string;
+  brand: string;
+  specifications: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  unit?: string;
+  note?: string;
+  category?: string;
+  description?: string;
+  features?: string;
+  source?: string;
+  marketPrice?: number;
+  priceRange?: string;
+  priceSource?: string;
+}
+
+interface FeeConfig {
+  taxRate: number;
+  shipping: number;
+  installation: number;
+  otherFees: number;
+  validUntil: string;
+  paymentTerms: string;
+  deliveryTerms: string;
+  warrantyTerms: string;
+}
+
+interface QuoteData {
+  quoteNumber: string;
+  supplierInfo: {
+    companyName: string;
+    logoUrl?: string;
+    contactPerson: string;
+    phone: string;
+    email: string;
+    address: string;
+    bankName: string;
+    bankAccount: string;
+    taxNumber: string;
+  };
+  customerInfo: {
+    name: string;
+    projectName: string;
+    contactPerson?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+  };
+  products: Product[];
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  shipping: number;
+  installation: number;
+  otherFees: number;
+  totalAmount: number;
+  terms: {
+    payment: string;
+    warranty: string;
+    delivery: string;
+    validity: string;
+  };
+  notes?: string;
+  validUntil?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface ColumnConfig {
+  key: string;
+  label: string;
+  align?: 'left' | 'center' | 'right';
+  visible: boolean;
+  width?: string;
+  priority: number;
+}
+
+interface GroupConfig {
+  key: string;
+  label: string;
+  value: string;
+}
+
+interface CustomField {
+  id: string;
+  name: string;
+  value: string;
+}
 
 interface QuoteTableProps {
   data: QuoteData;
-  supplierInfo?: SupplierInfo;
+  supplierInfo?: {
+    companyName: string;
+    logoUrl?: string;
+    contactPerson: string;
+    phone: string;
+    email: string;
+    address: string;
+    bankName: string;
+    bankAccount: string;
+    taxNumber: string;
+  };
   onUpdateProductPrice?: (productIndex: number, newPrice: number) => void;
+  onUpdateProductQuantity?: (productIndex: number, newQuantity: number) => void;
   onUpdateFeeConfig?: (feeConfig: FeeConfig) => void;
-  onAddProjectField?: () => void;
-  onUpdateProjectField?: (fieldIndex: number, field: ProjectField) => void;
-  onRemoveProjectField?: (fieldIndex: number) => void;
+  onRegenerate?: () => void;
+  onRemoveProduct?: (productIndex: number) => void;
+  onUpdateData?: (data: QuoteData) => void;
+  autoScroll?: boolean;
+  messageId?: number;
+  message?: any;
 }
+
+// 常用税率
+const COMMON_TAX_RATES = [0, 3, 6, 9, 13, 17];
+
+// 所有可用列
+const ALL_COLUMNS: ColumnConfig[] = [
+  { key: 'index', label: '序号', align: 'center', visible: true, priority: 1 },
+  { key: 'name', label: '产品名称', align: 'left', visible: true, priority: 2 },
+  { key: 'specifications', label: '规格型号', align: 'left', visible: true, priority: 3 },
+  { key: 'brand', label: '品牌', align: 'left', visible: true, priority: 4 },
+  { key: 'unit', label: '单位', align: 'center', visible: true, priority: 5 },
+  { key: 'quantity', label: '数量', align: 'center', visible: true, priority: 6 },
+  { key: 'unitPrice', label: '单价(元)', align: 'right', visible: true, priority: 7 },
+  { key: 'totalPrice', label: '小计(元)', align: 'right', visible: true, priority: 8 },
+  { key: 'marketPrice', label: '市场参考价', align: 'right', visible: true, priority: 9 },
+  { key: 'actions', label: '操作', align: 'center', visible: true, priority: 10 },
+];
+
+// 生成 UUID
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
+// 格式化货币
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('zh-CN', {
+    style: 'currency',
+    currency: 'CNY',
+    minimumFractionDigits: 2,
+  }).format(value);
+};
+
+// 格式化数字
+const formatNumber = (value: number) => {
+  return new Intl.NumberFormat('zh-CN').format(value);
+};
+
+// 格式化日期
+const formatDate = (dateString?: string) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+};
+
+// 计算价格差异
+const calculatePriceDiff = (currentPrice: number, marketPrice: number) => {
+  if (!marketPrice || marketPrice === 0) return null;
+  const diff = currentPrice - marketPrice;
+  const percentage = (diff / marketPrice) * 100;
+  return {
+    diff,
+    percentage,
+    isLower: currentPrice < marketPrice,
+    isHigher: currentPrice > marketPrice,
+    isEqual: currentPrice === marketPrice,
+  };
+};
+
+// 获取报价标题
+const getQuoteTitle = (products: Product[]) => {
+  if (!products || products.length === 0) return '报价单';
+  
+  const validProducts = products.filter(p => p != null);
+  const categories = validProducts.map(p => p.category).filter(Boolean);
+  const uniqueCategories = [...new Set(categories)];
+  
+  if (uniqueCategories.length === 1) {
+    return `${uniqueCategories[0]}报价单`;
+  } else if (uniqueCategories.length > 1) {
+    return '综合设备报价单';
+  } else {
+    const names = validProducts.map(p => p.name);
+    const keywords = ['泵', '阀', '罐', '机', '器', '电机', '仪表'];
+    for (const keyword of keywords) {
+      if (names.some(name => name?.includes(keyword))) {
+        return `${keyword}类设备报价单`;
+      }
+    }
+    return '设备报价单';
+  }
+};
+
+// 金额转中文大写
+const formatAmountToChinese = (amount: number) => {
+  const digitUppercase = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+  const unit = ['', '拾', '佰', '仟'];
+  const bigUnit = ['', '万', '亿'];
+  
+  const amountStr = amount.toFixed(2);
+  const [integerPart, decimalPart] = amountStr.split('.');
+  
+  if (parseInt(integerPart) === 0 && parseInt(decimalPart) === 0) {
+    return '零元整';
+  }
+  
+  let result = '';
+  
+  // 处理整数部分
+  const integer = parseInt(integerPart);
+  if (integer > 0) {
+    const integerStr = integer.toString();
+    const len = integerStr.length;
+    
+    for (let i = 0; i < len; i++) {
+      const digit = parseInt(integerStr[i]);
+      const pos = len - i - 1;
+      
+      if (digit !== 0) {
+        result += digitUppercase[digit] + unit[pos % 4];
+      } else {
+        if (i > 0 && integerStr[i - 1] !== '0') {
+          result += '零';
+        }
+      }
+      
+      if (pos % 4 === 0 && pos > 0) {
+        result += bigUnit[Math.floor(pos / 4)];
+      }
+    }
+    result += '元';
+  } else {
+    result = '零元';
+  }
+  
+  // 处理小数部分
+  const jiao = parseInt(decimalPart[0]);
+  const fen = parseInt(decimalPart[1]);
+  
+  if (jiao === 0 && fen === 0) {
+    result += '整';
+  } else {
+    if (jiao > 0) {
+      result += digitUppercase[jiao] + '角';
+    }
+    if (fen > 0) {
+      result += digitUppercase[fen] + '分';
+    }
+  }
+  
+  return result;
+};
 
 export default function QuoteTable({
   data,
-  supplierInfo,
+  supplierInfo: propSupplierInfo,
   onUpdateProductPrice,
+  onUpdateProductQuantity,
   onUpdateFeeConfig,
-  onAddProjectField,
-  onUpdateProjectField,
-  onRemoveProjectField
+  onRegenerate,
+  onRemoveProduct,
+  onUpdateData,
+  autoScroll = false,
+  messageId,
+  message,
 }: QuoteTableProps) {
-  const actualSupplierInfo = data.supplierInfo || supplierInfo;
-
-  // 表格配置
-  const [columns, setColumns] = useState<TableColumnConfig[]>(
-    data.tableConfig?.columns || DEFAULT_TABLE_COLUMNS
-  );
-  const [groupType, setGroupType] = useState<GroupType>(
-    data.tableConfig?.groupType || 'none'
-  );
-
-  // 项目概况字段
-  const [projectFields, setProjectFields] = useState<ProjectField[]>(
-    data.projectFields?.length > 0 ? data.projectFields : DEFAULT_PROJECT_FIELDS
-  );
-
-  // 费用配置
-  const [feeConfig, setFeeConfig] = useState<FeeConfig>(data.feeConfig || DEFAULT_FEE_CONFIG);
-
-  // 费用汇总
-  const [feeSummary, setFeeSummary] = useState<FeeSummary>(
-    data.feeSummary || calculateFeeSummary(data.products || [], feeConfig)
-  );
-
-  // 编辑状态
-  const [editingField, setEditingField] = useState<number | null>(null);
-
-  // 市场价数据状态
+  // 使用传入的供应信息或从报价数据中获取
+  const actualSupplierInfo = propSupplierInfo || data?.supplierInfo;
+  
+  // 内部状态
+  const [quoteData, setQuoteData] = useState<QuoteData>(() => ({
+    ...data,
+    products: Array.isArray(data?.products) ? data.products.filter(p => p != null) : []
+  }));
+  
+  const [editingPrice, setEditingPrice] = useState<{ rowIndex: number; value: string } | null>(null);
+  const [editingQuantity, setEditingQuantity] = useState<{ rowIndex: number; value: string } | null>(null);
+  const [editingField, setEditingField] = useState<{ rowIndex: number; value: string } | null>(null);
+  const [editingFee, setEditingFee] = useState<{ field: string; value: string } | null>(null);
+  const [editingCustomField, setEditingCustomField] = useState<{ fieldIndex: number; value: string } | null>(null);
+  const [searchingMarketPrice, setSearchingMarketPrice] = useState<number | null>(null);
+  const [isSearchingAll, setIsSearchingAll] = useState(false);
   const [marketPrices, setMarketPrices] = useState<Record<number, {
     loading: boolean;
     data: any;
     error: string | null;
     showConfirm: boolean;
   }>>({});
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const [groupBy, setGroupBy] = useState<string>('none');
+  const [showNotes, setShowNotes] = useState<Record<number, boolean>>({});
+  const [selectedColumns, setSelectedColumns] = useState<string[]>(
+    ALL_COLUMNS.filter(col => col.visible).map(col => col.key)
+  );
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [projectFields, setProjectFields] = useState<CustomField[]>([
+    { id: '1', name: '联系人', value: data?.customerInfo?.contactPerson || '' },
+    { id: '2', name: '电话', value: data?.customerInfo?.phone || '' }
+  ]);
+  const [feeConfig, setFeeConfig] = useState<FeeConfig>({
+    taxRate: data?.taxRate || 13,
+    shipping: data?.shipping || 0,
+    installation: data?.installation || 0,
+    otherFees: data?.otherFees || 0,
+    validUntil: data?.validUntil || new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    paymentTerms: data?.terms?.payment || '预付30%，发货前付清70%',
+    deliveryTerms: data?.terms?.delivery || '合同签订后15个工作日内',
+    warrantyTerms: data?.terms?.warranty || '整机质保12个月',
+  });
+  const [showFeeConfig, setShowFeeConfig] = useState(false);
+  const [showColumnConfig, setShowColumnConfig] = useState(false);
+  const [showProjectConfig, setShowProjectConfig] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [fillPricesLoading, setFillPricesLoading] = useState(false);
+  const [marketPriceStats, setMarketPriceStats] = useState<{
+    total: number;
+    matched: number;
+    averageDiff: number;
+  } | null>(null);
+  const [autoFillEnabled, setAutoFillEnabled] = useState(true);
+  const [pendingAutoFill, setPendingAutoFill] = useState<{index: number; price: number} | null>(null);
 
-  // 填充价格加载状态
-  const [isFillingPrices, setIsFillingPrices] = useState(false);
+  // 临时编辑状态
+  const [tempFeeConfig, setTempFeeConfig] = useState<FeeConfig>(feeConfig);
+  const [tempSelectedColumns, setTempSelectedColumns] = useState<string[]>(selectedColumns);
+  const [tempProjectFields, setTempProjectFields] = useState<CustomField[]>(projectFields);
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldValue, setNewFieldValue] = useState('');
 
-  // 检测是否有0价格产品
-  const hasZeroPriceProducts = data.products && data.products.some(p => !p.unitPrice || p.unitPrice === 0);
+  // 表格列配置
+  const columns = ALL_COLUMNS;
+
+  // 分组选项
+  const groupOptions: GroupConfig[] = [
+    { key: 'none', label: '不分组', value: 'none' },
+    { key: 'category', label: '按类别', value: 'category' },
+    { key: 'brand', label: '按品牌', value: 'brand' },
+    { key: 'system', label: '按系统', value: 'system' },
+  ];
+
+  // 监听 marketPrices 变化，处理自动填充
+  useEffect(() => {
+    if (pendingAutoFill && marketPrices[pendingAutoFill.index]) {
+      const marketData = marketPrices[pendingAutoFill.index];
+      if (marketData?.data && !marketData.loading) {
+        handleApplyMarketPrice(pendingAutoFill.index);
+        setPendingAutoFill(null);
+      }
+    }
+  }, [marketPrices, pendingAutoFill]);
+
+  // 当传入数据更新时更新本地状态
+  useEffect(() => {
+    console.log('[QuoteTable] 收到新数据:', data);
+    
+    if (!data) return;
+    
+    // 安全地处理数据
+    const safeData = {
+      ...data,
+      products: Array.isArray(data.products) ? data.products.filter(p => p != null) : []
+    };
+    
+    setQuoteData(safeData);
+    
+    setProjectFields(prev => {
+      const newFields = [...prev];
+      if (newFields.length >= 2) {
+        newFields[0] = { ...newFields[0], value: data.customerInfo?.contactPerson || '' };
+        newFields[1] = { ...newFields[1], value: data.customerInfo?.phone || '' };
+      }
+      return newFields;
+    });
+    
+    setFeeConfig({
+      taxRate: data.taxRate || 13,
+      shipping: data.shipping || 0,
+      installation: data.installation || 0,
+      otherFees: data.otherFees || 0,
+      validUntil: data.validUntil || new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      paymentTerms: data.terms?.payment || '预付30%，发货前付清70%',
+      deliveryTerms: data.terms?.delivery || '合同签订后15个工作日内',
+      warrantyTerms: data.terms?.warranty || '整机质保12个月',
+    });
+  }, [data]);
+
+  // 安全地获取产品数组
+  const safeProducts = useMemo(() => {
+    return Array.isArray(quoteData?.products) ? quoteData.products.filter(p => p != null) : [];
+  }, [quoteData]);
 
   // 计算费用汇总
-  useEffect(() => {
-    const summary = calculateFeeSummary(data.products || [], feeConfig);
-    setFeeSummary(summary);
-  }, [data.products, feeConfig]);
+  const subtotal = safeProducts.reduce((sum, p) => sum + (p?.totalPrice || 0), 0);
+  const taxAmount = subtotal * (feeConfig.taxRate / 100);
+  const totalAmount = subtotal + taxAmount + feeConfig.shipping + feeConfig.installation + feeConfig.otherFees;
 
-  // 监听费用配置变化
-  useEffect(() => {
-    if (onUpdateFeeConfig) {
-      onUpdateFeeConfig(feeConfig);
-    }
-  }, [feeConfig, onUpdateFeeConfig]);
+  // 检测是否有零价格产品
+  const hasZeroPriceProducts = safeProducts.some(p => (p?.unitPrice || 0) === 0);
 
-  // 动态调整表格布局
-  useEffect(() => {
-    const adjustTableLayout = () => {
-      const tables = document.querySelectorAll('.config-table');
-      tables.forEach((table) => {
-        if (!(table instanceof HTMLTableElement)) return;
+  // 处理价格编辑
+  const handlePriceEdit = (rowIndex: number, currentPrice: number) => {
+    setEditingPrice({
+      rowIndex,
+      value: currentPrice.toString(),
+    });
+  };
 
-        const container = table.parentElement;
-        if (!container) return;
-
-        const containerWidth = container.clientWidth;
-
-        // 获取所有单元格内容
-        const rows = table.querySelectorAll('tr');
-        if (rows.length === 0) return;
-
-        const columnCount = rows[0]?.cells.length || 0;
-        if (columnCount === 0) return;
-
-        // 计算每列内容的最大宽度
-        const maxWidths = new Array(columnCount).fill(0);
-
-        rows.forEach((row) => {
-          Array.from(row.cells).forEach((cell, index) => {
-            // 创建临时元素测量实际内容宽度
-            const span = document.createElement('span');
-            span.style.visibility = 'hidden';
-            span.style.position = 'absolute';
-            span.style.whiteSpace = 'nowrap';
-            span.style.fontSize = window.getComputedStyle(cell).fontSize;
-            span.style.fontWeight = window.getComputedStyle(cell).fontWeight;
-            span.textContent = cell.textContent || '';
-
-            document.body.appendChild(span);
-            const width = span.offsetWidth + 20; // 加一些padding
-            document.body.removeChild(span);
-
-            maxWidths[index] = Math.max(maxWidths[index], width);
-          });
-        });
-
-        // 判断是否需要横向布局
-        const totalWidth = maxWidths.reduce((a, b) => a + b, 0);
-        const needsLandscape = totalWidth > containerWidth;
-
-        // 如果需要横向布局，记录日志
-        if (needsLandscape) {
-          console.log('[Table] 表格较宽，建议使用横向PDF');
-        }
-
-        // 移除固定宽度，让浏览器自动计算
-        Array.from(table.querySelectorAll('th')).forEach((th) => {
-          th.style.width = 'auto';
-        });
+  const handlePriceChange = (value: string) => {
+    if (editingPrice) {
+      setEditingPrice({
+        ...editingPrice,
+        value,
       });
-    };
-
-    // 延迟执行，确保DOM已渲染
-    const timer = setTimeout(() => {
-      adjustTableLayout();
-    }, 100);
-
-    // 监听窗口大小变化
-    const handleResize = () => {
-      adjustTableLayout();
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [data.products, columns]);
-
-  // 一键填充市场参考价
-  const handleFillPrices = async () => {
-    if (!data.products || data.products.length === 0) return;
-
-    setIsFillingPrices(true);
-
-    try {
-      const zeroPriceProducts = data.products.map((p, idx) => ({ ...p, originalIndex: idx }))
-        .filter(p => !p.unitPrice || p.unitPrice === 0);
-
-      if (zeroPriceProducts.length === 0) {
-        alert('没有需要填充价格的产品');
-        setIsFillingPrices(false);
-        return;
-      }
-
-      const response = await fetch('/api/quotes/batch-market-price', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          products: zeroPriceProducts.map(p => ({
-            originalIndex: p.originalIndex,
-            name: p.name,
-            specifications: p.specifications || p.model || '',
-          })),
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.data) {
-        // 批量更新价格
-        let updatedCount = 0;
-        result.data.forEach((item: any) => {
-          if (item.originalIndex !== undefined && item.averageMarketPrice) {
-            if (onUpdateProductPrice) {
-              onUpdateProductPrice(item.originalIndex, item.averageMarketPrice);
-              updatedCount++;
-            }
-          }
-        });
-
-        alert(`成功填充 ${updatedCount} 个产品的市场参考价`);
-        
-        // 触发填充完成事件，通知父组件更新消息状态
-        window.dispatchEvent(new CustomEvent('fill-market-prices-complete', {
-          detail: {
-            success: true,
-            count: updatedCount,
-            quoteNumber: data.quoteNumber
-          }
-        }));
-      } else {
-        alert('填充失败：' + (result.error || '未知错误'));
-        
-        // 触发填充失败事件
-        window.dispatchEvent(new CustomEvent('fill-market-prices-complete', {
-          detail: {
-            success: false,
-            error: result.error || '未知错误',
-            quoteNumber: data.quoteNumber
-          }
-        }));
-      }
-    } catch (error) {
-      console.error('填充市场价失败:', error);
-      alert('网络错误，请稍后重试');
-    } finally {
-      setIsFillingPrices(false);
     }
   };
 
-  // 监听填充价格事件
-  useEffect(() => {
-    const handleFillPricesEvent = () => {
-      console.log('[QuoteTable] 收到填充价格事件');
-      
-      // 检查是否是页面上最新的QuoteTable（只填充最新的报价单）
-      const allQuoteTables = document.querySelectorAll('.export-container');
-      const thisTable = document.querySelector(`[data-quote-id="${data.quoteNumber}"]`);
-      
-      if (allQuoteTables.length > 1 && thisTable) {
-        // 如果有多个QuoteTable，检查这个是否是最后一个
-        const lastIndex = allQuoteTables.length - 1;
-        if (allQuoteTables[lastIndex] !== thisTable) {
-          console.log('[QuoteTable] 不是最新的报价单，跳过填充');
-          return;
+  const handlePriceSave = (rowIndex: number) => {
+    if (editingPrice && editingPrice.rowIndex === rowIndex) {
+      const newPrice = parseFloat(editingPrice.value);
+      if (!isNaN(newPrice) && newPrice >= 0) {
+        if (onUpdateProductPrice) {
+          onUpdateProductPrice(rowIndex, newPrice);
+        } else {
+          const updatedProducts = [...safeProducts];
+          if (updatedProducts[rowIndex]) {
+            updatedProducts[rowIndex] = {
+              ...updatedProducts[rowIndex],
+              unitPrice: newPrice,
+              totalPrice: newPrice * (updatedProducts[rowIndex].quantity || 1),
+            };
+            const newData = {
+              ...quoteData,
+              products: updatedProducts,
+            };
+            setQuoteData(newData);
+            onUpdateData?.(newData);
+          }
         }
       }
+      setEditingPrice(null);
+    }
+  };
+
+  // 处理数量编辑
+  const handleQuantityEdit = (rowIndex: number, currentQuantity: number) => {
+    setEditingQuantity({
+      rowIndex,
+      value: currentQuantity.toString(),
+    });
+  };
+
+  const handleQuantityChange = (value: string) => {
+    if (editingQuantity) {
+      setEditingQuantity({
+        ...editingQuantity,
+        value,
+      });
+    }
+  };
+
+  const handleQuantitySave = (rowIndex: number) => {
+    if (editingQuantity && editingQuantity.rowIndex === rowIndex) {
+      const newQuantity = parseFloat(editingQuantity.value);
+      if (!isNaN(newQuantity) && newQuantity > 0) {
+        if (onUpdateProductQuantity) {
+          onUpdateProductQuantity(rowIndex, newQuantity);
+        } else {
+          const updatedProducts = [...safeProducts];
+          if (updatedProducts[rowIndex]) {
+            updatedProducts[rowIndex] = {
+              ...updatedProducts[rowIndex],
+              quantity: newQuantity,
+              totalPrice: (updatedProducts[rowIndex].unitPrice || 0) * newQuantity,
+            };
+            const newData = {
+              ...quoteData,
+              products: updatedProducts,
+            };
+            setQuoteData(newData);
+            onUpdateData?.(newData);
+          }
+        }
+      }
+      setEditingQuantity(null);
+    }
+  };
+
+  // 处理按键事件
+  const handleKeyDown = (e: React.KeyboardEvent, rowIndex: number, type: 'price' | 'quantity') => {
+    if (e.key === 'Enter') {
+      if (type === 'price') {
+        handlePriceSave(rowIndex);
+      } else {
+        handleQuantitySave(rowIndex);
+      }
+    } else if (e.key === 'Escape') {
+      if (type === 'price') {
+        setEditingPrice(null);
+      } else {
+        setEditingQuantity(null);
+      }
+    }
+  };
+
+  // 处理项目字段编辑
+  const handleProjectFieldEdit = (field: string, currentValue: string) => {
+    setEditingField({
+      rowIndex: field === 'name' ? 0 : 1,
+      value: currentValue,
+    });
+  };
+
+  const handleProjectFieldChange = (value: string) => {
+    if (editingField) {
+      setEditingField({
+        ...editingField,
+        value,
+      });
+    }
+  };
+
+  const handleProjectFieldSave = (field: string) => {
+    if (editingField) {
+      const newData = {
+        ...quoteData,
+        customerInfo: {
+          ...quoteData.customerInfo,
+          [field]: editingField.value,
+        },
+      };
+      setQuoteData(newData);
+      onUpdateData?.(newData);
+      setEditingField(null);
+    }
+  };
+
+  // 处理费用编辑
+  const handleFeeEdit = (field: string, currentValue: number) => {
+    setEditingFee({
+      field,
+      value: currentValue.toString(),
+    });
+  };
+
+  const handleFeeChange = (value: string) => {
+    if (editingFee) {
+      setEditingFee({
+        ...editingFee,
+        value,
+      });
+    }
+  };
+
+  const handleFeeSave = (field: string) => {
+    if (editingFee && editingFee.field === field) {
+      const newValue = parseFloat(editingFee.value);
+      if (!isNaN(newValue) && newValue >= 0) {
+        setFeeConfig(prev => ({
+          ...prev,
+          [field]: newValue,
+        }));
+        if (onUpdateFeeConfig) {
+          onUpdateFeeConfig({
+            ...feeConfig,
+            [field]: newValue,
+          });
+        }
+      }
+      setEditingFee(null);
+    }
+  };
+
+  // 处理自定义字段编辑
+  const handleCustomFieldEdit = (fieldIndex: number, currentValue: string) => {
+    setEditingCustomField({
+      fieldIndex,
+      value: currentValue,
+    });
+  };
+
+  const handleCustomFieldChange = (value: string) => {
+    if (editingCustomField) {
+      setEditingCustomField({
+        ...editingCustomField,
+        value,
+      });
+    }
+  };
+
+  const handleCustomFieldSave = (fieldIndex: number) => {
+    if (editingCustomField && editingCustomField.fieldIndex === fieldIndex) {
+      const updatedFields = [...projectFields];
+      updatedFields[fieldIndex] = {
+        ...updatedFields[fieldIndex],
+        value: editingCustomField.value,
+      };
+      setProjectFields(updatedFields);
       
-      handleFillPrices();
+      const field = updatedFields[fieldIndex];
+      if (field.name === '联系人') {
+        const newData = {
+          ...quoteData,
+          customerInfo: {
+            ...quoteData.customerInfo,
+            contactPerson: editingCustomField.value,
+          },
+        };
+        setQuoteData(newData);
+        onUpdateData?.(newData);
+      } else if (field.name === '电话') {
+        const newData = {
+          ...quoteData,
+          customerInfo: {
+            ...quoteData.customerInfo,
+            phone: editingCustomField.value,
+          },
+        };
+        setQuoteData(newData);
+        onUpdateData?.(newData);
+      }
+      
+      setEditingCustomField(null);
+    }
+  };
+
+  const handleCustomFieldKeyDown = (e: React.KeyboardEvent, fieldIndex: number) => {
+    if (e.key === 'Enter') {
+      handleCustomFieldSave(fieldIndex);
+    } else if (e.key === 'Escape') {
+      setEditingCustomField(null);
+    }
+  };
+
+  // 添加自定义项目字段
+  const handleAddProjectField = () => {
+    if (!newFieldName.trim()) return;
+    
+    const newField = {
+      id: generateUUID(),
+      name: newFieldName,
+      value: newFieldValue,
     };
+    setTempProjectFields([...tempProjectFields, newField]);
+    setNewFieldName('');
+    setNewFieldValue('');
+  };
 
-    window.addEventListener('fill-market-prices', handleFillPricesEvent);
+  // 移除自定义项目字段
+  const handleRemoveProjectField = (id: string) => {
+    setTempProjectFields(tempProjectFields.filter(f => f.id !== id));
+  };
 
-    return () => {
-      window.removeEventListener('fill-market-prices', handleFillPricesEvent);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // 更新自定义项目字段
+  const handleUpdateProjectField = (id: string, field: 'name' | 'value', value: string) => {
+    setTempProjectFields(prev =>
+      prev.map(f => (f.id === id ? { ...f, [field]: value } : f))
+    );
+  };
 
-  // 搜索市场参考价
+  // 保存项目字段配置
+  const handleSaveProjectFields = () => {
+    setProjectFields(tempProjectFields);
+    setShowProjectConfig(false);
+  };
+
+  // 取消项目字段配置
+  const handleCancelProjectFields = () => {
+    setTempProjectFields(projectFields);
+    setNewFieldName('');
+    setNewFieldValue('');
+    setShowProjectConfig(false);
+  };
+
+  // 保存列配置
+  const handleSaveColumnConfig = () => {
+    setSelectedColumns(tempSelectedColumns);
+    setShowColumnConfig(false);
+  };
+
+  // 取消列配置
+  const handleCancelColumnConfig = () => {
+    setTempSelectedColumns(selectedColumns);
+    setShowColumnConfig(false);
+  };
+
+  // 切换列显示
+  const toggleColumnVisibility = (columnKey: string) => {
+    setTempSelectedColumns(prev =>
+      prev.includes(columnKey)
+        ? prev.filter(k => k !== columnKey)
+        : [...prev, columnKey]
+    );
+  };
+
+  // 保存费用配置
+  const handleSaveFeeConfig = () => {
+    setFeeConfig(tempFeeConfig);
+    if (onUpdateFeeConfig) {
+      onUpdateFeeConfig(tempFeeConfig);
+    }
+    setShowFeeConfig(false);
+  };
+
+  // 取消费用配置
+  const handleCancelFeeConfig = () => {
+    setTempFeeConfig(feeConfig);
+    setShowFeeConfig(false);
+  };
+
+  // 处理删除产品
+  const handleRemoveProduct = (productIndex: number) => {
+    if (onRemoveProduct) {
+      onRemoveProduct(productIndex);
+    } else {
+      const updatedProducts = safeProducts.filter((_, index) => index !== productIndex);
+      const newData = {
+        ...quoteData,
+        products: updatedProducts,
+      };
+      setQuoteData(newData);
+      onUpdateData?.(newData);
+    }
+  };
+
+  // 搜索单个产品的市场价
   const handleSearchMarketPrice = async (productIndex: number) => {
-    const product = data.products[productIndex];
-    if (!product) return;
+    const product = safeProducts[productIndex];
+    if (!product) {
+      console.error('[QuoteTable] 产品不存在:', productIndex);
+      return;
+    }
+
+    console.log('[QuoteTable] ========== 开始查询市场价 ==========');
+    console.log('[QuoteTable] 产品信息:', {
+      name: product.name,
+      model: product.model,
+      specifications: product.specifications
+    });
+
+    setSearchingMarketPrice(productIndex);
+    setMarketPrices(prev => ({
+      ...prev,
+      [productIndex]: { 
+        loading: true, 
+        data: null, 
+        error: null, 
+        showConfirm: false 
+      }
+    }));
+
+    try {
+      const requestBody = {
+        products: [
+          {
+            name: product.name,
+            model: product.model || '',
+            specs: product.specifications || product.model || '',
+          },
+        ],
+      };
+
+      console.log('[QuoteTable] 请求体:', requestBody);
+
+      const response = await fetch('/api/quotes/market-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('[QuoteTable] 响应状态:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('[QuoteTable] 响应数据:', result);
+
+      const marketData = result.data?.[0] || result;
+      
+      const priceValue = marketData.averageMarketPrice ||
+                         marketData.price ||
+                         marketData.marketPrice ||
+                         marketData.value ||
+                         marketData.unitPrice ||
+                         0;
+
+      console.log('[QuoteTable] 提取的价格值:', priceValue);
+
+      setMarketPrices(prev => ({
+        ...prev,
+        [productIndex]: {
+          loading: false,
+          data: marketData,
+          error: null,
+          showConfirm: true,
+        }
+      }));
+
+      if (autoFillEnabled && priceValue > 0) {
+        console.log('[QuoteTable] 准备自动填充价格:', priceValue);
+        setPendingAutoFill({ index: productIndex, price: priceValue });
+      }
+
+      console.log('[QuoteTable] ========== 查询完成 ==========');
+    } catch (error) {
+      console.error('[QuoteTable] 搜索市场价失败:', error);
+      setMarketPrices(prev => ({
+        ...prev,
+        [productIndex]: {
+          loading: false,
+          data: null,
+          error: error instanceof Error ? error.message : '网络错误',
+          showConfirm: false,
+        }
+      }));
+    } finally {
+      setSearchingMarketPrice(null);
+    }
+  };
+
+  // 搜索所有产品的市场价
+  const handleSearchAllMarketPrices = async () => {
+    console.log('[QuoteTable] ========== 开始批量查询市场价 ==========');
+    setIsSearchingAll(true);
+    setMarketPriceStats(null);
+    
+    const products = safeProducts;
+    const results: Record<number, any> = {};
+    let matched = 0;
+    let totalDiff = 0;
+
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
+      if (!product) continue;
+      
+      setMarketPrices(prev => ({
+        ...prev,
+        [i]: { ...prev[i], loading: true, error: null }
+      }));
+
+      try {
+        const response = await fetch('/api/quotes/market-price', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            products: [{
+              name: product.name,
+              model: product.model || '',
+              specs: product.specifications || product.model || '',
+            }]
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const marketData = result.data?.[0] || result;
+          results[i] = marketData;
+          matched++;
+          
+          const priceValue = marketData.averageMarketPrice ||
+                             marketData.price ||
+                             marketData.marketPrice ||
+                             marketData.value ||
+                             marketData.unitPrice ||
+                             0;
+          
+          if (priceValue > 0) {
+            totalDiff += Math.abs((product.unitPrice || 0) - priceValue);
+          }
+        }
+      } catch (error) {
+        console.error(`[QuoteTable] 搜索产品 ${product.name} 市场价失败:`, error);
+      }
+    }
+
+    const newMarketPrices: Record<number, any> = {};
+    for (let i = 0; i < products.length; i++) {
+      newMarketPrices[i] = {
+        loading: false,
+        data: results[i] || null,
+        error: results[i] ? null : '查询失败',
+        showConfirm: true,
+      };
+    }
+    setMarketPrices(newMarketPrices);
+    
+    setMarketPriceStats({
+      total: products.length,
+      matched,
+      averageDiff: matched > 0 ? totalDiff / matched : 0,
+    });
+    
+    setIsSearchingAll(false);
+    console.log('[QuoteTable] ========== 批量查询完成 ==========');
+
+    if (autoFillEnabled && matched > 0) {
+      setTimeout(() => {
+        handleApplyAllMarketPrices();
+      }, 500);
+    }
+  };
+
+  // 应用市场价
+  const handleApplyMarketPrice = (productIndex: number) => {
+    const marketData = marketPrices[productIndex];
+    
+    if (!marketData || !marketData.data) {
+      console.error('[QuoteTable] 市场价数据不存在');
+      return;
+    }
+
+    const marketPriceValue = marketData.data.averageMarketPrice ||
+                             marketData.data.price ||
+                             marketData.data.marketPrice ||
+                             marketData.data.value ||
+                             marketData.data.unitPrice ||
+                             0;
+    
+    if (marketPriceValue === 0) {
+      console.error('[QuoteTable] 无法提取价格');
+      return;
+    }
+
+    console.log('[QuoteTable] 应用市场价:', {
+      productIndex,
+      oldPrice: safeProducts[productIndex]?.unitPrice,
+      newPrice: marketPriceValue
+    });
+
+    if (onUpdateProductPrice) {
+      onUpdateProductPrice(productIndex, marketPriceValue);
+    } else {
+      const updatedProducts = [...safeProducts];
+      if (updatedProducts[productIndex]) {
+        updatedProducts[productIndex] = {
+          ...updatedProducts[productIndex],
+          unitPrice: marketPriceValue,
+          totalPrice: marketPriceValue * (updatedProducts[productIndex].quantity || 1),
+        };
+        const newData = {
+          ...quoteData,
+          products: updatedProducts,
+        };
+        setQuoteData(newData);
+        onUpdateData?.(newData);
+      }
+    }
 
     setMarketPrices(prev => ({
       ...prev,
-      [productIndex]: {
-        loading: true,
-        data: null,
-        error: null,
-        showConfirm: false,
-      },
+      [productIndex]: { ...prev[productIndex], showConfirm: false }
     }));
+  };
+
+  // 应用所有市场价
+  const handleApplyAllMarketPrices = () => {
+    console.log('[QuoteTable] 开始应用所有市场价');
+    
+    const updatedProducts = [...safeProducts];
+    let appliedCount = 0;
+
+    for (let i = 0; i < updatedProducts.length; i++) {
+      const marketData = marketPrices[i];
+      if (marketData?.data && updatedProducts[i]) {
+        const marketPriceValue = marketData.data.averageMarketPrice ||
+                                 marketData.data.price ||
+                                 marketData.data.marketPrice ||
+                                 marketData.data.value ||
+                                 marketData.data.unitPrice ||
+                                 0;
+        
+        if (marketPriceValue > 0) {
+          updatedProducts[i] = {
+            ...updatedProducts[i],
+            unitPrice: marketPriceValue,
+            totalPrice: marketPriceValue * (updatedProducts[i].quantity || 1),
+          };
+          appliedCount++;
+        }
+      }
+    }
+
+    if (appliedCount > 0) {
+      const newData = {
+        ...quoteData,
+        products: updatedProducts,
+      };
+      setQuoteData(newData);
+      onUpdateData?.(newData);
+      
+      const newMarketPrices = { ...marketPrices };
+      Object.keys(newMarketPrices).forEach(key => {
+        newMarketPrices[parseInt(key)] = {
+          ...newMarketPrices[parseInt(key)],
+          showConfirm: false
+        };
+      });
+      setMarketPrices(newMarketPrices);
+      
+      console.log(`[QuoteTable] 已应用 ${appliedCount} 个产品的市场价`);
+    }
+  };
+
+  // 放弃市场价
+  const handleDismissMarketPrice = (productIndex: number) => {
+    setMarketPrices(prev => ({
+      ...prev,
+      [productIndex]: { ...prev[productIndex], showConfirm: false }
+    }));
+  };
+
+  // 一键填充市场价
+  const handleFillPrices = async () => {
+    console.log('[QuoteTable] ========== 开始填充市场价 ==========');
+    setFillPricesLoading(true);
+    
+    const zeroPriceProducts = safeProducts.filter(p => (p?.unitPrice || 0) === 0);
+    
+    if (zeroPriceProducts.length === 0) {
+      console.log('[QuoteTable] 没有零价格产品需要填充');
+      setFillPricesLoading(false);
+      return;
+    }
+
+    console.log('[QuoteTable] 待填充产品数量:', zeroPriceProducts.length);
 
     try {
       const response = await fetch('/api/quotes/market-price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          productName: product.name,
-          specifications: product.specifications || product.model || '',
+          products: zeroPriceProducts.map(p => ({
+            name: p.name,
+            model: p.model || '',
+            specs: p.specifications || p.model || '',
+          }))
         }),
       });
 
-      const result = await response.json();
-
       if (response.ok) {
-        setMarketPrices(prev => ({
-          ...prev,
-          [productIndex]: {
-            loading: false,
-            data: result,
-            error: null,
-            showConfirm: true,
-          },
-        }));
-      } else {
-        setMarketPrices(prev => ({
-          ...prev,
-          [productIndex]: {
-            loading: false,
-            data: null,
-            error: result.error || '获取失败',
-            showConfirm: false,
-          },
-        }));
+        const result = await response.json();
+        console.log('[QuoteTable] 填充响应:', result);
+        
+        if (result.data && Array.isArray(result.data)) {
+          const updatedProducts = [...safeProducts];
+          let zeroIndex = 0;
+          let filledCount = 0;
+          
+          for (let i = 0; i < updatedProducts.length; i++) {
+            if ((updatedProducts[i]?.unitPrice || 0) === 0 && zeroIndex < result.data.length) {
+              const marketData = result.data[zeroIndex];
+              
+              const marketPriceValue = marketData.averageMarketPrice ||
+                                        marketData.price ||
+                                        marketData.marketPrice ||
+                                        marketData.value ||
+                                        marketData.unitPrice ||
+                                        0;
+              
+              console.log(`[QuoteTable] 产品 ${i} - 提取价格: ${marketPriceValue}`);
+              
+              if (marketPriceValue > 0 && updatedProducts[i]) {
+                if (onUpdateProductPrice) {
+                  onUpdateProductPrice(i, marketPriceValue);
+                } else {
+                  updatedProducts[i] = {
+                    ...updatedProducts[i],
+                    unitPrice: marketPriceValue,
+                    totalPrice: marketPriceValue * (updatedProducts[i].quantity || 1),
+                  };
+                }
+                filledCount++;
+              }
+              zeroIndex++;
+            }
+          }
+          
+          if (!onUpdateProductPrice) {
+            const newData = {
+              ...quoteData,
+              products: updatedProducts,
+            };
+            setQuoteData(newData);
+            onUpdateData?.(newData);
+          }
+          console.log('[QuoteTable] 填充完成，更新了', filledCount, '个产品');
+        }
       }
     } catch (error) {
-      setMarketPrices(prev => ({
-        ...prev,
-        [productIndex]: {
-          loading: false,
-          data: null,
-          error: '网络错误',
-          showConfirm: false,
-        },
-      }));
+      console.error('[QuoteTable] 批量填充市场价失败:', error);
+    } finally {
+      setFillPricesLoading(false);
     }
   };
 
-  // 应用市场参考价
-  const handleApplyMarketPrice = (productIndex: number) => {
-    const marketData = marketPrices[productIndex];
-    if (!marketData?.data?.averageMarketPrice || !onUpdateProductPrice) return;
+  // 导出 Excel
+  const handleDownloadExcel = () => {
+    console.log('[QuoteTable] ========== 导出 Excel ==========');
+    setIsExporting(true);
 
-    onUpdateProductPrice(productIndex, marketData.data.averageMarketPrice);
-
-    setMarketPrices(prev => ({
-      ...prev,
-      [productIndex]: {
-        ...prev[productIndex],
-        showConfirm: false,
-      },
-    }));
-  };
-
-  // 放弃市场参考价
-  const handleDismissMarketPrice = (productIndex: number) => {
-    setMarketPrices(prev => ({
-      ...prev,
-      [productIndex]: {
-        loading: false,
-        data: null,
-        error: null,
-        showConfirm: false,
-      },
-    }));
-  };
-
-  // 更新费用配置
-  const handleUpdateFeeConfig = (field: keyof FeeConfig, value: number) => {
-    setFeeConfig(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  // 更新项目概况字段
-  const handleUpdateProjectField = (fieldIndex: number, value: string) => {
-    const updatedFields = [...projectFields];
-    updatedFields[fieldIndex].value = value;
-    setProjectFields(updatedFields);
-
-    if (onUpdateProjectField) {
-      onUpdateProjectField(fieldIndex, updatedFields[fieldIndex]);
-    }
-  };
-
-  // 添加项目概况字段
-  const handleAddProjectField = () => {
-    const newField: ProjectField = {
-      label: '新字段',
-      value: '',
-      editable: true,
-    };
-    setProjectFields([...projectFields, newField]);
-
-    if (onAddProjectField) {
-      onAddProjectField();
-    }
-  };
-
-  // 删除项目概况字段
-  const handleRemoveProjectField = (fieldIndex: number) => {
-    const updatedFields = projectFields.filter((_, index) => index !== fieldIndex);
-    setProjectFields(updatedFields);
-
-    if (onRemoveProjectField) {
-      onRemoveProjectField(fieldIndex);
-    }
-  };
-
-  // 下载Excel
-  const handleDownloadExcel = async () => {
     try {
-      const response = await fetch('/api/quotes/export', {
+      const wb = XLSX.utils.book_new();
+      const data = [];
+
+      data.push(['报价单', quoteData?.quoteNumber || '']);
+      data.push([]);
+
+      data.push(['供应方信息']);
+      data.push(['公司名称', actualSupplierInfo?.companyName || '']);
+      data.push(['联系人', actualSupplierInfo?.contactPerson || '']);
+      data.push(['电话', actualSupplierInfo?.phone || '']);
+      data.push(['邮箱', actualSupplierInfo?.email || '']);
+      data.push(['地址', actualSupplierInfo?.address || '']);
+      data.push([]);
+
+      data.push(['项目概况']);
+      data.push(['客户名称', quoteData?.customerInfo?.name || '']);
+      data.push(['项目名称', quoteData?.customerInfo?.projectName || '']);
+      data.push(['联系人', quoteData?.customerInfo?.contactPerson || '']);
+      data.push(['电话', quoteData?.customerInfo?.phone || '']);
+      data.push([]);
+
+      if (projectFields.length > 0) {
+        projectFields.forEach(field => {
+          data.push([field.name, field.value]);
+        });
+        data.push([]);
+      }
+
+      const headers = columns
+        .filter(col => selectedColumns.includes(col.key) && col.key !== 'actions' && col.key !== 'marketPrice')
+        .map(col => col.label);
+      data.push(['产品清单']);
+      data.push(headers);
+
+      safeProducts.forEach(product => {
+        if (!product) return;
+        const row: any[] = [];
+        columns
+          .filter(col => selectedColumns.includes(col.key) && col.key !== 'actions' && col.key !== 'marketPrice')
+          .forEach(col => {
+            if (col.key === 'index') {
+              row.push((safeProducts.indexOf(product) + 1).toString());
+            } else if (col.key === 'name') {
+              row.push(product.name || '');
+            } else if (col.key === 'specifications') {
+              row.push(product.specifications || '-');
+            } else if (col.key === 'brand') {
+              row.push(product.brand || '-');
+            } else if (col.key === 'unit') {
+              row.push(product.unit || '个');
+            } else if (col.key === 'quantity') {
+              row.push(product.quantity || 1);
+            } else if (col.key === 'unitPrice') {
+              row.push(product.unitPrice || 0);
+            } else if (col.key === 'totalPrice') {
+              row.push(product.totalPrice || 0);
+            }
+          });
+        data.push(row);
+      });
+
+      data.push([]);
+
+      data.push(['费用汇总']);
+      data.push(['小计', subtotal]);
+      data.push(['税费', `${feeConfig.taxRate}%`, taxAmount]);
+      data.push(['运费', feeConfig.shipping]);
+      data.push(['安装调试费', feeConfig.installation]);
+      data.push(['其他费用', feeConfig.otherFees]);
+      data.push(['总计（含税）', totalAmount]);
+      data.push(['大写金额', formatAmountToChinese(totalAmount)]);
+      data.push([]);
+
+      data.push(['商务条款']);
+      data.push(['付款方式', feeConfig.paymentTerms]);
+      data.push(['质保期', feeConfig.warrantyTerms]);
+      data.push(['交货期', feeConfig.deliveryTerms]);
+      data.push(['报价有效期', formatDate(feeConfig.validUntil)]);
+
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      ws['!cols'] = [
+        { wch: 20 }, { wch: 40 }, { wch: 15 }, { wch: 15 },
+        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, '报价单');
+      const fileName = `报价单_${quoteData?.quoteNumber || 'export'}_${new Date().getTime()}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      console.log('[QuoteTable] Excel 导出成功');
+    } catch (error) {
+      console.error('[QuoteTable] Excel 导出失败:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // 导出 HTML 预览
+  const handleExportHTML = async () => {
+    console.log('[QuoteTable] ========== 导出 HTML ==========');
+    setIsExporting(true);
+
+    try {
+      const htmlData = {
+        quoteNumber: quoteData?.quoteNumber || '',
+        supplierInfo: actualSupplierInfo,
+        customerInfo: quoteData?.customerInfo || {},
+        products: safeProducts,
+        feeConfig: feeConfig,
+        projectFields: projectFields,
+        createdAt: quoteData?.createdAt,
+        subtotal: subtotal,
+        taxAmount: taxAmount,
+        totalAmount: totalAmount,
+        notes: quoteData?.notes,
+      };
+
+      console.log('[QuoteTable] 准备发送到后端的数据:', htmlData);
+
+      const response = await fetch('/api/quotes/export-html', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          data: {
-            ...data,
-            projectFields,
-            feeConfig,
-            feeSummary,
-            tableConfig: {
-              columns,
-              groupType,
-            },
-          },
-          format: 'excel'
-        }),
+        body: JSON.stringify(htmlData),
       });
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${getQuoteTitle(data.products || [])}_${data.quoteNumber}.xlsx`;
-        a.click();
-        window.URL.revokeObjectURL(url);
+
+      if (!response.ok) {
+        throw new Error(`HTML生成失败: ${response.status}`);
       }
+
+      const html = await response.text();
+      
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.document.write(html);
+        newWindow.document.close();
+      } else {
+        alert('请允许浏览器弹出窗口');
+      }
+
+      console.log('[QuoteTable] HTML 导出成功');
     } catch (error) {
-      console.error('Failed to download Excel:', error);
-    }
-  };
-
-  // 检测是否需要强制分页
-  const needsPageBreak = (element: HTMLElement, pageHeight: number = 1123): boolean => {
-    const rect = element.getBoundingClientRect();
-    return rect.bottom > pageHeight;
-  };
-
-  // 在导出前添加分页标记
-  const addPageBreaks = () => {
-    // 移除之前可能存在的分页标记和续表表头
-    const existingMarkers = document.querySelectorAll('.page-break-marker');
-    existingMarkers.forEach(marker => marker.remove());
-
-    const existingContinueHeaders = document.querySelectorAll('.continue-table-indicator');
-    existingContinueHeaders.forEach(header => header.closest('tr')?.remove());
-
-    // 设置A4纸尺寸（像素，2倍scale）
-    const pageWidth = 1588; // A4宽度（210mm @ 96dpi * 2scale = 794px）
-    const pageHeight = 2246; // A4高度（297mm @ 96dpi * 2scale = 1123px）
-    const margin = 40;
-    const contentHeight = pageHeight - 2 * margin;
-
-    // 获取导出容器
-    const container = document.querySelector('.export-container') as HTMLElement;
-    if (!container) return;
-
-    // 计算容器在截图时的实际宽度（scale=2）
-    const containerWidth = 1600; // 固定宽度
-    const containerHeight = container.scrollHeight;
-
-    // 移除所有可能的overflow限制，确保scrollHeight准确
-    const overflowElements = [container, ...Array.from(container.querySelectorAll('*'))] as HTMLElement[];
-    overflowElements.forEach(el => {
-      const computedStyle = window.getComputedStyle(el);
-      if (computedStyle.overflow === 'hidden' || 
-          computedStyle.overflowX === 'hidden' || 
-          computedStyle.overflowY === 'hidden') {
-        // 临时记录原始overflow值
-        if (!el.dataset.originalOverflowBreak) {
-          el.dataset.originalOverflowBreak = el.style.overflow;
-        }
-        el.style.overflow = 'visible';
-      }
-    });
-
-    // 强制浏览器重新计算布局
-    void container.offsetHeight;
-
-    // 使用scrollHeight作为最终高度
-    const finalContainerHeight = container.scrollHeight;
-
-    console.log('[PageBreak] 容器尺寸:', {
-      containerWidth,
-      scrollHeight: container.scrollHeight,
-      scrollWidth: container.scrollWidth,
-      clientHeight: container.clientHeight,
-      最终容器高度: finalContainerHeight,
-      contentHeight
-    });
-
-    // 计算需要多少页
-    const pageCount = Math.ceil(finalContainerHeight / contentHeight);
-    console.log('[PageBreak] 需要的页数:', pageCount);
-
-    // 计算每个分页点的位置（像素）
-    const breakPoints: number[] = [];
-    for (let i = 1; i < pageCount; i++) {
-      breakPoints.push(i * contentHeight);
-    }
-
-    console.log('[PageBreak] 分页点位置:', breakPoints);
-
-    // 特殊处理表格分页 - 确保表格行不被截断
-    const table = document.querySelector('.config-table') as HTMLElement;
-    if (table) {
-      const tableTop = table.offsetTop;
-      const rows = Array.from(table.querySelectorAll('tbody tr'));
-      const headerHeight = table.querySelector('thead tr')?.clientHeight || 40;
-
-      console.log('[PageBreak] 表格位置:', tableTop);
-      console.log('[PageBreak] 表格行数:', rows.length);
-      console.log('[PageBreak] 表头高度:', headerHeight);
-
-      // 计算每个表格行的位置
-      let currentY = tableTop + headerHeight;
-      const rowPositions: Array<{ element: HTMLElement; top: number; bottom: number }> = [];
-
-      rows.forEach((row) => {
-        const rowHeight = row.clientHeight;
-        const rowElement = row as HTMLElement;
-        rowPositions.push({
-          element: rowElement,
-          top: currentY,
-          bottom: currentY + rowHeight
-        });
-        currentY += rowHeight;
-      });
-
-      console.log('[PageBreak] 表格行位置:', rowPositions.map(r => ({
-        top: r.top,
-        bottom: r.bottom,
-        height: r.bottom - r.top
-      })));
-
-      // 调整分页点，确保不在表格行的中间
-      const adjustedBreakPoints = breakPoints.map(breakPoint => {
-        // 查找该分页点所在的表格行
-        const affectedRow = rowPositions.find(r => breakPoint > r.top && breakPoint < r.bottom);
-
-        if (affectedRow) {
-          // 如果分页点在表格行的中间，移动到该行的顶部
-          console.log('[PageBreak] 分页点', breakPoint, '在表格行中间，移动到', affectedRow.top);
-          return affectedRow.top;
-        }
-
-        return breakPoint;
-      });
-
-      console.log('[PageBreak] 调整后的分页点:', adjustedBreakPoints);
-
-      // 在每个分页点插入视觉标记（用于调试，实际可以删除）
-      adjustedBreakPoints.forEach((point, index) => {
-        const marker = document.createElement('div');
-        marker.className = 'page-break-marker';
-        marker.style.position = 'absolute';
-        marker.style.top = `${point}px`;
-        marker.style.left = '0';
-        marker.style.right = '0';
-        marker.style.height = '2px';
-        marker.style.background = 'transparent'; // 改为透明
-        marker.style.zIndex = '9999';
-        marker.dataset.pageBreakIndex = index.toString();
-        marker.dataset.pageBreakValue = point.toString(); // 保存分页点的值
-        container.appendChild(marker);
-        console.log('[PageBreak] 插入分页标记 at', point, 'index:', index);
-      });
-
-      // 在需要分页的表格行前添加表头（续表）
-      if (pageCount > 1 && adjustedBreakPoints.length > 0) {
-        adjustedBreakPoints.forEach((point, index) => {
-          const rowIndex = rowPositions.findIndex(r => r.top === point);
-          if (rowIndex > 0 && rowIndex < rows.length) {
-            const headerRow = table.querySelector('thead tr')?.cloneNode(true) as HTMLElement;
-            if (headerRow) {
-              // 添加续表标识
-              const headerCell = headerRow.querySelector('th');
-              if (headerCell) {
-                const continueText = document.createElement('div');
-                continueText.className = 'continue-table-indicator';
-                continueText.textContent = '（续表）';
-                continueText.style.fontSize = '12px';
-                continueText.style.color = '#666';
-                continueText.style.marginBottom = '4px';
-                headerCell.insertBefore(continueText, headerCell.firstChild);
-              }
-
-              // 在分页点后的第一个表格行前插入表头
-              const nextRow = rows[rowIndex];
-              if (nextRow) {
-                nextRow.parentNode?.insertBefore(headerRow, nextRow);
-                console.log('[PageBreak] 在行', rowIndex, '前插入续表表头');
-              }
-            }
-          }
-        });
-      }
-    }
-  };
-
-  // 强制应用列宽
-  const forceColumnWidths = () => {
-    const table = document.querySelector('.config-table');
-    if (!table) return;
-    
-    // 确保 table-layout 为 fixed
-    (table as HTMLElement).style.setProperty('table-layout', 'fixed', 'important');
-    (table as HTMLElement).style.setProperty('width', '100%', 'important');
-    
-    // 获取所有可见的表头（不包含hidden的）
-    const headers = Array.from(table.querySelectorAll('th')).filter(th => !th.classList.contains('hidden'));
-    const columnWidths = [
-      '4%',   // 序号
-      '14%',  // 产品名称 - 超宽强制换行
-      '22%',  // 规格型号 - 超宽强制换行
-      '8%',   // 品牌 - 超宽强制换行
-      '5%',   // 单位 - 超宽强制换行
-      '6%',   // 数量 - 超宽强制换行
-      '12%',  // 单价 - 超宽强制换行
-      '15%'   // 总价 - 超宽强制换行
-    ];
-    
-    if (headers.length >= 8) {
-      // 设置每个表头的宽度（百分比），使用!important确保生效
-      columnWidths.forEach((width, index) => {
-        (headers[index] as HTMLElement).style.setProperty('width', width, 'important');
-        (headers[index] as HTMLElement).style.setProperty('max-width', width, 'important');
-        (headers[index] as HTMLElement).style.setProperty('min-width', width, 'important');
-      });
-    }
-    
-    // 同时也设置表格中所有单元格的列宽（只设置可见的单元格）
-    const allRows = table.querySelectorAll('tr');
-    allRows.forEach(row => {
-      const visibleCells = Array.from(row.querySelectorAll('td, th')).filter(cell => !cell.classList.contains('hidden'));
-      visibleCells.forEach((cell, index) => {
-        if (index < columnWidths.length) {
-          (cell as HTMLElement).style.setProperty('width', columnWidths[index], 'important');
-          (cell as HTMLElement).style.setProperty('max-width', columnWidths[index], 'important');
-          (cell as HTMLElement).style.setProperty('min-width', columnWidths[index], 'important');
-        }
-      });
-    });
-
-    // 确保所有表格行有最小高度
-    const rows = table.querySelectorAll('tr');
-    rows.forEach(row => {
-      (row as HTMLElement).style.minHeight = '40px';
-    });
-  };
-
-  // 下载PDF（使用截图方式，解决中文乱码问题）
-  const handleDownloadPDF = async () => {
-    let loading: HTMLElement | null = null;
-    
-    try {
-      // 显示加载提示
-      loading = document.createElement('div');
-      loading.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
-      loading.innerHTML = `
-        <div class="bg-white dark:bg-slate-900 rounded-lg p-6 flex items-center gap-3 shadow-xl">
-          <div class="animate-spin h-6 w-6 border-3 border-[#0a4a7a] border-t-transparent rounded-full"></div>
-          <span class="text-slate-900 dark:text-slate-100">正在生成PDF...</span>
-        </div>
-      `;
-      document.body.appendChild(loading);
-
-      // 获取所有可能产生滚动条的元素
-      const container = document.querySelector('.quote-table-container');
-      const pageContainer = document.querySelector('.page-container');
-      const quoteCard = document.querySelector('.quote-card');
-      const body = document.body;
-      const html = document.documentElement;
-      const element = document.querySelector('.export-container') as HTMLElement;
-      
-      if (!element) {
-        loading.remove();
-        alert('未找到导出元素');
-        return;
-      }
-      
-      // 彻底重置所有可能产生滚动条的元素样式
-      const allElements = [html, body, container, pageContainer, quoteCard, element].filter(Boolean) as HTMLElement[];
-      
-      // 保存原始样式
-      const originalStyles: Record<string, any> = {};
-      allElements.forEach((el, index) => {
-        const key = `el${index}`;
-        originalStyles[key] = {
-          overflow: el.style.overflow,
-          overflowX: el.style.overflowX,
-          overflowY: el.style.overflowY,
-          maxHeight: el.style.maxHeight,
-          height: el.style.height,
-          minHeight: el.style.minHeight,
-          scrollbarWidth: el.style.scrollbarWidth
-        };
-        
-        // 彻底重置样式，使用!important确保生效
-        el.style.setProperty('overflow', 'visible', 'important');
-        el.style.setProperty('overflow-x', 'visible', 'important');
-        el.style.setProperty('overflow-y', 'visible', 'important');
-        el.style.setProperty('max-height', 'none', 'important');
-        el.style.setProperty('height', 'auto', 'important');
-        el.style.setProperty('min-height', 'auto', 'important');
-        el.style.setProperty('scrollbar-width', 'none', 'important');
-        el.style.setProperty('-ms-overflow-style', 'none', 'important');
-      });
-      
-      // 添加导出专用类
-      document.documentElement.classList.add('pdf-export-mode');
-      document.body.classList.add('pdf-export-mode');
-      if (container) {
-        container.classList.add('pdf-export-mode');
-        // 确保表格容器有足够高度显示所有内容，且无滚动条
-        (container as HTMLElement).style.setProperty('height', 'auto', 'important');
-        (container as HTMLElement).style.setProperty('min-height', 'auto', 'important');
-        (container as HTMLElement).style.setProperty('max-height', 'none', 'important');
-        (container as HTMLElement).style.setProperty('overflow', 'visible', 'important');
-        (container as HTMLElement).style.setProperty('overflow-x', 'visible', 'important');
-        (container as HTMLElement).style.setProperty('overflow-y', 'visible', 'important');
-      }
-      if (pageContainer) {
-        pageContainer.classList.add('pdf-export-mode');
-        (pageContainer as HTMLElement).style.setProperty('height', 'auto', 'important');
-        (pageContainer as HTMLElement).style.setProperty('min-height', 'auto', 'important');
-        (pageContainer as HTMLElement).style.setProperty('max-height', 'none', 'important');
-      }
-      (element as HTMLElement).classList.add('pdf-export-mode');
-      (element as HTMLElement).style.setProperty('height', 'auto', 'important');
-      (element as HTMLElement).style.setProperty('min-height', 'auto', 'important');
-      (element as HTMLElement).style.setProperty('max-height', 'none', 'important');
-      (element as HTMLElement).style.setProperty('overflow', 'visible', 'important');
-
-      // 确保容器高度足够包含所有内容
-      // 使用scrollHeight作为基础，因为它是浏览器计算的总高度
-      // 但为了保险，我们检查是否有overflow隐藏的情况
-      
-      // 先移除所有可能的overflow限制，确保scrollHeight准确
-      const overflowElements = [element, ...Array.from(element.querySelectorAll('*'))] as HTMLElement[];
-      overflowElements.forEach(el => {
-        const computedStyle = window.getComputedStyle(el);
-        if (computedStyle.overflow === 'hidden' || 
-            computedStyle.overflowX === 'hidden' || 
-            computedStyle.overflowY === 'hidden') {
-          // 临时记录原始overflow值
-          if (!el.dataset.originalOverflow) {
-            el.dataset.originalOverflow = el.style.overflow;
-          }
-          el.style.overflow = 'visible';
-        }
-      });
-
-      // 强制浏览器重新计算布局
-      void element.offsetHeight;
-
-      // 使用scrollHeight作为最终高度
-      const finalHeight = element.scrollHeight + 200; // 加上缓冲
-      (element as HTMLElement).style.height = `${finalHeight}px`;
-
-      console.log('[PDF] 导出容器设置:', {
-        原始scrollHeight: element.scrollHeight,
-        scrollWidth: element.scrollWidth,
-        clientHeight: element.clientHeight,
-        offsetHeight: element.offsetHeight,
-        最终设置高度: finalHeight,
-        直接子元素数: element.children.length
-      });
-
-      // 添加分页标记，避免在内容中间分页
-      addPageBreaks();
-
-      // 强制展开所有表格内容
-      const tables = element.querySelectorAll('.config-table');
-      tables.forEach(table => {
-        (table as HTMLElement).style.width = '100%';
-        (table as HTMLElement).style.tableLayout = 'fixed'; // 改为fixed以精确控制列宽
-        (table as HTMLElement).style.setProperty('overflow', 'visible', 'important');
-        (table as HTMLElement).style.setProperty('overflow-x', 'visible', 'important');
-        (table as HTMLElement).style.setProperty('overflow-y', 'visible', 'important');
-        (table as HTMLElement).style.setProperty('height', 'auto', 'important');
-        (table as HTMLElement).style.setProperty('max-height', 'none', 'important');
-      });
-
-      // 确保所有表格行不被拆分
-      const tableRows = element.querySelectorAll('.config-table tbody tr');
-      tableRows.forEach(row => {
-        (row as HTMLElement).style.pageBreakInside = 'avoid';
-        (row as HTMLElement).style.breakInside = 'avoid';
-      });
-
-      // 确保所有表格单元格不被拆分
-      const allTableCells = element.querySelectorAll('.config-table tbody td');
-      allTableCells.forEach(cell => {
-        (cell as HTMLElement).style.pageBreakInside = 'avoid';
-        (cell as HTMLElement).style.breakInside = 'avoid';
-      });
-
-      // 临时隐藏不需要导出的元素
-      const noExportElements = document.querySelectorAll('.no-export');
-      noExportElements.forEach(el => {
-        (el as HTMLElement).style.display = 'none';
-      });
-
-      // 临时隐藏不需要导出的列（市场参考价和操作列）
-      const excludeColumnKeys = ['marketPrice', 'actions'];
-      const hiddenColumnsStates: Array<{ element: HTMLElement; wasHidden: boolean }> = [];
-      
-      const tableCells = element.querySelectorAll('th, td');
-      tableCells.forEach(cell => {
-        const cellElement = cell as HTMLElement;
-        const columnKey = cellElement.getAttribute('data-column-key');
-        
-        if (columnKey && excludeColumnKeys.includes(columnKey)) {
-          if (!cellElement.classList.contains('hidden')) {
-            hiddenColumnsStates.push({ element: cellElement, wasHidden: false });
-            cellElement.classList.add('hidden');
-          }
-        }
-      });
-
-      // 临时显示所有必要的列（原来hidden但需要导出的）
-      const necessaryColumnKeys = ['index', 'name', 'specifications', 'brand', 'unit', 'quantity', 'unitPrice', 'totalPrice'];
-      const hiddenStates: Array<{ element: HTMLElement; wasHidden: boolean }> = [];
-      
-      tableCells.forEach(cell => {
-        const cellElement = cell as HTMLElement;
-        const columnKey = cellElement.getAttribute('data-column-key');
-        
-        if (columnKey) {
-          if (necessaryColumnKeys.includes(columnKey)) {
-            if (cellElement.classList.contains('hidden')) {
-              hiddenStates.push({ element: cellElement, wasHidden: true });
-              cellElement.classList.remove('hidden');
-            }
-          }
-        }
-      });
-
-      // 在隐藏和显示列之后，强制应用列宽（此时只包含8列）
-      forceColumnWidths();
-
-      // 检测表格宽度，决定横向或竖向
-      const table = element.querySelector('.config-table');
-      let needsLandscape = false;
-
-      if (table) {
-        const tableWidth = (table as HTMLElement).scrollWidth;
-        const containerWidth = element.clientWidth;
-        needsLandscape = tableWidth > containerWidth * 1.2;
-        const firstRow = table.querySelector('tr');
-        const columnCount = firstRow?.cells.length || 0;
-        if (columnCount > 6) {
-          needsLandscape = true;
-        }
-        console.log(`[PDF] 表格宽度: ${tableWidth}, 容器宽度: ${containerWidth}, 列数: ${columnCount}, 需要横向: ${needsLandscape}`);
-      }
-
-      // 使用modern-screenshot将DOM转为PNG图片
-      const dataUrl = await domToPng(element as HTMLElement, {
-        scale: 2, // 提高清晰度
-        backgroundColor: '#ffffff',
-        style: {
-          overflow: 'visible',
-          overflowX: 'visible',
-          overflowY: 'visible',
-          height: 'auto',
-          maxHeight: 'none',
-          minHeight: 'auto',
-          width: '100%', // 让容器自然布局，不要强制宽度
-          maxWidth: 'none',
-          minWidth: 'auto',
-          margin: '0 auto',
-          padding: '20px',
-          scrollbarWidth: 'none',
-          position: 'relative'
-        },
-        filter: (node) => {
-          // 过滤掉不需要导出的元素
-          const nodeElement = node as HTMLElement;
-          if (nodeElement.classList?.contains('no-export')) return false;
-          if (nodeElement.classList?.contains('action-buttons')) return false;
-          if (nodeElement.classList?.contains('page-break-marker')) return false; // 过滤分页标记
-          return true;
-        }
-      });
-
-      // 恢复所有原始样式
-      document.documentElement.classList.remove('pdf-export-mode');
-      document.body.classList.remove('pdf-export-mode');
-      if (container) container.classList.remove('pdf-export-mode');
-      if (pageContainer) pageContainer.classList.remove('pdf-export-mode');
-      (element as HTMLElement).classList.remove('pdf-export-mode');
-      
-      // 恢复所有元素的原始样式
-      allElements.forEach((el, index) => {
-        const key = `el${index}`;
-        const styles = originalStyles[key];
-        if (styles) {
-          el.style.overflow = styles.overflow;
-          el.style.overflowX = styles.overflowX;
-          el.style.overflowY = styles.overflowY;
-          el.style.maxHeight = styles.maxHeight;
-          el.style.height = styles.height;
-          el.style.minHeight = styles.minHeight;
-          el.style.scrollbarWidth = styles.scrollbarWidth;
-        }
-      });
-
-      // 恢复overflow设置（在导出PDF过程中临时修改的）
-      const restoreOverflowElements = [element, ...Array.from(element.querySelectorAll('*'))] as HTMLElement[];
-      restoreOverflowElements.forEach(el => {
-        if (el.dataset.originalOverflow) {
-          el.style.overflow = el.dataset.originalOverflow;
-          delete el.dataset.originalOverflow;
-        }
-        if (el.dataset.originalOverflowBreak) {
-          el.style.overflow = el.dataset.originalOverflowBreak;
-          delete el.dataset.originalOverflowBreak;
-        }
-      });
-
-      // 恢复表格的原始样式
-      tables.forEach(table => {
-        (table as HTMLElement).style.width = '';
-        (table as HTMLElement).style.tableLayout = '';
-        (table as HTMLElement).style.overflow = '';
-      });
-
-      // 恢复隐藏的元素
-      noExportElements.forEach(el => {
-        (el as HTMLElement).style.display = '';
-      });
-
-      // 恢复临时隐藏的列
-      hiddenColumnsStates.forEach(({ element, wasHidden }) => {
-        if (!wasHidden) {
-          element.classList.remove('hidden');
-        }
-      });
-
-      // 恢复列的 hidden 状态
-      hiddenStates.forEach(({ element, wasHidden }) => {
-        if (wasHidden) {
-          element.classList.add('hidden');
-        }
-      });
-
-      // 创建Image对象获取图片尺寸
-      const img = new Image();
-      img.src = dataUrl;
-      
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-      
-      // 计算PDF尺寸（A4纸张）
-      const pdfWidthPortrait = 595.28; // A4竖向宽度（pt）
-      const pdfHeightPortrait = 841.89; // A4竖向高度（pt）
-      const pdfWidthLandscape = 841.89; // A4横向宽度（pt）
-      const pdfHeightLandscape = 595.28; // A4横向高度（pt）
-      const margin = 40; // 页边距
-
-      const pdfWidth = needsLandscape ? pdfWidthLandscape : pdfWidthPortrait;
-      const pdfHeight = needsLandscape ? pdfHeightLandscape : pdfHeightPortrait;
-
-      // 计算图片尺寸
-      const imgWidth = img.width;
-      const imgHeight = img.height;
-      const ratio = imgWidth / imgHeight;
-      const pdfImgWidth = pdfWidth - margin; // 左右边距各20
-      const pdfImgHeight = pdfImgWidth / ratio;
-
-      // 计算每一页可用的内容高度
-      const pageContentHeight = pdfHeight - margin; // 减去上下边距
-      
-      // 获取分页标记
-      const breakMarkers = element.querySelectorAll('.page-break-marker');
-      const breakPoints = Array.from(breakMarkers)
-        .map(marker => {
-          const top = parseInt((marker as HTMLElement).dataset.pageBreakValue || '0');
-          return top;
-        })
-        .filter(point => point > 0)
-        .sort((a, b) => a - b);
-
-      console.log('[PDF] 分页点（DOM坐标）:', breakPoints);
-
-      // 添加调试信息
-      console.log('[PDF Debug] 开始导出，容器高度:', element.clientHeight);
-      const debugTableRows = element.querySelectorAll('.config-table tbody tr');
-      console.log('[PDF Debug] 表格行数:', debugTableRows.length);
-      if (debugTableRows.length > 0) {
-        console.log('[PDF Debug] 每行平均高度:', element.clientHeight / debugTableRows.length);
-      }
-
-      // 计算图片总高度和每个像素在图片中的比例
-      // 使用设置后的高度，而不是scrollHeight
-      const containerHeight = parseInt((element as HTMLElement).style.height) || element.scrollHeight;
-      const pixelRatio = imgHeight / containerHeight;
-
-      console.log('[PDF] 容器高度:', containerHeight, '图片高度:', imgHeight, '比例:', pixelRatio);
-      console.log('[PDF] 预期分页点数:', breakPoints.length, '实际图片高度:', imgHeight);
-
-      // 转换分页点到图片坐标
-      const imageBreakPoints = breakPoints.map(point => point * pixelRatio);
-      console.log('[PDF] 分页点（图片坐标）:', imageBreakPoints);
-
-      // 计算需要的页数（基于分页标记）
-      const pageCount = imageBreakPoints.length + 1;
-
-      // 创建PDF，根据宽度选择方向
-      const pdf = new jsPDF({
-        orientation: needsLandscape ? 'landscape' : 'portrait',
-        unit: 'pt',
-        format: 'a4'
-      });
-
-      // 计算每页可显示的内容高度（减去页眉页脚）
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const headerHeight = 0;   // PDF内部没有页眉，全部内容都在图片中
-      const footerHeight = 0;   // PDF内部没有页脚，全部内容都在图片中
-      const availableHeight = pageHeight - headerHeight - footerHeight;
-
-      // 计算图片缩放比例
-      const scale = pdfWidth / imgWidth;
-      const scaledImageHeight = imgHeight * scale;
-
-      // 计算需要的页数
-      const totalPages = Math.ceil(scaledImageHeight / availableHeight);
-
-      console.log(`[PDF] 总页数: ${totalPages}, 图片高度: ${imgHeight}, 缩放后高度: ${scaledImageHeight}, 可用高度: ${availableHeight}`);
-      console.log(`[PDF] 缩放比例: ${scale}, PDF宽度: ${pdfWidth}, 图片宽度: ${imgWidth}`);
-
-      // 分页导出
-      for (let page = 0; page < totalPages; page++) {
-        if (page > 0) {
-          pdf.addPage();
-        }
-
-        // 在每页（除第一页）顶部添加续表标记
-        if (page > 0) {
-          pdf.setFontSize(10);
-          pdf.setTextColor(100, 100, 100); // 灰色
-          pdf.text('（续表）', pdfWidth - 40, 15);
-        }
-
-        // 计算当前页要显示的区域
-        const startY = page * (availableHeight / scale); // 原图中的起始Y坐标
-        const endY = Math.min((page + 1) * (availableHeight / scale), imgHeight);
-        const height = endY - startY;
-
-        console.log(`[PDF] 第${page + 1}页: startY=${startY.toFixed(2)}, endY=${endY.toFixed(2)}, height=${height.toFixed(2)}`);
-
-        // 如果当前页没有内容，跳过
-        if (height <= 0) break;
-
-        // 创建canvas截取对应区域
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = imgWidth;
-        pageCanvas.height = height;
-
-        const ctx = pageCanvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(
-            img,
-            0, startY,           // 源图像起始坐标
-            imgWidth, height,    // 源图像宽高
-            0, 0,                 // 目标图像起始坐标
-            imgWidth, height      // 目标图像宽高
-          );
-        }
-
-        const pageDataUrl = pageCanvas.toDataURL('image/png');
-
-        // 添加到PDF，调整位置使其从顶部开始
-        const scaledHeight = height * scale;
-        pdf.addImage(
-          pageDataUrl,
-          'PNG',
-          0,
-          headerHeight, // 留出页眉空间
-          pdfWidth,
-          scaledHeight
-        );
-      }
-
-      // 保存PDF
-      const quoteTitle = getQuoteTitle(data.products || []);
-      pdf.save(`${quoteTitle}_${data.quoteNumber}.pdf`);
-
-      // 移除分页标记
-      const markersToRemove = element.querySelectorAll('.page-break-marker');
-      markersToRemove.forEach(marker => marker.remove());
-
-      // 移除续表表头
-      const continueHeaders = element.querySelectorAll('.continue-table-indicator');
-      continueHeaders.forEach(header => header.closest('tr')?.remove());
-
-    } catch (error) {
-      console.error('PDF导出失败:', error);
-      alert('PDF导出失败，请重试');
+      console.error('[QuoteTable] HTML 导出失败:', error);
+      alert(`HTML导出失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
-      // 移除加载提示
-      if (loading) loading.remove();
+      setIsExporting(false);
     }
   };
 
   // 获取分组后的产品
-  const groupedProducts = groupProducts(data.products, groupType);
+  const getGroupedProducts = () => {
+    const products = safeProducts;
+    
+    if (groupBy === 'none') {
+      return { '全部产品': products };
+    }
+
+    const groups: Record<string, Product[]> = {};
+    
+    products.forEach(product => {
+      if (!product) return;
+      
+      let groupKey = '其他';
+      if (groupBy === 'category' && product.category) {
+        groupKey = product.category;
+      } else if (groupBy === 'brand' && product.brand) {
+        groupKey = product.brand;
+      } else if (groupBy === 'system') {
+        const name = product.name || '';
+        if (name.includes('搅拌')) groupKey = '搅拌系统';
+        else if (name.includes('泵')) groupKey = '泵系统';
+        else if (name.includes('阀')) groupKey = '阀门系统';
+        else if (name.includes('罐')) groupKey = '储罐系统';
+        else if (name.includes('电机')) groupKey = '动力系统';
+        else groupKey = '其他系统';
+      }
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(product);
+    });
+    
+    return groups;
+  };
+
+  // 切换行展开状态
+  const toggleRowExpand = (rowIndex: number) => {
+    setExpandedRows(prev => ({
+      ...prev,
+      [rowIndex]: !prev[rowIndex]
+    }));
+  };
+
+  // 切换备注显示
+  const toggleNoteShow = (rowIndex: number) => {
+    setShowNotes(prev => ({
+      ...prev,
+      [rowIndex]: !prev[rowIndex]
+    }));
+  };
+
+  const groupedProducts = getGroupedProducts();
+  const quoteTitle = getQuoteTitle(safeProducts);
+
+  const marketPriceCount = Object.values(marketPrices).filter(m => m?.data).length;
 
   return (
-    <div className="quote-card w-full bg-white dark:bg-slate-950 rounded-xl shadow-lg overflow-hidden">
-      {/* 导出容器 - 包含所有需要导出的内容 */}
-      <div className="export-container" data-quote-id={data.quoteNumber}>
-      {/* 页眉 - 蓝渐变背景 */}
+    <div className="export-container bg-white">
+      {/* 页眉 - 公司信息 */}
       <div className="bg-gradient-to-r from-[#0a4a7a] to-[#2c8c99] px-6 py-5">
-        {/* 公司信息一行排列 */}
         <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* 左侧：公司信息 */}
           <div className="flex items-center gap-4">
-            <div className="p-2 bg-white/20 rounded-lg">
-              <Building2 className="h-6 w-6 text-[#f9a825]" />
-            </div>
+            {actualSupplierInfo?.logoUrl ? (
+              <img
+                src={actualSupplierInfo.logoUrl}
+                alt={actualSupplierInfo.companyName}
+                className="h-12 w-12 object-contain bg-white rounded-lg p-1"
+              />
+            ) : (
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Building2 className="h-8 w-8 text-[#f9a825]" />
+              </div>
+            )}
             <div>
               <h1 className="text-2xl font-bold text-white">
-                {actualSupplierInfo?.companyName || '报价公司'}
+                {actualSupplierInfo?.companyName || '报价单'}
               </h1>
-              <p className="text-sm text-white/80 mt-1">
-                {actualSupplierInfo?.taxNumber && `统一社会信用代码：${actualSupplierInfo.taxNumber}`}
-              </p>
+              <div className="flex items-center gap-4 mt-1 text-sm text-white/80">
+                <span className="flex items-center gap-1">
+                  <Phone className="h-3.5 w-3.5" />
+                  {actualSupplierInfo?.phone}
+                </span>
+                <span className="flex items-center gap-1">
+                  <MailIcon className="h-3.5 w-3.5" />
+                  {actualSupplierInfo?.email}
+                </span>
+              </div>
             </div>
           </div>
-
-          {/* 右侧：联系方式 */}
-          <div className="flex flex-wrap items-center gap-4 text-white/90 text-sm">
-            {actualSupplierInfo?.contactPerson && (
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-[#f9a825]" />
-                <span>{actualSupplierInfo.contactPerson}</span>
-              </div>
-            )}
-            {actualSupplierInfo?.phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-[#f9a825]" />
-                <span>{actualSupplierInfo.phone}</span>
-              </div>
-            )}
-            {actualSupplierInfo?.email && (
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-[#f9a825]" />
-                <span>{actualSupplierInfo.email}</span>
-              </div>
-            )}
+          <div className="text-right">
+            <div className="text-white/90 text-sm">报价单号</div>
+            <div className="text-white font-bold text-lg">{quoteData?.quoteNumber || ''}</div>
+            <div className="text-white/80 text-xs mt-1">
+              日期：{formatDate(quoteData?.createdAt)}
+            </div>
           </div>
         </div>
       </div>
 
       {/* 标题区域 */}
-      <div className="px-6 py-4 text-center border-b border-slate-200 dark:border-slate-800">
-        <h2 className="text-2xl font-bold text-[#0a4a7a]">{getQuoteTitle(data.products || [])}</h2>
-        <p className="text-xs text-slate-400 mt-1">
-          报价单号：{data.quoteNumber} | 日期：{projectFields.find(f => f.label === '报价日期')?.value || new Date().toLocaleDateString('zh-CN')}
-        </p>
-      </div>
-
-      {/* 操作按钮 - 不导出 */}
-      <div className="px-6 py-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center no-export">
-        {/* 分组选择 */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-600 dark:text-slate-400">分组方式：</span>
-          <Select value={groupType} onValueChange={(value: GroupType) => setGroupType(value)}>
-            <SelectTrigger className="h-8 w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">不分组</SelectItem>
-              <SelectItem value="category">按类别</SelectItem>
-              <SelectItem value="brand">按品牌</SelectItem>
-              <SelectItem value="system">按系统</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* 导出按钮 */}
-        <div className="flex justify-end gap-2">
-          {/* 填充市场价按钮 - 仅当有0价格产品时显示 */}
-          {hasZeroPriceProducts && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleFillPrices}
-              disabled={isFillingPrices}
-              className="border-[#f9a825] text-[#f9a825] hover:bg-[#f9a825] hover:text-white transition-colors"
-            >
-              {isFillingPrices ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  填充中...
-                </>
-              ) : (
-                <>
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  填充市场价
-                </>
-              )}
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadExcel}
-            className="border-[#2c8c99] text-[#2c8c99] hover:bg-[#2c8c99] hover:text-white transition-colors"
-          >
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Excel
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadPDF}
-            className="border-[#0a4a7a] text-[#0a4a7a] hover:bg-[#0a4a7a] hover:text-white transition-colors"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            PDF
-          </Button>
-        </div>
-      </div>
-
-      <div className="p-6 space-y-6">
-        {/* 项目概况 */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-[#0a4a7a]" />
-              <h3 className="text-lg font-bold text-[#0a4a7a]">项目概况</h3>
-              <div className="flex-1 h-px bg-gradient-to-r from-[#0a4a7a] to-transparent ml-4"></div>
+      <div className="px-6 py-4 border-b border-slate-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">{quoteTitle}</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              生成时间：{new Date().toLocaleString('zh-CN')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* 自动填充开关 */}
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-sm text-slate-600">自动填充</span>
+              <Switch
+                checked={autoFillEnabled}
+                onCheckedChange={setAutoFillEnabled}
+              />
             </div>
+
+            {/* 批量填充按钮 */}
+            {hasZeroPriceProducts && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleFillPrices}
+                      disabled={fillPricesLoading}
+                      className="border-[#f9a825] text-[#f9a825] hover:bg-[#f9a825] hover:text-white"
+                    >
+                      {fillPricesLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          填充中...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          填充市场价
+                        </>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>自动填充所有零价格产品的市场参考价</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+
+            {/* 批量查价 */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSearchAllMarketPrices}
+                    disabled={isSearchingAll}
+                    className="border-[#2c8c99] text-[#2c8c99] hover:bg-[#2c8c99] hover:text-white"
+                  >
+                    {isSearchingAll ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        查询中...
+                      </>
+                    ) : (
+                      <>
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        批量查价
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>查询所有产品的市场参考价</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            {/* 应用所有价格按钮 */}
+            {marketPriceCount > 0 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleApplyAllMarketPrices}
+                      className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      应用全部 ({marketPriceCount})
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>应用所有已查询到的市场价</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+
+            {/* 重新生成按钮 */}
+            {onRegenerate && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onRegenerate}
+                      className="border-slate-300"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      重新生成
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>重新生成报价单</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+
+            {/* 导出按钮 */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="border-slate-300" disabled={isExporting}>
+                  {isExporting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      导出中...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      导出
+                    </>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={handleDownloadExcel} className="cursor-pointer">
+                  <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+                  Excel文件
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportHTML} className="cursor-pointer">
+                  <FileText className="h-4 w-4 mr-2 text-blue-600" />
+                  HTML预览（可打印/保存PDF）
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
+
+      {/* 项目概况 */}
+      <div className="px-6 py-4 border-b border-slate-200">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            项目概况
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setTempProjectFields(projectFields);
+              setShowProjectConfig(true);
+            }}
+            className="h-8 text-xs"
+          >
+            <Settings className="h-3.5 w-3.5 mr-1" />
+            自定义字段
+          </Button>
+        </div>
+        <div className="grid grid-cols-4 gap-4">
+          {/* 客户名称 */}
+          <div key="project-field-客户名称" className="col-span-1">
+            <div className="text-xs text-slate-500 mb-1">客户名称</div>
+            {editingField && editingField.rowIndex === 0 ? (
+              <Input
+                value={editingField.value}
+                onChange={(e) => handleProjectFieldChange(e.target.value)}
+                onBlur={() => handleProjectFieldSave('name')}
+                onKeyDown={(e) => e.key === 'Enter' && handleProjectFieldSave('name')}
+                className="h-8 text-sm"
+                autoFocus
+              />
+            ) : (
+              <div
+                className="text-sm font-medium cursor-pointer hover:text-[#0a4a7a] hover:underline flex items-center gap-1 group"
+                onClick={() => handleProjectFieldEdit('name', quoteData?.customerInfo?.name || '')}
+              >
+                {quoteData?.customerInfo?.name || '未填写'}
+                <Edit className="h-3 w-3 text-slate-400 opacity-0 group-hover:opacity-100" />
+              </div>
+            )}
+          </div>
+
+          {/* 项目名称 */}
+          <div key="project-field-项目名称" className="col-span-1">
+            <div className="text-xs text-slate-500 mb-1">项目名称</div>
+            {editingField && editingField.rowIndex === 1 ? (
+              <Input
+                value={editingField.value}
+                onChange={(e) => handleProjectFieldChange(e.target.value)}
+                onBlur={() => handleProjectFieldSave('projectName')}
+                onKeyDown={(e) => e.key === 'Enter' && handleProjectFieldSave('projectName')}
+                className="h-8 text-sm"
+                autoFocus
+              />
+            ) : (
+              <div
+                className="text-sm font-medium cursor-pointer hover:text-[#0a4a7a] hover:underline flex items-center gap-1 group"
+                onClick={() => handleProjectFieldEdit('projectName', quoteData?.customerInfo?.projectName || '')}
+              >
+                {quoteData?.customerInfo?.projectName || '未填写'}
+                <Edit className="h-3 w-3 text-slate-400 opacity-0 group-hover:opacity-100" />
+              </div>
+            )}
+          </div>
+
+          {/* 自定义项目字段 */}
+          {projectFields.map((field, index) => {
+            const fieldIndex = index;
+            return (
+              <div key={`project-field-${field.id}-${index}`} className="col-span-1 relative group">
+                <div className="text-xs text-slate-500 mb-1">{field.name}</div>
+                {editingCustomField?.fieldIndex === fieldIndex ? (
+                  <Input
+                    value={editingCustomField.value}
+                    onChange={(e) => handleCustomFieldChange(e.target.value)}
+                    onBlur={() => handleCustomFieldSave(fieldIndex)}
+                    onKeyDown={(e) => handleCustomFieldKeyDown(e, fieldIndex)}
+                    className="h-8 text-sm"
+                    autoFocus
+                  />
+                ) : (
+                  <div
+                    className="text-sm font-medium cursor-pointer hover:text-[#0a4a7a] hover:underline flex items-center gap-1 group"
+                    onClick={() => handleCustomFieldEdit(fieldIndex, field.value)}
+                  >
+                    {field.value || '-'}
+                    <Edit className="h-3 w-3 text-slate-400 opacity-0 group-hover:opacity-100" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 产品清单表格 */}
+      <div className="px-6 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            产品清单
+          </h3>
+          <div className="flex items-center gap-2">
+            <Select value={groupBy} onValueChange={setGroupBy}>
+              <SelectTrigger className="w-[130px] h-8 text-xs">
+                <SelectValue placeholder="分组方式" />
+              </SelectTrigger>
+              <SelectContent>
+                {groupOptions.map(option => (
+                  <SelectItem key={`group-option-${option.key}`} value={option.key}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleAddProjectField}
-              className="h-8 px-2 text-[#2c8c99] hover:bg-[#2c8c99]/10 no-export"
+              onClick={() => {
+                setTempSelectedColumns(selectedColumns);
+                setShowColumnConfig(true);
+              }}
+              className="h-8 text-xs"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              添加字段
+              <Settings className="h-3.5 w-3.5 mr-1" />
+              显示列
             </Button>
-          </div>
-
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/30">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {projectFields.map((field, index) => (
-                <div key={field.label} className="flex items-center gap-2">
-                  <span className="text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap w-24">
-                    {field.label}
-                  </span>
-                  <span className="text-slate-900 dark:text-slate-100">:</span>
-                  {editingField === index && field.editable !== false ? (
-                    <Input
-                      value={field.value}
-                      onChange={(e) => handleUpdateProjectField(index, e.target.value)}
-                      onBlur={() => setEditingField(null)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') setEditingField(null);
-                      }}
-                      className="flex-1 h-8 text-sm"
-                      autoFocus
-                    />
-                  ) : (
-                    <span
-                      className="flex-1 text-sm text-slate-900 dark:text-slate-100 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 px-2 py-1 rounded"
-                      onClick={() => setEditingField(index)}
-                    >
-                      {field.value || '-'}
-                    </span>
-                  )}
-                  {field.editable !== false && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveProjectField(index)}
-                      className="h-6 w-6 p-0 text-slate-400 hover:text-red-500 no-export"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
-        {/* 产品清单 */}
-        {groupedProducts.map((group, groupIndex) => (
-          <div key={groupIndex}>
-            {groupType !== 'none' && (
-              <div className="flex items-center gap-2 mb-4">
-                <FileDown className="h-5 w-5 text-[#0a4a7a]" />
-                <h3 className="text-lg font-bold text-[#0a4a7a]">{group.name}</h3>
-                <div className="flex-1 h-px bg-gradient-to-r from-[#0a4a7a] to-transparent ml-4"></div>
-              </div>
-            )}
-
-            <div className="quote-table-container rounded-lg border border-slate-200 dark:border-slate-800">
-              <Table className="config-table">
-                <TableHeader className="bg-[#0a4a7a]">
-                  <TableRow>
-                    {columns.map((column) => {
-                      return (
-                        <TableHead
-                          key={column.key}
-                          data-column-key={column.key}
-                          className={`text-white ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : ''} ${column.visible ? '' : 'hidden'}`}
+        {/* 表格容器 */}
+        <div className="quote-table-container rounded-lg border border-slate-200 overflow-auto" style={{ maxHeight: '600px' }}>
+          <Table className="config-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+            <TableHeader className="bg-[#0a4a7a] sticky top-0 z-10">
+              <TableRow>
+                {columns
+                  .filter(col => selectedColumns.includes(col.key))
+                  .sort((a, b) => a.priority - b.priority)
+                  .map(column => (
+                    <TableHead
+                      key={`header-${column.key}`}
+                      className={`text-white font-semibold py-3 px-4 ${
+                        column.align === 'right' ? 'text-right' :
+                        column.align === 'center' ? 'text-center' : 'text-left'
+                      }`}
+                      style={{ 
+                        width: column.key === 'specifications' ? '30%' : 
+                               column.key === 'name' ? '20%' : 'auto',
+                        minWidth: column.key === 'specifications' ? '250px' : 
+                                  column.key === 'name' ? '150px' : '80px'
+                      }}
+                    >
+                      {column.label}
+                    </TableHead>
+                  ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(groupedProducts).map(([groupName, products], groupIndex) => {
+                const groupKey = `group-${groupName}-${groupIndex}`;
+                return (
+                  <React.Fragment key={groupKey}>
+                    {groupName !== '全部产品' && (
+                      <TableRow key={`group-header-${groupKey}`} className="bg-slate-100">
+                        <TableCell
+                          colSpan={selectedColumns.length}
+                          className="py-2 px-4 font-semibold text-slate-700"
                         >
-                          {column.label}
-                        </TableHead>
+                          {groupName}
+                        </TableCell>
+                      </TableRow>
+                    )}
+
+                    {products.filter(p => p != null).map((product, idx) => {
+                      if (!product) return null;
+                      
+                      const actualIndex = safeProducts.findIndex(p => 
+                        p && p.name === product.name && 
+                        p.model === product.model && 
+                        p.specifications === product.specifications
                       );
-                    })}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {group.products.map((product, productIndex) => {
-                    const actualIndex = data.products.findIndex(p => p === product);
-                    const marketData = marketPrices[actualIndex];
-                    const isEven = productIndex % 2 === 0;
-                    const productKey = `${product.name}-${product.model || ''}-${actualIndex}`;
+                      
+                      const safeIndex = actualIndex !== -1 ? actualIndex : idx;
+                      const marketData = marketPrices[safeIndex];
+                      const isExpanded = expandedRows[safeIndex] || false;
+                      
+                      const marketPriceValue = marketData?.data?.averageMarketPrice ||
+                                               marketData?.data?.price ||
+                                               marketData?.data?.marketPrice ||
+                                               marketData?.data?.value ||
+                                               marketData?.data?.unitPrice ||
+                                               0;
+                      
+                      const priceDiff = marketPriceValue > 0
+                        ? calculatePriceDiff(product.unitPrice || 0, marketPriceValue)
+                        : null;
+                      
+                      const productUniqueKey = product.id 
+                        ? `product-${product.id}`
+                        : `product-${safeIndex}-${product.name || ''}-${product.model || ''}`;
 
-                    return (
-                      <TableRow
-                        key={productKey}
-                        className={`hover:bg-[#2c8c99]/10 transition-colors ${
-                          isEven ? 'bg-white' : 'bg-slate-50 dark:bg-slate-900/30'
-                        }`}
-                      >
-                        {columns.map((column) => {
-                          const alignClass = column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : '';
-                          switch (column.key) {
-                            case 'index':
-                              return (
-                                <TableCell key={column.key} data-column-key="index" className={`text-center font-medium text-slate-700 dark:text-slate-300 ${column.visible ? '' : 'hidden'}`}>
-                                  {group.products.indexOf(product) + 1}
-                                </TableCell>
-                              );
-                            case 'name':
-                              return (
-                                <TableCell key={column.key} data-column-key="name" className={`font-semibold text-[#0a4a7a] ${column.visible ? '' : 'hidden'}`}>
-                                  {product.name}
-                                </TableCell>
-                              );
-                            case 'specifications':
-                              return (
-                                <TableCell key={column.key} data-column-key="specifications" className={`text-sm text-slate-600 dark:text-slate-400 ${column.visible ? '' : 'hidden'}`}>
-                                  {product.specifications || product.model || '-'}
-                                </TableCell>
-                              );
-                            case 'brand':
-                              return (
-                                <TableCell key={column.key} data-column-key="brand" className={`text-sm text-slate-600 dark:text-slate-400 ${column.visible ? '' : 'hidden'}`}>
-                                  {product.brand || '-'}
-                                </TableCell>
-                              );
-                            case 'unit':
-                              return (
-                                <TableCell key={column.key} data-column-key="unit" className={`text-center text-sm text-slate-600 dark:text-slate-400 ${column.visible ? '' : 'hidden'}`}>
-                                  {product.unit || '件'}
-                                </TableCell>
-                              );
-                            case 'quantity':
-                              return (
-                                <TableCell key={column.key} data-column-key="quantity" className={`text-center ${column.visible ? '' : 'hidden'}`}>
-                                  <Input
-                                    type="number"
-                                    min="1"
-                                    value={product.quantity || 1}
-                                    onChange={(e) => {
-                                      const newQuantity = parseInt(e.target.value) || 1;
-                                      // 更新产品数量
-                                      const updatedProducts = [...data.products];
-                                      updatedProducts[actualIndex].quantity = newQuantity;
-                                      // 重新计算总价
-                                      const price = updatedProducts[actualIndex].unitPrice || 0;
-                                      updatedProducts[actualIndex].totalPrice = price * newQuantity;
-                                      // 触发更新
-                                      if (onUpdateProductPrice) {
-                                        onUpdateProductPrice(actualIndex, price);
-                                      }
-                                    }}
-                                    onClick={(e) => {
-                                      (e.target as HTMLInputElement).select();
-                                    }}
-                                    onDoubleClick={(e) => {
-                                      (e.target as HTMLInputElement).select();
-                                    }}
-                                    className="w-14 h-8 px-2 text-center text-sm cursor-pointer focus:ring-2 focus:ring-[#0a4a7a]"
-                                  />
-                                </TableCell>
-                              );
-                            case 'unitPrice':
-                              return (
-                                <TableCell 
-                                  key={column.key} 
-                                  data-column-key="unitPrice" 
-                                  className={`text-right font-bold text-[#d32f2f] pr-4 whitespace-nowrap ${column.visible ? '' : 'hidden'}`}
-                                >
-                                  ¥{product.unitPrice.toFixed(2)}
-                                </TableCell>
-                              );
-                            case 'totalPrice':
-                              return (
-                                <TableCell 
-                                  key={column.key} 
-                                  data-column-key="totalPrice" 
-                                  className={`text-right font-bold text-[#d32f2f] pr-4 whitespace-nowrap ${column.visible ? '' : 'hidden'}`}
-                                >
-                                  ¥{(product.totalPrice || 0).toFixed(2)}
-                                </TableCell>
-                              );
-                            case 'marketPrice':
-                              return (
-                                <TableCell key={column.key} data-column-key="marketPrice" className={`text-right text-sm ${column.visible ? '' : 'hidden'}`}>
-                                  {marketData?.loading ? (
-                                    <div className="flex items-center justify-end gap-2 text-[#2c8c99]">
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                      <span>搜索中</span>
-                                    </div>
-                                  ) : marketData?.error ? (
-                                    <div className="text-red-500 text-xs">{marketData.error}</div>
-                                  ) : marketData?.data?.averageMarketPrice ? (
-                                    <div className="text-right space-y-2">
-                                      <div>
-                                        <div className="font-semibold text-[#2c8c99]">
-                                          ¥{marketData.data.averageMarketPrice.toFixed(2)}
-                                        </div>
-                                        {(() => {
-                                          const priceDiff = calculatePriceDiff(product.unitPrice, marketData.data.averageMarketPrice);
-                                          return (
-                                            <div className={`text-xs font-semibold flex items-center justify-end gap-1 mt-1 ${
-                                              priceDiff.isLower ? 'text-green-600' : 'text-red-600'
-                                            }`}>
-                                              {priceDiff.isLower ? (
-                                                <TrendingDown className="h-3 w-3" />
-                                              ) : (
-                                                <TrendingUp className="h-3 w-3" />
-                                              )}
-                                              <span>{priceDiff.percentage.toFixed(1)}%</span>
-                                            </div>
-                                          );
-                                        })()}
-                                      </div>
+                      return (
+                        <TableRow
+                          key={productUniqueKey}
+                          className={`${
+                            idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                          } hover:bg-slate-100 transition-colors`}
+                        >
+                          {selectedColumns.includes('index') && (
+                            <TableCell key={`cell-index-${productUniqueKey}`} className="text-center py-3 px-4 text-sm">
+                              {safeIndex + 1}
+                            </TableCell>
+                          )}
 
-                                      {marketData.showConfirm && (
-                                        <div className="flex items-center justify-end gap-1 pt-2 border-t border-slate-200 dark:border-slate-700">
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleApplyMarketPrice(actualIndex)}
-                                            className="h-7 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 border border-green-200"
-                                          >
-                                            <CheckCircle className="h-3 w-3 mr-1" />
-                                            应用
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleDismissMarketPrice(actualIndex)}
-                                            className="h-7 px-2 text-xs bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200"
-                                          >
-                                            放弃
-                                          </Button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span className="text-slate-400">-</span>
-                                  )}
-                                </TableCell>
-                              );
-                            case 'actions':
-                              return (
-                                <TableCell key={column.key} data-column-key="actions" className={`text-center ${column.visible ? '' : 'hidden'}`}>
+                          {selectedColumns.includes('name') && (
+                            <TableCell 
+                              key={`cell-name-${productUniqueKey}`} 
+                              className="py-3 px-4"
+                              style={{ 
+                                whiteSpace: 'normal', 
+                                wordBreak: 'break-word',
+                                maxWidth: '200px',
+                                minWidth: '150px'
+                              }}
+                            >
+                              <div className="flex items-start gap-1">
+                                <span className="font-medium text-sm" style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                                  {product.name || ''}
+                                </span>
+                                {product.note && (
                                   <TooltipProvider>
                                     <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleSearchMarketPrice(actualIndex)}
-                                          disabled={marketData?.loading}
-                                          className="h-8 w-8 p-0 hover:bg-[#2c8c99]/20 text-[#2c8c99]"
-                                        >
-                                          {marketData?.loading ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          ) : (
-                                            <Search className="h-4 w-4" />
-                                          )}
-                                        </Button>
+                                      <TooltipTrigger>
+                                        <Info className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        <p>获取市场参考价</p>
+                                        <p>{product.note}</p>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
-                                </TableCell>
-                              );
-                            default:
-                              return null;
-                          }
-                        })}
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                                )}
+                                {(product.specifications?.length || 0) > 100 && (
+                                  <button
+                                    onClick={() => toggleRowExpand(safeIndex)}
+                                    className="text-[#2c8c99] hover:text-[#1e6a73] ml-1 flex-shrink-0"
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronUp className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <ChevronDown className="h-3.5 w-3.5" />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            </TableCell>
+                          )}
+
+                          {selectedColumns.includes('specifications') && (
+                            <TableCell 
+                              key={`cell-specs-${productUniqueKey}`} 
+                              className="py-3 px-4"
+                              style={{ 
+                                whiteSpace: 'normal', 
+                                wordBreak: 'break-word',
+                                maxWidth: '400px',
+                                minWidth: '250px'
+                              }}
+                            >
+                              <div className="text-sm text-slate-600" style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                                {isExpanded
+                                  ? product.specifications
+                                  : product.specifications && product.specifications.length > 150
+                                    ? product.specifications.substring(0, 150) + '...'
+                                    : product.specifications || '-'}
+                              </div>
+                            </TableCell>
+                          )}
+
+                          {selectedColumns.includes('brand') && (
+                            <TableCell key={`cell-brand-${productUniqueKey}`} className="py-3 px-4 text-sm">
+                              {product.brand || '-'}
+                            </TableCell>
+                          )}
+
+                          {selectedColumns.includes('unit') && (
+                            <TableCell key={`cell-unit-${productUniqueKey}`} className="text-center py-3 px-4 text-sm">
+                              {product.unit || '个'}
+                            </TableCell>
+                          )}
+
+                          {selectedColumns.includes('quantity') && (
+                            <TableCell key={`cell-quantity-${productUniqueKey}`} className="text-center py-3 px-4">
+                              {editingQuantity && editingQuantity.rowIndex === safeIndex ? (
+                                <Input
+                                  type="number"
+                                  value={editingQuantity.value}
+                                  onChange={(e) => handleQuantityChange(e.target.value)}
+                                  onBlur={() => handleQuantitySave(safeIndex)}
+                                  onKeyDown={(e) => handleKeyDown(e, safeIndex, 'quantity')}
+                                  className="w-20 h-8 px-2 text-center text-sm cursor-pointer focus:ring-2 focus:ring-[#0a4a7a]"
+                                  autoFocus
+                                  min="0.01"
+                                  step="0.01"
+                                />
+                              ) : (
+                                <div
+                                  className="cursor-pointer hover:text-[#0a4a7a] hover:underline px-2 py-1 text-sm"
+                                  onClick={() => handleQuantityEdit(safeIndex, product.quantity || 1)}
+                                >
+                                  {product.quantity || 1}
+                                </div>
+                              )}
+                            </TableCell>
+                          )}
+
+                          {selectedColumns.includes('unitPrice') && (
+                            <TableCell key={`cell-unitPrice-${productUniqueKey}`} className="text-right py-3 px-4">
+                              {editingPrice && editingPrice.rowIndex === safeIndex ? (
+                                <Input
+                                  type="number"
+                                  value={editingPrice.value}
+                                  onChange={(e) => handlePriceChange(e.target.value)}
+                                  onBlur={() => handlePriceSave(safeIndex)}
+                                  onKeyDown={(e) => handleKeyDown(e, safeIndex, 'price')}
+                                  className="w-24 h-8 px-2 text-right text-sm cursor-pointer focus:ring-2 focus:ring-[#0a4a7a]"
+                                  autoFocus
+                                  min="0"
+                                  step="0.01"
+                                />
+                              ) : (
+                                <div
+                                  className="cursor-pointer hover:text-[#0a4a7a] hover:underline px-2 py-1 font-bold text-[#d32f2f] text-sm"
+                                  onClick={() => handlePriceEdit(safeIndex, product.unitPrice || 0)}
+                                >
+                                  {formatCurrency(product.unitPrice || 0)}
+                                </div>
+                              )}
+                            </TableCell>
+                          )}
+
+                          {selectedColumns.includes('totalPrice') && (
+                            <TableCell key={`cell-totalPrice-${productUniqueKey}`} className="text-right py-3 px-4 font-bold text-sm">
+                              {formatCurrency(product.totalPrice || 0)}
+                            </TableCell>
+                          )}
+
+                          {selectedColumns.includes('marketPrice') && (
+                            <TableCell key={`cell-marketPrice-${productUniqueKey}`} className="text-right py-3 px-4">
+                              {marketData?.loading ? (
+                                <div className="flex items-center justify-end gap-2 text-[#2c8c99]">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <span className="text-sm">搜索中</span>
+                                </div>
+                              ) : marketData?.data ? (
+                                <div className="text-right space-y-2">
+                                  <div>
+                                    <div className="font-semibold text-[#2c8c99] text-sm">
+                                      {(() => {
+                                        const data = marketData.data;
+                                        const priceValue = data.averageMarketPrice ||
+                                                           data.price ||
+                                                           data.marketPrice ||
+                                                           data.value ||
+                                                           data.unitPrice ||
+                                                           0;
+                                        return priceValue > 0 ? `¥${priceValue.toFixed(2)}` : '价格待确认';
+                                      })()}
+                                    </div>
+                                    {priceDiff && (
+                                      <div
+                                        className={`text-xs font-semibold flex items-center justify-end gap-1 ${
+                                          priceDiff.isLower ? 'text-green-600' : 'text-red-600'
+                                        }`}
+                                      >
+                                        {priceDiff.isLower ? (
+                                          <TrendingDown className="h-3 w-3" />
+                                        ) : (
+                                          <TrendingUp className="h-3 w-3" />
+                                        )}
+                                        <span>{Math.abs(priceDiff.percentage).toFixed(1)}%</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {marketData.showConfirm && (
+                                    <div className="flex items-center justify-end gap-1 pt-2 border-t border-slate-200">
+                                      <Button
+                                        size="sm"
+                                        className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700"
+                                        onClick={() => handleApplyMarketPrice(safeIndex)}
+                                      >
+                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                        应用
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 px-2 text-xs"
+                                        onClick={() => handleDismissMarketPrice(safeIndex)}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 text-[#2c8c99]"
+                                        onClick={() => handleSearchMarketPrice(safeIndex)}
+                                      >
+                                        <Search className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>获取市场参考价</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </TableCell>
+                          )}
+
+                          {selectedColumns.includes('actions') && (
+                            <TableCell key={`cell-actions-${productUniqueKey}`} className="text-center py-3 px-4">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setExpandedRows(prev => ({
+                                        ...prev,
+                                        [safeIndex]: !prev[safeIndex]
+                                      }));
+                                    }}
+                                  >
+                                    {isExpanded ? (
+                                      <>
+                                        <ChevronUp className="h-4 w-4 mr-2" />
+                                        收起规格
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-4 w-4 mr-2" />
+                                        展开规格
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      if (product.note) {
+                                        toggleNoteShow(safeIndex);
+                                      }
+                                    }}
+                                    disabled={!product.note}
+                                  >
+                                    <Info className="h-4 w-4 mr-2" />
+                                    查看备注
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    className="text-red-600"
+                                    onClick={() => handleRemoveProduct(safeIndex)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    移除
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })}
+                  </React.Fragment>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* 费用汇总 */}
+      <div className="px-6 py-4 border-t border-slate-200">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+            <Calculator className="h-4 w-4" />
+            费用汇总
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setTempFeeConfig(feeConfig);
+              setShowFeeConfig(true);
+            }}
+            className="h-8 text-xs"
+          >
+            <Settings className="h-3.5 w-3.5 mr-1" />
+            费用配置
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-5 gap-4">
+          <div className="col-span-5">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">小计：</span>
+                <span className="font-medium">{formatCurrency(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600 flex items-center gap-1">
+                  税费 ({feeConfig.taxRate}%)：
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0"
+                    onClick={() => handleFeeEdit('taxRate', feeConfig.taxRate)}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                </span>
+                {editingFee?.field === 'taxRate' ? (
+                  <Input
+                    type="number"
+                    value={editingFee.value}
+                    onChange={(e) => handleFeeChange(e.target.value)}
+                    onBlur={() => handleFeeSave('taxRate')}
+                    onKeyDown={(e) => e.key === 'Enter' && handleFeeSave('taxRate')}
+                    className="w-20 h-7 text-right text-sm"
+                    autoFocus
+                    min="0"
+                    max="100"
+                    step="1"
+                  />
+                ) : (
+                  <span className="font-medium">{formatCurrency(taxAmount)}</span>
+                )}
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600 flex items-center gap-1">
+                  运费：
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0"
+                    onClick={() => handleFeeEdit('shipping', feeConfig.shipping)}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                </span>
+                {editingFee?.field === 'shipping' ? (
+                  <Input
+                    type="number"
+                    value={editingFee.value}
+                    onChange={(e) => handleFeeChange(e.target.value)}
+                    onBlur={() => handleFeeSave('shipping')}
+                    onKeyDown={(e) => e.key === 'Enter' && handleFeeSave('shipping')}
+                    className="w-20 h-7 text-right text-sm"
+                    autoFocus
+                    min="0"
+                    step="0.01"
+                  />
+                ) : (
+                  <span className="font-medium">{formatCurrency(feeConfig.shipping)}</span>
+                )}
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600 flex items-center gap-1">
+                  安装调试费：
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0"
+                    onClick={() => handleFeeEdit('installation', feeConfig.installation)}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                </span>
+                {editingFee?.field === 'installation' ? (
+                  <Input
+                    type="number"
+                    value={editingFee.value}
+                    onChange={(e) => handleFeeChange(e.target.value)}
+                    onBlur={() => handleFeeSave('installation')}
+                    onKeyDown={(e) => e.key === 'Enter' && handleFeeSave('installation')}
+                    className="w-20 h-7 text-right text-sm"
+                    autoFocus
+                    min="0"
+                    step="0.01"
+                  />
+                ) : (
+                  <span className="font-medium">{formatCurrency(feeConfig.installation)}</span>
+                )}
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600 flex items-center gap-1">
+                  其他费用：
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0"
+                    onClick={() => handleFeeEdit('otherFees', feeConfig.otherFees)}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                </span>
+                {editingFee?.field === 'otherFees' ? (
+                  <Input
+                    type="number"
+                    value={editingFee.value}
+                    onChange={(e) => handleFeeChange(e.target.value)}
+                    onBlur={() => handleFeeSave('otherFees')}
+                    onKeyDown={(e) => e.key === 'Enter' && handleFeeSave('otherFees')}
+                    className="w-20 h-7 text-right text-sm"
+                    autoFocus
+                    min="0"
+                    step="0.01"
+                  />
+                ) : (
+                  <span className="font-medium">{formatCurrency(feeConfig.otherFees)}</span>
+                )}
+              </div>
+              <Separator className="my-2" />
+              <div className="flex justify-between font-bold text-base">
+                <span>总计（含税）：</span>
+                <span className="text-[#d32f2f]">{formatCurrency(totalAmount)}</span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>大写金额：</span>
+                <span>{formatAmountToChinese(totalAmount)}</span>
+              </div>
             </div>
           </div>
-        ))}
+        </div>
+      </div>
 
-        {/* 费用汇总 */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <DollarSign className="h-5 w-5 text-[#0a4a7a]" />
-            <h3 className="text-lg font-bold text-[#0a4a7a]">费用汇总</h3>
-            <div className="flex-1 h-px bg-gradient-to-r from-[#0a4a7a] to-transparent ml-4"></div>
+      {/* 商务条款 */}
+      <div className="px-6 py-4 border-t border-slate-200 bg-slate-50">
+        <h3 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+          <FileText className="h-4 w-4" />
+          商务条款
+        </h3>
+        <div className="grid grid-cols-4 gap-4 text-sm">
+          <div>
+            <div className="text-xs text-slate-500 mb-1">付款方式</div>
+            <div className="font-medium">{feeConfig.paymentTerms}</div>
           </div>
+          <div>
+            <div className="text-xs text-slate-500 mb-1">质保期</div>
+            <div className="font-medium">{feeConfig.warrantyTerms}</div>
+          </div>
+          <div>
+            <div className="text-xs text-slate-500 mb-1">交货期</div>
+            <div className="font-medium">{feeConfig.deliveryTerms}</div>
+          </div>
+          <div>
+            <div className="text-xs text-slate-500 mb-1">报价有效期</div>
+            <div className="font-medium">{formatDate(feeConfig.validUntil)}</div>
+          </div>
+        </div>
+      </div>
 
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-6 bg-slate-50 dark:bg-slate-900/30">
-            {/* 费用明细 */}
-            <div className="space-y-3">
-              {/* 小计 */}
-              <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
-                <span className="text-slate-600 dark:text-slate-400">小计</span>
-                <span className="font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                  ¥{feeSummary.subtotal.toFixed(2)}
-                </span>
-              </div>
+      {/* 备注 */}
+      {quoteData?.notes && (
+        <div className="px-6 py-3 border-t border-slate-200 text-sm text-slate-600">
+          <span className="font-medium">备注：</span> {quoteData.notes}
+        </div>
+      )}
 
-              {/* 税费 */}
-              <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-600 dark:text-slate-400">税费</span>
+      {/* 账户信息 */}
+      <div className="px-6 py-4 border-t border-slate-200 text-xs text-slate-500">
+        <div className="flex items-center gap-4">
+          <span>开户银行：{actualSupplierInfo?.bankName || '未填写'}</span>
+          <span>银行账号：{actualSupplierInfo?.bankAccount || '未填写'}</span>
+          <span>统一社会信用代码：{actualSupplierInfo?.taxNumber || '未填写'}</span>
+        </div>
+      </div>
+
+      {/* 页脚 */}
+      <div className="px-6 py-3 text-center text-xs text-slate-400 border-t border-slate-200">
+        本报价单由我司工程师校核生成，如有疑问请联系我们【电话：{actualSupplierInfo?.phone || '待填写'}】
+      </div>
+
+      {/* 费用配置弹窗 */}
+      <Dialog open={showFeeConfig} onOpenChange={setShowFeeConfig}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>费用配置</DialogTitle>
+            <DialogDescription>
+              设置税率、运费和其他费用，以及商务条款。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">费用设置</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="taxRate">税率 (%)</Label>
                   <Select
-                    value={feeConfig.taxRate.toString()}
-                    onValueChange={(value) => handleUpdateFeeConfig('taxRate', parseFloat(value))}
+                    value={tempFeeConfig.taxRate.toString()}
+                    onValueChange={(value) => setTempFeeConfig({ ...tempFeeConfig, taxRate: parseFloat(value) })}
                   >
-                    <SelectTrigger className="h-7 w-32">
-                      <SelectValue />
+                    <SelectTrigger id="taxRate">
+                      <SelectValue placeholder="选择税率" />
                     </SelectTrigger>
                     <SelectContent>
-                      {COMMON_TAX_RATES.map((rate) => (
-                        <SelectItem key={rate.value} value={rate.value.toString()}>
-                          {rate.label}
+                      {COMMON_TAX_RATES.map(rate => (
+                        <SelectItem key={`tax-${rate}`} value={rate.toString()}>
+                          {rate}%
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <span className="font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                  ¥{feeSummary.taxAmount.toFixed(2)}
-                </span>
-              </div>
-
-              {/* 运费 */}
-              <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-[#2c8c99]" />
-                  <span className="text-slate-600 dark:text-slate-400">运费</span>
+                <div className="space-y-2">
+                  <Label htmlFor="shipping">运费 (元)</Label>
                   <Input
+                    id="shipping"
                     type="number"
-                    value={feeConfig.shippingFee}
-                    onChange={(e) => handleUpdateFeeConfig('shippingFee', parseFloat(e.target.value) || 0)}
-                    className="h-7 w-24 text-sm"
+                    value={tempFeeConfig.shipping}
+                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, shipping: parseFloat(e.target.value) || 0 })}
+                    min="0"
+                    step="0.01"
                   />
                 </div>
-                <span className="font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                  ¥{feeSummary.shippingFee.toFixed(2)}
-                </span>
-              </div>
-
-              {/* 安装调试费 */}
-              <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-2">
-                  <Wrench className="h-4 w-4 text-[#2c8c99]" />
-                  <span className="text-slate-600 dark:text-slate-400">安装调试费</span>
+                <div className="space-y-2">
+                  <Label htmlFor="installation">安装调试费 (元)</Label>
                   <Input
+                    id="installation"
                     type="number"
-                    value={feeConfig.installationFee}
-                    onChange={(e) => handleUpdateFeeConfig('installationFee', parseFloat(e.target.value) || 0)}
-                    className="h-7 w-24 text-sm"
+                    value={tempFeeConfig.installation}
+                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, installation: parseFloat(e.target.value) || 0 })}
+                    min="0"
+                    step="0.01"
                   />
                 </div>
-                <span className="font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                  ¥{feeSummary.installationFee.toFixed(2)}
-                </span>
-              </div>
-
-              {/* 其他费用 */}
-              <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-2">
-                  <MoreHorizontal className="h-4 w-4 text-[#2c8c99]" />
-                  <span className="text-slate-600 dark:text-slate-400">其他费用</span>
+                <div className="space-y-2">
+                  <Label htmlFor="otherFees">其他费用 (元)</Label>
                   <Input
+                    id="otherFees"
                     type="number"
-                    value={feeConfig.otherFee}
-                    onChange={(e) => handleUpdateFeeConfig('otherFee', parseFloat(e.target.value) || 0)}
-                    className="h-7 w-24 text-sm"
+                    value={tempFeeConfig.otherFees}
+                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, otherFees: parseFloat(e.target.value) || 0 })}
+                    min="0"
+                    step="0.01"
                   />
                 </div>
-                <span className="font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                  ¥{feeSummary.otherFee.toFixed(2)}
-                </span>
-              </div>
-
-              {/* 总价 */}
-              <div className="flex justify-between items-center py-4">
-                <span className="text-lg font-bold text-[#0a4a7a] whitespace-nowrap">总价（含税）</span>
-                <span className="text-2xl font-bold text-[#d32f2f] whitespace-nowrap">
-                  ¥{feeSummary.totalAmount.toFixed(2)}
-                </span>
               </div>
             </div>
-
-            {/* 大写金额 */}
-            <div className="mt-6 p-4 bg-[#fff3cd] border-l-4 border-[#f9a825] rounded-r">
-              <p className="text-sm text-slate-600 mb-1">大写金额</p>
-              <p className="text-xl font-bold text-[#0a4a7a]">
-                {formatAmountToChinese(feeSummary.totalAmount)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* 商务条款 */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <FileText className="h-5 w-5 text-[#0a4a7a]" />
-            <h3 className="text-lg font-bold text-[#0a4a7a]">商务条款</h3>
-            <div className="flex-1 h-px bg-gradient-to-r from-[#0a4a7a] to-transparent ml-4"></div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/30">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="h-4 w-4 text-[#2c8c99]" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">付款方式</span>
+            <Separator />
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">商务条款</h4>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="paymentTerms">付款方式</Label>
+                  <Input
+                    id="paymentTerms"
+                    value={tempFeeConfig.paymentTerms}
+                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, paymentTerms: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="warrantyTerms">质保期</Label>
+                  <Input
+                    id="warrantyTerms"
+                    value={tempFeeConfig.warrantyTerms}
+                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, warrantyTerms: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryTerms">交货期</Label>
+                  <Input
+                    id="deliveryTerms"
+                    value={tempFeeConfig.deliveryTerms}
+                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, deliveryTerms: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="validUntil">报价有效期</Label>
+                  <Input
+                    id="validUntil"
+                    type="date"
+                    value={tempFeeConfig.validUntil}
+                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, validUntil: e.target.value })}
+                  />
+                </div>
               </div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {data.terms?.payment || '预付30%，发货前付清'}
-              </p>
             </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelFeeConfig}>
+              取消
+            </Button>
+            <Button onClick={handleSaveFeeConfig}>
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/30">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="h-4 w-4 text-[#2c8c99]" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">质保期</span>
+      {/* 显示列配置弹窗 */}
+      <Dialog open={showColumnConfig} onOpenChange={setShowColumnConfig}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>显示列配置</DialogTitle>
+            <DialogDescription>
+              选择要在表格中显示的列。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            {columns.map(column => (
+              <div key={`column-${column.key}`} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`col-${column.key}`}
+                  checked={tempSelectedColumns.includes(column.key)}
+                  onCheckedChange={() => toggleColumnVisibility(column.key)}
+                />
+                <Label htmlFor={`col-${column.key}`}>{column.label}</Label>
               </div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {data.terms?.warranty || '12个月'}
-              </p>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelColumnConfig}>
+              取消
+            </Button>
+            <Button onClick={handleSaveColumnConfig}>
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 自定义字段配置弹窗 */}
+      <Dialog open={showProjectConfig} onOpenChange={setShowProjectConfig}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>自定义字段</DialogTitle>
+            <DialogDescription>
+              添加、编辑或删除项目概况中的自定义字段。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {tempProjectFields.map((field, index) => (
+                <div key={`field-${field.id}-${index}`} className="flex items-center gap-2 p-2 border rounded-md">
+                  <Input
+                    value={field.name}
+                    onChange={(e) => handleUpdateProjectField(field.id, 'name', e.target.value)}
+                    placeholder="字段名称"
+                    className="flex-1"
+                  />
+                  <Input
+                    value={field.value}
+                    onChange={(e) => handleUpdateProjectField(field.id, 'value', e.target.value)}
+                    placeholder="字段值"
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-red-600"
+                    onClick={() => handleRemoveProjectField(field.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
 
-            <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/30">
-              <div className="flex items-center gap-2 mb-2">
-                <Truck className="h-4 w-4 text-[#2c8c99]" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">交货期</span>
-              </div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {data.terms?.delivery || '7个工作日'}
-              </p>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/30">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="h-4 w-4 text-[#2c8c99]" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">报价有效期</span>
-              </div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {data.terms?.validity || '15天'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* 备注 */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <InfoIcon className="h-5 w-5 text-[#0a4a7a]" />
-            <h3 className="text-lg font-bold text-[#0a4a7a]">备注</h3>
-            <div className="flex-1 h-px bg-gradient-to-r from-[#0a4a7a] to-transparent ml-4"></div>
-          </div>
-
-          <div className="p-4 bg-slate-100 dark:bg-slate-900/50 border-l-4 border-slate-400 dark:border-slate-600 rounded-r">
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              1. 本报价单仅供参考，最终价格以双方签订的合同为准。
-            </p>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-              2. 产品规格如有变更，价格将相应调整。
-            </p>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-              3. 如有疑问，请联系我们：{actualSupplierInfo?.phone || ''}
-            </p>
-          </div>
-        </div>
-
-        {/* 账户信息 */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <CreditCard className="h-5 w-5 text-[#0a4a7a]" />
-            <h3 className="text-lg font-bold text-[#0a4a7a]">账户信息</h3>
-            <div className="flex-1 h-px bg-gradient-to-r from-[#0a4a7a] to-transparent ml-4"></div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="rounded-lg border-l-4 border-[#2c8c99] p-4 bg-slate-50 dark:bg-slate-900/30">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">开户银行</p>
-              <p className="font-semibold text-slate-900 dark:text-slate-100">
-                {actualSupplierInfo?.bankName || '中国工商银行'}
-              </p>
-            </div>
-
-            <div className="rounded-lg border-l-4 border-[#f9a825] p-4 bg-slate-50 dark:bg-slate-900/30">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">银行账号</p>
-              <p className="font-semibold text-slate-900 dark:text-slate-100">
-                {actualSupplierInfo?.bankAccount || '6222 0000 0000 0000'}
-              </p>
-            </div>
-
-            <div className="rounded-lg border-l-4 border-[#d32f2f] p-4 bg-slate-50 dark:bg-slate-900/30">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">统一社会信用代码</p>
-              <p className="font-semibold text-slate-900 dark:text-slate-100">
-                {actualSupplierInfo?.taxNumber || '91000000000000000X'}
-              </p>
+            <div className="flex items-center gap-2 p-2 border rounded-md bg-slate-50">
+              <Input
+                value={newFieldName}
+                onChange={(e) => setNewFieldName(e.target.value)}
+                placeholder="新字段名称"
+                className="flex-1"
+              />
+              <Input
+                value={newFieldValue}
+                onChange={(e) => setNewFieldValue(e.target.value)}
+                placeholder="字段值"
+                className="flex-1"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-green-600"
+                onClick={handleAddProjectField}
+                disabled={!newFieldName.trim()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* 页脚 */}
-      <div className="px-6 py-6 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-800">
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2">
-            <Heart className="h-4 w-4 text-red-500" />
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              感谢您的信任，期待与您合作！
-            </p>
-          </div>
-          <div className="flex items-center justify-center gap-4 text-xs text-slate-500 dark:text-slate-500">
-            {actualSupplierInfo?.address && (
-              <div className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                <span>{actualSupplierInfo.address}</span>
-              </div>
-            )}
-            {actualSupplierInfo?.phone && (
-              <div className="flex items-center gap-1">
-                <Phone className="h-3 w-3" />
-                <span>{actualSupplierInfo.phone}</span>
-              </div>
-            )}
-            {actualSupplierInfo?.email && (
-              <div className="flex items-center gap-1">
-                <Mail className="h-3 w-3" />
-                <span>{actualSupplierInfo.email}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelProjectFields}>
+              取消
+            </Button>
+            <Button onClick={handleSaveProjectFields}>
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

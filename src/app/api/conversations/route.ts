@@ -1,86 +1,120 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { createClient } from '@supabase/supabase-js';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
+  console.log('[Conversations] GET 所有对话');
+  
   try {
-    const db = getSupabaseClient();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
-    const { data, error } = await db
+    // 简化查询，不关联其他表
+    const { data, error } = await supabase
       .from('conversations')
-      .select('id, title, updated_at')
-      .order('updated_at', { ascending: false })
-      .limit(50);
+      .select('*')
+      .order('updated_at', { ascending: false });
 
     if (error) {
-      throw error;
+      console.error('[Conversations] 查询失败:', error);
+      return NextResponse.json({ conversations: [] });
     }
 
-    const conversations = data.map((conv: any) => ({
+    const conversations = (data || []).map(conv => ({
       id: conv.id,
-      title: conv.title,
+      title: conv.title || '新对话',
       updatedAt: conv.updated_at,
+      createdAt: conv.created_at,
+      lastMessage: conv.last_message || ''
     }));
 
     return NextResponse.json({ conversations });
   } catch (error) {
-    console.error('Failed to load conversations:', error);
-    return NextResponse.json(
-      { error: 'Failed to load conversations' },
-      { status: 500 }
-    );
+    console.error('[Conversations] 异常:', error);
+    return NextResponse.json({ conversations: [] });
   }
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[Conversations] POST 创建新对话');
+  
   try {
-    const db = getSupabaseClient();
-    const { title } = await request.json();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    let title = '新对话';
+    try {
+      const body = await request.json();
+      title = body.title || '新对话';
+    } catch (e) {}
 
     const now = new Date().toISOString();
-
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from('conversations')
       .insert({
-        title: title || '新对话',
-        messages: [],
+        title: title,
+        last_message: '',
+        status: 'active',
         updated_at: now,
+        created_at: now
       })
       .select()
       .single();
 
     if (error) {
-      throw error;
+      console.error('[Conversations] 插入失败:', error);
+      return NextResponse.json(
+        { error: '创建失败' },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ conversation: data });
+    return NextResponse.json({ 
+      conversation: {
+        id: data.id,
+        title: data.title,
+        updatedAt: data.updated_at,
+        createdAt: data.created_at,
+        lastMessage: ''
+      }
+    });
   } catch (error) {
-    console.error('Failed to create conversation:', error);
+    console.error('[Conversations] 异常:', error);
     return NextResponse.json(
-      { error: 'Failed to create conversation' },
+      { error: '服务器错误' },
       { status: 500 }
     );
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
-    const db = getSupabaseClient();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
-    // 删除所有对话
-    const { error } = await db
+    const { error } = await supabase
       .from('conversations')
       .delete()
-      .neq('id', 0); // 使用一个总是为真的条件来删除所有记录
+      .not('id', 'is', null);
 
     if (error) {
-      throw error;
+      console.error('[Conversations] 清空失败:', error);
+      return NextResponse.json(
+        { error: '清空失败' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Failed to clear all conversations:', error);
+    console.error('[Conversations] 清空异常:', error);
     return NextResponse.json(
-      { error: 'Failed to clear all conversations' },
+      { error: '服务器错误' },
       { status: 500 }
     );
   }

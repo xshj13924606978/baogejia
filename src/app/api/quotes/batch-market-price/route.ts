@@ -16,7 +16,10 @@ export async function POST(request: NextRequest) {
     // 并行查询所有产品的市场价格
     const promises = products.map(async (product: any) => {
       try {
-        const response = await fetch(`${request.nextUrl.origin}/api/quotes/market-price`, {
+        // 安全地获取 origin
+        const origin = request.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5000';
+        
+        const response = await fetch(`${origin}/api/quotes/market-price`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -18,7 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Upload, Send, Paperclip, Sparkles, Square, Loader2, Plus, Code, ArrowUp, ChevronDown, Layers, ArrowDownToLine } from 'lucide-react';
+import { 
+  Upload, Send, Paperclip, Sparkles, Square, Loader2, Plus, Code, 
+  ArrowUp, ChevronDown, Layers, ArrowDownToLine, MessageSquare, Zap, FileText, Sparkle,
+  Info, Brain, FileSpreadsheet, FileText as FileTextIcon, Image as ImageIcon
+} from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import QuoteTable from '@/components/quote-table';
 import ChatMessage from '@/components/chat-message';
@@ -27,6 +31,8 @@ import FixedSwitcher from '@/components/fixed-switcher';
 import FloatingSwitcher from '@/components/floating-switcher';
 import KnowledgeCenter from '@/components/knowledge-center';
 import { useSwitch } from './switch-manager';
+import { useToast } from '@/components/ui/use-toast';
+import { cn } from '@/lib/utils';
 
 interface SupplierInfo {
   companyName: string;
@@ -41,10 +47,11 @@ interface SupplierInfo {
 }
 
 interface ChatAreaProps {
-  conversationId: number | null;
+  conversationId: string | null;
   onOpenRightPanel: () => void;
   onNewConversation?: () => void;
   supplierInfo?: SupplierInfo;
+  onTitleChange?: (title: string) => void;
 }
 
 interface Message {
@@ -55,10 +62,16 @@ interface Message {
   quoteData?: any;
   files?: FileUpload[];
   fileData?: any[];
-  isTemporary?: boolean; // 标记为临时消息（如上传成功提示）
-  action?: string; // 消息动作类型（如 'ASK_INTENT'）
-  fileGroupId?: string; // 文件组ID，用于切换
-  currentChoice?: string; // 当前选中的选项
+  isTemporary?: boolean;
+  action?: string;
+  fileGroupId?: string;
+  currentChoice?: string;
+  metadata?: {
+    intent?: string;
+    inputType?: string;
+    confidence?: number;
+    entities?: any;
+  };
 }
 
 interface FileUpload {
@@ -67,64 +80,391 @@ interface FileUpload {
   size: string;
   type: string;
   url?: string;
-  file?: File; // 保存原始的 File 对象用于上传
+  file?: File;
 }
 
-export default function ChatArea({ conversationId, onOpenRightPanel, onNewConversation, supplierInfo }: ChatAreaProps) {
+// ============================================================================
+// 意图图标映射
+// ============================================================================
+
+const intentIcons: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+  ask_quote: { 
+    icon: <FileText className="h-3 w-3" />, 
+    label: '报价咨询', 
+    color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' 
+  },
+  upload_document: { 
+    icon: <FileSpreadsheet className="h-3 w-3" />, 
+    label: '文件解析', 
+    color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+  },
+  compare_quotes: { 
+    icon: <Layers className="h-3 w-3" />, 
+    label: '对比分析', 
+    color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' 
+  },
+  modify_quote: { 
+    icon: <Zap className="h-3 w-3" />, 
+    label: '修改报价', 
+    color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' 
+  },
+  export_quote: { 
+    icon: <ArrowDownToLine className="h-3 w-3" />, 
+    label: '导出报价', 
+    color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' 
+  },
+  ask_general: { 
+    icon: <MessageSquare className="h-3 w-3" />, 
+    label: '一般咨询', 
+    color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400' 
+  },
+  unknown: { 
+    icon: <Info className="h-3 w-3" />, 
+    label: '未知', 
+    color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400' 
+  }
+};
+
+// ============================================================================
+// 智能标题生成函数
+// ============================================================================
+
+function generateSmartTitle(message: string, files: FileUpload[]): string {
+  if (files && files.length > 0) {
+    const fileNames = files.map(f => f.name).join('、');
+    if (fileNames.length <= 20) {
+      return fileNames;
+    }
+    return fileNames.substring(0, 17) + '...';
+  }
+  
+  if (!message || message.trim() === '') {
+    return '新对话';
+  }
+  
+  const cleanMessage = message.trim().replace(/\s+/g, ' ');
+  
+  if (cleanMessage.length <= 15) {
+    return cleanMessage;
+  }
+  
+  const maxLength = 15;
+  let truncated = cleanMessage.substring(0, maxLength);
+  
+  const lastSpace = truncated.lastIndexOf(' ');
+  if (lastSpace > maxLength * 0.6) {
+    truncated = truncated.substring(0, lastSpace);
+  }
+  
+  return truncated + '...';
+}
+
+// 保存消息到数据库
+const saveMessageToDatabase = async (
+  conversationId: string | null,
+  role: string,
+  content: string,
+  quoteData?: any,
+  files?: any[],
+  metadata?: any
+) => {
+  if (!conversationId) {
+    console.log('[ChatArea] 没有 conversationId，不保存消息');
+    return;
+  }
+  
+  if (!content || content.trim() === '') {
+    console.log('[ChatArea] 消息内容为空，不保存到数据库');
+    return;
+  }
+  
+  try {
+    console.log('[ChatArea] 保存消息到数据库:', { conversationId, role, content });
+    const response = await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversationId,
+        role,
+        content,
+        quoteData,
+        files,
+        metadata
+      })
+    });
+    
+    const data = await response.json();
+    if (response.ok) {
+      console.log('[ChatArea] 消息保存成功:', data);
+    } else {
+      console.error('[ChatArea] 消息保存失败:', data);
+    }
+  } catch (error) {
+    console.error('保存消息失败:', error);
+  }
+};
+
+// 更新对话标题
+const updateConversationTitle = async (conversationId: string, title: string) => {
+  try {
+    console.log('[ChatArea] 更新对话标题:', { conversationId, title });
+    const response = await fetch(`/api/conversations/${conversationId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title })
+    });
+    
+    if (response.ok) {
+      console.log('[ChatArea] 标题更新成功');
+      window.dispatchEvent(new CustomEvent('conversation-list-refresh'));
+      
+      window.dispatchEvent(new CustomEvent('conversation-title-changed', {
+        detail: { title }
+      }));
+    }
+  } catch (error) {
+    console.error('[ChatArea] 更新标题失败:', error);
+  }
+};
+
+export default function ChatArea({ 
+  conversationId, 
+  onOpenRightPanel, 
+  onNewConversation, 
+  supplierInfo,
+  onTitleChange 
+}: ChatAreaProps) {
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [files, setFiles] = useState<FileUpload[]>([]);
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const prevMessagesLengthRef = useRef(0); // 记录上一次的消息数量
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(conversationId);
+  const currentConversationIdRef = useRef(currentConversationId);
+  const [isReady, setIsReady] = useState(false);
+  
+  const shouldAllowCreation = useRef(false);
 
-  // 意图询问相关状态
-  const [pendingFiles, setPendingFiles] = useState<FileUpload[]>([]); // 待处理的文件
-  const [showIntentButtons, setShowIntentButtons] = useState(false); // 是否显示意图选择按钮
-  const [uploadedFilesData, setUploadedFilesData] = useState<any[]>([]); // 上传后的文件数据（包含解析结果）
-
-  // 切换功能相关状态
-  const [parsedFilesMap, setParsedFilesMap] = useState<Record<string, any[]>>({}); // 存储已解析的文件
-  const parsedFilesMapRef = useRef(parsedFilesMap); // 使用 ref 保存最新的 parsedFilesMap
-
-  // 资料中心相关状态
+  const [pendingFiles, setPendingFiles] = useState<FileUpload[]>([]);
+  const [showIntentButtons, setShowIntentButtons] = useState(false);
+  const [uploadedFilesData, setUploadedFilesData] = useState<any[]>([]);
+  const [parsedFilesMap, setParsedFilesMap] = useState<Record<string, any[]>>({});
+  const parsedFilesMapRef = useRef(parsedFilesMap);
   const [showKnowledgeCenter, setShowKnowledgeCenter] = useState(false);
   const [activeModule, setActiveModule] = useState<string | null>(null);
 
-  // 同步 ref 的值
+  const switchContext = useSwitch();
+  const { setActiveGroup, setLoading: setSwitchLoading, fileGroupId: activeGroupId, currentChoice: activeChoice, isLoading: switchIsLoading, generatedChoice, setGeneratedChoice, resetSwitch } =
+    switchContext;
+
+  // 自动滚动到底部的函数
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      console.log('[ChatArea] 滚动到底部');
+    } else if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      console.log('[ChatArea] 滚动到容器底部');
+    }
+  }, []);
+
+  // 当消息数量变化时滚动到底部
+  useEffect(() => {
+    if (messages.length > prevMessagesLengthRef.current) {
+      console.log('[ChatArea] 消息数量增加，触发滚动');
+      setTimeout(scrollToBottom, 100);
+    }
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages, scrollToBottom]);
+
   useEffect(() => {
     parsedFilesMapRef.current = parsedFilesMap;
   }, [parsedFilesMap]);
 
-  // 使用统一的切换状态管理
-  const switchContext = useSwitch();
-  const { setActiveGroup, setLoading: setSwitchLoading, fileGroupId: activeGroupId, currentChoice: activeChoice, isLoading: switchIsLoading, generatedChoice, setGeneratedChoice } =
-    switchContext;
+  useEffect(() => {
+    currentConversationIdRef.current = currentConversationId;
+  }, [currentConversationId]);
 
-  // 保存 activeChoice 的最新值
   const activeChoiceRef = useRef(activeChoice);
   useEffect(() => {
     activeChoiceRef.current = activeChoice;
   }, [activeChoice]);
 
-  // 保存 switchIsLoading 的最新值
   const switchIsLoadingRef = useRef(switchIsLoading);
   useEffect(() => {
     switchIsLoadingRef.current = switchIsLoading;
   }, [switchIsLoading]);
 
-  // 保存 messages 的最新值
   const messagesRef = useRef(messages);
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  // 保存 generatedChoice 的最新值
   const generatedChoiceRef = useRef(generatedChoice);
   useEffect(() => {
     generatedChoiceRef.current = generatedChoice;
   }, [generatedChoice]);
+
+  // 监听新对话事件
+  useEffect(() => {
+    const handleNewConversation = () => {
+      console.log('[ChatArea] 收到新建对话事件，清空所有状态');
+      setMessages([]);
+      setFiles([]);
+      setInput('');
+      setUploadedFilesData([]);
+      setParsedFilesMap({});
+      setCurrentConversationId(null);
+      
+      if (resetSwitch) {
+        resetSwitch();
+      }
+      
+      if (onTitleChange) {
+        onTitleChange('新对话');
+      }
+      
+      setTimeout(scrollToBottom, 100);
+    };
+
+    window.addEventListener('new-conversation', handleNewConversation);
+    return () => {
+      window.removeEventListener('new-conversation', handleNewConversation);
+    };
+  }, [resetSwitch, onTitleChange, scrollToBottom]);
+
+  useEffect(() => {
+    const handleSelectConversation = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { conversationId } = customEvent.detail;
+      console.log('[ChatArea] 收到选择对话事件:', conversationId);
+    };
+
+    window.addEventListener('select-conversation', handleSelectConversation);
+    return () => {
+      window.removeEventListener('select-conversation', handleSelectConversation);
+    };
+  }, []);
+
+  // 监听加载对话事件
+  useEffect(() => {
+    const handleLoadConversation = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { conversationId, messages: loadedMessages, files: loadedFiles } = customEvent.detail;
+      console.log('[ChatArea] 收到加载对话事件:', { 
+        conversationId, 
+        loadedMessagesCount: loadedMessages?.length,
+        loadedFilesCount: loadedFiles?.length 
+      });
+      
+      setCurrentConversationId(conversationId);
+      
+      if (loadedMessages && loadedMessages.length > 0) {
+        console.log('[ChatArea] 设置消息:', loadedMessages);
+        
+        const allFiles: any[] = [];
+        
+        // 找到最后一个助手消息的索引
+        let lastAssistantIndex = -1;
+        for (let i = loadedMessages.length - 1; i >= 0; i--) {
+          if (loadedMessages[i].role === 'assistant') {
+            lastAssistantIndex = i;
+            break;
+          }
+        }
+        
+        const formattedMessages = loadedMessages.map((msg: any, index: number) => {
+          // 如果是助手消息但不是最后一个，返回 null（后续过滤掉）
+          if (msg.role === 'assistant' && index !== lastAssistantIndex) {
+            console.log(`[ChatArea] 过滤掉旧的助手消息: ${msg.id}`);
+            return null;
+          }
+          
+          let fileData = [];
+          
+          if (msg.file_data && Array.isArray(msg.file_data) && msg.file_data.length > 0) {
+            fileData = msg.file_data;
+            console.log(`[ChatArea] 消息 ${msg.id || index} 从 file_data 获取文件:`, fileData.length);
+          } else if (msg.files && Array.isArray(msg.files) && msg.files.length > 0) {
+            fileData = msg.files;
+            console.log(`[ChatArea] 消息 ${msg.id || index} 从 files 获取文件:`, fileData.length);
+          } else if (msg.fileData && Array.isArray(msg.fileData) && msg.fileData.length > 0) {
+            fileData = msg.fileData;
+            console.log(`[ChatArea] 消息 ${msg.id || index} 从 fileData 获取文件:`, fileData.length);
+          } else {
+            console.log(`[ChatArea] 消息 ${msg.id || index} 没有文件数据`);
+          }
+          
+          if (fileData.length > 0) {
+            allFiles.push(...fileData);
+          }
+          
+          const quoteData = msg.quote_data || msg.quoteData;
+          const metadata = msg.metadata;
+          
+          return {
+            id: msg.id || Date.now() + index,
+            role: msg.role || 'assistant',
+            content: msg.content || '',
+            timestamp: msg.created_at || msg.timestamp || new Date().toISOString(),
+            quoteData: quoteData,
+            files: fileData,
+            fileData: fileData,
+            action: msg.action,
+            fileGroupId: msg.fileGroupId,
+            currentChoice: msg.currentChoice,
+            isTemporary: msg.isTemporary || false,
+            metadata: metadata
+          };
+        }).filter(msg => msg !== null); // 过滤掉旧的助手消息
+        
+        setMessages(formattedMessages);
+        
+        const uniqueFiles = allFiles.filter((file, index, self) => 
+          index === self.findIndex(f => f.id === file.id)
+        );
+        
+        if (uniqueFiles.length > 0) {
+          console.log('[ChatArea] 设置文件:', uniqueFiles.length, uniqueFiles);
+          setFiles(uniqueFiles);
+        } else {
+          console.log('[ChatArea] 没有文件可设置');
+        }
+        
+        const firstUserMessage = formattedMessages.find(m => m.role === 'user');
+        if (firstUserMessage && onTitleChange) {
+          const title = generateSmartTitle(firstUserMessage.content, []);
+          onTitleChange(title);
+        }
+        
+        const fileCountByMessage = formattedMessages.map(m => ({
+          id: m.id,
+          filesCount: m.files?.length || 0
+        }));
+        console.log('[ChatArea] 各消息文件数量统计:', fileCountByMessage);
+        console.log('[ChatArea] 总文件数量:', uniqueFiles.length);
+        
+      } else {
+        console.log('[ChatArea] 没有消息可显示');
+        setMessages([]);
+        setFiles([]);
+        if (onTitleChange) {
+          onTitleChange('新对话');
+        }
+      }
+      
+      setTimeout(scrollToBottom, 300);
+    };
+
+    window.addEventListener('load-conversation', handleLoadConversation);
+    return () => {
+      window.removeEventListener('load-conversation', handleLoadConversation);
+    };
+  }, [onTitleChange, scrollToBottom]);
 
   const { getRootProps: getRootPropsForInput, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
@@ -133,32 +473,16 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
         name: file.name,
         size: formatFileSize(file.size),
         type: file.type,
-        file: file, // 保存原始 File 对象
+        file: file,
       }));
       setFiles([...files, ...newFiles]);
     },
-    noClick: true, // 禁止点击打开文件选择器，只允许拖放
+    noClick: true,
     multiple: true,
   });
 
-  // 提取 Dropzone 的拖放相关 props，排除键盘和点击事件
   const dropzoneProps = getRootPropsForInput();
   const { onKeyDown: dropzoneKeyDown, ...dropzonePropsWithoutKeyboard } = dropzoneProps;
-
-  // 创建单独的根属性用于上传按钮（允许点击）
-  const { getRootProps: getRootPropsForButton } = useDropzone({
-    onDrop: (acceptedFiles) => {
-      const newFiles = acceptedFiles.map((file) => ({
-        id: `${Date.now()}-${Math.random()}`,
-        name: file.name,
-        size: formatFileSize(file.size),
-        type: file.type,
-        file: file, // 保存原始 File 对象
-      }));
-      setFiles([...files, ...newFiles]);
-    },
-    multiple: true,
-  });
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 B';
@@ -169,36 +493,40 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
   };
 
   useEffect(() => {
-    if (conversationId) {
-      loadConversation(conversationId);
-    }
-  }, [conversationId]);
-
-  useEffect(() => {
-    // 只在消息数量增加时才滚动到底部（添加新消息时）
-    // 避免在更新现有消息（如修改价格、数量）时滚动
-    if (messages.length > prevMessagesLengthRef.current) {
-      scrollToBottom();
-    }
-    // 更新消息数量记录
-    prevMessagesLengthRef.current = messages.length;
-  }, [messages]);
-
-  // 组件卸载时取消请求
-  useEffect(() => {
+    setIsReady(true);
+    const timer = setTimeout(() => {
+      shouldAllowCreation.current = true;
+      console.log('[ChatArea] 安全锁已开启，现在允许创建对话');
+    }, 500);
+    
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      clearTimeout(timer);
+      setIsReady(false);
+      shouldAllowCreation.current = false;
     };
   }, []);
 
-  // 监听输入框焦点，动态调整悬浮按钮z-index
+  useEffect(() => {
+    if (!isReady) return;
+    
+    if (conversationId) {
+      setCurrentConversationId(conversationId);
+      loadConversation(conversationId);
+    } else {
+      setMessages([]);
+      setCurrentConversationId(null);
+      window.dispatchEvent(new CustomEvent('clear-quote-table'));
+      if (onTitleChange) {
+        onTitleChange('新对话');
+      }
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [conversationId, isReady, onTitleChange, scrollToBottom]);
+
   useEffect(() => {
     const inputElement = document.querySelector('textarea');
     if (inputElement) {
       const handleFocus = () => {
-        // 输入框获得焦点时，临时降低悬浮按钮的z-index
         const switcher = document.querySelector('[class*="floating-switcher"]') as HTMLElement;
         if (switcher) {
           switcher.style.zIndex = '40';
@@ -206,7 +534,6 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
       };
 
       const handleBlur = () => {
-        // 输入框失去焦点时，恢复悬浮按钮的z-index
         const switcher = document.querySelector('[class*="floating-switcher"]') as HTMLElement;
         if (switcher) {
           switcher.style.zIndex = '9999';
@@ -223,7 +550,6 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
     }
   }, []);
 
-  // 监听IntentSelector的点击事件
   useEffect(() => {
     const handleIntentSelect = async (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -232,7 +558,6 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
       console.log('[Chat] 收到 intent-select 事件:', { fileGroupId, choice });
       console.log('[Chat] 当前 parsedFilesMap:', Object.keys(parsedFilesMapRef.current));
 
-      // 更新活跃的文件组（用于悬浮按钮）
       const files = parsedFilesMapRef.current[fileGroupId];
       console.log('[Chat] 获取到的 files:', files ? `有 ${files.length} 个文件` : 'undefined');
 
@@ -249,9 +574,8 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
     return () => {
       window.removeEventListener('intent-select', handleIntentSelect);
     };
-  }, []); // 移除依赖，使用 ref 获取最新值
+  }, []);
 
-  // 监听switch-change事件（来自FixedSwitcher和FloatingSwitcher）
   useEffect(() => {
     const handleSwitchChange = async (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -266,7 +590,6 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
     };
   }, [parsedFilesMap, switchIsLoading]);
 
-  // 监听fill-market-prices-complete事件，更新临时消息状态
   useEffect(() => {
     const handleFillPricesComplete = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -274,7 +597,6 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
 
       setMessages((prev) =>
         prev.map((msg) => {
-          // 找到填充价格的临时消息
           if (msg.isTemporary && msg.content.includes('正在为您填充市场参考价')) {
             if (success) {
               return {
@@ -301,84 +623,458 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
     };
   }, []);
 
-  const scrollToBottom = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  };
-
-  // 打开资料中心模块
-  const openModule = (module: string) => {
-    setActiveModule(module);
-    setShowKnowledgeCenter(true);
-  };
-
-  const loadConversation = async (id: number) => {
+  const loadConversation = async (id: string) => {
     try {
+      console.log('[ChatArea] 加载对话:', id);
       const response = await fetch(`/api/conversations/${id}`);
       if (response.ok) {
         const data = await response.json();
-        setMessages(data.conversation.messages || []);
-        // 加载对话后手动滚动到底部
-        setTimeout(() => scrollToBottom(), 100);
+        console.log('[ChatArea] 加载成功:', data);
+        
+        if (data.conversation?.messages && data.conversation.messages.length > 0) {
+          console.log('[ChatArea] 从API获取到消息:', data.conversation.messages.length);
+          
+          const allFiles: any[] = [];
+          
+          // 找到最后一个助手消息的索引
+          let lastAssistantIndex = -1;
+          for (let i = data.conversation.messages.length - 1; i >= 0; i--) {
+            if (data.conversation.messages[i].role === 'assistant') {
+              lastAssistantIndex = i;
+              break;
+            }
+          }
+          
+          const formattedMessages = data.conversation.messages.map((msg: any, index: number) => {
+            // 如果是助手消息但不是最后一个，返回 null
+            if (msg.role === 'assistant' && index !== lastAssistantIndex) {
+              console.log(`[ChatArea] 过滤掉旧的助手消息: ${msg.id}`);
+              return null;
+            }
+            
+            const fileData = msg.file_data || [];
+            
+            if (fileData.length > 0) {
+              allFiles.push(...fileData);
+            }
+            
+            const quoteData = msg.quote_data;
+            const metadata = msg.metadata;
+            
+            console.log(`[ChatArea] 消息 ${msg.id} 文件数据:`, fileData);
+            
+            return {
+              id: msg.id || Date.now() + index,
+              role: msg.role || 'assistant',
+              content: msg.content || '',
+              timestamp: msg.created_at || new Date().toISOString(),
+              quoteData: quoteData,
+              files: fileData,
+              fileData: fileData,
+              metadata: metadata
+            };
+          }).filter(msg => msg !== null);
+          
+          setMessages(formattedMessages);
+          
+          if (allFiles.length > 0) {
+            console.log('[ChatArea] 设置文件:', allFiles);
+            setFiles(allFiles);
+          }
+          
+          const firstUserMessage = formattedMessages.find(m => m.role === 'user');
+          if (firstUserMessage && onTitleChange) {
+            const title = generateSmartTitle(firstUserMessage.content, []);
+            onTitleChange(title);
+          }
+        } else {
+          console.log('[ChatArea] API返回的消息为空');
+          setMessages([]);
+          setFiles([]);
+          if (onTitleChange) {
+            onTitleChange('新对话');
+          }
+        }
+        
+        window.dispatchEvent(new CustomEvent('clear-quote-table'));
+        setTimeout(scrollToBottom, 300);
+      } else if (response.status === 404) {
+        console.log('[ChatArea] 对话不存在');
+        setMessages([]);
+        setFiles([]);
+        if (onTitleChange) {
+          onTitleChange('新对话');
+        }
       }
     } catch (error) {
       console.error('Failed to load conversation:', error);
     }
   };
 
-  const handleSendMessage = async () => {
-    if ((!input.trim() && files.length === 0) || loading) return;
+  const createNewConversation = async (title: string = '新对话', hasContent: boolean = false): Promise<any | null> => {
+    if (!shouldAllowCreation.current && !hasContent) {
+      console.log('[ChatArea] ⚠️ 安全锁未开启，禁止创建新对话');
+      return null;
+    }
+    
+    try {
+      console.log('[ChatArea] 创建新对话:', title, 'hasContent:', hasContent);
+      const response = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          title,
+          hasContent
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[ChatArea] 对话创建成功:', data.conversation.id);
+        return data.conversation;
+      } else {
+        const error = await response.json();
+        console.log('[ChatArea] 对话创建被拒绝:', error);
+        return null;
+      }
+    } catch (error) {
+      console.error('[ChatArea] 创建对话失败:', error);
+    }
+    return null;
+  };
 
-    // 配额检查（仅普通用户）
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        if (user.role === 'user') {
-          const quotaRes = await fetch(`/api/quota/check?user_id=${user.id}`);
-          if (quotaRes.ok) {
-            const quotaData = await quotaRes.json();
-            if (!quotaData.allowed) {
-              alert('您的使用次数已用完，请升级VIP会员获取无限次使用');
-              return;
-            }
-          }
-        }
-      } catch (err) {
-        console.error('[Chat] 配额检查失败:', err);
+  const ensureConversationId = async (hasContent: boolean = false): Promise<string | null> => {
+    if (currentConversationId) {
+      return currentConversationId;
+    }
+    
+    if (conversationId) {
+      setCurrentConversationId(conversationId);
+      return conversationId;
+    }
+    
+    if (!hasContent) {
+      console.log('[ChatArea] 没有内容，不创建对话');
+      return null;
+    }
+    
+    const newConversation = await createNewConversation('新对话', true);
+    if (newConversation) {
+      setCurrentConversationId(newConversation.id);
+      
+      window.dispatchEvent(new CustomEvent('conversation-created', {
+        detail: { conversationId: newConversation.id }
+      }));
+      
+      return newConversation.id;
+    }
+    
+    return null;
+  };
+
+  // 编辑消息处理函数
+  const handleEditMessage = async (messageId: number, newContent: string) => {
+    console.log('[ChatArea] 编辑消息:', { messageId, newContent });
+    
+    const activeConversationId = currentConversationId || conversationId;
+    if (!activeConversationId) {
+      console.error('[ChatArea] 没有对话ID，无法编辑消息');
+      toast({
+        title: "编辑失败",
+        description: "没有对话ID，无法编辑消息",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // 更新本地消息
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId ? { ...msg, content: newContent } : msg
+    ));
+    
+    // 如果是第一条用户消息，更新对话标题
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === 0 && messages[messageIndex].role === 'user') {
+      const title = generateSmartTitle(newContent, []);
+      await updateConversationTitle(activeConversationId, title);
+      if (onTitleChange) {
+        onTitleChange(title);
       }
     }
-
-    // 检查是否是快捷回复（1、2、3）
-    const trimmedInput = input.trim();
-    if (trimmedInput === '1' || trimmedInput === '2' || trimmedInput === '3') {
-      // 找到最新的临时消息
-      const tempMessage = messages.find(m => m.isTemporary && m.fileData);
-      if (tempMessage && tempMessage.fileData) {
-        const intentMap: Record<string, 'quote' | 'proposal' | 'both'> = {
-          '1': 'quote',
-          '2': 'proposal',
-          '3': 'both',
-        };
-
-        // 添加用户回复消息
-        const userMessage: Message = {
-          id: Date.now() + Math.random(),
-          role: 'user',
-          content: trimmedInput,
-          timestamp: new Date().toISOString(),
-        };
-        setMessages([...messages, userMessage]);
-        setInput('');
-
-        // 触发意图选择
-        await handleIntentSelection(intentMap[trimmedInput], tempMessage.fileData, uploadedFilesData);
+    
+    // 更新数据库中的消息
+    try {
+      const message = messages.find(m => m.id === messageId);
+      if (!message) {
+        console.error('[ChatArea] 未找到消息:', messageId);
         return;
       }
+      
+      const response = await fetch(`/api/messages/${messageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: newContent
+        })
+      });
+      
+      if (response.ok) {
+        console.log('[ChatArea] 消息编辑成功');
+        toast({
+          title: "编辑成功",
+          description: "消息已更新",
+          duration: 2000,
+        });
+      } else {
+        const errorData = await response.json();
+        console.error('[ChatArea] 消息编辑失败:', errorData);
+        toast({
+          title: "编辑失败",
+          description: errorData.error || '请稍后重试',
+          variant: "destructive",
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.error('[ChatArea] 编辑消息异常:', error);
+      toast({
+        title: "编辑失败",
+        description: '发生错误，请稍后重试',
+        variant: "destructive",
+        duration: 2000,
+      });
+    }
+  };
+
+  // 重新生成回复
+  const handleRegenerate = async (messageId: number) => {
+    console.log('[ChatArea] 重新生成回复，消息ID:', messageId);
+    
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) {
+      console.error('[ChatArea] 未找到消息:', messageId);
+      return;
     }
 
-    // 创建新的 AbortController
+    const currentMessage = messages[messageIndex];
+    if (currentMessage.role !== 'assistant') {
+      console.error('[ChatArea] 只能重新生成助手消息');
+      return;
+    }
+
+    let userMessageIndex = messageIndex - 1;
+    while (userMessageIndex >= 0 && messages[userMessageIndex].role !== 'user') {
+      userMessageIndex--;
+    }
+
+    if (userMessageIndex < 0) {
+      console.error('[ChatArea] 未找到对应的用户消息');
+      return;
+    }
+
+    const userMessage = messages[userMessageIndex];
+    console.log('[ChatArea] 找到用户消息:', userMessage);
+
+    let userFiles = userMessage.files || userMessage.fileData || [];
+    
+    if (userFiles.length === 0) {
+      console.log('[ChatArea] 用户消息没有文件，尝试从助手消息获取');
+      
+      for (let i = userMessageIndex + 1; i < messages.length; i++) {
+        const msg = messages[i];
+        if (msg.role === 'assistant') {
+          const assistantFiles = msg.files || msg.fileData || [];
+          if (assistantFiles.length > 0) {
+            console.log('[ChatArea] 从助手消息获取到文件:', assistantFiles.length);
+            userFiles = assistantFiles;
+            break;
+          }
+        }
+      }
+    }
+    
+    console.log('[ChatArea] 最终使用的文件数据:', userFiles.length);
+
+    const fileGroupId = `regenerate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    if (userFiles.length > 0) {
+      setParsedFilesMap(prev => ({
+        ...prev,
+        [fileGroupId]: userFiles
+      }));
+      console.log('[ChatArea] 保存文件到 parsedFilesMap:', fileGroupId, userFiles.length);
+    }
+
+    if (!currentConversationId) {
+      console.error('[ChatArea] 没有对话ID');
+      return;
+    }
+
+    setMessages(prev => prev.slice(0, messageIndex));
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setLoading(true);
+
+    try {
+      const filesToSend = userFiles;
+
+      console.log('[ChatArea] 调用API - 请求参数:', {
+        message: userMessage.content,
+        filesCount: filesToSend.length,
+        conversationId: currentConversationId
+      });
+
+      const chatResponse = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage.content,
+          files: filesToSend,
+          conversationId: currentConversationId,
+        }),
+        signal: controller.signal,
+      });
+
+      if (chatResponse.ok) {
+        const data = await chatResponse.json();
+        console.log('[ChatArea] API响应:', data);
+
+        if (data.action === 'ASK_INTENT' && data.files) {
+          console.log('[ChatArea] 收到 ASK_INTENT 响应，文件数:', data.files.length);
+          
+          const intentFiles = data.files;
+          
+          setParsedFilesMap(prev => ({
+            ...prev,
+            [fileGroupId]: intentFiles
+          }));
+          
+          setUploadedFilesData(intentFiles);
+
+          const tempMessage: Message = {
+            id: Date.now(),
+            role: 'assistant',
+            content: data.content || '文件解析完成，请选择您需要的服务：',
+            timestamp: new Date().toISOString(),
+            isTemporary: true,
+            action: 'ASK_INTENT',
+            fileGroupId,
+            fileData: intentFiles,
+            files: intentFiles,
+            metadata: data.metadata
+          };
+
+          setMessages(prev => [...prev, tempMessage]);
+
+          await saveMessageToDatabase(
+            currentConversationId,
+            'assistant',
+            data.content,
+            null,
+            intentFiles,
+            data.metadata
+          );
+
+          if (intentFiles.length > 0) {
+            setActiveGroup(fileGroupId, intentFiles, 'quote');
+            setGeneratedChoice('quote');
+            console.log('[ChatArea] 设置活跃组 (ASK_INTENT):', fileGroupId, intentFiles.length);
+          }
+
+        } else {
+          const newAssistantMessage: Message = {
+            id: Date.now(),
+            role: 'assistant',
+            content: data.content,
+            timestamp: new Date().toISOString(),
+            quoteData: data.quoteData,
+            files: filesToSend,
+            fileData: filesToSend,
+            fileGroupId: fileGroupId,
+            currentChoice: data.currentChoice || 'quote',
+            action: data.action,
+            metadata: data.metadata
+          };
+
+          setMessages(prev => [...prev, newAssistantMessage]);
+
+          await saveMessageToDatabase(
+            currentConversationId,
+            'assistant',
+            data.content,
+            data.quoteData,
+            filesToSend,
+            data.metadata
+          );
+
+          if (filesToSend.length > 0 && data.action !== 'ASK_INTENT') {
+            setActiveGroup(fileGroupId, filesToSend, data.currentChoice || 'quote');
+            setGeneratedChoice(data.currentChoice || 'quote');
+            console.log('[ChatArea] 设置活跃组 (正常):', fileGroupId, filesToSend.length);
+          }
+        }
+
+        if (data.quoteData) {
+          setTimeout(() => {
+            const quoteTable = document.querySelector('.export-container');
+            if (quoteTable) {
+              quoteTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 300);
+        }
+
+        setTimeout(scrollToBottom, 300);
+
+        toast({
+          title: '重新生成成功',
+          description: '已重新生成回复',
+          duration: 2000,
+        });
+      } else {
+        const errorData = await chatResponse.json();
+        console.error('[ChatArea] 重新生成失败:', errorData);
+        toast({
+          title: '重新生成失败',
+          description: errorData.error || '请稍后重试',
+          variant: 'destructive',
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('[ChatArea] 重新生成被取消');
+        return;
+      }
+      console.error('[ChatArea] 重新生成异常:', error);
+      toast({
+        title: '重新生成失败',
+        description: '发生错误，请稍后重试',
+        variant: 'destructive',
+        duration: 2000,
+      });
+    } finally {
+      setLoading(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleSendMessage = async () => {
+    const hasContent = input.trim() !== '' || files.length > 0;
+    if (!hasContent) {
+      console.log('[ChatArea] 没有内容，不发送消息');
+      return;
+    }
+
+    if (loading) return;
+
+    const activeConversationId = await ensureConversationId(true);
+    if (!activeConversationId) {
+      console.error('[ChatArea] 无法获取或创建对话');
+      return;
+    }
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
@@ -394,11 +1090,19 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
     setMessages([...messages, userMessage]);
     setInput('');
     
-    // 保存文件列表用于上传提示
+    await saveMessageToDatabase(activeConversationId, 'user', input);
+    
+    if (messages.length === 0) {
+      const title = generateSmartTitle(input, files);
+      await updateConversationTitle(activeConversationId, title);
+      if (onTitleChange) {
+        onTitleChange(title);
+      }
+    }
+    
     const filesToUpload = [...files];
     setFiles([]);
 
-    // 如果有文件，添加文件上传成功提示
     let uploadSuccessMessageId: number | null = null;
     if (filesToUpload.length > 0) {
       const fileNames = filesToUpload.map(f => f.name).join('、');
@@ -411,38 +1115,32 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
           role: 'assistant',
           content: `文件「${fileNames}」上传成功，正在解析...`,
           timestamp: new Date().toISOString(),
-          isTemporary: true, // 标记为临时消息
+          isTemporary: true,
         },
       ]);
     }
 
     try {
-      // 上传文件
-      const fileUrls: string[] = [];
       const uploadedFiles: any[] = [];
 
       for (let i = 0; i < (userMessage.files || []).length; i++) {
         const file = userMessage.files![i];
 
-        // 更新上传进度提示
         setMessages((prev) => prev.map(msg => {
           if (msg.id === uploadSuccessMessageId) {
             const progress = ((i + 1) / (userMessage.files?.length || 1)) * 100;
-            const fileNames = userMessage.files?.map(f => f.name).join('、') || '';
             return {
               ...msg,
-              content: `正在上传文件「${fileNames}」... ${Math.round(progress)}%`,
+              content: `正在上传文件... ${Math.round(progress)}%`,
             };
           }
           return msg;
         }));
 
         const formData = new FormData();
-        // 使用原始的 File 对象上传
         if (file.file) {
           formData.append('file', file.file);
         } else {
-          // 兼容旧数据，如果没有 file 属性
           formData.append('file', new Blob([file as any]), file.name);
         }
         const uploadResponse = await fetch('/api/upload', {
@@ -452,14 +1150,10 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
         });
         if (uploadResponse.ok) {
           const uploadData = await uploadResponse.json();
-          fileUrls.push(uploadData.url);
-          uploadedFiles.push(uploadData); // 保存完整的上传数据
-          console.log(`文件 ${file.name} 上传成功，正在解析...`);
+          uploadedFiles.push(uploadData);
         }
       }
 
-      // 调用智能报价匹配 API
-      // 更新为联网搜索提示
       setMessages((prev) => prev.map(msg => {
         if (msg.id === uploadSuccessMessageId) {
           return {
@@ -475,8 +1169,8 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMessage.content,
-          files: uploadedFiles, // 传递完整的上传数据（包含fileKey）
-          conversationId,
+          files: uploadedFiles,
+          conversationId: activeConversationId,
         }),
         signal: controller.signal,
       });
@@ -484,9 +1178,7 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
       if (chatResponse.ok) {
         const data = await chatResponse.json();
 
-        // 检查是否是填充价格指令
         if (data.action === 'FILL_PRICES') {
-          // 添加用户的消息
           const userMessageWithFill: Message = {
             id: Date.now() + Math.random(),
             role: 'user',
@@ -494,7 +1186,6 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
             timestamp: new Date().toISOString(),
           };
           
-          // 添加AI的响应消息
           const aiMessage: Message = {
             id: Date.now() + 1,
             role: 'assistant',
@@ -503,33 +1194,25 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
             isTemporary: true,
           };
 
-          // 添加消息到列表
           setMessages((prev) => {
-            // 删除临时的上传成功提示（如果有）
             const filtered = uploadSuccessMessageId !== null 
               ? prev.filter((m) => m.id !== uploadSuccessMessageId)
               : prev;
             return [...filtered, userMessageWithFill, aiMessage];
           });
 
-          // 触发自定义事件，通知quote-table执行填充操作
           window.dispatchEvent(new CustomEvent('fill-market-prices'));
         }
-        // 检查是否是意图询问（文件上传后的新响应）
         else if (data.action === 'ASK_INTENT' && data.files) {
-          // 生成唯一的文件组ID
           const fileGroupId = `files_${Date.now()}`;
 
-          // 保存文件数据到map
           setParsedFilesMap(prev => ({
             ...prev,
             [fileGroupId]: data.files
           }));
 
-          // 保存上传的文件数据到状态
           setUploadedFilesData(data.files);
 
-          // 将临时消息更新为意图询问界面
           setMessages((prev) => prev.map(msg => {
             if (msg.id === uploadSuccessMessageId) {
               return {
@@ -539,17 +1222,15 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
                 isTemporary: true,
                 action: 'ASK_INTENT',
                 fileGroupId,
+                metadata: data.metadata
               };
             }
             return msg;
           }));
         }
-        // 如果是文件上传场景（有文件且没有用户输入内容）
         else if (filesToUpload.length > 0 && !userMessage.content.trim()) {
-          // 保存上传的文件数据到状态
           setUploadedFilesData(uploadedFiles);
 
-          // 将临时消息更新为意图询问界面（兼容旧逻辑）
           setMessages((prev) => prev.map(msg => {
             if (msg.id === uploadSuccessMessageId) {
               return {
@@ -558,45 +1239,64 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
                 fileData: data.fileData || uploadedFiles,
                 isTemporary: true,
                 action: 'ASK_INTENT',
+                metadata: data.metadata
               };
             }
             return msg;
           }));
         } else {
-          // 普通对话场景，直接显示AI响应
           const assistantMessage: Message = {
             id: Date.now() + 1,
             role: 'assistant',
             content: data.content,
             timestamp: new Date().toISOString(),
             quoteData: data.quoteData,
+            metadata: data.metadata
           };
 
-          // 删除临时的上传成功提示（如果有）
           if (uploadSuccessMessageId !== null) {
             setMessages((prev) => prev.filter((m) => m.id !== uploadSuccessMessageId));
           }
 
-          // 添加AI响应消息
           setMessages((prev) => [...prev, assistantMessage]);
 
-          // 更新对话ID
+          await saveMessageToDatabase(
+            activeConversationId, 
+            'assistant', 
+            data.content, 
+            data.quoteData,
+            uploadedFiles,
+            data.metadata
+          );
+
           if (data.conversationId) {
-            // 更新 URL 但不刷新页面
             window.history.replaceState({}, '', `?conversation=${data.conversationId}`);
           }
 
-          // 报价生成完成后，自动滚动到表格位置
-          setTimeout(() => {
-            const quoteTable = document.querySelector('.export-container');
-            if (quoteTable) {
-              quoteTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }, 500);
+          if (data.quoteData) {
+            const scrollToQuote = (retryCount = 0) => {
+              const quoteTable = document.querySelector('.export-container');
+              if (quoteTable) {
+                const rect = quoteTable.getBoundingClientRect();
+                const absoluteTop = rect.top + window.pageYOffset - 80;
+                
+                window.scrollTo({
+                  top: absoluteTop,
+                  behavior: 'smooth'
+                });
+                console.log('[Chat] 滚动到报价表格位置:', absoluteTop);
+              } else if (retryCount < 5) {
+                setTimeout(() => scrollToQuote(retryCount + 1), 300 * (retryCount + 1));
+              }
+            };
+            
+            setTimeout(() => scrollToQuote(), 300);
+          }
+
+          setTimeout(scrollToBottom, 300);
         }
       }
     } catch (error) {
-      // 如果是用户取消的错误，不显示错误消息
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('Request cancelled by user');
         return;
@@ -627,16 +1327,11 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
         const updatedProducts = [...msg.quoteData.products];
         const product = updatedProducts[productIndex];
         if (product) {
-          // 更新单价
           product.unitPrice = newPrice;
-          // 更新总价（确保quantity有默认值）
           const quantity = product.quantity || 1;
           product.totalPrice = newPrice * quantity;
-          // 更新小计
           const newSubtotal = updatedProducts.reduce((sum, p) => sum + (p.totalPrice || 0), 0);
-          // 更新税额
           const newTaxAmount = newSubtotal * (msg.quoteData.taxRate / 100);
-          // 更新总价
           const newTotalAmount = newSubtotal + newTaxAmount;
 
           return {
@@ -661,16 +1356,11 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
         const updatedProducts = [...msg.quoteData.products];
         const product = updatedProducts[productIndex];
         if (product) {
-          // 更新数量
           product.quantity = newQuantity;
-          // 更新总价
           const price = product.unitPrice || 0;
           product.totalPrice = price * newQuantity;
-          // 更新小计
           const newSubtotal = updatedProducts.reduce((sum, p) => sum + (p.totalPrice || 0), 0);
-          // 更新税额
           const newTaxAmount = newSubtotal * (msg.quoteData.taxRate / 100);
-          // 更新总价
           const newTotalAmount = newSubtotal + newTaxAmount;
 
           return {
@@ -689,19 +1379,21 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
     }));
   };
 
-  // 处理意图选择
   const handleIntentSelection = async (intent: 'quote' | 'proposal' | 'both', fileData: any[], uploadedFiles: any[]) => {
+    const activeConversationId = await ensureConversationId(true);
+    if (!activeConversationId) {
+      console.error('[ChatArea] 无法获取或创建对话');
+      return;
+    }
+
     try {
-      // 生成唯一的文件组ID
       const fileGroupId = `group-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-      // 保存文件到 parsedFilesMap
       setParsedFilesMap(prev => ({
         ...prev,
         [fileGroupId]: uploadedFiles,
       }));
 
-      // 添加用户的选择消息
       const userChoiceText = intent === 'quote' ? '📊 我选择：生成报价单' :
                            intent === 'proposal' ? '📝 我选择：生成方案' :
                            '📑 我选择：生成方案（内含报价）';
@@ -714,29 +1406,28 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
       };
 
       setMessages((prev) => {
-        // 先添加用户选择消息
         const withUserChoice = [...prev.filter(m => !m.isTemporary), userChoiceMessage];
-        // 然后添加一个处理中的临时消息
         const tempMessage: Message = {
           id: Date.now() + 1,
           role: 'assistant',
           content: `正在生成${intent === 'quote' ? '报价单' : intent === 'proposal' ? '方案' : '报价和方案'}，请稍候...`,
           timestamp: new Date().toISOString(),
           isTemporary: true,
-          fileGroupId, // 保存 fileGroupId 到临时消息
-          currentChoice: intent, // 保存当前选择
+          fileGroupId,
+          currentChoice: intent,
         };
         return [...withUserChoice, tempMessage];
       });
 
-      // 调用API处理意图
+      await saveMessageToDatabase(activeConversationId, 'user', userChoiceText);
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           intent,
           files: uploadedFiles,
-          conversationId,
+          conversationId: activeConversationId,
         }),
       });
 
@@ -748,17 +1439,25 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
           content: data.content,
           timestamp: new Date().toISOString(),
           quoteData: data.quoteData,
-          fileGroupId, // 保存 fileGroupId
-          currentChoice: intent, // 保存当前选择
+          fileGroupId,
+          currentChoice: intent,
+          metadata: data.metadata
         };
 
-        // 删除临时的意图询问消息和处理中消息，添加最终结果
         setMessages((prev) => {
           const withoutTemp = prev.filter(m => !m.isTemporary);
           return [...withoutTemp, assistantMessage];
         });
 
-        // 扣减用户配额（仅普通用户）
+        await saveMessageToDatabase(
+          activeConversationId, 
+          'assistant', 
+          data.content, 
+          data.quoteData,
+          uploadedFiles,
+          data.metadata
+        );
+
         const userStr = localStorage.getItem('user');
         if (userStr) {
           try {
@@ -769,41 +1468,42 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: user.id, count: 1 }),
               });
-              // 刷新localStorage中的用户信息
-              const updatedUserStr = localStorage.getItem('user');
-              if (updatedUserStr) {
-                const updatedUser = JSON.parse(updatedUserStr);
-                setMessages((prev) => {
-                  // 更新所有需要用户信息的组件
-                  return prev;
-                });
-              }
             }
           } catch (err) {
             console.error('[Chat] 扣减配额失败:', err);
           }
         }
 
-        // 设置活跃的文件组（用于悬浮和固定切换按钮）
         setActiveGroup(fileGroupId, uploadedFiles, intent);
         setGeneratedChoice(intent);
 
         console.log('[Intent] 已生成内容，类型:', intent, 'fileGroupId:', fileGroupId);
 
-        // 如果有报价数据，自动滚动到表格位置
         if (data.quoteData) {
-          setTimeout(() => {
+          const scrollToQuote = (retryCount = 0) => {
             const quoteTable = document.querySelector('.export-container');
             if (quoteTable) {
-              quoteTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              const rect = quoteTable.getBoundingClientRect();
+              const absoluteTop = rect.top + window.pageYOffset - 80;
+              
+              window.scrollTo({
+                top: absoluteTop,
+                behavior: 'smooth'
+              });
+              console.log('[Intent] 滚动到报价表格位置:', absoluteTop);
+            } else if (retryCount < 5) {
+              setTimeout(() => scrollToQuote(retryCount + 1), 300 * (retryCount + 1));
             }
-          }, 500);
+          };
+          
+          setTimeout(() => scrollToQuote(), 300);
         }
+
+        setTimeout(scrollToBottom, 300);
       }
     } catch (error) {
       console.error('处理意图失败:', error);
       setMessages((prev) => {
-        // 删除处理中消息，添加错误消息
         const withoutTemp = prev.filter(m => !m.isTemporary);
         const errorMessage: Message = {
           id: Date.now() + Math.random(),
@@ -816,333 +1516,132 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
     }
   };
 
-  // 处理意图选择切换（基于fileGroupId）
   const handleIntentSelectionForSwitch = useCallback(async (fileGroupId: string, choice: string) => {
     console.log('[Switch] handleIntentSelectionForSwitch 开始:', { fileGroupId, choice });
 
-    // 如果正在加载，忽略
     if (switchIsLoadingRef.current) {
       console.log('[Switch] 正在加载，忽略请求');
       return;
     }
 
-    // 获取该组的文件
     const files = parsedFilesMapRef.current[fileGroupId];
     if (!files) {
       console.error('[Switch] 未找到文件组:', fileGroupId);
-      console.error('[Switch] 可用的 fileGroupId:', Object.keys(parsedFilesMapRef.current));
       return;
     }
 
-    console.log('[Switch] 找到文件组，文件数量:', files.length);
-
-    // 如果已经生成过相同类型的内容，不重复处理
     if (generatedChoiceRef.current === choice) {
       console.log('[Switch] 已生成相同类型的内容，忽略请求');
       return;
     }
 
-    console.log('[Switch] 开始生成内容，类型:', choice);
-
-    // 设置加载状态
     setSwitchLoading(true);
 
     try {
-      // 更新活跃的文件组（用于悬浮和固定切换按钮）
+      const activeConversationId = currentConversationIdRef.current || conversationId;
+      
+      if (!activeConversationId) {
+        console.error('[Switch] 没有可用的对话ID，无法保存消息');
+        setSwitchLoading(false);
+        return;
+      }
+
       setActiveGroup(fileGroupId, files, choice);
 
-      // 调用API处理意图
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           intent: choice,
           files: files,
-          conversationId,
+          conversationId: activeConversationId,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
 
-        // 查找该文件组对应的临时消息
-        const tempMessageIndex = messagesRef.current.findIndex((m) => m.fileGroupId === fileGroupId && m.isTemporary);
-
-        if (tempMessageIndex !== -1) {
-          // 更新临时消息，显示选择器带当前选中状态
-          setMessages((prev) =>
-            prev.map((msg) => {
-              if (msg.fileGroupId === fileGroupId && msg.isTemporary) {
-                return {
-                  ...msg,
-                  currentChoice: choice,
-                };
-              }
-              return msg;
-            })
-          );
-
-          // 添加结果消息
-          const assistantMessage: Message = {
-            id: Date.now() + Math.random(),
-            role: 'assistant',
-            content: data.content,
-            timestamp: new Date().toISOString(),
-            quoteData: data.quoteData,
-            fileGroupId,
-            currentChoice: choice,
-          };
-
-          setMessages((prev) => [...prev, assistantMessage]);
-
-          // 扣减用户配额（仅普通用户）
-          const userStr = localStorage.getItem('user');
-          if (userStr) {
-            try {
-              const user = JSON.parse(userStr);
-              if (user.role === 'user') {
-                await fetch('/api/quota/check', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ user_id: user.id, count: 1 }),
-                });
-              }
-            } catch (err) {
-              console.error('[Switch] 扣减配额失败:', err);
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (msg.fileGroupId === fileGroupId && msg.isTemporary) {
+              return {
+                ...msg,
+                currentChoice: choice,
+              };
             }
-          }
+            return msg;
+          })
+        );
 
-          // 更新已生成的内容类型
-          setGeneratedChoice(choice);
-          console.log('[Switch] 已生成内容，类型:', choice);
+        const assistantMessage: Message = {
+          id: Date.now() + Math.random(),
+          role: 'assistant',
+          content: data.content,
+          timestamp: new Date().toISOString(),
+          quoteData: data.quoteData,
+          fileGroupId,
+          currentChoice: choice,
+          metadata: data.metadata
+        };
 
-          // 如果有报价数据，自动滚动到表格位置
-          if (data.quoteData) {
-            setTimeout(() => {
-              const quoteTable = document.querySelector('.export-container');
-              if (quoteTable) {
-                quoteTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }
-            }, 500);
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        await saveMessageToDatabase(
+          activeConversationId, 
+          'assistant', 
+          data.content, 
+          data.quoteData,
+          files,
+          data.metadata
+        );
+
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            if (user.role === 'user') {
+              await fetch('/api/quota/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user.id, count: 1 }),
+              });
+            }
+          } catch (err) {
+            console.error('[Switch] 扣减配额失败:', err);
           }
         }
+
+        setGeneratedChoice(choice);
+        console.log('[Switch] 已生成内容，类型:', choice);
+
+        if (data.quoteData) {
+          const scrollToQuote = (retryCount = 0) => {
+            const quoteTable = document.querySelector('.export-container');
+            if (quoteTable) {
+              const rect = quoteTable.getBoundingClientRect();
+              const absoluteTop = rect.top + window.pageYOffset - 80;
+              
+              window.scrollTo({
+                top: absoluteTop,
+                behavior: 'smooth'
+              });
+              console.log('[Switch] 滚动到报价表格位置:', absoluteTop);
+            } else if (retryCount < 5) {
+              setTimeout(() => scrollToQuote(retryCount + 1), 300 * (retryCount + 1));
+            }
+          };
+          
+          setTimeout(() => scrollToQuote(), 300);
+        }
+
+        setTimeout(scrollToBottom, 300);
       }
     } catch (error) {
       console.error('[Switch] 处理意图失败:', error);
     } finally {
       setSwitchLoading(false);
     }
-  }, []); // 依赖数组为空，所有状态通过 ref 访问
-
-  const handleRegenerate = async (messageId: number) => {
-    // 找到对应的助手消息
-    const assistantMessageIndex = messages.findIndex(m => m.id === messageId);
-    if (assistantMessageIndex === -1) return;
-
-    const assistantMessage = messages[assistantMessageIndex];
-
-    // 找到对应的用户消息（向前查找最近的用户消息）
-    let userMessageIndex = assistantMessageIndex - 1;
-    while (userMessageIndex >= 0 && messages[userMessageIndex].role !== 'user') {
-      userMessageIndex--;
-    }
-
-    // 删除从助手消息开始的所有后续消息（包括助手消息）
-    const newMessages = messages.slice(0, assistantMessageIndex);
-    setMessages(newMessages);
-
-    // 创建新的 AbortController
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    setLoading(true);
-
-    try {
-      // 如果找不到用户消息，使用助手消息的内容重新生成（文本对话）
-      if (userMessageIndex < 0) {
-        // 调用智能报价匹配 API
-        const chatResponse = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: assistantMessage.content,
-            files: [],
-            conversationId,
-          }),
-          signal: controller.signal,
-        });
-
-        if (chatResponse.ok) {
-          const data = await chatResponse.json();
-          const newAssistantMessage: Message = {
-            id: Date.now() + Math.random(), // 确保ID唯一
-            role: 'assistant',
-            content: data.content,
-            timestamp: new Date().toISOString(),
-            quoteData: data.quoteData,
-          };
-          setMessages((prev) => [...prev, newAssistantMessage]);
-
-          // 更新对话ID
-          if (data.conversationId) {
-            window.history.replaceState({}, '', `?conversation=${data.conversationId}`);
-          }
-        }
-        return;
-      }
-
-      const userMessage = messages[userMessageIndex];
-      const userFiles = userMessage.files || [];
-
-      // 如果用户消息是"我选择：生成报价单/方案"类型的消息，重新生成报价单
-      if (userMessage.content.includes('我选择：') && userFiles.length > 0) {
-        // 生成唯一的文件组ID
-        const fileGroupId = `group-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-        // 保存文件到 parsedFilesMap
-        setParsedFilesMap(prev => ({
-          ...prev,
-          [fileGroupId]: userFiles,
-        }));
-
-        // 确定意图类型
-        let intent: 'quote' | 'proposal' | 'both' = 'quote';
-        if (userMessage.content.includes('方案（内含报价）')) {
-          intent = 'both';
-        } else if (userMessage.content.includes('生成方案')) {
-          intent = 'proposal';
-        }
-
-        // 添加一个处理中的临时消息
-        const tempMessage: Message = {
-          id: Date.now() + Math.random(), // 确保ID唯一
-          role: 'assistant',
-          content: `正在重新生成${intent === 'quote' ? '报价单' : intent === 'proposal' ? '方案' : '报价和方案'}，请稍候...`,
-          timestamp: new Date().toISOString(),
-          isTemporary: true,
-          fileGroupId,
-          currentChoice: intent,
-        };
-        setMessages((prev) => [...prev, tempMessage]);
-
-        // 调用API重新生成
-        const chatResponse = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            intent,
-            files: userFiles,
-            conversationId,
-          }),
-          signal: controller.signal,
-        });
-
-        if (chatResponse.ok) {
-          const data = await chatResponse.json();
-          const newAssistantMessage: Message = {
-            id: Date.now() + Math.random() + 1, // 确保ID唯一
-            role: 'assistant',
-            content: data.content,
-            timestamp: new Date().toISOString(),
-            quoteData: data.quoteData,
-            fileGroupId,
-            currentChoice: intent,
-          };
-
-          // 删除临时消息，添加最终结果
-          setMessages((prev) => {
-            const withoutTemp = prev.filter(m => !m.isTemporary);
-            return [...withoutTemp, newAssistantMessage];
-          });
-
-          // 设置活跃的文件组（用于悬浮和固定切换按钮）
-          setActiveGroup(fileGroupId, userFiles, intent);
-          setGeneratedChoice(intent);
-
-          console.log('[Regenerate] 重新生成内容成功，类型:', intent, 'fileGroupId:', fileGroupId);
-
-          // 如果有报价数据，自动滚动到表格位置
-          if (data.quoteData) {
-            setTimeout(() => {
-              const quoteTable = document.querySelector('.export-container');
-              if (quoteTable) {
-                quoteTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }
-            }, 500);
-          }
-
-          // 更新对话ID
-          if (data.conversationId) {
-            window.history.replaceState({}, '', `?conversation=${data.conversationId}`);
-          }
-        }
-      } else {
-        // 普通消息重新生成（带文件）
-        // 上传文件
-        const fileUrls: string[] = [];
-        for (const file of userFiles) {
-          const formData = new FormData();
-          formData.append('file', new Blob([file as any]), file.name);
-          const uploadResponse = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-            signal: controller.signal,
-          });
-          if (uploadResponse.ok) {
-            const uploadData = await uploadResponse.json();
-            fileUrls.push(uploadData.url);
-          }
-        }
-
-        // 调用智能报价匹配 API
-        const chatResponse = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: userMessage.content,
-            files: fileUrls,
-            conversationId,
-          }),
-          signal: controller.signal,
-        });
-
-        if (chatResponse.ok) {
-          const data = await chatResponse.json();
-          const newAssistantMessage: Message = {
-            id: Date.now() + Math.random() + 2, // 确保ID唯一
-            role: 'assistant',
-            content: data.content,
-            timestamp: new Date().toISOString(),
-            quoteData: data.quoteData,
-          };
-          setMessages((prev) => [...prev, newAssistantMessage]);
-
-          // 更新对话ID
-          if (data.conversationId) {
-            window.history.replaceState({}, '', `?conversation=${data.conversationId}`);
-          }
-        }
-      }
-    } catch (error) {
-      // 如果是用户取消的错误，不显示错误消息
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Regeneration cancelled by user');
-        return;
-      }
-      console.error('Failed to regenerate response:', error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + Math.random() + 3, // 确保ID唯一
-          role: 'assistant',
-          content: '抱歉，重新生成时发生了一些错误，请稍后重试。',
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-    } finally {
-      setLoading(false);
-      abortControllerRef.current = null;
-    }
-  };
+  }, [conversationId, scrollToBottom]);
 
   const handleStopGeneration = () => {
     if (abortControllerRef.current) {
@@ -1152,382 +1651,303 @@ export default function ChatArea({ conversationId, onOpenRightPanel, onNewConver
     }
   };
 
-  const suggestions = [
-    { text: '上传询价单Excel', icon: '📊' },
-    { text: '查一下工业空调的价格', icon: '❄️' },
-    { text: '对比两款产品的价格', icon: '🔄' },
-    { text: '生成一份报价单', icon: '📄' },
-  ];
+  // 意图标签组件
+  const IntentBadge = ({ intent, confidence }: { intent?: string; confidence?: number }) => {
+    if (!intent || intent === 'unknown') return null;
+    
+    const intentInfo = intentIcons[intent] || intentIcons.unknown;
+    const confidencePercent = confidence ? Math.round(confidence * 100) : 0;
+    
+    return (
+      <div className={cn(
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
+        intentInfo.color
+      )}>
+        {intentInfo.icon}
+        <span>{intentInfo.label}</span>
+        {confidencePercent > 0 && (
+          <span className="ml-1 opacity-75">({confidencePercent}%)</span>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
-      {/* 顶部工具栏 - 简化版 */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
-        <button
-          onClick={onNewConversation}
-          disabled={!onNewConversation || loading}
-          className="flex items-center gap-1.5 px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+      {/* 顶部工具栏 - 桌面端隐藏，移动端显示 */}
+      <div className="lg:hidden flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-blue-600" />
           <span className="font-semibold text-base text-slate-900 dark:text-slate-100">
-            {conversationId ? '对话框' : '对话框'}
+            对话框
           </span>
-          <ArrowDownToLine className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-        </button>
+        </div>
       </div>
 
       {/* 消息区域 */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4 space-y-6"
+        className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide min-h-0"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center space-y-6 px-4">
-            <div className="space-y-4">
-              <div className="w-20 h-20 mx-auto">
-                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
-              </div>
-              <p className="text-slate-600 dark:text-slate-400 mt-2 max-w-md text-sm leading-relaxed">
-                上传产品资料或描述需求，AI 智能分析并快速生成专业报价单
-              </p>
-            </div>
-
-            {/* 建议提示 - 现代卡片风格 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl w-full">
-              {suggestions.map((suggestion) => (
-                <Button
-                  key={suggestion.text}
-                  variant="ghost"
-                  className="h-auto py-3 px-4 text-sm justify-start gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-md transition-all duration-200 group"
-                  onClick={() => setInput(suggestion.text)}
-                >
-                  <span className="text-xl group-hover:scale-110 transition-transform">{suggestion.icon}</span>
-                  <span className="text-slate-700 dark:text-slate-300 text-left">
-                    {suggestion.text}
-                  </span>
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {messages.map((message) => (
-          <ChatMessage
-            key={message.id}
-            message={message}
-            onRegenerate={handleRegenerate}
-            supplierInfo={supplierInfo}
-            onUpdateProductPrice={handleUpdateProductPrice}
-            onIntentSelection={(intent) => {
-              if (message.fileData) {
-                handleIntentSelection(intent, message.fileData, uploadedFilesData);
-              }
-            }}
-          />
-        ))}
-
-        {/* 固定切换按钮 - 显示在消息列表中 */}
-        {activeGroupId && (
-          <div className="mb-4">
-            <FixedSwitcher />
-          </div>
-        )}
-
-        {/* 悬浮切换按钮 - 固定在右下角 */}
-        <FloatingSwitcher />
-      </div>
-
-      {/* 输入区域 - 现代极简风格 */}
-      <div className="p-4 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
-        {/* 主输入容器 - 圆角设计 */}
-        <div
-          {...dropzonePropsWithoutKeyboard}
-          className={`rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 shadow-sm transition-all duration-200 ${
-            isDragActive
-              ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-lg'
-              : 'hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md'
-          }`}
-        >
-          {/* 文件列表 */}
-          {files.length > 0 && (
-            <div className="flex flex-col gap-2 p-3 pb-2">
-              {/* 文件项 */}
-              <div className="flex flex-wrap gap-2">
-                {files.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-xs border border-slate-200 dark:border-slate-700"
-                  >
-                    <Paperclip className="h-3 w-3 text-slate-500 dark:text-slate-400" />
-                    <span className="max-w-32 truncate">{file.name}</span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">({file.size})</span>
-                    <button
-                      className="h-4 w-4 flex items-center justify-center rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
-                      onClick={() => handleRemoveFile(file.id)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* 文件类型提示 */}
-              {files.some(f => f.type?.includes('pdf') || f.name?.endsWith('.pdf')) && (
-                <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/20 dark:text-amber-400 px-3 py-2 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span>⚠️</span>
-                    <span>PDF文档解析需要几秒钟，系统会自动识别其中的产品和表格信息。</span>
-                  </div>
+        <div className="mx-auto py-6 space-y-6 px-4 md:px-6 lg:px-8 max-w-5xl">
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8">
+              <div className="space-y-3">
+                <div className="flex items-center justify-center gap-2">
+                  <Sparkle className="h-8 w-8 text-blue-600" />
+                  <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-200">
+                    今天有什么可以帮到你？
+                  </h1>
                 </div>
-              )}
-
-              {files.some(f => ['dwg', 'dxf', 'dwf'].includes(f.name?.split('.').pop()?.toLowerCase() || '')) && (
-                <div className="text-xs text-blue-600 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 px-3 py-2 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span>📐</span>
-                    <span>CAD图纸正在解析中，系统会提取图纸中的文字和尺寸信息。</span>
-                  </div>
-                </div>
-              )}
+                <p className="text-slate-500 dark:text-slate-400 text-base">
+                  上传文件或描述需求，快速给您生成专业报价单或方案
+                </p>
+              </div>
             </div>
           )}
 
-          <input {...getInputProps()} />
-
-          {/* 输入框 */}
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={
-              isDragActive
-                ? '释放文件以上传'
-                : '输入需求或拖拽文件上传...'
-            }
-            className="min-h-24 max-h-40 resize-none border-0 focus-visible:ring-0 px-4 pt-2 pb-0 text-base placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-transparent"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleSendMessage();
-              }
-            }}
-          />
-
-          {/* 底部工具栏 */}
-          <TooltipProvider>
-            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800">
-              {/* 左侧功能按钮组 */}
-              <div className="flex items-center gap-2">
-                {/* 上传按钮 */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.multiple = true;
-                        input.onchange = (e) => {
-                          const target = e.target as HTMLInputElement;
-                          if (target.files) {
-                            const acceptedFiles = Array.from(target.files);
-                            const newFiles = acceptedFiles.map((file) => ({
-                              id: `${Date.now()}-${Math.random()}`,
-                              name: file.name,
-                              size: formatFileSize(file.size),
-                              type: file.type,
-                              file: file, // 保存原始 File 对象
-                            }));
-                            setFiles([...files, ...newFiles]);
-                          }
-                        };
-                        input.click();
-                      }}
-                      disabled={loading}
-                      className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <Upload className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
-                    上传附件
-                  </TooltipContent>
-                </Tooltip>
-
-                {/* 代码按钮 */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={loading}
-                      className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <Code className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
-                    插入代码
-                  </TooltipContent>
-                </Tooltip>
-
-                {/* 资料中心 */}
-                <div className="flex items-center gap-2 px-2 py-1.5 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">📚 资料中心</span>
-                  <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded">7大模块</span>
+          {messages.map((message) => (
+            <div key={message.id} className="space-y-1">
+              {message.role === 'assistant' && message.metadata?.intent && (
+                <div className="flex justify-start pl-12">
+                  <IntentBadge 
+                    intent={message.metadata.intent} 
+                    confidence={message.metadata.confidence} 
+                  />
                 </div>
-
-                {/* 7大模块快捷入口 */}
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => openModule('price')}
-                    className="flex items-center justify-center w-8 h-8 bg-blue-50 dark:bg-blue-950/30 rounded-md hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors"
-                    title="产品价格库"
-                  >
-                    <span className="text-sm">📊</span>
-                  </button>
-
-                  <button
-                    onClick={() => openModule('document')}
-                    className="flex items-center justify-center w-8 h-8 bg-green-50 dark:bg-green-950/30 rounded-md hover:bg-green-100 dark:hover:bg-green-950/50 transition-colors"
-                    title="技术文档库"
-                  >
-                    <span className="text-sm">📄</span>
-                  </button>
-
-                  <button
-                    onClick={() => openModule('case')}
-                    className="flex items-center justify-center w-8 h-8 bg-purple-50 dark:bg-purple-950/30 rounded-md hover:bg-purple-100 dark:hover:bg-purple-950/50 transition-colors"
-                    title="案例库"
-                  >
-                    <span className="text-sm">🏗️</span>
-                  </button>
-
-                  <button
-                    onClick={() => openModule('standard')}
-                    className="flex items-center justify-center w-8 h-8 bg-yellow-50 dark:bg-yellow-950/30 rounded-md hover:bg-yellow-100 dark:hover:bg-yellow-950/50 transition-colors"
-                    title="标准规范库"
-                  >
-                    <span className="text-sm">📋</span>
-                  </button>
-
-                  <button
-                    onClick={() => openModule('drawing')}
-                    className="flex items-center justify-center w-8 h-8 bg-pink-50 dark:bg-pink-950/30 rounded-md hover:bg-pink-100 dark:hover:bg-pink-950/50 transition-colors"
-                    title="图纸图片库"
-                  >
-                    <span className="text-sm">🖼️</span>
-                  </button>
-
-                  <button
-                    onClick={() => openModule('quota')}
-                    className="flex items-center justify-center w-8 h-8 bg-orange-50 dark:bg-orange-950/30 rounded-md hover:bg-orange-100 dark:hover:bg-orange-950/50 transition-colors"
-                    title="定额库"
-                  >
-                    <span className="text-sm">📊</span>
-                  </button>
-
-                  <button
-                    onClick={() => openModule('search')}
-                    className="flex items-center justify-center w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                    title="全局搜索"
-                  >
-                    <span className="text-sm">🔍</span>
-                  </button>
-                </div>
-
-                {/* 管理资料按钮 */}
-                <button
-                  onClick={() => setShowKnowledgeCenter(true)}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded transition-colors"
-                >
-                  <span>⚙️</span>
-                  <span className="hidden sm:inline">管理资料</span>
-                </button>
-
-                {/* 模式选择器 */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Select defaultValue="auto">
-                      <SelectTrigger className="h-9 w-20 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="auto">自动</SelectItem>
-                        <SelectItem value="manual">手动</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
-                    生成模式
-                  </TooltipContent>
-                </Tooltip>
-
-                {/* 分隔线 */}
-                <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
-
-                {/* 开始新对话按钮 - 明显的蓝色 */}
-                {onNewConversation && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={onNewConversation}
-                        disabled={loading}
-                        className="h-9 px-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transition-all duration-200 gap-2 text-sm font-medium"
-                      >
-                        <Plus className="h-4 w-4" />
-                        <span className="hidden sm:inline">新对话</span>
-                        <span className="sm:hidden">新对话</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
-                      开始新对话
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
-
-              {/* 右侧发送/停止按钮 */}
-              {loading ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleStopGeneration}
-                      className="h-10 w-10 rounded-full bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white transition-all duration-200 shadow-xl"
-                    >
-                      <Square className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
-                    停止生成
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={!input.trim() && files.length === 0}
-                      className={`h-10 w-10 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 ${
-                        (input.trim() || files.length > 0)
-                          ? 'bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 text-white shadow-xl shadow-blue-500/30'
-                          : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
-                      }`}
-                    >
-                      <ArrowUp className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
-                    发送消息
-                  </TooltipContent>
-                </Tooltip>
               )}
+              <ChatMessage
+                message={message}
+                onRegenerate={handleRegenerate}
+                supplierInfo={supplierInfo}
+                onUpdateProductPrice={handleUpdateProductPrice}
+                onUpdateProductQuantity={handleUpdateProductQuantity}
+                onIntentSelection={(intent) => {
+                  if (message.fileData) {
+                    handleIntentSelection(intent, message.fileData, uploadedFilesData);
+                  }
+                }}
+                onEdit={handleEditMessage}
+              />
             </div>
-          </TooltipProvider>
+          ))}
+
+          {activeGroupId && (
+            <div className="mb-4">
+              <FixedSwitcher />
+            </div>
+          )}
+
+          <FloatingSwitcher />
+          
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* 资料中心弹窗 */}
+      {/* 输入区域 */}
+      <div className="flex-shrink-0 p-4 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+        <div className="max-w-5xl mx-auto">
+          <div
+            {...dropzonePropsWithoutKeyboard}
+            className={`rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 shadow-sm transition-all duration-200 ${
+              isDragActive
+                ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-lg'
+                : 'hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md'
+            }`}
+          >
+            {files.length > 0 && (
+              <div className="flex flex-col gap-2 p-3 pb-2">
+                <div className="flex flex-wrap gap-2">
+                  {files.map((file) => (
+                    <div
+                      key={file.id}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-xs border border-slate-200 dark:border-slate-700"
+                    >
+                      <Paperclip className="h-3 w-3 text-slate-500 dark:text-slate-400" />
+                      <span className="max-w-32 truncate">{file.name}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">({file.size})</span>
+                      <button
+                        className="h-4 w-4 flex items-center justify-center rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
+                        onClick={() => handleRemoveFile(file.id)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <input {...getInputProps()} />
+
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={
+                isDragActive
+                  ? '释放文件以上传'
+                  : '给报个价发送消息'
+              }
+              className="min-h-24 max-h-40 resize-none border-0 focus-visible:ring-0 px-4 pt-2 pb-0 text-base placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-transparent w-full"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+            />
+
+            <TooltipProvider>
+              <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.multiple = true;
+                          input.onchange = (e) => {
+                            const target = e.target as HTMLInputElement;
+                            if (target.files) {
+                              const acceptedFiles = Array.from(target.files);
+                              const newFiles = acceptedFiles.map((file) => ({
+                                id: `${Date.now()}-${Math.random()}`,
+                                name: file.name,
+                                size: formatFileSize(file.size),
+                                type: file.type,
+                                file: file,
+                              }));
+                              setFiles([...files, ...newFiles]);
+                            }
+                          };
+                          input.click();
+                        }}
+                        disabled={loading}
+                        className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <Upload className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
+                      上传附件
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={loading}
+                        className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <Code className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
+                      插入代码
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowKnowledgeCenter(true)}
+                        className="h-9 px-3 rounded-full bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 gap-1.5"
+                      >
+                        <span className="text-base">📚</span>
+                        <span className="text-sm font-medium">管理资料</span>
+                        <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">7</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
+                      管理产品价格库、技术文档、案例等7大模块
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Select defaultValue="auto">
+                        <SelectTrigger className="h-9 w-20 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">自动</SelectItem>
+                          <SelectItem value="manual">手动</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
+                      生成模式
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onNewConversation}
+                        disabled={!onNewConversation || loading}
+                        className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                      >
+                        <Plus className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
+                      新建对话
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {loading ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={handleStopGeneration}
+                          className="h-10 w-10 rounded-full bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white transition-all duration-200 shadow-xl"
+                        >
+                          <Square className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
+                        停止生成
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={handleSendMessage}
+                          disabled={!input.trim() && files.length === 0}
+                          className={`h-10 w-10 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+                            (input.trim() || files.length > 0)
+                              ? 'bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 text-white shadow-xl shadow-blue-500/30'
+                              : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                          }`}
+                        >
+                          <ArrowUp className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-black text-white text-xs px-2 py-1 rounded shadow-md">
+                        发送消息
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </div>
+            </TooltipProvider>
+          </div>
+        </div>
+      </div>
+
       {showKnowledgeCenter && (
         <KnowledgeCenter
           initialModule={activeModule}

@@ -18,6 +18,11 @@ export default function AdminSidebar() {
       path: '/admin/users'
     },
     {
+      name: '产品价格库',
+      icon: '📦',
+      path: '/admin/products'
+    },
+    {
       name: '内容审核',
       icon: '📋',
       path: '/admin/audit'
