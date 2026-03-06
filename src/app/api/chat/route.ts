@@ -1108,9 +1108,8 @@ class ExcelParser {
       
       // 解析数据行
       const products: Product[] = [];
-      let currentProduct: Product | null = null;
-      let consecutiveEmptyRows = 0;
-      const MAX_CONSECUTIVE_EMPTY = 3; // 连续3个空行就停止解析
+      const productMap = new Map<string, Product>(); // 用于去重：产品名称 -> 产品对象
+      let lastProductName = ''; // 记录上一个产品名称
       
       console.log('[Excel] 开始解析数据行...');
       
@@ -1125,26 +1124,22 @@ class ExcelParser {
         );
         
         if (isRowEmpty) {
-          consecutiveEmptyRows++;
-          console.log(`[Excel] 第${i}行: 空行，跳过 (连续空行: ${consecutiveEmptyRows})`);
-          
-          // 如果连续空行超过阈值，停止解析
-          if (consecutiveEmptyRows >= MAX_CONSECUTIVE_EMPTY) {
-            console.log(`[Excel] 连续${MAX_CONSECUTIVE_EMPTY}个空行，停止解析`);
-            break;
-          }
+          console.log(`[Excel] 第${i}行: 空行，跳过`);
           continue;
-        } else {
-          consecutiveEmptyRows = 0; // 重置计数器
         }
         
         const nameValue = getCellValue(i, nameCol);
+        const productName = nameValue ? String(nameValue).trim() : '';
         
-        // 如果当前行有产品名称，说明是一个新产品
-        if (nameValue !== undefined && nameValue !== '' && String(nameValue).trim() !== '') {
-          // 如果之前有产品，先保存
-          if (currentProduct) {
-            products.push(currentProduct);
+        // 如果当前行有产品名称且与上一个不同，说明是一个新产品
+        if (productName !== '' && productName !== lastProductName) {
+          // 保存上一个产品（如果有的话）
+          if (lastProductName !== '' && productMap.has(lastProductName)) {
+            const product = productMap.get(lastProductName)!;
+            // 只有当产品还没有添加到数组时才添加
+            if (!products.some(p => p.name === product.name)) {
+              products.push(product);
+            }
           }
           
           // 创建新产品
@@ -1158,8 +1153,8 @@ class ExcelParser {
             quantity = parseInt(qtyMatch[1]);
           }
           
-          currentProduct = {
-            name: String(nameValue).trim(),
+          const newProduct: Product = {
+            name: productName,
             model: '',
             brand: '',
             specs: String(specsValue).trim(),
@@ -1170,28 +1165,36 @@ class ExcelParser {
             remark: ''
           };
           
-          console.log(`[Excel] 第${i}行: 新产品 - ${currentProduct.name}`);
+          productMap.set(productName, newProduct);
+          lastProductName = productName;
+          console.log(`[Excel] 第${i}行: 新产品 - ${productName}`);
         } else {
-          // 如果当前行没有产品名称，可能是规格说明的续行
-          if (currentProduct && specsCol !== -1) {
-            const specsValue = getCellValue(i, specsCol);
-            if (specsValue !== undefined && specsValue !== '' && String(specsValue).trim() !== '') {
-              // 将续行内容追加到规格说明中
-              const specsStr = String(specsValue).trim();
-              if (currentProduct.specs) {
-                currentProduct.specs += '\n' + specsStr;
-              } else {
-                currentProduct.specs = specsStr;
+          // 如果当前行没有产品名称或产品名称相同，追加规格说明
+          if (lastProductName !== '' && productMap.has(lastProductName)) {
+            const currentProduct = productMap.get(lastProductName)!;
+            
+            if (specsCol !== -1) {
+              const specsValue = getCellValue(i, specsCol);
+              if (specsValue !== undefined && specsValue !== '' && String(specsValue).trim() !== '') {
+                const specsStr = String(specsValue).trim();
+                if (currentProduct.specs) {
+                  currentProduct.specs += '\n' + specsStr;
+                } else {
+                  currentProduct.specs = specsStr;
+                }
+                console.log(`[Excel] 第${i}行: 追加规格到 ${productName || lastProductName} - ${specsStr}`);
               }
-              console.log(`[Excel] 第${i}行: 追加规格说明 - ${specsStr}`);
             }
           }
         }
       }
       
       // 保存最后一个产品
-      if (currentProduct) {
-        products.push(currentProduct);
+      if (lastProductName !== '' && productMap.has(lastProductName)) {
+        const product = productMap.get(lastProductName)!;
+        if (!products.some(p => p.name === product.name)) {
+          products.push(product);
+        }
       }
       
       console.log(`[Excel] 解析完成，共 ${products.length} 个产品`);
