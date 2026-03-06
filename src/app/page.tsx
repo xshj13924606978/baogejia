@@ -77,14 +77,14 @@ export default function Home() {
           <div className="flex h-screen bg-white dark:bg-gray-950 w-full overflow-hidden">
             {/* 桌面端侧边栏 - 分栏线只在展开时显示 */}
             <aside className={cn(
-              "hidden lg:flex lg:flex-col bg-gray-50/50 dark:bg-gray-900/50 transition-all duration-300 relative",
+              "hidden lg:flex lg:flex-col bg-gray-50/50 dark:bg-gray-900/50 transition-all duration-300",
               isCollapsed ? "lg:w-16" : "lg:w-72 lg:border-r lg:border-gray-200 dark:lg:border-gray-800",
               "flex-shrink-0 h-full"
             )}>
-              {/* Logo区域 - 包含收起按钮 */}
+              {/* Logo区域 - 包含收起/展开按钮 */}
               <div className="h-16 flex items-center border-b border-gray-200 dark:border-gray-800 px-4 flex-shrink-0">
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center justify-between w-full gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
                     <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center flex-shrink-0">
                       <span className="text-white font-bold text-lg">报</span>
                     </div>
@@ -93,24 +93,26 @@ export default function Home() {
                     )}
                   </div>
 
-                  {/* 只在展开时显示的收起按钮 */}
-                  {!isCollapsed && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0"
-                          onClick={toggleSidebar}
-                        >
+                  {/* 收起/展开按钮 - 始终显示 */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0"
+                        onClick={toggleSidebar}
+                      >
+                        {isCollapsed ? (
+                          <ChevronRight className="h-4 w-4" />
+                        ) : (
                           <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>收起侧边栏</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>{isCollapsed ? '展开侧边栏' : '收起侧边栏'}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
@@ -118,7 +120,7 @@ export default function Home() {
               {!isCollapsed && (
                 <div className="flex-1 overflow-hidden min-h-0">
                   <ScrollArea className="h-full">
-                    <ConversationList 
+                    <ConversationList
                       selectedConversationId={selectedConversationId}
                       onSelectConversation={handleSelectConversation}
                       onNewConversation={handleNewConversation}
@@ -127,27 +129,6 @@ export default function Home() {
                       isCollapsed={isCollapsed}
                     />
                   </ScrollArea>
-                </div>
-              )}
-
-              {/* 侧边栏收起时的展开按钮 - 固定在右边缘 */}
-              {isCollapsed && (
-                <div className="absolute top-20 right-0 z-50">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="default"
-                        size="icon"
-                        className="h-8 w-8 rounded-l-md rounded-r-none shadow-lg hover:scale-110 transition-transform duration-200"
-                        onClick={toggleSidebar}
-                      >
-                        <ChevronRight className="h-4 w-4 text-white" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      <p>展开侧边栏</p>
-                    </TooltipContent>
-                  </Tooltip>
                 </div>
               )}
             </aside>
