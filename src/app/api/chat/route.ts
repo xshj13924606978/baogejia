@@ -961,24 +961,36 @@ class TextParser {
 
 class FileDownloader {
   async download(file: any, fileKey: string): Promise<Buffer | null> {
-    console.log('[Downloader] 下载文件:', file?.name || '未知');
+    console.log('[Downloader] 开始下载文件:', file?.name || '未知');
     
     if (file?.buffer) {
+      console.log('[Downloader] 使用已有的 buffer');
       return file.buffer;
     }
 
     if (file?.url) {
       try {
-        const response = await fetch(file.url);
+        console.log('[Downloader] 从 URL 下载:', file.url);
+        const response = await fetch(file.url, { 
+          signal: AbortSignal.timeout(30000) // 30秒超时
+        });
+        
         if (response.ok) {
           const arrayBuffer = await response.arrayBuffer();
+          console.log('[Downloader] 下载成功，大小:', arrayBuffer.byteLength);
           return Buffer.from(arrayBuffer);
+        } else {
+          console.error('[Downloader] 下载失败，状态码:', response.status);
         }
       } catch (error) {
         console.error('[Downloader] 下载失败:', error);
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.error('[Downloader] 下载超时（30秒）');
+        }
       }
     }
 
+    console.error('[Downloader] 无法获取文件内容');
     return null;
   }
 }

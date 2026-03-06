@@ -1228,6 +1228,20 @@ export default function ChatArea({
             return msg;
           }));
         }
+        else if (data.action === 'ERROR') {
+          // 处理解析错误
+          setMessages((prev) => prev.map(msg => {
+            if (msg.id === uploadSuccessMessageId) {
+              return {
+                ...msg,
+                content: data.content || '文件解析失败',
+                isTemporary: false,
+                action: 'ERROR'
+              };
+            }
+            return msg;
+          }));
+        }
         else if (filesToUpload.length > 0 && !userMessage.content.trim()) {
           setUploadedFilesData(uploadedFiles);
 
