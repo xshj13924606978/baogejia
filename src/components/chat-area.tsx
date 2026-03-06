@@ -270,7 +270,7 @@ export default function ChatArea({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       console.log('[ChatArea] 滚动到容器底部');
     }
-  }, []);
+  }, [messagesEndRef, scrollRef]);
 
   // 当消息数量变化时滚动到底部
   useEffect(() => {
@@ -464,7 +464,7 @@ export default function ChatArea({
     return () => {
       window.removeEventListener('load-conversation', handleLoadConversation);
     };
-  }, [onTitleChange, scrollToBottom]);
+  }, []);
 
   const { getRootProps: getRootPropsForInput, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
@@ -521,7 +521,7 @@ export default function ChatArea({
       }
       setTimeout(scrollToBottom, 100);
     }
-  }, [conversationId, isReady, onTitleChange, scrollToBottom]);
+  }, [conversationId, isReady]);
 
   useEffect(() => {
     const inputElement = document.querySelector('textarea');
