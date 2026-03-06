@@ -251,8 +251,15 @@ export class PriceMatcher {
     try {
       console.log('[PriceMatcher] 尝试市场价兜底:', product.name);
       
+      // 在服务端构建正确的 URL
+      const baseUrl = typeof window === 'undefined' 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+      
+      const apiUrl = `${baseUrl}/api/quotes/market-price`;
+      
       // 调用市场价API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/quotes/market-price`, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -302,7 +309,9 @@ export class PriceMatcher {
         };
       }
     } catch (error) {
-      console.error('[PriceMatcher] 市场价兜底失败:', error);
+      // 只输出错误消息，避免输出完整堆栈
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.log('[PriceMatcher] 市场价兜底失败:', errorMessage);
     }
     return null;
   }
