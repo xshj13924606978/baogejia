@@ -2470,12 +2470,8 @@ class UnifiedFileParser {
 async function generateQuoteData(products: Product[]) {
   console.log('[QuoteGen] ========== 开始生成报价单 ==========');
   console.log('[QuoteGen] 产品数量:', products.length);
-  console.log('[QuoteGen] 产品列表:', products.map(p => ({ 
-    name: p.name, 
-    model: p.model, 
-    specs: p.specs,
-    quantity: p.quantity 
-  })));
+  // 移除详细的产品列表输出，只输出产品名称
+  console.log('[QuoteGen] 产品:', products.map(p => p.name).join(', '));
 
   const matchedProducts = [];
   const matchResults = [];
@@ -2490,12 +2486,7 @@ async function generateQuoteData(products: Product[]) {
   for (let i = 0; i < products.length; i++) {
     const product = products[i];
     console.log(`[QuoteGen] ========== 处理产品 ${i + 1}/${products.length} ==========`);
-    console.log('[QuoteGen] 产品信息:', {
-      name: product.name,
-      model: product.model,
-      specs: product.specs,
-      quantity: product.quantity
-    });
+    console.log('[QuoteGen] 产品:', product.name);
 
     // 使用 PriceMatcher 进行多级价格匹配
     const productMatch: ProductMatch = {
@@ -2508,7 +2499,13 @@ async function generateQuoteData(products: Product[]) {
 
     console.log('[QuoteGen] 调用 PriceMatcher.matchPrice');
     const matchResult = await PriceMatcher.matchPrice(productMatch);
-    console.log('[QuoteGen] 匹配结果:', matchResult);
+    // 简化匹配结果输出，只输出关键信息
+    console.log('[QuoteGen] 匹配结果:', {
+      price: matchResult.price,
+      source: matchResult.source,
+      confidence: matchResult.confidence,
+      productName: matchResult.productName
+    });
     matchResults.push(matchResult);
     
     // 统计匹配来源
