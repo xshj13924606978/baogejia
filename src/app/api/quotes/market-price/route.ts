@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { SearchClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
 
 /**
  * 市场价查询接口
@@ -102,6 +103,118 @@ function calculateMockPrice(productName: string): { price: number; range: string
   };
 }
 
+/**
+ * 从搜索结果中提取价格信息
+ */
+async function searchMarketPrice(productName: string, model?: string): Promise<{ price: number; range: string; source: string } | null> {
+  try {
+    console.log('[MarketPrice] 正在搜索市场价格:', productName);
+    
+    // 构建搜索查询
+    const searchQuery = model 
+      ? `${productName} ${model} 价格 市场价 报价`
+      : `${productName} 价格 市场价 报价`;
+    
+    // 提取转发头信息
+    const customHeaders = HeaderUtils.extractForwardHeaders({} as any);
+    
+    // 创建搜索客户端
+    const config = new Config();
+    const client = new SearchClient(config, customHeaders);
+    
+    // 执行搜索
+    const response = await client.webSearch(searchQuery, 5, true);
+    
+    if (!response.web_items || response.web_items.length === 0) {
+      console.log('[MarketPrice] 搜索结果为空');
+      return null;
+    }
+    
+    console.log('[MarketPrice] 搜索到', response.web_items.length, '条结果');
+    
+    // 优先从 AI 摘要中提取价格
+    if (response.summary) {
+      const prices = extractPricesFromText(response.summary);
+      if (prices.length > 0) {
+        const avgPrice = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+        const minPrice = Math.round(Math.min(...prices));
+        const maxPrice = Math.round(Math.max(...prices));
+        console.log('[MarketPrice] 从摘要中提取价格:', avgPrice);
+        return {
+          price: avgPrice,
+          range: `${minPrice}-${maxPrice}`,
+          source: '市场搜索价',
+        };
+      }
+    }
+    
+    // 从搜索结果中提取价格
+    const allPrices: number[] = [];
+    for (const item of response.web_items) {
+      const prices = extractPricesFromText(item.snippet || '');
+      allPrices.push(...prices);
+      if (item.summary) {
+        const summaryPrices = extractPricesFromText(item.summary);
+        allPrices.push(...summaryPrices);
+      }
+    }
+    
+    if (allPrices.length > 0) {
+      // 过滤掉异常价格（过大或过小）
+      const validPrices = allPrices.filter(p => p >= 10 && p <= 10000000);
+      
+      if (validPrices.length > 0) {
+        const avgPrice = Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length);
+        const minPrice = Math.round(Math.min(...validPrices));
+        const maxPrice = Math.round(Math.max(...validPrices));
+        console.log('[MarketPrice] 从搜索结果中提取价格:', avgPrice, '（样本数:', validPrices.length, '）');
+        return {
+          price: avgPrice,
+          range: `${minPrice}-${maxPrice}`,
+          source: '市场搜索价',
+        };
+      }
+    }
+    
+    console.log('[MarketPrice] 未能从搜索结果中提取到有效价格');
+    return null;
+  } catch (error) {
+    console.error('[MarketPrice] 搜索市场价格失败:', error);
+    return null;
+  }
+}
+
+/**
+ * 从文本中提取所有价格数字
+ */
+function extractPricesFromText(text: string): number[] {
+  const prices: number[] = [];
+  
+  // 匹配各种价格格式
+  // 格式：1234, 1,234, 1,234.56, ￥1234, ¥1234, $1234, 1234元, 1234万元
+  const pricePatterns = [
+    /(?:￥|¥|\$|CNY)?\s*([1-9]\d{0,2}(?:,\d{3})*(?:\.\d{1,2})?)(?:元|万|万)?/g,
+    /(\d+(?:\.\d{1,2})?)\s*(?:元|万|万)/g,
+  ];
+  
+  for (const pattern of pricePatterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      let priceStr = match[1].replace(/,/g, '');
+      const price = parseFloat(priceStr);
+      
+      // 检查是否是"万元"
+      if (text.includes('万') && match.index < text.indexOf('万') + 10) {
+        prices.push(price * 10000);
+      } else {
+        prices.push(price);
+      }
+    }
+  }
+  
+  return prices;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -136,30 +249,50 @@ export async function POST(request: NextRequest) {
       console.log('[MarketPrice] 查询产品:', productName);
 
       try {
-        // 优先从数据库查询
-        let dbPrice = null;
-        try {
-          const { data } = await db
-            .from('products')
-            .select('price, name, model')
-            .ilike('name', `%${productName.split(' ')[0]}%`)
-            .limit(1)
-            .single();
+        let priceData = null;
 
-          if (data && data.price) {
-            const price = parseFloat(data.price);
-            dbPrice = {
-              price: price,
-              source: '价格库',
-              range: `${Math.round(price * 0.8)}-${Math.round(price * 1.2)}`,
-            };
+        // 第1级：优先从数据库查询知识库价格
+        if (!priceData) {
+          try {
+            const { data } = await db
+              .from('products')
+              .select('price, name, model')
+              .ilike('name', `%${productName.split(' ')[0]}%`)
+              .limit(1)
+              .single();
+
+            if (data && data.price) {
+              const price = parseFloat(data.price);
+              priceData = {
+                price: price,
+                source: '知识库价格库',
+                range: `${Math.round(price * 0.8)}-${Math.round(price * 1.2)}`,
+              };
+              console.log('[MarketPrice] 从知识库获取价格:', priceData);
+            }
+          } catch (dbError) {
+            console.error('[MarketPrice] 知识库查询失败:', dbError);
           }
-        } catch (dbError) {
-          console.error('[MarketPrice] 数据库查询失败:', dbError);
         }
 
-        // 使用数据库价格或模拟价格
-        const priceData = dbPrice || calculateMockPrice(productName);
+        // 第2级：从网络搜索市场价格
+        if (!priceData) {
+          try {
+            const marketPriceData = await searchMarketPrice(productName, model);
+            if (marketPriceData) {
+              priceData = marketPriceData;
+              console.log('[MarketPrice] 从网络搜索获取价格:', priceData);
+            }
+          } catch (searchError) {
+            console.error('[MarketPrice] 网络搜索失败:', searchError);
+          }
+        }
+
+        // 第3级：使用模拟价格兜底
+        if (!priceData) {
+          priceData = calculateMockPrice(productName);
+          console.log('[MarketPrice] 使用模拟价格兜底:', priceData);
+        }
 
         // 解析价格范围
         const rangeMatch = priceData.range.match(/(\d+)-(\d+)/);
