@@ -97,15 +97,15 @@ export default function Home() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="h-7 w-7 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0"
+                        className="h-8 w-8 rounded-md border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 flex-shrink-0 shadow-sm"
                         onClick={toggleSidebar}
                       >
                         {isCollapsed ? (
-                          <ChevronRight className="h-4 w-4" />
+                          <ChevronRight className="h-4 w-4 text-gray-700 dark:text-gray-300" />
                         ) : (
-                          <ChevronLeft className="h-4 w-4" />
+                          <ChevronLeft className="h-4 w-4 text-gray-700 dark:text-gray-300" />
                         )}
                       </Button>
                     </TooltipTrigger>
