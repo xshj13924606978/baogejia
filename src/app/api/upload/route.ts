@@ -211,13 +211,11 @@ export async function POST(request: NextRequest) {
     console.log('[Upload] 上传成功!');
     console.log('[Upload] 文件路径:', fileKey);
 
-    // 获取公共URL
-    const { data: urlData } = supabase
-      .storage
-      .from('quote-files')
-      .getPublicUrl(fileKey);
+    // 手动构建公共 URL（确保 URL 正确）
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/quote-files/${fileKey}`;
 
-    console.log('[Upload] 公开 URL:', urlData.publicUrl);
+    console.log('[Upload] 公开 URL:', publicUrl);
 
     // 保存文件记录到数据库
     try {
@@ -229,7 +227,7 @@ export async function POST(request: NextRequest) {
           file_key: fileKey,
           file_size: buffer.length,
           file_type: file.type,
-          public_url: urlData.publicUrl,
+          public_url: publicUrl,
           status: 'uploaded',
           created_at: new Date().toISOString()
         })
@@ -250,7 +248,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      url: urlData.publicUrl,
+      url: publicUrl,
       fileKey: fileKey,
       fileName: file.name,
       safeName: safeName,
