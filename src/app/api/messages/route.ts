@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { Logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-  console.log('[Messages] POST 保存消息');
-  
+  Logger.info('[Messages] POST 保存消息');
+
   try {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,12 +12,18 @@ export async function POST(request: NextRequest) {
     );
 
     const body = await request.json();
-    console.log('[Messages] 收到数据:', JSON.stringify(body, null, 2));
-    
+    Logger.debug('[Messages] 收到数据', {
+      conversationId: body.conversationId,
+      role: body.role,
+      contentLength: body.content?.length || 0,
+      hasQuoteData: !!body.quoteData,
+      fileCount: body.files?.length || 0
+    });
+
     const { conversationId, role, content, quoteData, files } = body;
 
     if (!conversationId || !role) {
-      console.error('[Messages] 缺少必要参数:', { conversationId, role });
+      Logger.error('[Messages] 缺少必要参数', { conversationId, role });
       return NextResponse.json(
         { error: '缺少必要参数' },
         { status: 400 }
@@ -31,7 +38,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (checkError || !conversation) {
-      console.error('[Messages] 对话不存在:', conversationId);
+      Logger.error('[Messages] 对话不存在', { conversationId });
       return NextResponse.json(
         { error: '对话不存在' },
         { status: 404 }
@@ -40,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // 确保文件数据是数组
     const fileData = Array.isArray(files) ? files : [];
-    
+
     // 处理文件数据，确保关键字段存在
     const processedFiles = fileData.map(file => ({
       id: file.id || `file-${Date.now()}-${Math.random()}`,
@@ -61,7 +68,13 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString()
     };
 
-    console.log('[Messages] 插入数据:', JSON.stringify(messageData, null, 2));
+    Logger.debug('[Messages] 插入数据', {
+      conversationId,
+      role,
+      contentLength: content?.length || 0,
+      hasQuoteData: !!quoteData,
+      fileCount: processedFiles.length
+    });
 
     const { data, error } = await supabase
       .from('messages')
@@ -70,21 +83,21 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[Messages] 插入失败:', error);
+      Logger.error('[Messages] 插入失败', error);
       return NextResponse.json(
         { error: '保存失败', details: error.message },
         { status: 500 }
       );
     }
 
-    console.log('[Messages] 保存成功:', data.id);
+    Logger.info('[Messages] 保存成功', { messageId: data.id });
 
     return NextResponse.json({ 
       success: true,
       message: data 
     });
   } catch (error) {
-    console.error('[Messages] 异常:', error);
+    Logger.error('[Messages] 异常', error);
     return NextResponse.json(
       { error: '服务器错误', details: String(error) },
       { status: 500 }
@@ -117,7 +130,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('[Messages] 查询失败:', error);
+      Logger.error('[Messages] 查询失败', error);
       return NextResponse.json(
         { error: '查询失败' },
         { status: 500 }
@@ -130,14 +143,11 @@ export async function GET(request: NextRequest) {
       file_data: msg.file_data || []
     }));
 
-    console.log('[Messages] 返回消息数量:', messages.length);
-    if (messages.length > 0) {
-      console.log('[Messages] 第一条消息文件数据:', messages[0].file_data);
-    }
+    Logger.debug('[Messages] 返回消息', { conversationId, count: messages.length });
 
     return NextResponse.json({ messages });
   } catch (error) {
-    console.error('[Messages] 异常:', error);
+    Logger.error('[Messages] 异常', error);
     return NextResponse.json(
       { error: '服务器错误' },
       { status: 500 }

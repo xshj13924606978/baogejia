@@ -100,11 +100,10 @@ export default function ConversationList({
     try {
       setIsRefreshing(true);
       setLoading(true);
-      console.log('[ConversationList] 加载对话列表...');
       const response = await fetch('/api/conversations');
       if (response.ok) {
         const data = await response.json();
-        console.log('[ConversationList] 加载到对话:', data);
+        console.log('[ConversationList] 加载对话列表完成', { count: data.conversations?.length || 0 });
         
         const savedPins = localStorage.getItem('pinned-conversations');
         if (savedPins) {
