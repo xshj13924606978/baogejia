@@ -6,6 +6,7 @@ import * as mammoth from 'mammoth';
 import { PriceMatcher, ProductMatch } from '@/lib/price-matching';
 import { InputProcessor, ProcessedInput } from '@/lib/input-processor';
 import { IntentDetector, IntentResult } from '@/lib/intent-detector';
+import { Logger } from '@/lib/logger';
 // 导入 DeepSeek 客户端
 import { aiClient, callDeepSeekChat, streamDeepSeekChat } from '@/lib/deepseek-client';
 
@@ -1215,52 +1216,83 @@ class ExcelParser {
 }
 
 // ============================================================================
-// PDF 解析器（完全保留）
+// PDF 解析器（使用增强版解析器）
 // ============================================================================
 
 class PdfParser {
-  private ocrHelper: OcrHelper;
-
-  constructor() {
-    this.ocrHelper = new OcrHelper();
-  }
-
+  /**
+   * 使用增强版PDF解析器（调用 /api/documents/parse）
+   */
   async parse(fileInfo: FileInfo): Promise<ParseResult> {
-    console.log('[PDF] 开始解析PDF文件');
+    Logger.info('[PDF] 开始解析PDF文件', { name: fileInfo.name, size: fileInfo.buffer?.length });
 
     if (!fileInfo.buffer) {
       return { products: [], globalRemarks: ['无法读取PDF'], parseLevel: 'error' };
     }
 
     try {
-      const { text } = await this.ocrHelper.recognizePdf(fileInfo.buffer);
-      
-      if (!text) {
-        return { products: [], globalRemarks: ['无法提取PDF文本'], parseLevel: 'error' };
+      // 将PDF保存到临时文件
+      const tempPath = `/tmp/pdf-${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`;
+      const fs = await import('fs');
+      fs.writeFileSync(tempPath, fileInfo.buffer);
+
+      // 调用增强版解析接口
+      const formData = new FormData();
+      const file = new File([fileInfo.buffer], fileInfo.name, { type: fileInfo.type });
+      formData.append('file', file);
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/documents/parse`, {
+        method: 'POST',
+        body: JSON.stringify({
+          fileUrl: `file://${tempPath}`,
+          fileName: fileInfo.name,
+          fileType: fileInfo.type
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // 清理临时文件
+      try { fs.unlinkSync(tempPath); } catch (e) {}
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        Logger.error('[PDF] 解析API调用失败', { status: response.status, error: errorText });
+        return { products: [], globalRemarks: ['PDF解析API调用失败'], parseLevel: 'error' };
       }
 
-      const tableProducts = this.ocrHelper.extractProductsFromTable(text);
-      
-      const products = tableProducts.map(p => ({
-        name: p.name,
+      const result = await response.json();
+
+      if (!result.success) {
+        Logger.error('[PDF] 解析失败', { error: result.error });
+        return { products: [], globalRemarks: [result.error || 'PDF解析失败'], parseLevel: 'error' };
+      }
+
+      const products = (result.products || []).map((p: any) => ({
+        name: p.name || '',
         model: p.model || '',
-        brand: '',
+        brand: p.brand || '',
         specs: p.specs || '',
-        quantity: p.quantity,
-        unit: p.unit,
-        price: 0,
-        total: 0,
-        remark: '从PDF提取'
+        quantity: Number(p.quantity) || 1,
+        unit: p.unit || '个',
+        price: Number(p.price) || 0,
+        total: Number(p.total) || 0,
+        remark: p.remark || `通过${result.parseMethod || 'AI'}提取`
       }));
 
-      console.log(`[PDF] 解析到 ${products.length} 个产品`);
+      Logger.info('[PDF] 解析成功', {
+        productCount: products.length,
+        parseMethod: result.parseMethod
+      });
+
       return {
         products,
-        globalRemarks: [],
-        parseLevel: 'pdf'
+        globalRemarks: result.remarks || [],
+        parseLevel: result.parseMethod || 'pdf'
       };
     } catch (error) {
-      console.error('[PDF] 解析失败:', error);
+      Logger.error('[PDF] 解析失败', error);
       return { products: [], globalRemarks: ['PDF解析失败'], parseLevel: 'error' };
     }
   }
@@ -2468,10 +2500,10 @@ class UnifiedFileParser {
 // ============================================================================
 
 async function generateQuoteData(products: Product[]) {
-  console.log('[QuoteGen] ========== 开始生成报价单 ==========');
-  console.log('[QuoteGen] 产品数量:', products.length);
+  Logger.info('[QuoteGen] 开始生成报价单', { productCount: products.length });
   // 移除详细的产品列表输出，只输出产品名称
-  console.log('[QuoteGen] 产品:', products.map(p => p.name).join(', '));
+  Logger.info('[QuoteGen] 产品列表', products.map(p => p.name).join(', '));
+
 
   const matchedProducts = [];
   const matchResults = [];

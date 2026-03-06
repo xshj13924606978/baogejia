@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { Logger } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -17,46 +18,74 @@ export interface ExtractedProduct {
 }
 
 export class OcrHelper {
+  private toolsAvailable: boolean | null = null;
+
+  /**
+   * 检查系统工具是否可用
+   */
+  private async checkTools(): Promise<boolean> {
+    if (this.toolsAvailable !== null) {
+      return this.toolsAvailable;
+    }
+
+    try {
+      await execAsync('which pdftotext');
+      Logger.info('[OCR] pdftotext 可用');
+      this.toolsAvailable = true;
+      return true;
+    } catch (error) {
+      Logger.warn('[OCR] pdftotext 不可用，建议安装 poppler-utils');
+      this.toolsAvailable = false;
+      return false;
+    }
+  }
+
   /**
    * 将PDF转换为文本（使用系统命令）
    */
   async recognizePdf(pdfBuffer: Buffer): Promise<{ text: string; isTable: boolean }> {
-    console.log('[OCR] ========== 开始处理PDF ==========');
-    
+    Logger.info('[OCR] 开始处理PDF', { size: pdfBuffer.length });
+
+    const toolsAvailable = await this.checkTools();
+
+    if (!toolsAvailable) {
+      Logger.warn('[OCR] 系统工具不可用，无法提取PDF文本');
+      return { text: '', isTable: false };
+    }
+
     const tempDir = os.tmpdir();
     const timestamp = Date.now();
     const tempPdf = path.join(tempDir, `pdf-${timestamp}.pdf`);
     const tempTxt = path.join(tempDir, `pdf-${timestamp}.txt`);
-    
+
     try {
       // 保存PDF到临时文件
       fs.writeFileSync(tempPdf, pdfBuffer);
-      console.log(`[OCR] 临时PDF文件: ${tempPdf}`);
-      
+      Logger.debug(`[OCR] 临时PDF文件: ${tempPdf}`);
+
       // 使用pdftotext提取文本
       try {
-        await execAsync('which pdftotext');
-        console.log('[OCR] 使用pdftotext提取文本...');
-        
+        Logger.info('[OCR] 使用pdftotext提取文本...');
+
         // 使用-layout参数保留原始布局
         await execAsync(`pdftotext -layout ${tempPdf} ${tempTxt}`);
-        
+
         if (fs.existsSync(tempTxt)) {
           const text = fs.readFileSync(tempTxt, 'utf-8');
           if (text && text.trim().length > 0) {
-            console.log(`[OCR] pdftotext提取成功，文本长度: ${text.length}`);
+            Logger.info('[OCR] pdftotext提取成功', { textLength: text.length });
             return { text, isTable: true };
           }
         }
       } catch (error) {
-        console.log('[OCR] pdftotext失败:', error.message);
+        Logger.error('[OCR] pdftotext失败', error);
       }
-      
-      console.log('[OCR] 无法提取文本');
+
+      Logger.warn('[OCR] 无法提取文本');
       return { text: '', isTable: false };
-      
+
     } catch (error) {
-      console.error('[OCR] PDF处理失败:', error);
+      Logger.error('[OCR] PDF处理失败', error);
       return { text: '', isTable: false };
     } finally {
       // 清理临时文件
@@ -70,10 +99,10 @@ export class OcrHelper {
    */
   extractProductsFromTable(text: string): ExtractedProduct[] {
     const lines = text.split('\n').filter(l => l.trim());
-    console.log(`[OCR] 开始解析文本，共 ${lines.length} 行`);
+    Logger.info('[OCR] 开始解析文本', { lineCount: lines.length });
 
     const products: ExtractedProduct[] = [];
-    
+
     // 产品关键词（按优先级排序）
     const productKeywords = [
       'PAM搅拌罐本体',
@@ -84,15 +113,15 @@ export class OcrHelper {
       '反应釜',
       '储罐'
     ];
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line || line.includes('产品名称') || line.includes('规格型号')) continue;
-      
+
       // 检查是否是产品行
       let isProductLine = false;
       let productName = '';
-      
+
       for (const keyword of productKeywords) {
         if (line.includes(keyword)) {
           isProductLine = true;
@@ -100,18 +129,18 @@ export class OcrHelper {
           break;
         }
       }
-      
+
       if (isProductLine) {
-        console.log(`[OCR] 找到产品行: ${line.substring(0, 50)}...`);
-        
+        Logger.debug('[OCR] 找到产品行', { preview: line.substring(0, 50) });
+
         // 收集这个产品的所有相关行
         const productLines = [line];
         let j = i + 1;
-        
+
         while (j < lines.length) {
           const nextLine = lines[j].trim();
           let isNextProduct = false;
-          
+
           // 检查下一行是否是新产品
           for (const keyword of productKeywords) {
             if (nextLine.includes(keyword) && !nextLine.includes('mm') && !nextLine.includes('kW')) {
@@ -119,28 +148,28 @@ export class OcrHelper {
               break;
             }
           }
-          
+
           if (isNextProduct) break;
-          
+
           // 如果下一行不是空行且不包含表头，则属于当前产品
           if (nextLine && !nextLine.includes('产品名称') && !nextLine.includes('规格型号')) {
             productLines.push(nextLine);
           }
           j++;
         }
-        
+
         // 解析这个产品的信息
         const product = this.parseProductLines(productLines, productName);
         if (product) {
           products.push(product);
-          console.log(`[OCR] 解析到产品: ${product.name}, 数量: ${product.quantity}${product.unit}`);
+          Logger.debug('[OCR] 解析到产品', { name: product.name, quantity: product.quantity, unit: product.unit });
         }
-        
+
         i = j - 1; // 跳过已处理的行
       }
     }
 
-    console.log(`[OCR] 提取到 ${products.length} 个产品`);
+    Logger.info('[OCR] 提取完成', { productCount: products.length });
     return products;
   }
 
@@ -151,8 +180,8 @@ export class OcrHelper {
     if (lines.length === 0) return null;
 
     const fullText = lines.join(' ').replace(/\s+/g, ' ');
-    console.log(`[OCR] 解析产品文本: ${fullText.substring(0, 100)}...`);
-    
+    Logger.debug('[OCR] 解析产品文本', { preview: fullText.substring(0, 100) });
+
     const product: ExtractedProduct = {
       name: defaultName,
       model: '',
@@ -193,7 +222,7 @@ export class OcrHelper {
         if (qty > 0 && qty < 100) {
           product.quantity = qty;
           product.unit = unit;
-          console.log(`[OCR] 提取到数量: ${qty}${unit}`);
+          Logger.debug('[OCR] 提取到数量', { quantity: qty, unit });
           return;
         }
       }
@@ -206,7 +235,7 @@ export class OcrHelper {
       if (qty > 0 && qty < 100) {
         product.quantity = qty;
         product.unit = '套';
-        console.log(`[OCR] 通过备用模式提取到数量: ${qty}套`);
+        Logger.debug('[OCR] 通过备用模式提取到数量', { quantity: qty });
         return;
       }
     }
@@ -218,7 +247,7 @@ export class OcrHelper {
       const maxQty = Math.max(...possibleQuantities.map(Number));
       if (maxQty > 1 && maxQty < 100) {
         product.quantity = maxQty;
-        console.log(`[OCR] 通过可能数量提取到: ${maxQty}`);
+        Logger.debug('[OCR] 通过可能数量提取到', { quantity: maxQty });
       }
     }
   }
@@ -242,23 +271,9 @@ export class OcrHelper {
       const match = text.match(pattern);
       if (match) {
         product.model = match[0];
-        console.log(`[OCR] 提取到型号: ${match[0]}`);
+        Logger.debug('[OCR] 提取到型号', { model: match[0] });
         break;
       }
-    }
-  }
-
-  /**
-   * 检查系统工具是否可用
-   */
-  async checkTools(): Promise<boolean> {
-    try {
-      await execAsync('which pdftotext');
-      console.log('[OCR] pdftotext 可用');
-      return true;
-    } catch (error) {
-      console.error('[OCR] pdftotext 不可用，请安装 poppler-utils');
-      return false;
     }
   }
 }
