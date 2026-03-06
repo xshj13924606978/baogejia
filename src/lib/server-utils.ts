@@ -181,6 +181,18 @@ export class ServerProcessUtils {
  * 数据库操作工具类
  */
 export class ServerDatabaseUtils {
+  // 跟踪已输出的错误，避免重复输出
+  private static loggedErrors: Set<string> = new Set();
+  
+  private static shouldLogError(error: any): boolean {
+    const errorKey = `${error.code}-${error.message}`;
+    if (this.loggedErrors.has(errorKey)) {
+      return false;
+    }
+    this.loggedErrors.add(errorKey);
+    return true;
+  }
+
   /**
    * 获取数据库客户端
    */
@@ -248,7 +260,10 @@ export class ServerDatabaseUtils {
       .limit(10);
 
     if (error) {
-      console.error('[ServerDatabase] 查询失败:', error);
+      // 只在第一次遇到此错误时输出，避免重复
+      if (this.shouldLogError(error)) {
+        console.log('[ServerDatabase] 查询失败:', error);
+      }
       return [];
     }
 

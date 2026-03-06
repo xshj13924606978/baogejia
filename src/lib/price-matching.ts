@@ -23,6 +23,18 @@ export interface ProductMatch {
 }
 
 export class PriceMatcher {
+  // 跟踪已输出的错误，避免重复输出
+  private static loggedErrors: Set<string> = new Set();
+  
+  private static shouldLogError(prefix: string, error: any): boolean {
+    const errorKey = `${prefix}-${error.code}-${error.message}`;
+    if (this.loggedErrors.has(errorKey)) {
+      return false;
+    }
+    this.loggedErrors.add(errorKey);
+    return true;
+  }
+
   /**
    * 多级价格匹配（优化版）
    * 1. 产品库优先（置信度 90-100）- 最高优先级
@@ -145,7 +157,10 @@ export class PriceMatcher {
         }
       }
     } catch (error) {
-      console.error('[PriceMatcher] 数据库匹配失败:', error);
+      // 只在第一次遇到此错误时输出，避免重复
+      if (this.shouldLogError('database-match', error)) {
+        console.log('[PriceMatcher] 数据库匹配失败:', error);
+      }
     }
     return null;
   }
@@ -180,7 +195,10 @@ export class PriceMatcher {
         .limit(10);
 
       if (error) {
-        console.error('[PriceMatcher] 知识库查询失败:', error);
+        // 只在第一次遇到此错误时输出，避免重复
+        if (this.shouldLogError('knowledge-query', error)) {
+          console.log('[PriceMatcher] 知识库查询失败:', error);
+        }
         return null;
       }
 
@@ -237,7 +255,10 @@ export class PriceMatcher {
         }
       }
     } catch (error) {
-      console.error('[PriceMatcher] 知识库匹配失败:', error);
+      // 只在第一次遇到此错误时输出，避免重复
+      if (this.shouldLogError('knowledge-match', error)) {
+        console.log('[PriceMatcher] 知识库匹配失败:', error);
+      }
     }
     return null;
   }
