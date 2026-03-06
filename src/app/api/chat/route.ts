@@ -1109,10 +1109,35 @@ class ExcelParser {
       // 解析数据行
       const products: Product[] = [];
       let currentProduct: Product | null = null;
+      let consecutiveEmptyRows = 0;
+      const MAX_CONSECUTIVE_EMPTY = 3; // 连续3个空行就停止解析
       
       console.log('[Excel] 开始解析数据行...');
       
       for (let i = headerRow + 1; i < data.length; i++) {
+        const row = data[i];
+        
+        // 检查整行是否为空，如果是则跳过
+        const isRowEmpty = row.every(cell => 
+          cell === undefined || 
+          cell === '' || 
+          String(cell).trim() === ''
+        );
+        
+        if (isRowEmpty) {
+          consecutiveEmptyRows++;
+          console.log(`[Excel] 第${i}行: 空行，跳过 (连续空行: ${consecutiveEmptyRows})`);
+          
+          // 如果连续空行超过阈值，停止解析
+          if (consecutiveEmptyRows >= MAX_CONSECUTIVE_EMPTY) {
+            console.log(`[Excel] 连续${MAX_CONSECUTIVE_EMPTY}个空行，停止解析`);
+            break;
+          }
+          continue;
+        } else {
+          consecutiveEmptyRows = 0; // 重置计数器
+        }
+        
         const nameValue = getCellValue(i, nameCol);
         
         // 如果当前行有产品名称，说明是一个新产品
