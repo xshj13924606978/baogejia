@@ -77,7 +77,7 @@ export default function Home() {
           <div className="flex h-screen bg-white dark:bg-gray-950 w-full overflow-hidden">
             {/* 桌面端侧边栏 - 分栏线只在展开时显示 */}
             <aside className={cn(
-              "hidden lg:flex lg:flex-col bg-gray-50/50 dark:bg-gray-900/50 transition-all duration-300",
+              "hidden lg:flex lg:flex-col bg-gray-50/50 dark:bg-gray-900/50 transition-all duration-300 relative",
               isCollapsed ? "lg:w-16" : "lg:w-72 lg:border-r lg:border-gray-200 dark:lg:border-gray-800",
               "flex-shrink-0 h-full"
             )}>
@@ -92,27 +92,25 @@ export default function Home() {
                       <span className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">报个价</span>
                     )}
                   </div>
-                  
-                  {/* 唯一的收起/展开按钮 - 添加悬浮提示 */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0"
-                        onClick={toggleSidebar}
-                      >
-                        {isCollapsed ? (
-                          <ChevronRight className="h-4 w-4" />
-                        ) : (
+
+                  {/* 只在展开时显示的收起按钮 */}
+                  {!isCollapsed && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0"
+                          onClick={toggleSidebar}
+                        >
                           <ChevronLeft className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      <p>{isCollapsed ? '展开侧边栏' : '收起侧边栏'}</p>
-                    </TooltipContent>
-                  </Tooltip>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p>收起侧边栏</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
               </div>
 
@@ -129,6 +127,27 @@ export default function Home() {
                       isCollapsed={isCollapsed}
                     />
                   </ScrollArea>
+                </div>
+              )}
+
+              {/* 侧边栏收起时的展开按钮 - 固定在右边缘 */}
+              {isCollapsed && (
+                <div className="absolute top-20 right-0 z-50">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="default"
+                        size="icon"
+                        className="h-8 w-8 rounded-l-md rounded-r-none shadow-lg hover:scale-110 transition-transform duration-200"
+                        onClick={toggleSidebar}
+                      >
+                        <ChevronRight className="h-4 w-4 text-white" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>展开侧边栏</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               )}
             </aside>
