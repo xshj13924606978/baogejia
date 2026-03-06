@@ -83,14 +83,95 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
 
     // 上传到存储
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
-      .from('quote-files')
-      .upload(fileKey, buffer, {
-        contentType: file.type,
-        cacheControl: '3600',
-        upsert: false
-      });
+    let uploadError: any = null;
+    let uploadData: any = null;
+
+    try {
+      const result = await supabase
+        .storage
+        .from('quote-files')
+        .upload(fileKey, buffer, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      uploadData = result.data;
+      uploadError = result.error;
+    } catch (e: any) {
+      uploadError = e;
+    }
+
+    // 如果 bucket 不存在，尝试创建它
+    if (uploadError && uploadError.message && uploadError.message.includes('Bucket not found')) {
+      console.log('[Upload] 存储桶不存在，尝试创建...');
+
+      try {
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!serviceRoleKey) {
+          throw new Error('未配置 SUPABASE_SERVICE_ROLE_KEY');
+        }
+
+        // 创建一个带有 service role 权限的客户端
+        const { createClient } = await import('@supabase/supabase-js');
+        const serviceClient = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          serviceRoleKey,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        );
+
+        // 创建 bucket
+        const { error: createError } = await serviceClient
+          .storage
+          .createBucket('quote-files', {
+            public: true,
+            allowedMimeTypes: [
+              'application/pdf',
+              'application/vnd.ms-excel',
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              'application/msword',
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              'text/plain',
+              'text/csv',
+              'image/jpeg',
+              'image/png',
+              'image/gif'
+            ],
+            fileSizeLimit: 10485760 // 10MB
+          });
+
+        if (createError) {
+          console.error('[Upload] 创建存储桶失败:', createError);
+          throw createError;
+        }
+
+        console.log('[Upload] 存储桶创建成功，重新上传...');
+
+        // 重新上传
+        const retryResult = await supabase
+          .storage
+          .from('quote-files')
+          .upload(fileKey, buffer, {
+            contentType: file.type,
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        uploadData = retryResult.data;
+        uploadError = retryResult.error;
+      } catch (e: any) {
+        console.error('[Upload] 创建存储桶或重新上传失败:', e);
+        return NextResponse.json(
+          { error: 'Failed to create storage bucket and upload file', details: e.message },
+          { status: 500 }
+        );
+      }
+    }
 
     if (uploadError) {
       console.error('[Upload] 上传到存储失败:', uploadError);
