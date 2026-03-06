@@ -996,7 +996,7 @@ class FileDownloader {
 }
 
 // ============================================================================
-// Excel 解析器（完全保留）
+// Excel 解析器（优化版 - 支持合并单元格和多行文本）
 // ============================================================================
 
 class ExcelParser {
@@ -1004,57 +1004,176 @@ class ExcelParser {
     console.log('[Excel] 开始解析Excel文件');
     
     try {
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      const workbook = XLSX.read(buffer, { type: 'buffer', cellStyles: true, cellText: true });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
       
-      const products: Product[] = [];
+      // 获取合并单元格信息
+      const merges = worksheet['!merges'] || [];
+      console.log('[Excel] 合并单元格数量:', merges.length);
+      
+      // 转换为二维数组，保留原始格式
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+      const data: any[][] = [];
+      
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        const row: any[] = [];
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = worksheet[cellAddress];
+          row.push(cell ? cell.v : undefined);
+        }
+        data.push(row);
+      }
+      
+      // 创建合并单元格值映射
+      const mergeValueMap = new Map<string, any>();
+      for (const merge of merges) {
+        const topLeftAddress = XLSX.utils.encode_cell({ r: merge.s.r, c: merge.s.c });
+        const topLeftCell = worksheet[topLeftAddress];
+        if (topLeftCell && topLeftCell.v !== undefined) {
+          mergeValueMap.set(`${merge.s.r},${merge.s.c}`, topLeftCell.v);
+        }
+      }
+      
+      // 辅助函数：获取单元格值（处理合并单元格）
+      const getCellValue = (row: number, col: number): any => {
+        if (row < 0 || row >= data.length) return undefined;
+        const rowData = data[row];
+        if (!rowData || col < 0 || col >= rowData.length) return undefined;
+        
+        // 如果当前单元格有值，直接返回
+        if (rowData[col] !== undefined && rowData[col] !== '') {
+          return rowData[col];
+        }
+        
+        // 检查是否在合并区域内
+        for (const merge of merges) {
+          if (row >= merge.s.r && row <= merge.e.r && col >= merge.s.c && col <= merge.e.c) {
+            return mergeValueMap.get(`${merge.s.r},${merge.s.c}`);
+          }
+        }
+        
+        return rowData[col];
+      };
       
       // 查找表头行
-      let headerRow = 0;
-      for (let i = 0; i < Math.min(5, data.length); i++) {
+      let headerRow = -1;
+      let nameCol = -1;
+      let specsCol = -1;
+      let quantityCol = -1;
+      let unitCol = -1;
+      
+      console.log('[Excel] 开始查找表头...');
+      for (let i = 0; i < Math.min(10, data.length); i++) {
         const row = data[i];
-        if (row && row.some(cell => 
-          String(cell).includes('产品') || 
-          String(cell).includes('名称') || 
-          String(cell).includes('型号')
-        )) {
+        if (!row || row.length === 0) continue;
+        
+        // 将行数据转换为字符串进行匹配
+        const rowStr = row.map(cell => cell ? String(cell) : '').join('|').toLowerCase();
+        
+        console.log(`[Excel] 第${i}行内容:`, rowStr);
+        
+        // 检测是否为表头行
+        if (rowStr.includes('产品') || rowStr.includes('设备名称') || rowStr.includes('名称')) {
           headerRow = i;
+          
+          // 识别列位置
+          row.forEach((cell, col) => {
+            const cellStr = cell ? String(cell).toLowerCase() : '';
+            if (cellStr.includes('产品名称') || cellStr.includes('设备名称') || cellStr === '名称') {
+              nameCol = col;
+            } else if (cellStr.includes('规格') || cellStr.includes('型号') || cellStr.includes('简介说明') || cellStr === '规格型号') {
+              specsCol = col;
+            } else if (cellStr.includes('数量') || cellStr === '数量') {
+              quantityCol = col;
+            } else if (cellStr.includes('单位') || cellStr === '单位') {
+              unitCol = col;
+            }
+          });
+          
+          console.log('[Excel] 找到表头行:', i, '列位置:', { nameCol, specsCol, quantityCol, unitCol });
           break;
         }
       }
-
-      // 解析数据行
-      for (let i = headerRow + 1; i < data.length; i++) {
-        const row = data[i];
-        if (!row || row.length === 0) continue;
-
-        const name = row[1]?.toString() || row[0]?.toString() || '';
-        if (!name) continue;
-
-        // 提取数量
-        let quantity = 1;
-        const qtyCell = row[4]?.toString() || row[3]?.toString() || '';
-        const qtyMatch = qtyCell.match(/(\d+)/);
-        if (qtyMatch) {
-          quantity = parseInt(qtyMatch[1]);
-        }
-
-        products.push({
-          name: name,
-          model: row[2]?.toString() || '',
-          brand: '',
-          specs: row[2]?.toString() || '',
-          quantity: quantity,
-          unit: row[3]?.toString() || '个',
-          price: 0,
-          total: 0,
-          remark: ''
-        });
+      
+      if (headerRow === -1) {
+        console.warn('[Excel] 未找到表头行，尝试使用默认列位置');
+        headerRow = 0;
+        nameCol = 1;
+        specsCol = 2;
+        quantityCol = 3;
+        unitCol = 3;
       }
-
-      console.log(`[Excel] 解析到 ${products.length} 个产品`);
+      
+      // 解析数据行
+      const products: Product[] = [];
+      let currentProduct: Product | null = null;
+      
+      console.log('[Excel] 开始解析数据行...');
+      
+      for (let i = headerRow + 1; i < data.length; i++) {
+        const nameValue = getCellValue(i, nameCol);
+        
+        // 如果当前行有产品名称，说明是一个新产品
+        if (nameValue !== undefined && nameValue !== '' && String(nameValue).trim() !== '') {
+          // 如果之前有产品，先保存
+          if (currentProduct) {
+            products.push(currentProduct);
+          }
+          
+          // 创建新产品
+          const specsValue = getCellValue(i, specsCol) || '';
+          const quantityValue = getCellValue(i, quantityCol) || '';
+          const unitValue = getCellValue(i, unitCol) || '';
+          
+          let quantity = 1;
+          const qtyMatch = String(quantityValue).match(/(\d+)/);
+          if (qtyMatch) {
+            quantity = parseInt(qtyMatch[1]);
+          }
+          
+          currentProduct = {
+            name: String(nameValue).trim(),
+            model: '',
+            brand: '',
+            specs: String(specsValue).trim(),
+            quantity: quantity,
+            unit: String(unitValue).trim() || '套',
+            price: 0,
+            total: 0,
+            remark: ''
+          };
+          
+          console.log(`[Excel] 第${i}行: 新产品 - ${currentProduct.name}`);
+        } else {
+          // 如果当前行没有产品名称，可能是规格说明的续行
+          if (currentProduct && specsCol !== -1) {
+            const specsValue = getCellValue(i, specsCol);
+            if (specsValue !== undefined && specsValue !== '' && String(specsValue).trim() !== '') {
+              // 将续行内容追加到规格说明中
+              const specsStr = String(specsValue).trim();
+              if (currentProduct.specs) {
+                currentProduct.specs += '\n' + specsStr;
+              } else {
+                currentProduct.specs = specsStr;
+              }
+              console.log(`[Excel] 第${i}行: 追加规格说明 - ${specsStr}`);
+            }
+          }
+        }
+      }
+      
+      // 保存最后一个产品
+      if (currentProduct) {
+        products.push(currentProduct);
+      }
+      
+      console.log(`[Excel] 解析完成，共 ${products.length} 个产品`);
+      products.forEach((p, idx) => {
+        console.log(`[Excel] 产品${idx + 1}: ${p.name}, 规格行数: ${p.specs.split('\n').length}`);
+      });
+      
       return {
         products,
         globalRemarks: [],
@@ -1062,7 +1181,7 @@ class ExcelParser {
       };
     } catch (error) {
       console.error('[Excel] 解析失败:', error);
-      return { products: [], globalRemarks: ['Excel解析失败'], parseLevel: 'error' };
+      return { products: [], globalRemarks: ['Excel解析失败: ' + (error instanceof Error ? error.message : '未知错误')], parseLevel: 'error' };
     }
   }
 }
