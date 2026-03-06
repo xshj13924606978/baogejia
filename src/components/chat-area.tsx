@@ -261,6 +261,22 @@ export default function ChatArea({
   const { setActiveGroup, setLoading: setSwitchLoading, fileGroupId: activeGroupId, currentChoice: activeChoice, isLoading: switchIsLoading, generatedChoice, setGeneratedChoice, resetSwitch } =
     switchContext;
 
+  // 清空浏览器控制台
+  const clearConsole = useCallback(() => {
+    if (typeof window !== 'undefined' && window.console) {
+      console.clear();
+      console.log('%c✨ 控制台已清空', 'color: #22c55e; font-weight: bold; font-size: 14px;');
+      console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #64748b;');
+      console.log(`%c📅 开始时间: ${new Date().toLocaleString('zh-CN')}`, 'color: #64748b;');
+      console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #64748b;');
+    }
+  }, []);
+
+  // 页面首次加载时清空控制台
+  useEffect(() => {
+    clearConsole();
+  }, []); // 只在组件挂载时执行一次
+
   // 自动滚动到底部的函数
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -313,6 +329,10 @@ export default function ChatArea({
   useEffect(() => {
     const handleNewConversation = () => {
       console.log('[ChatArea] 收到新建对话事件，清空所有状态');
+      
+      // 清空控制台日志
+      clearConsole();
+      
       setMessages([]);
       setFiles([]);
       setInput('');
@@ -335,7 +355,7 @@ export default function ChatArea({
     return () => {
       window.removeEventListener('new-conversation', handleNewConversation);
     };
-  }, [resetSwitch, onTitleChange, scrollToBottom]);
+  }, [resetSwitch, onTitleChange, scrollToBottom, clearConsole]);
 
   useEffect(() => {
     const handleSelectConversation = (event: Event) => {
@@ -915,6 +935,9 @@ export default function ChatArea({
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    // 清空控制台日志（重新生成时）
+    clearConsole();
+
     setLoading(true);
 
     try {
@@ -1118,6 +1141,11 @@ export default function ChatArea({
           isTemporary: true,
         },
       ]);
+    }
+
+    // 清空控制台日志（每次上传/解析开始时）
+    if (filesToUpload.length > 0) {
+      clearConsole();
     }
 
     try {
