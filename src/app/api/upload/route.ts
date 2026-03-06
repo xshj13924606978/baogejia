@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     // 如果 bucket 不存在，尝试创建它
     if (uploadError && uploadError.message && uploadError.message.includes('Bucket not found')) {
-      console.log('[Upload] 存储桶不存在，尝试创建...');
+      console.log('[Upload] 检测到 Bucket not found，尝试处理...');
 
       try {
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -125,35 +125,55 @@ export async function POST(request: NextRequest) {
           }
         );
 
-        // 创建 bucket
-        const { error: createError } = await serviceClient
+        // 检查 bucket 是否真的不存在
+        const { data: buckets, error: listError } = await serviceClient
           .storage
-          .createBucket('quote-files', {
-            public: true,
-            allowedMimeTypes: [
-              'application/pdf',
-              'application/vnd.ms-excel',
-              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              'application/msword',
-              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-              'text/plain',
-              'text/csv',
-              'image/jpeg',
-              'image/png',
-              'image/gif'
-            ],
-            fileSizeLimit: 10485760 // 10MB
-          });
+          .listBuckets();
 
-        if (createError) {
-          console.error('[Upload] 创建存储桶失败:', createError);
-          throw createError;
+        if (listError) {
+          console.error('[Upload] 检查存储桶列表失败:', listError);
+          throw listError;
         }
 
-        console.log('[Upload] 存储桶创建成功，重新上传...');
+        const bucketExists = buckets?.find(b => b.name === 'quote-files');
 
-        // 重新上传
-        const retryResult = await supabase
+        if (!bucketExists) {
+          // bucket 确实不存在，创建它
+          console.log('[Upload] 存储桶不存在，正在创建...');
+
+          const { error: createError } = await serviceClient
+            .storage
+            .createBucket('quote-files', {
+              public: true,
+              allowedMimeTypes: [
+                'application/pdf',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'text/plain',
+                'text/csv',
+                'image/jpeg',
+                'image/png',
+                'image/gif'
+              ],
+              fileSizeLimit: 10485760 // 10MB
+            });
+
+          if (createError) {
+            console.error('[Upload] 创建存储桶失败:', createError);
+            throw createError;
+          }
+
+          console.log('[Upload] 存储桶创建成功');
+        } else {
+          console.log('[Upload] 存储桶已存在，可能是权限问题');
+        }
+
+        console.log('[Upload] 使用 service role 重新上传...');
+
+        // 使用 service role 直接上传
+        const retryResult = await serviceClient
           .storage
           .from('quote-files')
           .upload(fileKey, buffer, {
@@ -164,10 +184,17 @@ export async function POST(request: NextRequest) {
 
         uploadData = retryResult.data;
         uploadError = retryResult.error;
+
+        if (uploadError) {
+          console.error('[Upload] 使用 service role 上传失败:', uploadError);
+          throw uploadError;
+        }
+
+        console.log('[Upload] 使用 service role 上传成功!');
       } catch (e: any) {
-        console.error('[Upload] 创建存储桶或重新上传失败:', e);
+        console.error('[Upload] 处理存储桶问题失败:', e);
         return NextResponse.json(
-          { error: 'Failed to create storage bucket and upload file', details: e.message },
+          { error: 'Failed to handle storage bucket issue and upload file', details: e.message },
           { status: 500 }
         );
       }

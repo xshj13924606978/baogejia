@@ -1148,9 +1148,36 @@ export default function ChatArea({
           body: formData,
           signal: controller.signal,
         });
+        
         if (uploadResponse.ok) {
           const uploadData = await uploadResponse.json();
           uploadedFiles.push(uploadData);
+          console.log('[ChatArea] 文件上传成功:', uploadData.fileName);
+        } else {
+          const errorData = await uploadResponse.json();
+          console.error('[ChatArea] 文件上传失败:', errorData);
+          
+          // 移除上传进度消息
+          if (uploadSuccessMessageId !== null) {
+            setMessages((prev) => prev.filter((m) => m.id !== uploadSuccessMessageId));
+          }
+          
+          // 显示错误消息
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              role: 'assistant',
+              content: `文件上传失败：${errorData.error || '未知错误'}。请稍后重试。`,
+              timestamp: new Date().toISOString(),
+              action: 'ERROR',
+              isTemporary: false
+            },
+          ]);
+          
+          setLoading(false);
+          abortControllerRef.current = null;
+          return;
         }
       }
 
