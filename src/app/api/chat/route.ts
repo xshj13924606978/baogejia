@@ -1220,9 +1220,12 @@ class ExcelParser {
 // ============================================================================
 
 class PdfParser {
-  /**
-   * 使用增强版PDF解析器（调用 /api/documents/parse）
-   */
+  private ocrHelper: OcrHelper;
+
+  constructor() {
+    this.ocrHelper = new OcrHelper();
+  }
+
   async parse(fileInfo: FileInfo): Promise<ParseResult> {
     Logger.info('[PDF] 开始解析PDF文件', { name: fileInfo.name, size: fileInfo.buffer?.length });
 
@@ -1231,68 +1234,78 @@ class PdfParser {
     }
 
     try {
-      // 将PDF保存到临时文件
-      const tempPath = `/tmp/pdf-${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`;
-      const fs = await import('fs');
-      fs.writeFileSync(tempPath, fileInfo.buffer);
+      // 优先使用pdf-parse库解析（适用于文本型PDF）
+      const pdfParse = (await import('pdf-parse')).default;
+      const data = await pdfParse(fileInfo.buffer);
 
-      // 调用增强版解析接口
-      const formData = new FormData();
-      const file = new File([fileInfo.buffer], fileInfo.name, { type: fileInfo.type });
-      formData.append('file', file);
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/documents/parse`, {
-        method: 'POST',
-        body: JSON.stringify({
-          fileUrl: `file://${tempPath}`,
-          fileName: fileInfo.name,
-          fileType: fileInfo.type
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      Logger.info('[PDF] pdf-parse解析成功', {
+        pageCount: data.numpages,
+        textLength: data.text?.length || 0
       });
 
-      // 清理临时文件
-      try { fs.unlinkSync(tempPath); } catch (e) {}
+      if (data.text && data.text.trim().length > 0) {
+        const tableProducts = this.ocrHelper.extractProductsFromTable(data.text);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        Logger.error('[PDF] 解析API调用失败', { status: response.status, error: errorText });
-        return { products: [], globalRemarks: ['PDF解析API调用失败'], parseLevel: 'error' };
+        const products = tableProducts.map(p => ({
+          name: p.name,
+          model: p.model || '',
+          brand: '',
+          specs: p.specs || '',
+          quantity: p.quantity,
+          unit: p.unit,
+          price: 0,
+          total: 0,
+          remark: '从PDF提取'
+        }));
+
+        Logger.info('[PDF] 解析成功', { productCount: products.length });
+        return {
+          products,
+          globalRemarks: [],
+          parseLevel: 'pdf-parse'
+        };
+      } else {
+        Logger.warn('[PDF] 未提取到文本内容');
+        return {
+          products: [],
+          globalRemarks: ['PDF未包含可提取的文本内容'],
+          parseLevel: 'error'
+        };
       }
-
-      const result = await response.json();
-
-      if (!result.success) {
-        Logger.error('[PDF] 解析失败', { error: result.error });
-        return { products: [], globalRemarks: [result.error || 'PDF解析失败'], parseLevel: 'error' };
-      }
-
-      const products = (result.products || []).map((p: any) => ({
-        name: p.name || '',
-        model: p.model || '',
-        brand: p.brand || '',
-        specs: p.specs || '',
-        quantity: Number(p.quantity) || 1,
-        unit: p.unit || '个',
-        price: Number(p.price) || 0,
-        total: Number(p.total) || 0,
-        remark: p.remark || `通过${result.parseMethod || 'AI'}提取`
-      }));
-
-      Logger.info('[PDF] 解析成功', {
-        productCount: products.length,
-        parseMethod: result.parseMethod
-      });
-
-      return {
-        products,
-        globalRemarks: result.remarks || [],
-        parseLevel: result.parseMethod || 'pdf'
-      };
     } catch (error) {
-      Logger.error('[PDF] 解析失败', error);
+      Logger.error('[PDF] pdf-parse解析失败', error);
+
+      // 如果pdf-parse失败，尝试使用OcrHelper的recognizePdf方法
+      try {
+        Logger.info('[PDF] 尝试使用OCR辅助解析...');
+        const { text } = await this.ocrHelper.recognizePdf(fileInfo.buffer);
+
+        if (text && text.trim().length > 0) {
+          const tableProducts = this.ocrHelper.extractProductsFromTable(text);
+
+          const products = tableProducts.map(p => ({
+            name: p.name,
+            model: p.model || '',
+            brand: '',
+            specs: p.specs || '',
+            quantity: p.quantity,
+            unit: p.unit,
+            price: 0,
+            total: 0,
+            remark: '通过OCR提取'
+          }));
+
+          Logger.info('[PDF] OCR解析成功', { productCount: products.length });
+          return {
+            products,
+            globalRemarks: [],
+            parseLevel: 'ocr'
+          };
+        }
+      } catch (ocrError) {
+        Logger.error('[PDF] OCR解析也失败', ocrError);
+      }
+
       return { products: [], globalRemarks: ['PDF解析失败'], parseLevel: 'error' };
     }
   }
