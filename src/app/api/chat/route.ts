@@ -9,6 +9,8 @@ import { IntentDetector, IntentResult } from '@/lib/intent-detector';
 import { Logger } from '@/lib/logger';
 // 导入 DeepSeek 客户端
 import { aiClient, callDeepSeekChat, streamDeepSeekChat } from '@/lib/deepseek-client';
+// 导入智能对话处理器（替代固定意图检测）
+import { smartChatProcessor } from '@/lib/smart-chat-processor';
 
 // ============================================================================
 // 类型定义
@@ -3847,8 +3849,11 @@ class IntentResponseGenerator {
 // 创建全局实例
 const globalConversationMemory = new ConversationMemory();
 const inputProcessor = new InputProcessor();
-const intentDetector = new IntentDetector();
-const responseGenerator = new IntentResponseGenerator();
+// ❌ 移除固定意图检测器
+// const intentDetector = new IntentDetector();
+// const responseGenerator = new IntentResponseGenerator();
+// ✅ 使用智能对话处理器
+const smartProcessor = smartChatProcessor;
 
 export async function POST(request: NextRequest) {
   try {
@@ -4027,9 +4032,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 4. 新流程：统一处理输入并判断意图
+    // 4. 新流程：智能对话处理（使用 LLM 语义理解）
     if (message || uploadedFile) {
-      console.log('[Chat API] ========== 统一输入处理模式 ==========');
+      console.log('[Chat API] ========== 智能对话处理模式 ==========');
       
       // 4.1 处理输入（统一格式化）
       let processedInput: ProcessedInput;
@@ -4061,37 +4066,39 @@ export async function POST(request: NextRequest) {
         });
       }
       
-      // 4.2 判断用户意图
-      const intentResult = await intentDetector.detect(processedInput);
-      console.log('[Chat API] 检测到的意图:', { 
-        intent: intentResult.intent, 
-        confidence: intentResult.confidence,
-        entities: intentResult.entities 
-      });
-      
-      // 4.3 根据意图生成专业回复
-      const responseText = await responseGenerator.generateResponse(
-        intentResult, 
-        processedInput, 
+      // 4.2 ✅ 使用智能对话处理器（LLM 语义理解，无需固定意图检测）
+      console.log('[Chat API] 调用智能对话处理器进行语义理解...');
+      const smartResponse = await smartProcessor.process(
+        message || '',
+        processedInput,
         conversationId || undefined
       );
       
-      // 4.4 保存对话历史（如果有conversationId）
+      console.log('[Chat API] 智能响应生成完成:', { 
+        intent: smartResponse.intent, 
+        contentLength: smartResponse.content.length,
+        suggestions: smartResponse.suggestions?.length,
+        requiresFollowUp: smartResponse.requiresFollowUp
+      });
+      
+      // 4.3 保存对话历史（如果有conversationId）
       if (conversationId) {
         globalConversationMemory.addToHistory(conversationId, 'user', message || '[文件上传]');
-        globalConversationMemory.addToHistory(conversationId, 'assistant', responseText);
+        globalConversationMemory.addToHistory(conversationId, 'assistant', smartResponse.content);
       }
       
-      // 4.5 返回响应 - 确保返回正确的字段名
+      // 4.4 返回响应
       return NextResponse.json({
-        response: responseText,
-        content: responseText, // 同时提供 content 字段以兼容旧版
+        response: smartResponse.content,
+        content: smartResponse.content,
         conversationId,
+        suggestions: smartResponse.suggestions,
+        followUpQuestions: smartResponse.followUpQuestions,
         metadata: {
-          intent: intentResult.intent,
+          intent: smartResponse.intent, // 动态识别的意图，不固定
           inputType: processedInput.type,
-          confidence: intentResult.confidence,
-          entities: intentResult.entities
+          confidence: smartResponse.metadata?.confidence || 0.9,
+          entities: smartResponse.metadata?.extractedEntities
         }
       });
     }

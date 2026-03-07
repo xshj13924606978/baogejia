@@ -113,6 +113,9 @@ export class AIClient {
     }
     
     try {
+      console.log('[DeepSeek] 准备调用 API，消息数:', params.messages?.length);
+      console.log('[DeepSeek] 消息内容（前2条）:', JSON.stringify(params.messages?.slice(0, 2), null, 2));
+      
       const response = await this.deepseekClient.chat.completions.create({
         model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
         messages: params.messages,
@@ -120,6 +123,8 @@ export class AIClient {
         max_tokens: params.maxTokens ?? 1024,
         stream: false,
       }) as ChatCompletion;
+      
+      console.log('[DeepSeek] API 调用成功');
       
       return {
         text: response.choices[0]?.message?.content || '',
