@@ -2711,8 +2711,8 @@ class DetailedProposalGenerator {
     console.log('[DetailedProposalGenerator] 开始生成详细方案');
     
     try {
-      // 构建结构化的方案内容
-      const sections = await Promise.all([
+      // 并行生成各个章节，但添加错误处理
+      const results = await Promise.allSettled([
         this.generateProjectOverview(projectInfo),
         this.generateProcessComparison(projectInfo, products),
         this.generateSelectedProcess(projectInfo),
@@ -2723,6 +2723,19 @@ class DetailedProposalGenerator {
         this.generateAfterSalesService()
       ]);
       
+      // 收集成功的章节，失败的章节使用备用内容
+      const sections: string[] = [];
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          sections.push(result.value);
+          console.log(`[DetailedProposalGenerator] 章节 ${index + 1} 生成成功`);
+        } else {
+          console.error(`[DetailedProposalGenerator] 章节 ${index + 1} 生成失败:`, result.reason);
+          // 使用备用内容
+          sections.push(this.getFallbackSection(index));
+        }
+      });
+      
       const proposal = this.formatProposal(sections);
       console.log('[DetailedProposalGenerator] 详细方案生成完成');
       return proposal;
@@ -2732,6 +2745,24 @@ class DetailedProposalGenerator {
       // 回退到基础方案
       return this.generateBasicProposal(projectInfo, products);
     }
+  }
+
+  /**
+   * 获取备用章节内容
+   */
+  private getFallbackSection(index: number): string {
+    const fallbackSections = [
+      `## 一、项目概述\n\n本项目是污水处理工程项目，采用先进的生化处理技术，实现污水的达标排放，保护水环境。`,
+      `## 二、工艺比选\n\n经综合比较，推荐采用A²/O工艺。该工艺技术成熟、运行稳定、脱氮除磷效果好，能够满足一级A排放标准要求。`,
+      `## 三、选定工艺方案\n\n本项目采用A²/O工艺，工艺流程为：格栅→调节池→A²/O生化池→二沉池→消毒池→达标排放。`,
+      `## 四、配置清单及价格\n\n详见设备清单表格。所有设备均按照国家标准制造，质量可靠，性能稳定。`,
+      `## 五、投资及运行成本分析\n\n项目总投资合理，运行成本可控，具有良好的经济效益和环境效益。具体数据请参考详细报价。`,
+      `## 六、安装调试\n\n设备安装调试由专业团队负责，严格按照规范施工，确保设备正常运行。`,
+      `## 七、运行维护\n\n制定完善的运行维护制度，确保系统长期稳定运行。`,
+      `## 八、售后服务\n\n提供全面的技术支持和售后服务，确保客户满意。`
+    ];
+    
+    return fallbackSections[index] || `## 章节内容\n\n内容生成中...`;
   }
 
   /**
@@ -2751,16 +2782,21 @@ class DetailedProposalGenerator {
 2. 说明处理工艺的核心技术特点
 3. 突出项目的环保效益和社会价值`;
 
-    const response = await this.aiClient.chat({
-      messages: [
-        { role: 'system', content: '你是一位资深的环保工程师，擅长编写污水处理项目的技术方案。' },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      maxTokens: 500
-    });
+    try {
+      const response = await this.aiClient.chat({
+        messages: [
+          { role: 'system', content: '你是一位资深的环保工程师，擅长编写污水处理项目的技术方案。' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        maxTokens: 500
+      });
 
-    return `## 一、项目概述\n\n${response.text || '本项目是针对生活污水的治理工程，旨在采用先进的污水处理技术，实现污水的达标排放，保护水环境，改善区域生态环境质量。'}`;
+      return `## 一、项目概述\n\n${response.text || '本项目是针对生活污水的治理工程，旨在采用先进的污水处理技术，实现污水的达标排放，保护水环境，改善区域生态环境质量。'}`;
+    } catch (error) {
+      console.error('[DetailedProposalGenerator] 生成项目概述失败:', error);
+      return `## 一、项目概述\n\n本项目处理规模${projectInfo.scale || 60}吨/天，采用先进的生化处理技术，旨在实现污水的达标排放，保护水环境。`;
+    }
   }
 
   /**
@@ -2786,16 +2822,21 @@ class DetailedProposalGenerator {
 
 最后给出推荐工艺及理由。`;
 
-    const response = await this.aiClient.chat({
-      messages: [
-        { role: 'system', content: '你是一位资深的环保工程师，擅长污水处理工艺选择和技术分析。' },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      maxTokens: 800
-    });
+    try {
+      const response = await this.aiClient.chat({
+        messages: [
+          { role: 'system', content: '你是一位资深的环保工程师，擅长污水处理工艺选择和技术分析。' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        maxTokens: 800
+      });
 
-    return `## 二、工艺比选\n\n${response.text || '根据项目特点，经综合比较分析，推荐采用A²/O工艺。该工艺技术成熟、运行稳定、处理效果好，能够满足一级A排放标准要求。'}`;
+      return `## 二、工艺比选\n\n${response.text || '根据项目特点，经综合比较分析，推荐采用A²/O工艺。该工艺技术成熟、运行稳定、处理效果好，能够满足一级A排放标准要求。'}`;
+    } catch (error) {
+      console.error('[DetailedProposalGenerator] 生成工艺比选失败:', error);
+      return `## 二、工艺比选\n\n根据项目处理规模${projectInfo.scale || 60}吨/天的要求，对A²/O、SBR、MBR三种工艺进行对比分析：\n\n### 工艺对比\n\n| 工艺类型 | 技术成熟度 | 处理效果 | 占地面积 | 运行成本 |\n|----------|-----------|----------|----------|----------|\n| A²/O工艺 | 高 | 良好 | 中等 | 低 |\n| SBR工艺 | 高 | 良好 | 小 | 中等 |\n| MBR工艺 | 中 | 优秀 | 很小 | 高 |\n\n### 推荐工艺\n\n综合考虑技术成熟度、处理效果、投资成本和运行维护等因素，推荐采用**A²/O工艺**。\n\n**推荐理由：**\n- 技术成熟可靠，运行稳定\n- 脱氮除磷效果好，能够满足一级A排放标准\n- 投资成本适中，运行维护简单\n- 适用于${projectInfo.scale || 60}吨/天的生活污水处理`;
+    }
   }
 
   /**
@@ -2811,16 +2852,21 @@ class DetailedProposalGenerator {
 3. 主要技术指标（去除率、停留时间等）
 4. 工艺优势`;
 
-    const response = await this.aiClient.chat({
-      messages: [
-        { role: 'system', content: '你是一位资深的环保工程师，擅长污水处理工艺设计。' },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      maxTokens: 600
-    });
+    try {
+      const response = await this.aiClient.chat({
+        messages: [
+          { role: 'system', content: '你是一位资深的环保工程师，擅长污水处理工艺设计。' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        maxTokens: 600
+      });
 
-    return `## 三、选定工艺方案\n\n${response.text || '本项目采用A²/O工艺，工艺流程为：格栅→调节池→A²/O生化池→二沉池→消毒池→达标排放。该工艺具有脱氮除磷效果好、运行稳定、管理方便等优点。'}`;
+      return `## 三、选定工艺方案\n\n${response.text || '本项目采用A²/O工艺，工艺流程为：格栅→调节池→A²/O生化池→二沉池→消毒池→达标排放。该工艺具有脱氮除磷效果好、运行稳定、管理方便等优点。'}`;
+    } catch (error) {
+      console.error('[DetailedProposalGenerator] 生成选定工艺失败:', error);
+      return `## 三、选定工艺方案\n\n### 工艺流程\n\n**进水 → 粗格栅 → 细格栅 → 调节池 → A²/O生化池 → 二沉池 → 消毒池 → 出水**\n\n### 各处理单元说明\n\n#### 1. 预处理单元\n- **粗格栅**：拦截大颗粒杂物，保护后续设备\n- **细格栅**：拦截细小悬浮物，栅隙2mm\n- **调节池**：均衡水质水量，停留时间8小时\n\n#### 2. 生化处理单元（A²/O工艺）\n- **厌氧区**：释放磷，去除部分COD，停留时间2小时\n- **缺氧区**：反硝化脱氮，停留时间3小时\n- **好氧区**：硝化反应，去除COD和氨氮，停留时间8小时\n\n#### 3. 固液分离\n- **二沉池**：泥水分离，污泥回流，表面负荷0.8m³/m²·h\n\n#### 4. 消毒处理\n- **消毒池**：紫外线消毒，停留时间30分钟\n\n### 工艺技术指标\n\n| 指标 | 设计值 |\n|------|--------|\n| 处理规模 | ${projectInfo.scale || 60}吨/天 |\n| COD去除率 | ≥85% |\n| BOD去除率 | ≥90% |\n| 氨氮去除率 | ≥80% |\n| 总磷去除率 | ≥75% |\n| 出水COD | ≤50mg/L |\n| 出水氨氮 | ≤5mg/L |`;
+    }
   }
 
   /**
@@ -2905,28 +2951,61 @@ class DetailedProposalGenerator {
 
 计算吨水处理成本。`;
 
-    const response = await this.aiClient.chat({
-      messages: [
-        { role: 'system', content: '你是一位环保工程师，擅长进行污水处理项目经济分析。' },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      maxTokens: 500
-    });
+    try {
+      const response = await this.aiClient.chat({
+        messages: [
+          { role: 'system', content: '你是一位环保工程师，擅长进行污水处理项目经济分析。' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        maxTokens: 500
+      });
 
-    let content = `## 五、投资及运行成本分析\n\n`;
-    content += `### 5.1 工程总投资\n\n`;
-    content += `| 项目 | 金额(元) | 占比 |\n`;
-    content += `|------|----------|------|\n`;
-    content += `| 设备费 | ${equipmentTotal.toFixed(2)} | ${(equipmentTotal/total*100).toFixed(1)}% |\n`;
-    content += `| 土建费 | ${civilCost.toFixed(2)} | ${(civilCost/total*100).toFixed(1)}% |\n`;
-    content += `| 安装费 | ${installCost.toFixed(2)} | ${(installCost/total*100).toFixed(1)}% |\n`;
-    content += `| 其他费 | ${otherCost.toFixed(2)} | ${(otherCost/total*100).toFixed(1)}% |\n`;
-    content += `| **合计** | **${total.toFixed(2)}** | **100%** |\n\n`;
-    content += `### 5.2 运行成本分析\n\n`;
-    content += response.text || `预计年运行成本约 ${(total * 0.1).toFixed(2)} 元，吨水处理成本约 ${(total * 0.1 / projectInfo.scale / 365).toFixed(2)} 元/吨。\n`;
-    
-    return content;
+      let content = `## 五、投资及运行成本分析\n\n`;
+      content += `### 5.1 工程总投资\n\n`;
+      content += `| 项目 | 金额(元) | 占比 |\n`;
+      content += `|------|----------|------|\n`;
+      content += `| 设备费 | ${equipmentTotal.toFixed(2)} | ${(equipmentTotal/total*100).toFixed(1)}% |\n`;
+      content += `| 土建费 | ${civilCost.toFixed(2)} | ${(civilCost/total*100).toFixed(1)}% |\n`;
+      content += `| 安装费 | ${installCost.toFixed(2)} | ${(installCost/total*100).toFixed(1)}% |\n`;
+      content += `| 其他费 | ${otherCost.toFixed(2)} | ${(otherCost/total*100).toFixed(1)}% |\n`;
+      content += `| **合计** | **${total.toFixed(2)}** | **100%** |\n\n`;
+      content += `### 5.2 运行成本分析\n\n`;
+      content += response.text || `预计年运行成本约 ${(total * 0.1).toFixed(2)} 元，吨水处理成本约 ${(total * 0.1 / projectInfo.scale / 365).toFixed(2)} 元/吨。`;
+      
+      return content;
+    } catch (error) {
+      console.error('[DetailedProposalGenerator] 生成成本分析失败:', error);
+      
+      const dailyCost = total * 0.0002; // 每日成本约为总投资的0.02%
+      const annualCost = dailyCost * 365;
+      const unitCost = dailyCost / (projectInfo.scale || 60);
+      
+      let content = `## 五、投资及运行成本分析\n\n`;
+      content += `### 5.1 工程总投资\n\n`;
+      content += `| 项目 | 金额(元) | 占比 |\n`;
+      content += `|------|----------|------|\n`;
+      content += `| 设备费 | ${equipmentTotal.toFixed(2)} | ${(equipmentTotal/total*100).toFixed(1)}% |\n`;
+      content += `| 土建费 | ${civilCost.toFixed(2)} | ${(civilCost/total*100).toFixed(1)}% |\n`;
+      content += `| 安装费 | ${installCost.toFixed(2)} | ${(installCost/total*100).toFixed(1)}% |\n`;
+      content += `| 其他费 | ${otherCost.toFixed(2)} | ${(otherCost/total*100).toFixed(1)}% |\n`;
+      content += `| **合计** | **${total.toFixed(2)}** | **100%** |\n\n`;
+      content += `### 5.2 运行成本分析\n\n`;
+      content += `| 费用项目 | 年费用(元) | 占比 |\n`;
+      content += `|----------|-----------|------|\n`;
+      content += `| 电费 | ${(annualCost * 0.4).toFixed(2)} | 40% |\n`;
+      content += `| 药剂费 | ${(annualCost * 0.2).toFixed(2)} | 20% |\n`;
+      content += `| 人工费 | ${(annualCost * 0.25).toFixed(2)} | 25% |\n`;
+      content += `| 维护费 | ${(annualCost * 0.1).toFixed(2)} | 10% |\n`;
+      content += `| 其他费用 | ${(annualCost * 0.05).toFixed(2)} | 5% |\n`;
+      content += `| **合计** | **${annualCost.toFixed(2)}** | **100%** |\n\n`;
+      content += `### 5.3 经济指标\n\n`;
+      content += `- **吨水处理成本**：${unitCost.toFixed(2)} 元/吨\n`;
+      content += `- **年运行成本**：${annualCost.toFixed(2)} 元\n`;
+      content += `- **投资回收期**：约 ${(total / annualCost).toFixed(1)} 年\n`;
+      
+      return content;
+    }
   }
 
   /**
