@@ -786,35 +786,54 @@ export default function ChatMessage({
     /* 封面样式 */
     .cover {
       text-align: center;
-      padding: 100px 0;
+      padding: 80px 0;
       page-break-after: always;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      min-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     
     .cover-title {
-      font-size: 36px;
+      font-size: 42px;
       font-weight: bold;
-      color: #1a56db;
-      margin-bottom: 30px;
-      letter-spacing: 3px;
+      color: white;
+      margin-bottom: 20px;
+      letter-spacing: 5px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
     }
     
     .cover-subtitle {
-      font-size: 18px;
-      color: #666;
-      margin-bottom: 60px;
+      font-size: 20px;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 80px;
+      font-weight: 300;
+      letter-spacing: 2px;
     }
     
     .cover-info {
       font-size: 14px;
-      color: #999;
-      margin-top: 40px;
+      color: rgba(255,255,255,0.8);
+      margin-top: 60px;
+      line-height: 2;
+    }
+    
+    .cover-info p {
+      text-indent: 0;
+      margin: 10px 0;
+      color: rgba(255,255,255,0.9);
     }
     
     /* 页眉 */
     .header {
-      border-bottom: 3px solid #1a56db;
-      padding-bottom: 10px;
-      margin-bottom: 30px;
+      border-bottom: 2px solid #1a56db;
+      padding-bottom: 15px;
+      margin-bottom: 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     
     .header-title {
@@ -825,92 +844,118 @@ export default function ChatMessage({
     
     .header-date {
       font-size: 12px;
-      color: #999;
-      text-align: right;
+      color: #666;
     }
     
     /* 标题样式 */
     h1 {
-      font-size: 28px;
+      font-size: 24px;
       font-weight: bold;
       color: #1a56db;
-      margin-top: 40px;
-      margin-bottom: 20px;
-      padding-left: 15px;
-      border-left: 5px solid #1a56db;
+      margin-top: 50px;
+      margin-bottom: 25px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e2e8f0;
     }
     
     h2 {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: bold;
-      color: #333;
-      margin-top: 35px;
-      margin-bottom: 15px;
-      padding-left: 12px;
+      color: #334155;
+      margin-top: 40px;
+      margin-bottom: 20px;
+      padding-left: 15px;
       border-left: 4px solid #60a5fa;
+      background: #f8fafc;
+      padding-top: 12px;
+      padding-bottom: 12px;
+      padding-right: 15px;
     }
     
     h3 {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
-      color: #444;
-      margin-top: 25px;
-      margin-bottom: 12px;
-      padding-left: 10px;
+      color: #475569;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      padding-left: 12px;
       border-left: 3px solid #93c5fd;
     }
     
     /* 段落样式 */
     p {
-      margin-bottom: 15px;
+      margin-bottom: 18px;
       text-align: justify;
       text-indent: 2em;
       font-size: 14px;
+      line-height: 1.9;
+      color: #475569;
     }
     
     /* 表格样式 */
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 25px 0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin: 30px 0;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
     }
     
     th {
       background: linear-gradient(135deg, #1a56db 0%, #60a5fa 100%);
       color: white;
       font-weight: bold;
-      padding: 15px;
-      border: 1px solid #ddd;
+      padding: 18px 15px;
+      border: 1px solid #1e40af;
       text-align: center;
       font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     
     td {
-      padding: 12px 15px;
-      border: 1px solid #e0e0e0;
+      padding: 15px;
+      border: 1px solid #cbd5e1;
       text-align: center;
       font-size: 13px;
+      color: #475569;
+      vertical-align: middle;
     }
     
     tr:nth-child(even) {
-      background-color: #f8fafc;
+      background-color: #f1f5f9;
+    }
+    
+    tr:nth-child(odd) {
+      background-color: white;
     }
     
     tr:hover {
-      background-color: #e6f3ff;
+      background-color: #dbeafe;
+      transition: background-color 0.3s;
     }
     
     /* 列表样式 */
     ul, ol {
-      margin: 15px 0;
-      padding-left: 50px;
+      margin: 20px 0;
+      padding-left: 60px;
     }
     
     li {
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       font-size: 14px;
-      line-height: 1.8;
+      line-height: 1.9;
+      color: #475569;
+    }
+    
+    ul li::marker {
+      color: #1a56db;
+    }
+    
+    ol li::marker {
+      color: #1a56db;
+      font-weight: bold;
     }
     
     /* 强调文本 */
@@ -925,8 +970,8 @@ export default function ChatMessage({
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%) rotate(-45deg);
-      font-size: 80px;
-      color: rgba(26, 86, 219, 0.05);
+      font-size: 100px;
+      color: rgba(26, 86, 219, 0.03);
       font-weight: bold;
       pointer-events: none;
       z-index: -1;
@@ -935,22 +980,31 @@ export default function ChatMessage({
     /* 分隔线 */
     hr {
       border: none;
-      border-top: 2px solid #1a56db;
-      margin: 30px 0;
+      border-top: 2px solid #e2e8f0;
+      margin: 40px 0;
+    }
+    
+    /* 内容区域 */
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* 移除首行缩进的特殊情况 */
+    .cover p, ul, ol {
+      text-indent: 0;
     }
   </style>
 </head>
 <body>
-  <!-- 水印 -->
-  <div class="watermark">技术方案</div>
-  
   <!-- 封面页 -->
   <div class="cover">
     <div class="cover-title">技术方案</div>
     <div class="cover-subtitle">Technical Proposal</div>
     <div class="cover-info">
       <p>生成日期：${currentDate}</p>
-      <p style="margin-top: 20px;">智能报价管理系统</p>
+      <p style="margin-top: 30px;">智能报价管理系统</p>
+      <p style="margin-top: 20px; font-size: 12px; opacity: 0.8;">Professional Solution</p>
     </div>
   </div>
   
@@ -964,6 +1018,9 @@ export default function ChatMessage({
     
     ${parsedContent}
   </div>
+  
+  <!-- 水印 -->
+  <div class="watermark">技术方案</div>
 </body>
 </html>`;
     
@@ -1047,6 +1104,13 @@ export default function ChatMessage({
       .no-print {
         display: none;
       }
+      
+      /* 打印时去除背景渐变（节省墨水），但保留基础颜色 */
+      .cover {
+        background: #1a56db !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
     }
     
     body {
@@ -1060,82 +1124,102 @@ export default function ChatMessage({
     /* 封面样式 */
     .cover {
       text-align: center;
-      padding: 150px 0;
+      padding: 80px 0;
       page-break-after: always;
-      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      min-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     
     .cover-title {
       font-size: 42px;
       font-weight: bold;
-      color: #1a56db;
-      margin-bottom: 30px;
+      color: white;
+      margin-bottom: 20px;
       letter-spacing: 5px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
     }
     
     .cover-subtitle {
       font-size: 20px;
-      color: #666;
+      color: rgba(255,255,255,0.9);
       margin-bottom: 80px;
       font-weight: 300;
+      letter-spacing: 2px;
     }
     
     .cover-info {
       font-size: 14px;
-      color: #999;
-      margin-top: 50px;
+      color: rgba(255,255,255,0.8);
+      margin-top: 60px;
+      line-height: 2;
+    }
+    
+    .cover-info p {
+      text-indent: 0;
+      margin: 10px 0;
+      color: rgba(255,255,255,0.9);
     }
     
     /* 页眉 */
     .header {
-      border-bottom: 3px solid #1a56db;
-      padding-bottom: 12px;
-      margin-bottom: 30px;
+      border-bottom: 2px solid #1a56db;
+      padding-bottom: 15px;
+      margin-bottom: 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     
     .header-title {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
       color: #1a56db;
     }
     
     .header-date {
       font-size: 12px;
-      color: #999;
-      text-align: right;
-      margin-top: 5px;
+      color: #666;
     }
     
     /* 标题样式 */
     h1 {
-      font-size: 32px;
+      font-size: 24px;
       font-weight: bold;
       color: #1a56db;
-      margin-top: 40px;
+      margin-top: 50px;
       margin-bottom: 25px;
-      padding-left: 20px;
-      border-left: 6px solid #1a56db;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e2e8f0;
     }
     
     h2 {
-      font-size: 26px;
+      font-size: 20px;
       font-weight: bold;
-      color: #333;
-      margin-top: 35px;
-      margin-bottom: 18px;
+      color: #334155;
+      margin-top: 40px;
+      margin-bottom: 20px;
       padding-left: 15px;
-      border-left: 5px solid #60a5fa;
+      border-left: 4px solid #60a5fa;
+      background: #f8fafc;
+      padding-top: 12px;
+      padding-bottom: 12px;
+      padding-right: 15px;
     }
     
     h3 {
-      font-size: 20px;
+      font-size: 16px;
       font-weight: bold;
-      color: #444;
-      margin-top: 28px;
-      margin-bottom: 14px;
+      color: #475569;
+      margin-top: 30px;
+      margin-bottom: 15px;
       padding-left: 12px;
-      border-left: 4px solid #93c5fd;
+      border-left: 3px solid #93c5fd;
     }
     
     /* 段落样式 */
@@ -1144,7 +1228,8 @@ export default function ChatMessage({
       text-align: justify;
       text-indent: 2em;
       font-size: 14px;
-      line-height: 1.8;
+      line-height: 1.9;
+      color: #475569;
     }
     
     /* 表格样式 */
@@ -1152,7 +1237,7 @@ export default function ChatMessage({
       width: 100%;
       border-collapse: collapse;
       margin: 30px 0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       border-radius: 8px;
       overflow: hidden;
     }
@@ -1161,38 +1246,60 @@ export default function ChatMessage({
       background: linear-gradient(135deg, #1a56db 0%, #60a5fa 100%);
       color: white;
       font-weight: bold;
-      padding: 15px;
-      border: 1px solid #ddd;
+      padding: 18px 15px;
+      border: 1px solid #1e40af;
       text-align: center;
       font-size: 14px;
-      letter-spacing: 1px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     
     td {
-      padding: 14px 16px;
-      border: 1px solid #e0e0e0;
+      padding: 15px;
+      border: 1px solid #cbd5e1;
       text-align: center;
       font-size: 13px;
+      color: #475569;
+      vertical-align: middle;
     }
     
     tr:nth-child(even) {
-      background-color: #f8fafc;
+      background-color: #f1f5f9;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     
-    tr:first-child td {
-      font-weight: 600;
+    tr:nth-child(odd) {
+      background-color: white;
+    }
+    
+    tr:hover {
+      background-color: #dbeafe;
+      transition: background-color 0.3s;
     }
     
     /* 列表样式 */
     ul, ol {
-      margin: 18px 0;
-      padding-left: 50px;
+      margin: 20px 0;
+      padding-left: 60px;
     }
     
     li {
       margin-bottom: 12px;
       font-size: 14px;
-      line-height: 1.8;
+      line-height: 1.9;
+      color: #475569;
+    }
+    
+    ul li::marker {
+      color: #1a56db;
+    }
+    
+    ol li::marker {
+      color: #1a56db;
+      font-weight: bold;
     }
     
     /* 强调文本 */
@@ -1217,9 +1324,55 @@ export default function ChatMessage({
     /* 分隔线 */
     hr {
       border: none;
-      border-top: 2px solid #1a56db;
-      margin: 30px 0;
+      border-top: 2px solid #e2e8f0;
+      margin: 40px 0;
     }
+    
+    /* 内容区域 */
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* 移除首行缩进的特殊情况 */
+    .cover p, ul, ol {
+      text-indent: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- 封面页 -->
+  <div class="cover">
+    <div class="cover-title">技术方案</div>
+    <div class="cover-subtitle">Technical Proposal</div>
+    <div class="cover-info">
+      <p>生成日期：${currentDate}</p>
+      <p style="margin-top: 30px;">智能报价管理系统</p>
+      <p style="margin-top: 20px; font-size: 12px; opacity: 0.8;">Professional Solution</p>
+    </div>
+  </div>
+  
+  <!-- 正文 -->
+  <div class="content">
+    <!-- 页眉 -->
+    <div class="header">
+      <div class="header-title">技术方案</div>
+      <div class="header-date">${currentDate}</div>
+    </div>
+    
+    ${parsedContent}
+  </div>
+  
+  <!-- 水印 -->
+  <div class="watermark">技术方案</div>
+  
+  <script>
+    window.onload = function() {
+      // 5秒后自动打印
+      setTimeout(function() {
+        window.print();
+      }, 500);
+    };
     
     /* 打印提示 */
     .print-hint {
