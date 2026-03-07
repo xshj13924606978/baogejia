@@ -831,13 +831,13 @@ export default function ChatMessage({
     /* 页面设置 */
     @page {
       size: A4;
-      margin: 2cm 1.5cm;
+      margin: 1.8cm 1.2cm;
     }
     
     body {
       font-family: "Microsoft YaHei", "SimSun", "Arial Unicode MS", Arial, sans-serif;
-      font-size: 14px;
-      line-height: 1.8;
+      font-size: 11pt;
+      line-height: 1.6;
       color: #333333;
       margin: 0;
       padding: 0;
@@ -846,119 +846,119 @@ export default function ChatMessage({
     /* 封面样式 */
     .cover {
       text-align: center;
-      padding: 100px 0;
+      padding: 60pt 0;
       page-break-after: always;
       background-color: #1e40af;
       color: white;
-      min-height: 85vh;
+      min-height: 70vh;
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
 
     .cover-title {
-      font-size: 48px;
+      font-size: 36pt;
       font-weight: bold;
       color: white;
-      margin-bottom: 30px;
-      letter-spacing: 4px;
+      margin-bottom: 20pt;
+      letter-spacing: 2pt;
     }
 
     .cover-subtitle {
-      font-size: 24px;
+      font-size: 18pt;
       color: white;
-      margin-bottom: 100px;
+      margin-bottom: 60pt;
       font-weight: normal;
-      letter-spacing: 2px;
+      letter-spacing: 1pt;
     }
 
     .cover-info {
-      font-size: 16px;
+      font-size: 12pt;
       color: white;
-      margin-top: 80px;
-      line-height: 2.5;
+      margin-top: 40pt;
+      line-height: 2;
     }
 
     .cover-info p {
       text-indent: 0;
-      margin: 18px 0;
+      margin: 12pt 0;
       color: white;
     }
 
     .cover-logo {
-      font-size: 18px;
+      font-size: 14pt;
       font-weight: bold;
       color: white;
-      margin-bottom: 15px;
+      margin-bottom: 10pt;
     }
     
     /* 页眉 */
     .header {
       border-bottom: 3px solid #1e40af;
-      padding-bottom: 15px;
-      margin-bottom: 40px;
+      padding-bottom: 12pt;
+      margin-bottom: 20pt;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
     .header-title {
-      font-size: 16px;
+      font-size: 12pt;
       font-weight: bold;
       color: #1e40af;
     }
 
     .header-date {
-      font-size: 12px;
+      font-size: 10pt;
       color: #666666;
     }
     
     /* 标题样式 */
     h1 {
-      font-size: 22pt;
+      font-size: 18pt;
       font-weight: bold;
       color: #1e40af;
-      margin-top: 36pt;
-      margin-bottom: 24pt;
-      padding-bottom: 8pt;
+      margin-top: 24pt;
+      margin-bottom: 16pt;
+      padding-bottom: 6pt;
       border-bottom: 3px solid #3b82f6;
       text-align: center;
       page-break-after: avoid;
     }
 
     h2 {
-      font-size: 16pt;
+      font-size: 14pt;
       font-weight: bold;
       color: #1e3a8a;
-      margin-top: 30pt;
-      margin-bottom: 18pt;
-      padding-left: 18px;
-      padding-right: 15px;
-      padding-top: 10pt;
-      padding-bottom: 10pt;
+      margin-top: 20pt;
+      margin-bottom: 12pt;
+      padding-left: 14px;
+      padding-right: 12px;
+      padding-top: 8pt;
+      padding-bottom: 8pt;
       border-left: 5px solid #3b82f6;
       background-color: #eff6ff;
       page-break-after: avoid;
     }
 
     h3 {
-      font-size: 14pt;
+      font-size: 12pt;
       font-weight: bold;
       color: #334155;
-      margin-top: 24pt;
-      margin-bottom: 14pt;
-      padding-left: 14px;
+      margin-top: 16pt;
+      margin-bottom: 10pt;
+      padding-left: 12px;
       border-left: 4px solid #60a5fa;
       page-break-after: avoid;
     }
     
     /* 段落样式 */
     p {
-      margin-bottom: 12pt;
+      margin-bottom: 10pt;
       text-align: justify;
       text-indent: 2em;
-      font-size: 12pt;
-      line-height: 1.8;
+      font-size: 11pt;
+      line-height: 1.7;
       color: #333333;
     }
     
@@ -966,7 +966,7 @@ export default function ChatMessage({
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 20pt 0;
+      margin: 14pt 0;
       border: 1px solid #1e40af;
     }
 
@@ -974,18 +974,18 @@ export default function ChatMessage({
       background-color: #2563eb;
       color: white;
       font-weight: bold;
-      padding: 10pt 8pt;
+      padding: 8pt 6pt;
       border: 1px solid #1e40af;
       text-align: center;
-      font-size: 11pt;
+      font-size: 10pt;
       line-height: 1.5;
     }
 
     td {
-      padding: 8pt 6pt;
+      padding: 6pt 5pt;
       border: 1px solid #cbd5e1;
       text-align: center;
-      font-size: 10.5pt;
+      font-size: 10pt;
       color: #333333;
       vertical-align: middle;
       line-height: 1.6;
@@ -1015,14 +1015,14 @@ export default function ChatMessage({
     
     /* 列表样式 */
     ul, ol {
-      margin: 18pt 0;
-      padding-left: 42pt;
+      margin: 12pt 0;
+      padding-left: 32pt;
     }
 
     li {
-      margin-bottom: 8pt;
-      font-size: 12pt;
-      line-height: 1.8;
+      margin-bottom: 6pt;
+      font-size: 11pt;
+      line-height: 1.7;
       color: #333333;
       text-indent: 0;
     }
@@ -1049,25 +1049,11 @@ export default function ChatMessage({
       font-style: italic;
     }
     
-    /* 水印 */
-    .watermark {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(-45deg);
-      font-size: 100pt;
-      color: rgba(30, 64, 175, 0.04);
-      font-weight: bold;
-      pointer-events: none;
-      z-index: -1;
-      white-space: nowrap;
-    }
-    
     /* 分隔线 */
     hr {
       border: none;
       border-top: 2px solid #cbd5e1;
-      margin: 30pt 0;
+      margin: 18pt 0;
     }
     
     /* 内容区域 */
@@ -1089,8 +1075,8 @@ export default function ChatMessage({
     <div class="cover-subtitle">Technical Proposal</div>
     <div class="cover-info">
       <p>生成日期：${currentDate}</p>
-      <p style="margin-top: 30px;">智能报价管理系统</p>
-      <p style="margin-top: 20px; font-size: 12px;">Professional Solution</p>
+      <p style="margin-top: 30pt;">智能报价管理系统</p>
+      <p style="margin-top: 20pt; font-size: 10pt;">Professional Solution</p>
     </div>
   </div>
   
@@ -1104,9 +1090,6 @@ export default function ChatMessage({
     
     ${parsedContent}
   </div>
-  
-  <!-- 水印 -->
-  <div class="watermark">技术方案</div>
 </body>
 </html>`;
     
