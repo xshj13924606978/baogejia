@@ -60,6 +60,68 @@ interface ChatMessageProps {
 }
 
 // ============================================================================
+// Markdown转HTML工具函数（独立函数，供下载功能使用）
+// ============================================================================
+
+const parseMarkdownToHtml = (text: string): string => {
+  let html = text;
+  
+  // 处理主标题（# 标题）
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  
+  // 处理副标题（## 标题）
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  
+  // 处理子标题（### 标题）
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  
+  // 处理粗体（**文本**）
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  
+  // 处理斜体（*文本*）
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  
+  // 处理表格（| 列1 | 列2 |）
+  const tableRegex = /\|(.+)\|\n\|[-|\s]+\|\n((?:\|.+\|\n?)+)/g;
+  html = html.replace(tableRegex, (match, headerRow, bodyRows) => {
+    // 处理表头
+    const headers = headerRow.split('|').filter(h => h.trim());
+    const headerHtml = headers.map(h => `<th>${h.trim()}</th>`).join('');
+    
+    // 处理表体
+    const rows = bodyRows.trim().split('\n');
+    const bodyHtml = rows.map(row => {
+      const cells = row.split('|').filter(c => c.trim());
+      return `<tr>${cells.map(c => `<td>${c.trim()}</td>`).join('')}</tr>`;
+    }).join('');
+    
+    return `<table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
+  });
+  
+  // 处理列表项（- 项目）
+  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+  
+  // 处理数字列表（1. 项目）
+  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  
+  // 处理连续的列表项，包裹在 ul 中
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => {
+    return `<ul>${match}</ul>`;
+  });
+  
+  // 处理普通段落
+  html = html.split('\n\n').map(para => {
+    // 如果已经包含HTML标签，则不添加 p 标签
+    if (para.trim().startsWith('<h') || para.trim().startsWith('<table') || para.trim().startsWith('<ul') || para.trim().startsWith('<ol')) {
+      return para;
+    }
+    return `<p>${para.trim()}</p>`;
+  }).join('\n');
+  
+  return html;
+};
+
+// ============================================================================
 // 修复：完整提取汇总行，保持原始格式
 // ============================================================================
 
@@ -689,6 +751,10 @@ export default function ChatMessage({
    */
   const downloadAsWord = () => {
     const content = message.content;
+    
+    // 将Markdown转换为HTML
+    const parsedContent = parseMarkdownToHtml(content);
+    
     const currentDate = new Date().toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: 'long',
@@ -896,7 +962,7 @@ export default function ChatMessage({
       <div class="header-date">${currentDate}</div>
     </div>
     
-    ${content}
+    ${parsedContent}
   </div>
 </body>
 </html>`;
@@ -934,6 +1000,10 @@ export default function ChatMessage({
     }
     
     const content = message.content;
+    
+    // 将Markdown转换为HTML
+    const parsedContent = parseMarkdownToHtml(content);
+    
     const currentDate = new Date().toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: 'long',
@@ -1206,7 +1276,7 @@ export default function ChatMessage({
       <div class="header-date">${currentDate}</div>
     </div>
     
-    ${content}
+    ${parsedContent}
   </div>
   
   <script>
