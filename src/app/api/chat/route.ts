@@ -3265,6 +3265,7 @@ class IntentResponseGenerator {
       
       case 'upload_document':
         const fileName = intent.entities.fileName || '文件';
+        const fileType = intent.entities.fileType || '';
         
         let response = `我已收到您上传的「${fileName}」文件。\n\n`;
         
@@ -3272,6 +3273,52 @@ class IntentResponseGenerator {
           response += `从文件中提取到以下内容：\n\n${processedInput.textContent.substring(0, previewLength)}${processedInput.textContent.length > previewLength ? '...' : ''}\n\n`;
         }
         
+        // 智能判断：根据文件内容和类型自动判断生成报价单还是方案
+        console.log('[ResponseGenerator] 智能判断文件处理方向');
+        
+        // 判断特征
+        const hasProductKeywords = /产品|设备|规格|型号|数量|单价|价格|泵|阀|罐|电机/.test(baseContent);
+        const hasProjectKeywords = /项目|工艺|流程|方案|设计|技术|要求|标准|处理|建设/.test(baseContent);
+        const hasTableStructure = baseContent.includes('|') && baseContent.split('\n').length > 5;
+        const isExcel = fileType === 'excel';
+        
+        console.log('[ResponseGenerator] 文件内容分析:', {
+          hasProductKeywords,
+          hasProjectKeywords,
+          hasTableStructure,
+          isExcel,
+          fileType
+        });
+        
+        // Excel 文件或包含产品清單的文件 → 生成报价单
+        if (isExcel || (hasProductKeywords && !hasProjectKeywords) || (hasTableStructure && hasProductKeywords)) {
+          console.log('[ResponseGenerator] 判断为：生成报价单');
+          response += `根据文件内容分析，我检测到这是一份产品清单，为您生成报价单。\n\n`;
+          response += `📊 **生成报价单中**\n\n`;
+          response += `正在为您处理：\n`;
+          response += `✅ 解析产品信息\n`;
+          response += `✅ 匹配市场价格\n`;
+          response += `✅ 计算报价总额\n\n`;
+          response += `报价单将在下方显示，您可以直接导出或继续修改。`;
+          return response;
+        }
+        
+        // 包含项目描述和技术要求的文件 → 生成方案
+        if (hasProjectKeywords || (!hasProductKeywords && baseContent.length > 200)) {
+          console.log('[ResponseGenerator] 判断为：生成技术方案');
+          response += `根据文件内容分析，我检测到这是一份项目需求文档，为您生成技术方案。\n\n`;
+          response += `📝 **生成技术方案中**\n\n`;
+          response += `正在为您处理：\n`;
+          response += `✅ 分析项目需求\n`;
+          response += `✅ 设计工艺流程\n`;
+          response += `✅ 配置设备清单\n`;
+          response += `✅ 计算投资估算\n\n`;
+          response += `技术方案将在下方显示，如需报价单请告知。`;
+          return response;
+        }
+        
+        // 无法明确判断时，提供选项
+        console.log('[ResponseGenerator] 无法明确判断，提供选项');
         response += `请选择您需要的服务：\n📊 生成报价单 - 基于文件内容生成专业报价\n📝 生成技术方案 - 提供详细的技术方案\n🔍 查询价格 - 查询具体产品价格\n📑 两者都生成 - 同时生成报价单和技术方案\n\n直接回复数字或文字选择即可。`;
         
         return response;
@@ -3284,6 +3331,46 @@ class IntentResponseGenerator {
       
       case 'export_quote':
         return `我理解您想要导出报价单。\n\n${baseContent ? `您提到：${baseContent.substring(0, previewLength)}${baseContent.length > previewLength ? '...' : ''}` : ''}\n\n我可以为您：\n📄 生成PDF格式报价单\n📊 导出Excel格式报价单\n📧 发送报价单到邮箱\n\n请告诉我您需要的格式和接收方式。`;
+      
+      case 'generate_proposal':
+        console.log('[ResponseGenerator] 检测到方案生成需求');
+        
+        // 自动生成技术方案
+        let proposalResponse = `根据您的需求，我将为您生成技术方案。\n\n`;
+        
+        if (baseContent && !baseContent.startsWith('[') && baseContent.length > 10) {
+          proposalResponse += `**需求分析**：\n${baseContent.substring(0, previewLength)}${baseContent.length > previewLength ? '...' : ''}\n\n`;
+        }
+        
+        proposalResponse += `正在为您生成详细的技术方案，包括：\n\n`;
+        proposalResponse += `📋 **工艺流程设计**\n   • 工艺流程图\n   • 处理单元配置\n   • 关键设备选型\n\n`;
+        proposalResponse += `⚙️ **设备配置方案**\n   • 核心设备清单\n   • 技术参数要求\n   • 布置建议\n\n`;
+        proposalResponse += `💧 **技术参数**\n   • 处理能力\n   • 水质标准\n   • 运行参数\n\n`;
+        proposalResponse += `📊 **经济效益分析**\n   • 投资估算\n   • 运行成本\n   • 经济指标\n\n`;
+        
+        // 尝试执行联网搜索以获取更详细的方案信息
+        try {
+          console.log('[ResponseGenerator] 执行联网搜索以丰富方案内容');
+          const searchResult = await this.webSearch.searchAndGenerate(
+            baseContent || '污水处理技术方案'
+          );
+          
+          if (searchResult.content) {
+            proposalResponse += `\n---\n**参考案例**：\n${searchResult.content.substring(0, 500)}...\n\n`;
+          }
+          
+          if (searchResult.sources && searchResult.sources.length > 0) {
+            proposalResponse += `**参考资料**：\n`;
+            searchResult.sources.slice(0, 3).forEach((source, index) => {
+              proposalResponse += `${index + 1}. [${source.title}](${source.url})\n`;
+            });
+          }
+        } catch (error) {
+          console.error('[ResponseGenerator] 联网搜索失败:', error);
+          proposalResponse += `\n---\nℹ️ 如需更详细的技术方案，请提供更具体的需求描述。`;
+        }
+        
+        return proposalResponse;
       
       case 'unknown':
         if (processedInput.type === 'image') {

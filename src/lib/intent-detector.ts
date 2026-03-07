@@ -1,12 +1,13 @@
 import { ProcessedInput } from './input-processor';
 
 export type UserIntent = 
-  | 'ask_quote'      // 询问报价
+  | 'ask_quote'       // 询问报价
   | 'upload_document' // 上传文档（需要解析）
   | 'ask_general'     // 一般性问题
   | 'compare_quotes'  // 比较报价
   | 'modify_quote'    // 修改报价
   | 'export_quote'    // 导出报价
+  | 'generate_proposal' // 生成方案（技术方案/设计方案）
   | 'unknown';        // 未知意图
 
 export interface IntentResult {
@@ -137,6 +138,14 @@ export class IntentDetector {
       'export', 'download', 'save', 'generate', '输出'
     ];
     
+    // 方案相关关键词（新增）
+    const proposalKeywords = [
+      '方案', '设计', '建议', '配置', '工艺', '技术方案', '解决方案',
+      '如何处理', '怎么处理', '怎么设计', '如何设计', '设计方案',
+      '技术建议', '推荐方案', '处理方案', '技术参数', '选型方案',
+      'solution', 'design', 'proposal', 'recommendation', 'configuration'
+    ];
+    
     // 产品类型关键词
     const productKeywords = [
       '泵', '阀', '罐', '电机', '设备', '机器', '装置', '污水', '处理',
@@ -164,12 +173,14 @@ export class IntentDetector {
     const compareScore = matchScore(compareKeywords);
     const modifyScore = matchScore(modifyKeywords);
     const exportScore = matchScore(exportKeywords);
+    const proposalScore = matchScore(proposalKeywords);
     
     console.log('[IntentDetector] 关键词匹配分数:', {
       ask_quote: quoteScore,
       compare_quotes: compareScore,
       modify_quote: modifyScore,
-      export_quote: exportScore
+      export_quote: exportScore,
+      generate_proposal: proposalScore
     });
     
     // 找出最高分
@@ -180,7 +191,8 @@ export class IntentDetector {
       ask_quote: quoteScore,
       compare_quotes: compareScore,
       modify_quote: modifyScore,
-      export_quote: exportScore
+      export_quote: exportScore,
+      generate_proposal: proposalScore
     };
     
     for (const [intent, score] of Object.entries(scores)) {
