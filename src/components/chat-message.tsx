@@ -1685,7 +1685,7 @@ export default function ChatMessage({
             </TooltipProvider>
 
             {/* 下载按钮组 - 仅对详细方案和普通消息显示 */}
-            {!isTemporary && !hasQuote && (
+            {!isTemporary && (!hasQuote || isDetailedProposal) && (
               <>
                 {/* Word下载 */}
                 <TooltipProvider>
