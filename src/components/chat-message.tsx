@@ -685,12 +685,17 @@ export default function ChatMessage({
   };
 
   /**
-   * 下载为Word（使用HTML模板方式）
+   * 下载为Word（使用HTML模板方式 - 商务风格）
    */
   const downloadAsWord = () => {
     const content = message.content;
+    const currentDate = new Date().toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
     
-    // 将Markdown转换为HTML
+    // 将Markdown转换为更美观的HTML
     const htmlContent = `
 <!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
@@ -698,24 +703,201 @@ export default function ChatMessage({
   <meta charset="utf-8">
   <title>技术方案</title>
   <style>
-    body { font-family: "Microsoft YaHei", Arial, sans-serif; line-height: 1.6; padding: 40px; }
-    h1 { font-size: 24px; font-weight: bold; color: #1a1a1a; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-    h2 { font-size: 20px; font-weight: bold; color: #333; margin-top: 30px; margin-bottom: 15px; }
-    h3 { font-size: 18px; font-weight: bold; color: #555; margin-top: 25px; margin-bottom: 12px; }
-    p { margin-bottom: 15px; text-align: justify; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th { background-color: #f5f5f5; font-weight: bold; padding: 12px; border: 1px solid #ddd; text-align: left; }
-    td { padding: 12px; border: 1px solid #ddd; }
-    strong { font-weight: bold; }
-    ul, ol { margin: 15px 0; padding-left: 40px; }
-    li { margin-bottom: 8px; }
+    /* 页面设置 */
+    @page {
+      size: A4;
+      margin: 2.5cm;
+    }
+    
+    body {
+      font-family: "Microsoft YaHei", "SimSun", Arial, sans-serif;
+      line-height: 1.8;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    
+    /* 封面样式 */
+    .cover {
+      text-align: center;
+      padding: 100px 0;
+      page-break-after: always;
+    }
+    
+    .cover-title {
+      font-size: 36px;
+      font-weight: bold;
+      color: #1a56db;
+      margin-bottom: 30px;
+      letter-spacing: 3px;
+    }
+    
+    .cover-subtitle {
+      font-size: 18px;
+      color: #666;
+      margin-bottom: 60px;
+    }
+    
+    .cover-info {
+      font-size: 14px;
+      color: #999;
+      margin-top: 40px;
+    }
+    
+    /* 页眉 */
+    .header {
+      border-bottom: 3px solid #1a56db;
+      padding-bottom: 10px;
+      margin-bottom: 30px;
+    }
+    
+    .header-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #1a56db;
+    }
+    
+    .header-date {
+      font-size: 12px;
+      color: #999;
+      text-align: right;
+    }
+    
+    /* 标题样式 */
+    h1 {
+      font-size: 28px;
+      font-weight: bold;
+      color: #1a56db;
+      margin-top: 40px;
+      margin-bottom: 20px;
+      padding-left: 15px;
+      border-left: 5px solid #1a56db;
+    }
+    
+    h2 {
+      font-size: 22px;
+      font-weight: bold;
+      color: #333;
+      margin-top: 35px;
+      margin-bottom: 15px;
+      padding-left: 12px;
+      border-left: 4px solid #60a5fa;
+    }
+    
+    h3 {
+      font-size: 18px;
+      font-weight: bold;
+      color: #444;
+      margin-top: 25px;
+      margin-bottom: 12px;
+      padding-left: 10px;
+      border-left: 3px solid #93c5fd;
+    }
+    
+    /* 段落样式 */
+    p {
+      margin-bottom: 15px;
+      text-align: justify;
+      text-indent: 2em;
+      font-size: 14px;
+    }
+    
+    /* 表格样式 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 25px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    th {
+      background: linear-gradient(135deg, #1a56db 0%, #60a5fa 100%);
+      color: white;
+      font-weight: bold;
+      padding: 15px;
+      border: 1px solid #ddd;
+      text-align: center;
+      font-size: 14px;
+    }
+    
+    td {
+      padding: 12px 15px;
+      border: 1px solid #e0e0e0;
+      text-align: center;
+      font-size: 13px;
+    }
+    
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    
+    tr:hover {
+      background-color: #e6f3ff;
+    }
+    
+    /* 列表样式 */
+    ul, ol {
+      margin: 15px 0;
+      padding-left: 50px;
+    }
+    
+    li {
+      margin-bottom: 10px;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    
+    /* 强调文本 */
+    strong {
+      color: #1a56db;
+      font-weight: bold;
+    }
+    
+    /* 水印 */
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      font-size: 80px;
+      color: rgba(26, 86, 219, 0.05);
+      font-weight: bold;
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    /* 分隔线 */
+    hr {
+      border: none;
+      border-top: 2px solid #1a56db;
+      margin: 30px 0;
+    }
   </style>
 </head>
 <body>
-  <h1>技术方案</h1>
-  <p style="color: #666; font-size: 14px;">生成时间：${new Date().toLocaleString('zh-CN')}</p>
-  <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-  ${content}
+  <!-- 水印 -->
+  <div class="watermark">技术方案</div>
+  
+  <!-- 封面页 -->
+  <div class="cover">
+    <div class="cover-title">技术方案</div>
+    <div class="cover-subtitle">Technical Proposal</div>
+    <div class="cover-info">
+      <p>生成日期：${currentDate}</p>
+      <p style="margin-top: 20px;">智能报价管理系统</p>
+    </div>
+  </div>
+  
+  <!-- 正文 -->
+  <div class="content">
+    <!-- 页眉 -->
+    <div class="header">
+      <div class="header-title">技术方案</div>
+      <div class="header-date">${currentDate}</div>
+    </div>
+    
+    ${content}
+  </div>
 </body>
 </html>`;
     
@@ -723,7 +905,7 @@ export default function ChatMessage({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `技术方案_${new Date().toLocaleDateString('zh-CN')}.doc`;
+    link.download = `技术方案_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '_')}.doc`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -737,7 +919,7 @@ export default function ChatMessage({
   };
 
   /**
-   * 下载为PDF（使用浏览器打印功能）
+   * 下载为PDF（使用浏览器打印功能 - 商务风格）
    */
   const downloadAsPDF = () => {
     const printWindow = window.open('', '_blank');
@@ -752,6 +934,12 @@ export default function ChatMessage({
     }
     
     const content = message.content;
+    const currentDate = new Date().toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
     const printContent = `
 <!DOCTYPE html>
 <html>
@@ -759,32 +947,278 @@ export default function ChatMessage({
   <meta charset="utf-8">
   <title>技术方案</title>
   <style>
-    body { font-family: "Microsoft YaHei", Arial, sans-serif; line-height: 1.6; padding: 40px; margin: 0; }
-    h1 { font-size: 24px; font-weight: bold; color: #1a1a1a; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-    h2 { font-size: 20px; font-weight: bold; color: #333; margin-top: 30px; margin-bottom: 15px; page-break-before: auto; }
-    h3 { font-size: 18px; font-weight: bold; color: #555; margin-top: 25px; margin-bottom: 12px; }
-    p { margin-bottom: 15px; text-align: justify; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; page-break-inside: avoid; }
-    th { background-color: #f5f5f5; font-weight: bold; padding: 12px; border: 1px solid #ddd; text-align: left; }
-    td { padding: 12px; border: 1px solid #ddd; }
-    strong { font-weight: bold; }
-    ul, ol { margin: 15px 0; padding-left: 40px; }
-    li { margin-bottom: 8px; }
+    /* 打印设置 */
+    @page {
+      size: A4;
+      margin: 2cm;
+    }
+    
     @media print {
-      body { padding: 20px; }
-      h2 { page-break-before: always; }
-      h2:first-child { page-break-before: auto; }
+      body {
+        padding: 0;
+      }
+      
+      /* 分页控制 */
+      h2 {
+        page-break-before: always;
+        margin-top: 30px;
+      }
+      
+      h2:first-child {
+        page-break-before: auto;
+        margin-top: 0;
+      }
+      
+      table {
+        page-break-inside: avoid;
+      }
+      
+      /* 隐藏打印时不显示的元素 */
+      .no-print {
+        display: none;
+      }
+    }
+    
+    body {
+      font-family: "Microsoft YaHei", "SimSun", Arial, sans-serif;
+      line-height: 1.8;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    /* 封面样式 */
+    .cover {
+      text-align: center;
+      padding: 150px 0;
+      page-break-after: always;
+      min-height: 100vh;
+    }
+    
+    .cover-title {
+      font-size: 42px;
+      font-weight: bold;
+      color: #1a56db;
+      margin-bottom: 30px;
+      letter-spacing: 5px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .cover-subtitle {
+      font-size: 20px;
+      color: #666;
+      margin-bottom: 80px;
+      font-weight: 300;
+    }
+    
+    .cover-info {
+      font-size: 14px;
+      color: #999;
+      margin-top: 50px;
+    }
+    
+    /* 页眉 */
+    .header {
+      border-bottom: 3px solid #1a56db;
+      padding-bottom: 12px;
+      margin-bottom: 30px;
+    }
+    
+    .header-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #1a56db;
+    }
+    
+    .header-date {
+      font-size: 12px;
+      color: #999;
+      text-align: right;
+      margin-top: 5px;
+    }
+    
+    /* 标题样式 */
+    h1 {
+      font-size: 32px;
+      font-weight: bold;
+      color: #1a56db;
+      margin-top: 40px;
+      margin-bottom: 25px;
+      padding-left: 20px;
+      border-left: 6px solid #1a56db;
+    }
+    
+    h2 {
+      font-size: 26px;
+      font-weight: bold;
+      color: #333;
+      margin-top: 35px;
+      margin-bottom: 18px;
+      padding-left: 15px;
+      border-left: 5px solid #60a5fa;
+    }
+    
+    h3 {
+      font-size: 20px;
+      font-weight: bold;
+      color: #444;
+      margin-top: 28px;
+      margin-bottom: 14px;
+      padding-left: 12px;
+      border-left: 4px solid #93c5fd;
+    }
+    
+    /* 段落样式 */
+    p {
+      margin-bottom: 18px;
+      text-align: justify;
+      text-indent: 2em;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    
+    /* 表格样式 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 30px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    th {
+      background: linear-gradient(135deg, #1a56db 0%, #60a5fa 100%);
+      color: white;
+      font-weight: bold;
+      padding: 15px;
+      border: 1px solid #ddd;
+      text-align: center;
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+    
+    td {
+      padding: 14px 16px;
+      border: 1px solid #e0e0e0;
+      text-align: center;
+      font-size: 13px;
+    }
+    
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    
+    tr:first-child td {
+      font-weight: 600;
+    }
+    
+    /* 列表样式 */
+    ul, ol {
+      margin: 18px 0;
+      padding-left: 50px;
+    }
+    
+    li {
+      margin-bottom: 12px;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    
+    /* 强调文本 */
+    strong {
+      color: #1a56db;
+      font-weight: bold;
+    }
+    
+    /* 水印 */
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      font-size: 100px;
+      color: rgba(26, 86, 219, 0.03);
+      font-weight: bold;
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    /* 分隔线 */
+    hr {
+      border: none;
+      border-top: 2px solid #1a56db;
+      margin: 30px 0;
+    }
+    
+    /* 打印提示 */
+    .print-hint {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #fff;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      text-align: center;
+    }
+    
+    .print-hint h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: #1a56db;
+    }
+    
+    .print-hint p {
+      margin: 5px 0;
+      text-indent: 0;
+      font-size: 13px;
     }
   </style>
 </head>
 <body>
-  <h1>技术方案</h1>
-  <p style="color: #666; font-size: 14px;">生成时间：${new Date().toLocaleString('zh-CN')}</p>
-  <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-  ${content}
+  <!-- 水印 -->
+  <div class="watermark">技术方案</div>
+  
+  <!-- 打印提示 -->
+  <div class="print-hint no-print">
+    <h3>💡 下载PDF</h3>
+    <p>1. 点击「打印」按钮</p>
+    <p>2. 目标打印机选择「另存为PDF」</p>
+    <p>3. 点击保存即可</p>
+  </div>
+  
+  <!-- 封面页 -->
+  <div class="cover">
+    <div class="cover-title">技术方案</div>
+    <div class="cover-subtitle">Technical Proposal</div>
+    <div class="cover-info">
+      <p>生成日期：${currentDate}</p>
+      <p style="margin-top: 30px; font-size: 16px; color: #1a56db;">智能报价管理系统</p>
+    </div>
+  </div>
+  
+  <!-- 正文 -->
+  <div class="content">
+    <!-- 页眉 -->
+    <div class="header">
+      <div class="header-title">技术方案</div>
+      <div class="header-date">${currentDate}</div>
+    </div>
+    
+    ${content}
+  </div>
+  
   <script>
     window.onload = function() {
-      window.print();
+      // 5秒后自动打印
+      setTimeout(function() {
+        window.print();
+      }, 500);
+    };
+    
+    // 打印后关闭窗口
+    window.onafterprint = function() {
       window.close();
     };
   </script>
@@ -796,7 +1230,7 @@ export default function ChatMessage({
     
     toast({
       title: "准备下载PDF",
-      description: "请在打印窗口中选择「另存为PDF」",
+      description: "打印窗口已打开，请选择「另存为PDF」保存",
       duration: 5000,
     });
   };
