@@ -103,7 +103,11 @@ export class SmartChatProcessor {
       console.log('[SmartChatProcessor] System Prompt 长度:', systemPrompt.length);
       console.log('[SmartChatProcessor] User Input:', userInput);
       
-      const aiResponse = await callDeepSeekChat(messages);
+      const aiResponse = await callDeepSeekChat({
+        messages: messages,
+        temperature: 0.7,
+        maxTokens: 2048,
+      });
 
       console.log('[SmartChatProcessor] LLM 响应:', aiResponse.text.substring(0, 200));
 

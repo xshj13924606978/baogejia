@@ -116,24 +116,39 @@ export class AIClient {
       console.log('[DeepSeek] 准备调用 API，消息数:', params.messages?.length);
       console.log('[DeepSeek] 消息内容（前2条）:', JSON.stringify(params.messages?.slice(0, 2), null, 2));
       
-      const response = await this.deepseekClient.chat.completions.create({
-        model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
-        messages: params.messages,
-        temperature: params.temperature ?? 0.7,
-        max_tokens: params.maxTokens ?? 1024,
-        stream: false,
-      }) as ChatCompletion;
+      // 使用原生 fetch 调用 DeepSeek API
+      const response = await fetch(`${process.env.DEEPSEEK_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+          messages: params.messages,
+          temperature: params.temperature ?? 0.7,
+          max_tokens: params.maxTokens ?? 1024,
+          stream: false,
+        }),
+      });
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[DeepSeek] API 请求失败:', response.status, errorText);
+        throw new Error(`DeepSeek API 错误 ${response.status}: ${errorText}`);
+      }
+      
+      const data = await response.json();
       console.log('[DeepSeek] API 调用成功');
       
       return {
-        text: response.choices[0]?.message?.content || '',
+        text: data.choices[0]?.message?.content || '',
         model: 'deepseek',
         conversationId: params.conversationId,
-        usage: response.usage ? {
-          prompt_tokens: response.usage.prompt_tokens,
-          completion_tokens: response.usage.completion_tokens,
-          total_tokens: response.usage.total_tokens
+        usage: data.usage ? {
+          prompt_tokens: data.usage.prompt_tokens,
+          completion_tokens: data.usage.completion_tokens,
+          total_tokens: data.usage.total_tokens
         } : undefined
       };
     } catch (error: any) {
