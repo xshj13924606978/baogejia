@@ -658,6 +658,149 @@ export default function ChatMessage({
     onEdit?.(message.id, newContent);
   };
 
+  // ============================================================================
+  // 下载功能
+  // ============================================================================
+
+  /**
+   * 下载为纯文本
+   */
+  const downloadAsText = () => {
+    const content = message.content;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `技术方案_${new Date().toLocaleDateString('zh-CN')}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "下载成功",
+      description: "文本文件已下载",
+      duration: 2000,
+    });
+  };
+
+  /**
+   * 下载为Word（使用HTML模板方式）
+   */
+  const downloadAsWord = () => {
+    const content = message.content;
+    
+    // 将Markdown转换为HTML
+    const htmlContent = `
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head>
+  <meta charset="utf-8">
+  <title>技术方案</title>
+  <style>
+    body { font-family: "Microsoft YaHei", Arial, sans-serif; line-height: 1.6; padding: 40px; }
+    h1 { font-size: 24px; font-weight: bold; color: #1a1a1a; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+    h2 { font-size: 20px; font-weight: bold; color: #333; margin-top: 30px; margin-bottom: 15px; }
+    h3 { font-size: 18px; font-weight: bold; color: #555; margin-top: 25px; margin-bottom: 12px; }
+    p { margin-bottom: 15px; text-align: justify; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th { background-color: #f5f5f5; font-weight: bold; padding: 12px; border: 1px solid #ddd; text-align: left; }
+    td { padding: 12px; border: 1px solid #ddd; }
+    strong { font-weight: bold; }
+    ul, ol { margin: 15px 0; padding-left: 40px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <h1>技术方案</h1>
+  <p style="color: #666; font-size: 14px;">生成时间：${new Date().toLocaleString('zh-CN')}</p>
+  <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+  ${content}
+</body>
+</html>`;
+    
+    const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `技术方案_${new Date().toLocaleDateString('zh-CN')}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "下载成功",
+      description: "Word文档已下载",
+      duration: 2000,
+    });
+  };
+
+  /**
+   * 下载为PDF（使用浏览器打印功能）
+   */
+  const downloadAsPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: "下载失败",
+        description: "请允许弹出窗口",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+    
+    const content = message.content;
+    const printContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>技术方案</title>
+  <style>
+    body { font-family: "Microsoft YaHei", Arial, sans-serif; line-height: 1.6; padding: 40px; margin: 0; }
+    h1 { font-size: 24px; font-weight: bold; color: #1a1a1a; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+    h2 { font-size: 20px; font-weight: bold; color: #333; margin-top: 30px; margin-bottom: 15px; page-break-before: auto; }
+    h3 { font-size: 18px; font-weight: bold; color: #555; margin-top: 25px; margin-bottom: 12px; }
+    p { margin-bottom: 15px; text-align: justify; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; page-break-inside: avoid; }
+    th { background-color: #f5f5f5; font-weight: bold; padding: 12px; border: 1px solid #ddd; text-align: left; }
+    td { padding: 12px; border: 1px solid #ddd; }
+    strong { font-weight: bold; }
+    ul, ol { margin: 15px 0; padding-left: 40px; }
+    li { margin-bottom: 8px; }
+    @media print {
+      body { padding: 20px; }
+      h2 { page-break-before: always; }
+      h2:first-child { page-break-before: auto; }
+    }
+  </style>
+</head>
+<body>
+  <h1>技术方案</h1>
+  <p style="color: #666; font-size: 14px;">生成时间：${new Date().toLocaleString('zh-CN')}</p>
+  <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+  ${content}
+  <script>
+    window.onload = function() {
+      window.print();
+      window.close();
+    };
+  </script>
+</body>
+</html>`;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    toast({
+      title: "准备下载PDF",
+      description: "请在打印窗口中选择「另存为PDF」",
+      duration: 5000,
+    });
+  };
+
   const handleIntentSelect = (intent: 'quote' | 'proposal' | 'both') => {
     setSelectedIntent(intent);
     if (onIntentSelection) {
@@ -867,6 +1010,80 @@ export default function ChatMessage({
           )}
           
           <div className="flex items-center gap-2 mt-2">
+            {/* 复制按钮 */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 flex-shrink-0"
+                    onClick={() => handleCopy(message.content)}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>复制内容</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            {/* 下载按钮组 - 仅对详细方案和普通消息显示 */}
+            {!isTemporary && !hasQuote && (
+              <>
+                {/* Word下载 */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 flex-shrink-0"
+                        onClick={downloadAsWord}
+                      >
+                        <FileText className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>下载Word</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                {/* PDF下载 */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 flex-shrink-0"
+                        onClick={downloadAsPDF}
+                      >
+                        <Printer className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>下载PDF</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                {/* 文本下载 */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 flex-shrink-0"
+                        onClick={downloadAsText}
+                      >
+                        <FileTextIcon className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>下载文本</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </>
+            )}
+
+            {/* 重新生成按钮 */}
             {onRegenerate && !isTemporary && (
               <TooltipProvider>
                 <Tooltip>
