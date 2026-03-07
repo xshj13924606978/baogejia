@@ -85,23 +85,45 @@ const parseMarkdownToHtml = (text: string): string => {
   // 优化：正确处理单元格中的<br>标签和换行符
   const tableRegex = /\|(.+)\|\n\|[-|\s]+\|\n((?:\|.+\|\n?)+)/g;
   html = html.replace(tableRegex, (match, headerRow, bodyRows) => {
-    // 处理表头 - 替换<br>为<br/>
+    // 处理表头 - 获取表头列数
     const headers = headerRow.split('|').filter(h => h.trim());
+    const numColumns = headers.length;
     const headerHtml = headers.map(h => {
       let headerText = h.trim();
       // 将Markdown中的<br>转换为HTML的<br/>
       headerText = headerText.replace(/<br>/gi, '<br/>');
       return `<th>${headerText}</th>`;
     }).join('');
-    
+
     // 处理表体 - 正确处理单元格中的换行
     const rows = bodyRows.trim().split('\n');
     const bodyHtml = rows.map(row => {
-      // 跳过空行
-      if (!row.trim()) return '';
-      // 去除首尾的|，然后分割
-      const rowContent = row.trim().replace(/^\|/, '').replace(/\|$/, '');
-      const cells = rowContent.split('|').map(c => {
+      // 跳过空行和分隔线
+      if (!row.trim() || row.trim().startsWith('|---')) return '';
+
+      // 去除首尾的|，然后按|分割
+      const rowContent = row.trim();
+      const cells = rowContent.split('|')
+        .map(c => c.trim())
+        .filter((c, idx) => idx > 0 && idx <= numColumns); // 保留正确数量的列
+
+      // 如果列数不对，尝试合并
+      if (cells.length > numColumns) {
+        // 将多余的列合并到最后一列
+        const validCells = cells.slice(0, numColumns - 1);
+        const lastCell = cells.slice(numColumns - 1).join('<br/>');
+        validCells.push(lastCell);
+        cells.length = 0;
+        cells.push(...validCells);
+      } else if (cells.length < numColumns) {
+        // 填充空列
+        while (cells.length < numColumns) {
+          cells.push('');
+        }
+      }
+
+      // 处理每个单元格的内容
+      const processedCells = cells.map(c => {
         let cellText = c.trim();
         // 保留单元格中的<br>标签，并确保使用<br/>
         cellText = cellText.replace(/<br>/gi, '<br/>');
@@ -109,9 +131,10 @@ const parseMarkdownToHtml = (text: string): string => {
         cellText = cellText.replace(/\n/g, '<br/>');
         return cellText;
       });
-      return `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+
+      return `<tr>${processedCells.map(c => `<td>${c}</td>`).join('')}</tr>`;
     }).filter(row => row).join('');
-    
+
     return `<table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
   });
   
@@ -126,15 +149,34 @@ const parseMarkdownToHtml = (text: string): string => {
     return `<ul>${match}</ul>`;
   });
   
-  // 处理普通段落
+  // 处理普通段落 - 优化：更智能地识别是否需要添加p标签
   html = html.split('\n\n').map(para => {
-    // 如果已经包含HTML标签，则不添加 p 标签
-    if (para.trim().startsWith('<h') || para.trim().startsWith('<table') || para.trim().startsWith('<ul') || para.trim().startsWith('<ol')) {
+    const trimmedPara = para.trim();
+
+    // 如果为空，返回空字符串
+    if (!trimmedPara) return '';
+
+    // 检查是否已经包含HTML块级标签
+    const hasBlockTag = /^(<h[1-6]|<table|<ul|<ol|<div|<blockquote|<pre|<hr)/i.test(trimmedPara);
+
+    // 如果已经有块级标签，直接返回
+    if (hasBlockTag) {
       return para;
     }
-    return `<p>${para.trim()}</p>`;
-  }).join('\n');
-  
+
+    // 如果是列表项，也直接返回（已经在前面处理过）
+    if (trimmedPara.startsWith('<li')) {
+      return para;
+    }
+
+    // 否则包裹在p标签中
+    return `<p>${trimmedPara}</p>`;
+  }).filter(para => para.trim()).join('\n');
+
+  // 清理：移除多余的换行和空格，确保HTML结构清晰
+  html = html.replace(/\n{3,}/g, '\n\n'); // 多个连续换行替换为两个
+  html = html.replace(/>\s+</g, '><'); // 移除标签之间的空白
+
   return html;
 };
 
@@ -789,7 +831,7 @@ export default function ChatMessage({
     /* 页面设置 */
     @page {
       size: A4;
-      margin: 2.5cm;
+      margin: 2cm;
     }
     
     body {
@@ -924,11 +966,12 @@ export default function ChatMessage({
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 30px 0;
+      margin: 25px 0;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       border-radius: 6px;
       overflow: hidden;
       border: 1px solid #e2e8f0;
+      table-layout: auto;
     }
 
     th {
@@ -952,6 +995,9 @@ export default function ChatMessage({
       color: #334155;
       vertical-align: middle;
       line-height: 1.8;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      hyphens: auto;
     }
 
     /* 第一列左对齐（通常是序号列） */
@@ -1135,7 +1181,7 @@ export default function ChatMessage({
     /* 打印设置 */
     @page {
       size: A4;
-      margin: 2cm;
+      margin: 2cm 1.5cm;
     }
     
     @media print {
@@ -1143,10 +1189,11 @@ export default function ChatMessage({
         padding: 0;
       }
 
-      /* 分页控制 */
+      /* 分页控制 - 移除H2强制分页，使用更智能的分页策略 */
       h2 {
-        page-break-before: always;
-        margin-top: 30px;
+        page-break-before: auto;
+        margin-top: 40px;
+        margin-bottom: 20px;
       }
 
       h2:first-child {
@@ -1156,13 +1203,21 @@ export default function ChatMessage({
 
       h3 {
         page-break-after: avoid;
+        page-break-inside: avoid;
       }
 
+      /* 避免表格被分页打断 */
       table {
         page-break-inside: avoid;
       }
 
+      /* 避免列表项被分页打断 */
       li {
+        page-break-inside: avoid;
+      }
+
+      /* 避免段落被分页打断（短段落除外） */
+      p {
         page-break-inside: avoid;
       }
 
@@ -1318,11 +1373,12 @@ export default function ChatMessage({
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 30px 0;
+      margin: 25px 0;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       border-radius: 6px;
       overflow: hidden;
       border: 1px solid #e2e8f0;
+      table-layout: auto;
     }
 
     th {
@@ -1348,6 +1404,9 @@ export default function ChatMessage({
       color: #334155;
       vertical-align: middle;
       line-height: 1.8;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      hyphens: auto;
     }
 
     /* 第一列左对齐（通常是序号列） */
