@@ -82,18 +82,35 @@ const parseMarkdownToHtml = (text: string): string => {
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   
   // 处理表格（| 列1 | 列2 |）
+  // 优化：正确处理单元格中的<br>标签和换行符
   const tableRegex = /\|(.+)\|\n\|[-|\s]+\|\n((?:\|.+\|\n?)+)/g;
   html = html.replace(tableRegex, (match, headerRow, bodyRows) => {
-    // 处理表头
+    // 处理表头 - 替换<br>为<br/>
     const headers = headerRow.split('|').filter(h => h.trim());
-    const headerHtml = headers.map(h => `<th>${h.trim()}</th>`).join('');
+    const headerHtml = headers.map(h => {
+      let headerText = h.trim();
+      // 将Markdown中的<br>转换为HTML的<br/>
+      headerText = headerText.replace(/<br>/gi, '<br/>');
+      return `<th>${headerText}</th>`;
+    }).join('');
     
-    // 处理表体
+    // 处理表体 - 正确处理单元格中的换行
     const rows = bodyRows.trim().split('\n');
     const bodyHtml = rows.map(row => {
-      const cells = row.split('|').filter(c => c.trim());
-      return `<tr>${cells.map(c => `<td>${c.trim()}</td>`).join('')}</tr>`;
-    }).join('');
+      // 跳过空行
+      if (!row.trim()) return '';
+      // 去除首尾的|，然后分割
+      const rowContent = row.trim().replace(/^\|/, '').replace(/\|$/, '');
+      const cells = rowContent.split('|').map(c => {
+        let cellText = c.trim();
+        // 保留单元格中的<br>标签，并确保使用<br/>
+        cellText = cellText.replace(/<br>/gi, '<br/>');
+        // 将换行符也转换为<br/>
+        cellText = cellText.replace(/\n/g, '<br/>');
+        return cellText;
+      });
+      return `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+    }).filter(row => row).join('');
     
     return `<table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
   });
@@ -788,108 +805,119 @@ export default function ChatMessage({
       text-align: center;
       padding: 80px 0;
       page-break-after: always;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%);
       color: white;
       min-height: 90vh;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      position: relative;
     }
-    
+
     .cover-title {
-      font-size: 42px;
-      font-weight: bold;
+      font-size: 46px;
+      font-weight: 700;
       color: white;
-      margin-bottom: 20px;
-      letter-spacing: 5px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+      margin-bottom: 24px;
+      letter-spacing: 6px;
+      text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
     }
-    
+
     .cover-subtitle {
-      font-size: 20px;
-      color: rgba(255,255,255,0.9);
-      margin-bottom: 80px;
+      font-size: 22px;
+      color: rgba(255,255,255,0.95);
+      margin-bottom: 90px;
       font-weight: 300;
-      letter-spacing: 2px;
+      letter-spacing: 3px;
     }
-    
+
     .cover-info {
-      font-size: 14px;
-      color: rgba(255,255,255,0.8);
+      font-size: 15px;
+      color: rgba(255,255,255,0.9);
       margin-top: 60px;
-      line-height: 2;
+      line-height: 2.2;
     }
-    
+
     .cover-info p {
       text-indent: 0;
-      margin: 10px 0;
-      color: rgba(255,255,255,0.9);
+      margin: 14px 0;
+      color: rgba(255,255,255,0.95);
+    }
+
+    .cover-logo {
+      font-size: 18px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.98);
+      margin-bottom: 10px;
     }
     
     /* 页眉 */
     .header {
-      border-bottom: 2px solid #1a56db;
-      padding-bottom: 15px;
-      margin-bottom: 40px;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 16px;
+      margin-bottom: 36px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    
+
     .header-title {
       font-size: 16px;
-      font-weight: bold;
-      color: #1a56db;
+      font-weight: 600;
+      color: #1e40af;
     }
-    
+
     .header-date {
       font-size: 12px;
-      color: #666;
+      color: #64748b;
     }
     
     /* 标题样式 */
     h1 {
-      font-size: 24px;
-      font-weight: bold;
-      color: #1a56db;
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e40af;
       margin-top: 50px;
-      margin-bottom: 25px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 28px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid #3b82f6;
+      text-align: center;
     }
-    
+
     h2 {
       font-size: 20px;
-      font-weight: bold;
-      color: #334155;
+      font-weight: 600;
+      color: #1e3a8a;
       margin-top: 40px;
       margin-bottom: 20px;
-      padding-left: 15px;
-      border-left: 4px solid #60a5fa;
-      background: #f8fafc;
-      padding-top: 12px;
-      padding-bottom: 12px;
+      padding-left: 18px;
       padding-right: 15px;
+      padding-top: 14px;
+      padding-bottom: 14px;
+      border-left: 5px solid #3b82f6;
+      background: linear-gradient(to right, #eff6ff 0%, #ffffff 100%);
+      border-radius: 0 6px 6px 0;
     }
-    
+
     h3 {
-      font-size: 16px;
-      font-weight: bold;
-      color: #475569;
-      margin-top: 30px;
-      margin-bottom: 15px;
-      padding-left: 12px;
-      border-left: 3px solid #93c5fd;
+      font-size: 17px;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 28px;
+      margin-bottom: 16px;
+      padding-left: 14px;
+      border-left: 4px solid #60a5fa;
+      line-height: 1.6;
     }
     
     /* 段落样式 */
     p {
-      margin-bottom: 18px;
+      margin-bottom: 16px;
       text-align: justify;
       text-indent: 2em;
       font-size: 14px;
-      line-height: 1.9;
-      color: #475569;
+      line-height: 1.95;
+      color: #334155;
     }
     
     /* 表格样式 */
@@ -897,71 +925,95 @@ export default function ChatMessage({
       width: 100%;
       border-collapse: collapse;
       margin: 30px 0;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-radius: 6px;
       overflow: hidden;
+      border: 1px solid #e2e8f0;
     }
-    
+
     th {
-      background: linear-gradient(135deg, #1a56db 0%, #60a5fa 100%);
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
       color: white;
-      font-weight: bold;
-      padding: 18px 15px;
+      font-weight: 600;
+      padding: 14px 12px;
       border: 1px solid #1e40af;
       text-align: center;
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    td {
-      padding: 15px;
-      border: 1px solid #cbd5e1;
-      text-align: center;
       font-size: 13px;
-      color: #475569;
+      text-transform: none;
+      letter-spacing: 0;
+      line-height: 1.6;
+    }
+
+    td {
+      padding: 12px 10px;
+      border: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 12px;
+      color: #334155;
       vertical-align: middle;
+      line-height: 1.8;
     }
-    
+
+    /* 第一列左对齐（通常是序号列） */
+    td:first-child {
+      text-align: center;
+      font-weight: 600;
+      color: #1e40af;
+    }
+
     tr:nth-child(even) {
-      background-color: #f1f5f9;
+      background-color: #f8fafc;
     }
-    
+
     tr:nth-child(odd) {
       background-color: white;
     }
-    
+
     tr:hover {
-      background-color: #dbeafe;
-      transition: background-color 0.3s;
+      background-color: #e0f2fe;
+      transition: background-color 0.2s;
+    }
+
+    /* 表格中的换行处理 */
+    td br {
+      display: block;
+      margin: 4px 0;
+      content: "";
     }
     
     /* 列表样式 */
     ul, ol {
       margin: 20px 0;
-      padding-left: 60px;
+      padding-left: 50px;
     }
-    
+
     li {
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       font-size: 14px;
-      line-height: 1.9;
-      color: #475569;
+      line-height: 1.95;
+      color: #334155;
     }
-    
+
     ul li::marker {
-      color: #1a56db;
+      color: #3b82f6;
+      font-size: 1.1em;
     }
-    
+
     ol li::marker {
-      color: #1a56db;
-      font-weight: bold;
+      color: #3b82f6;
+      font-weight: 600;
     }
     
     /* 强调文本 */
     strong {
-      color: #1a56db;
-      font-weight: bold;
+      color: #1e40af;
+      font-weight: 600;
+    }
+
+    /* 斜体文本 */
+    em {
+      color: #64748b;
+      font-style: italic;
     }
     
     /* 水印 */
@@ -970,18 +1022,24 @@ export default function ChatMessage({
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%) rotate(-45deg);
-      font-size: 100px;
-      color: rgba(26, 86, 219, 0.03);
-      font-weight: bold;
+      font-size: 110px;
+      color: rgba(30, 64, 175, 0.04);
+      font-weight: 700;
       pointer-events: none;
       z-index: -1;
+      white-space: nowrap;
     }
     
     /* 分隔线 */
     hr {
       border: none;
-      border-top: 2px solid #e2e8f0;
-      margin: 40px 0;
+      border-top: 2px solid #cbd5e1;
+      margin: 36px 0;
+    }
+
+    /* 分隔线变体 */
+    hr.dashed {
+      border-top: 2px dashed #94a3b8;
     }
     
     /* 内容区域 */
@@ -1084,30 +1142,51 @@ export default function ChatMessage({
       body {
         padding: 0;
       }
-      
+
       /* 分页控制 */
       h2 {
         page-break-before: always;
         margin-top: 30px;
       }
-      
+
       h2:first-child {
         page-break-before: auto;
         margin-top: 0;
       }
-      
+
+      h3 {
+        page-break-after: avoid;
+      }
+
       table {
         page-break-inside: avoid;
       }
-      
+
+      li {
+        page-break-inside: avoid;
+      }
+
       /* 隐藏打印时不显示的元素 */
       .no-print {
         display: none;
       }
-      
+
       /* 打印时去除背景渐变（节省墨水），但保留基础颜色 */
       .cover {
-        background: #1a56db !important;
+        background: #1e40af !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      /* 打印时表格样式调整 */
+      th {
+        background: #1e40af !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f8fafc !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
@@ -1168,68 +1247,71 @@ export default function ChatMessage({
     
     /* 页眉 */
     .header {
-      border-bottom: 2px solid #1a56db;
-      padding-bottom: 15px;
-      margin-bottom: 40px;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 16px;
+      margin-bottom: 36px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    
+
     .header-title {
       font-size: 16px;
-      font-weight: bold;
-      color: #1a56db;
+      font-weight: 600;
+      color: #1e40af;
     }
-    
+
     .header-date {
       font-size: 12px;
-      color: #666;
+      color: #64748b;
     }
     
     /* 标题样式 */
     h1 {
-      font-size: 24px;
-      font-weight: bold;
-      color: #1a56db;
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e40af;
       margin-top: 50px;
-      margin-bottom: 25px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 28px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid #3b82f6;
+      text-align: center;
     }
-    
+
     h2 {
       font-size: 20px;
-      font-weight: bold;
-      color: #334155;
+      font-weight: 600;
+      color: #1e3a8a;
       margin-top: 40px;
       margin-bottom: 20px;
-      padding-left: 15px;
-      border-left: 4px solid #60a5fa;
-      background: #f8fafc;
-      padding-top: 12px;
-      padding-bottom: 12px;
+      padding-left: 18px;
       padding-right: 15px;
+      padding-top: 14px;
+      padding-bottom: 14px;
+      border-left: 5px solid #3b82f6;
+      background: linear-gradient(to right, #eff6ff 0%, #ffffff 100%);
+      border-radius: 0 6px 6px 0;
     }
-    
+
     h3 {
-      font-size: 16px;
-      font-weight: bold;
-      color: #475569;
-      margin-top: 30px;
-      margin-bottom: 15px;
-      padding-left: 12px;
-      border-left: 3px solid #93c5fd;
+      font-size: 17px;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 28px;
+      margin-bottom: 16px;
+      padding-left: 14px;
+      border-left: 4px solid #60a5fa;
+      line-height: 1.6;
     }
     
     /* 段落样式 */
     p {
-      margin-bottom: 18px;
+      margin-bottom: 16px;
       text-align: justify;
       text-indent: 2em;
       font-size: 14px;
-      line-height: 1.9;
-      color: #475569;
+      line-height: 1.95;
+      color: #334155;
     }
     
     /* 表格样式 */
@@ -1237,75 +1319,99 @@ export default function ChatMessage({
       width: 100%;
       border-collapse: collapse;
       margin: 30px 0;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-radius: 6px;
       overflow: hidden;
+      border: 1px solid #e2e8f0;
     }
-    
+
     th {
-      background: linear-gradient(135deg, #1a56db 0%, #60a5fa 100%);
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
       color: white;
-      font-weight: bold;
-      padding: 18px 15px;
+      font-weight: 600;
+      padding: 14px 12px;
       border: 1px solid #1e40af;
       text-align: center;
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    
-    td {
-      padding: 15px;
-      border: 1px solid #cbd5e1;
-      text-align: center;
       font-size: 13px;
-      color: #475569;
-      vertical-align: middle;
-    }
-    
-    tr:nth-child(even) {
-      background-color: #f1f5f9;
+      text-transform: none;
+      letter-spacing: 0;
+      line-height: 1.6;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    
+
+    td {
+      padding: 12px 10px;
+      border: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 12px;
+      color: #334155;
+      vertical-align: middle;
+      line-height: 1.8;
+    }
+
+    /* 第一列左对齐（通常是序号列） */
+    td:first-child {
+      text-align: center;
+      font-weight: 600;
+      color: #1e40af;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
     tr:nth-child(odd) {
       background-color: white;
     }
-    
+
     tr:hover {
-      background-color: #dbeafe;
-      transition: background-color 0.3s;
+      background-color: #e0f2fe;
+      transition: background-color 0.2s;
+    }
+
+    /* 表格中的换行处理 */
+    td br {
+      display: block;
+      margin: 4px 0;
+      content: "";
     }
     
     /* 列表样式 */
     ul, ol {
       margin: 20px 0;
-      padding-left: 60px;
+      padding-left: 50px;
     }
-    
+
     li {
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       font-size: 14px;
-      line-height: 1.9;
-      color: #475569;
+      line-height: 1.95;
+      color: #334155;
     }
-    
+
     ul li::marker {
-      color: #1a56db;
+      color: #3b82f6;
+      font-size: 1.1em;
     }
-    
+
     ol li::marker {
-      color: #1a56db;
-      font-weight: bold;
+      color: #3b82f6;
+      font-weight: 600;
     }
     
     /* 强调文本 */
     strong {
-      color: #1a56db;
-      font-weight: bold;
+      color: #1e40af;
+      font-weight: 600;
+    }
+
+    /* 斜体文本 */
+    em {
+      color: #64748b;
+      font-style: italic;
     }
     
     /* 水印 */
@@ -1314,18 +1420,24 @@ export default function ChatMessage({
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%) rotate(-45deg);
-      font-size: 100px;
-      color: rgba(26, 86, 219, 0.03);
-      font-weight: bold;
+      font-size: 110px;
+      color: rgba(30, 64, 175, 0.04);
+      font-weight: 700;
       pointer-events: none;
       z-index: -1;
+      white-space: nowrap;
     }
     
     /* 分隔线 */
     hr {
       border: none;
-      border-top: 2px solid #e2e8f0;
-      margin: 40px 0;
+      border-top: 2px solid #cbd5e1;
+      margin: 36px 0;
+    }
+
+    /* 分隔线变体 */
+    hr.dashed {
+      border-top: 2px dashed #94a3b8;
     }
     
     /* 内容区域 */

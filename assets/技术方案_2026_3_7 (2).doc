@@ -1,0 +1,301 @@
+﻿
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head>
+  <meta charset="utf-8">
+  <title>技术方案</title>
+  <style>
+    /* 页面设置 */
+    @page {
+      size: A4;
+      margin: 2.5cm;
+    }
+    
+    body {
+      font-family: "Microsoft YaHei", "SimSun", Arial, sans-serif;
+      line-height: 1.8;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    
+    /* 封面样式 */
+    .cover {
+      text-align: center;
+      padding: 80px 0;
+      page-break-after: always;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      min-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    
+    .cover-title {
+      font-size: 42px;
+      font-weight: bold;
+      color: white;
+      margin-bottom: 20px;
+      letter-spacing: 5px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .cover-subtitle {
+      font-size: 20px;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 80px;
+      font-weight: 300;
+      letter-spacing: 2px;
+    }
+    
+    .cover-info {
+      font-size: 14px;
+      color: rgba(255,255,255,0.8);
+      margin-top: 60px;
+      line-height: 2;
+    }
+    
+    .cover-info p {
+      text-indent: 0;
+      margin: 10px 0;
+      color: rgba(255,255,255,0.9);
+    }
+    
+    /* 页眉 */
+    .header {
+      border-bottom: 2px solid #1a56db;
+      padding-bottom: 15px;
+      margin-bottom: 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #1a56db;
+    }
+    
+    .header-date {
+      font-size: 12px;
+      color: #666;
+    }
+    
+    /* 标题样式 */
+    h1 {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1a56db;
+      margin-top: 50px;
+      margin-bottom: 25px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    
+    h2 {
+      font-size: 20px;
+      font-weight: bold;
+      color: #334155;
+      margin-top: 40px;
+      margin-bottom: 20px;
+      padding-left: 15px;
+      border-left: 4px solid #60a5fa;
+      background: #f8fafc;
+      padding-top: 12px;
+      padding-bottom: 12px;
+      padding-right: 15px;
+    }
+    
+    h3 {
+      font-size: 16px;
+      font-weight: bold;
+      color: #475569;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      padding-left: 12px;
+      border-left: 3px solid #93c5fd;
+    }
+    
+    /* 段落样式 */
+    p {
+      margin-bottom: 18px;
+      text-align: justify;
+      text-indent: 2em;
+      font-size: 14px;
+      line-height: 1.9;
+      color: #475569;
+    }
+    
+    /* 表格样式 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 30px 0;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    th {
+      background: linear-gradient(135deg, #1a56db 0%, #60a5fa 100%);
+      color: white;
+      font-weight: bold;
+      padding: 18px 15px;
+      border: 1px solid #1e40af;
+      text-align: center;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    td {
+      padding: 15px;
+      border: 1px solid #cbd5e1;
+      text-align: center;
+      font-size: 13px;
+      color: #475569;
+      vertical-align: middle;
+    }
+    
+    tr:nth-child(even) {
+      background-color: #f1f5f9;
+    }
+    
+    tr:nth-child(odd) {
+      background-color: white;
+    }
+    
+    tr:hover {
+      background-color: #dbeafe;
+      transition: background-color 0.3s;
+    }
+    
+    /* 列表样式 */
+    ul, ol {
+      margin: 20px 0;
+      padding-left: 60px;
+    }
+    
+    li {
+      margin-bottom: 12px;
+      font-size: 14px;
+      line-height: 1.9;
+      color: #475569;
+    }
+    
+    ul li::marker {
+      color: #1a56db;
+    }
+    
+    ol li::marker {
+      color: #1a56db;
+      font-weight: bold;
+    }
+    
+    /* 强调文本 */
+    strong {
+      color: #1a56db;
+      font-weight: bold;
+    }
+    
+    /* 水印 */
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      font-size: 100px;
+      color: rgba(26, 86, 219, 0.03);
+      font-weight: bold;
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    /* 分隔线 */
+    hr {
+      border: none;
+      border-top: 2px solid #e2e8f0;
+      margin: 40px 0;
+    }
+    
+    /* 内容区域 */
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* 移除首行缩进的特殊情况 */
+    .cover p, ul, ol {
+      text-indent: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- 封面页 -->
+  <div class="cover">
+    <div class="cover-title">技术方案</div>
+    <div class="cover-subtitle">Technical Proposal</div>
+    <div class="cover-info">
+      <p>生成日期：2026年3月7日</p>
+      <p style="margin-top: 30px;">智能报价管理系统</p>
+      <p style="margin-top: 20px; font-size: 12px; opacity: 0.8;">Professional Solution</p>
+    </div>
+  </div>
+  
+  <!-- 正文 -->
+  <div class="content">
+    <!-- 页眉 -->
+    <div class="header">
+      <div class="header-title">技术方案</div>
+      <div class="header-date">2026年3月7日</div>
+    </div>
+    
+    <h1>60吨/天污水处理项目技术方案</h1>
+<h2>一、项目概述</h2>
+<ul><li><strong>处理规模</strong>：60吨/天（2.5吨/小时）</li>
+<li><strong>设计标准</strong>：按《城镇污水处理厂污染物排放标准》（GB 18918-2002）一级A标准设计</li>
+<li><strong>适用场景</strong>：小型社区、学校、度假村、工业园区、分散式污水处理站</li>
+<li><strong>核心目标</strong>：高效去除COD、BOD、氨氮、总磷、悬浮物，实现稳定达标排放</li>
+</ul>
+<h2>二、工艺比选与推荐</h2>
+<table><thead><tr><th>工艺方案</th><th>优点</th><th>缺点</th><th>适用性</th><th>投资估算</th></tr></thead><tbody><tr><td><strong>A²/O+MBR</strong></td><td>出水水质优、占地小、自动化程度高</td><td>膜需定期清洗更换、运行电耗较高</td><td>用地紧张、出水要求高</td><td>中等偏高</td></tr><tr><td><strong>A²/O+深度处理</strong></td><td>技术成熟、运行稳定、维护简单</td><td>占地较大、污泥产量较多</td><td>常规项目、预算有限</td><td>中等</td></tr><tr><td><strong>SBR/CAST</strong></td><td>流程简单、抗冲击负荷强</td><td>自动化要求高、间歇运行</td><td>水量波动大</td><td>中等</td></tr></tbody></table>
+<strong>推荐方案</strong>：<strong>A²/O+深度处理工艺</strong>（兼顾处理效果、运行稳定性和投资成本）
+<h2>三、详细配置清单（共112项）</h2>
+<h3>1. 预处理单元（18项）</h3>
+<table><thead><tr><th>序号</th><th>设备名称</th><th>规格型号</th><th>数量</th><th>材质</th><th>备注</th></tr></thead><tbody><tr><td>1</td><td>机械格栅</td><td>HF-300，间隙5mm</td><td>1台</td><td>304不锈钢</td><td>自动清渣</td></tr><tr><td>2</td><td>调节池提升泵</td><td>WQ10-10-1.5</td><td>2台（1用1备）</td><td>铸铁/不锈钢</td><td>带耦合装置</td></tr><tr><td>3</td><td>调节池</td><td>有效容积30m³</td><td>1座</td><td>钢砼/玻璃钢</td><td>带液位控制</td></tr><tr><td>4</td><td>潜水搅拌器</td><td>QJB0.85/8-260/3-740</td><td>2台</td><td>不锈钢</td><td>防止沉淀</td></tr><tr><td>5</td><td>pH在线监测仪</td><td>PHG-2081</td><td>1套</td><td>-</td><td>带自动调节</td></tr><tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr></tbody></table>
+<h3>2. 生化处理单元（A²/O工艺，42项）</h3>
+<table><thead><tr><th>序号</th><th>设备名称</th><th>规格型号</th><th>数量</th><th>材质</th><th>备注</th></tr></thead><tbody><tr><td>19</td><td>厌氧池搅拌器</td><td>QJB1.5/6-260/3-980</td><td>2台</td><td>不锈钢</td><td>低速推流</td></tr><tr><td>20</td><td>缺氧池搅拌器</td><td>QJB1.5/6-260/3-980</td><td>2台</td><td>不锈钢</td><td>低速推流</td></tr><tr><td>21</td><td>好氧池曝气系统</td><td>Φ215微孔曝气器</td><td>120套</td><td>EPDM</td><td>均匀布气</td></tr><tr><td>22</td><td>罗茨鼓风机</td><td>SSR-80，风量3.2m³/min</td><td>2台（1用1备）</td><td>铸铁</td><td>变频控制</td></tr><tr><td>23</td><td>混合液回流泵</td><td>WQ15-15-2.2</td><td>2台</td><td>铸铁/不锈钢</td><td>回流比200%</td></tr><tr><td>24</td><td>污泥回流泵</td><td>WQ10-10-1.5</td><td>2台</td><td>铸铁/不锈钢</td><td>回流比100%</td></tr><tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr></tbody></table>
+<h3>3. 深度处理单元（28项）</h3>
+<table><thead><tr><th>序号</th><th>设备名称</th><th>规格型号</th><th>数量</th><th>材质</th><th>备注</th></tr></thead><tbody><tr><td>61</td><td>斜管沉淀池</td><td>Φ3.0×4.5m</td><td>1套</td><td>玻璃钢</td><td>内置斜管填料</td></tr><tr><td>62</td><td>混凝加药装置</td><td>JY-500L</td><td>1套</td><td>PE</td><td>PAC投加</td></tr><tr><td>63</td><td>絮凝加药装置</td><td>JY-500L</td><td>1套</td><td>PE</td><td>PAM投加</td></tr><tr><td>64</td><td>消毒装置</td><td>紫外线消毒器，40W×8支</td><td>1套</td><td>304不锈钢</td><td>过流式</td></tr><tr><td>65</td><td>清水池</td><td>有效容积10m³</td><td>1座</td><td>钢砼/玻璃钢</td><td>回用/排放</td></tr><tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr></tbody></table>
+<h3>4. 污泥处理单元（12项）</h3>
+<table><thead><tr><th>序号</th><th>设备名称</th><th>规格型号</th><th>数量</th><th>材质</th><th>备注</th></tr></thead><tbody><tr><td>89</td><td>污泥浓缩池</td><td>Φ2.0×3.0m</td><td>1座</td><td>钢砼</td><td>带刮泥机</td></tr><tr><td>90</td><td>板框压滤机</td><td>XAY20/800-UB</td><td>1台</td><td>铸铁/PP</td><td>过滤面积20㎡</td></tr><tr><td>91</td><td>污泥螺杆泵</td><td>G25-1</td><td>2台</td><td>铸铁</td><td>1用1备</td></tr><tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr></tbody></table>
+<h3>5. 电气与自控系统（12项）</h3>
+<table><thead><tr><th>序号</th><th>设备名称</th><th>规格型号</th><th>数量</th><th>备注</th></tr></thead><tbody><tr><td>101</td><td>PLC控制柜</td><td>西门子S7-1200</td><td>1套</td><td>含触摸屏</td></tr><tr><td>102</td><td>动力配电柜</td><td>XL-21</td><td>1套</td><td>总功率约25kW</td></tr><tr><td>103</td><td>在线监测仪表</td><td>COD、氨氮、总磷、流量</td><td>1套</td><td>4参数</td></tr><tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr></tbody></table>
+<h2>四、投资估算</h2>
+<table><thead><tr><th>项目</th><th>金额（万元）</th><th>备注</th></tr></thead><tbody><tr><td>设备采购费</td><td>38-45</td><td>含112项设备及配件</td></tr><tr><td>土建工程费</td><td>15-20</td><td>根据地质条件浮动</td></tr><tr><td>安装调试费</td><td>8-10</td><td>含管道、电缆、安装</td></tr><tr><td>设计及技术服务费</td><td>5-8</td><td>方案设计、施工图、培训</td></tr><tr><td><strong>总投资估算</strong></td><td><strong>66-83万元</strong></td><td>不含征地、外围管网</td></tr></tbody></table>
+<h2>五、运行成本分析</h2>
+<table><thead><tr><th>项目</th><th>成本（元/吨水）</th><th>说明</th></tr></thead><tbody><tr><td>电费</td><td>0.35-0.45</td><td>日均耗电约90-110kWh</td></tr><tr><td>药剂费</td><td>0.15-0.25</td><td>PAC、PAM、消毒剂等</td></tr><tr><td>人工费</td><td>0.20-0.30</td><td>1人兼职管理</td></tr><tr><td>维护费</td><td>0.10-0.15</td><td>备件、耗材、膜清洗等</td></tr><tr><td><strong>综合运行成本</strong></td><td><strong>0.80-1.15元/吨</strong></td><td>不含折旧、污泥处置</td></tr></tbody></table>
+<h2>六、安装调试与培训</h2>
+<ul><li><strong>工期</strong>：设备到场后30-45天安装调试完成</li>
+<li><strong>培训</strong>：提供3天现场操作维护培训</li>
+<li><strong>质保</strong>：设备质保1年，终身技术支持</li>
+<li><strong>交付文件</strong>：操作手册、维护规程、竣工图纸、水质检测报告</li>
+</ul>
+---
+<h2>后续建议</h2>
+<ul><li><strong>如需详细报价</strong>：我可基于此配置清单生成分项报价单（Excel格式）</li>
+<li><strong>如需方案调整</strong>：请告知具体修改要求（如：改用MBR工艺、增加回用系统等）</li>
+<li><strong>如需技术对比</strong>：我可提供A²/O、MBR、SBR等工艺的详细技术经济对比</li>
+</ul>
+<strong>快速操作建议</strong>：
+<ul><li>回复“生成报价单” → 我将基于此方案生成详细报价</li>
+<li>回复“修改方案” → 告诉我您的具体调整需求</li>
+<li>回复“工艺对比” → 获取不同工艺的技术经济分析</li></ul>
+  </div>
+  
+  <!-- 水印 -->
+  <div class="watermark">技术方案</div>
+</body>
+</html>
