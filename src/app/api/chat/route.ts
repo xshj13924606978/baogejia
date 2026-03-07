@@ -328,7 +328,7 @@ class WebSearchService {
       // 从内容中提取价格
       const priceMatches = result.content.match(/(\d+(?:\.?\d+)?)[,，]?(\d+(?:\.?\d+)?)?/g);
       if (priceMatches) {
-        priceMatches.forEach(match => {
+        priceMatches.forEach((match: string) => {
           const num = parseFloat(match.replace(/[,，]/g, ''));
           if (!isNaN(num) && num > 10 && num < 1000000) {
             prices.push(num);
@@ -1737,21 +1737,22 @@ class DomainKnowledgeBase {
     
     for (const [key, value] of Object.entries(data)) {
       result += `**${key}**：\n`;
-      if (typeof value === 'object') {
-        if (value.advantages) {
-          result += `- 优势：${value.advantages.join('、')}\n`;
+      if (typeof value === 'object' && value !== null) {
+        const comparisonData = value as { advantages?: string[], disadvantages?: string[], price?: string, suitable?: string, case?: string };
+        if (comparisonData.advantages) {
+          result += `- 优势：${comparisonData.advantages.join('、')}\n`;
         }
-        if (value.disadvantages) {
-          result += `- 劣势：${value.disadvantages.join('、')}\n`;
+        if (comparisonData.disadvantages) {
+          result += `- 劣势：${comparisonData.disadvantages.join('、')}\n`;
         }
-        if (value.price) {
-          result += `- 参考价格：${value.price}\n`;
+        if (comparisonData.price) {
+          result += `- 参考价格：${comparisonData.price}\n`;
         }
-        if (value.suitable) {
-          result += `- 适用场景：${value.suitable}\n`;
+        if (comparisonData.suitable) {
+          result += `- 适用场景：${comparisonData.suitable}\n`;
         }
-        if (value.case) {
-          result += `- 案例：${value.case}\n`;
+        if (comparisonData.case) {
+          result += `- 案例：${comparisonData.case}\n`;
         }
       }
       result += '\n';
@@ -2688,6 +2689,322 @@ class ProjectInfoParser {
 }
 
 // ============================================================================
+// 详细方案生成器（基于LLM智能生成）
+// ============================================================================
+
+class DetailedProposalGenerator {
+  private aiClient: any;
+
+  constructor() {
+    // 使用已导入的 DeepSeek 客户端
+    this.aiClient = aiClient;
+  }
+
+  /**
+   * 生成详细技术方案
+   */
+  async generateDetailedProposal(
+    projectInfo: any,
+    products: Product[],
+    message: string
+  ): Promise<string> {
+    console.log('[DetailedProposalGenerator] 开始生成详细方案');
+    
+    try {
+      // 构建结构化的方案内容
+      const sections = await Promise.all([
+        this.generateProjectOverview(projectInfo),
+        this.generateProcessComparison(projectInfo, products),
+        this.generateSelectedProcess(projectInfo),
+        this.generateEquipmentListWithDetails(products),
+        this.generateCostAnalysis(projectInfo, products),
+        this.generateInstallationAndCommissioning(),
+        this.generateOperationAndMaintenance(),
+        this.generateAfterSalesService()
+      ]);
+      
+      const proposal = this.formatProposal(sections);
+      console.log('[DetailedProposalGenerator] 详细方案生成完成');
+      return proposal;
+      
+    } catch (error) {
+      console.error('[DetailedProposalGenerator] 生成方案失败:', error);
+      // 回退到基础方案
+      return this.generateBasicProposal(projectInfo, products);
+    }
+  }
+
+  /**
+   * 生成项目概述
+   */
+  private async generateProjectOverview(projectInfo: any): Promise<string> {
+    const prompt = `请为以下污水处理项目生成项目概述（200-300字）：
+项目信息：
+- 项目名称：${projectInfo.projectName || '污水处理项目'}
+- 处理规模：${projectInfo.scale || 60}吨/天
+- 项目地点：${projectInfo.address || '待定'}
+- 水质情况：${projectInfo.waterQuality || '生活污水'}
+- 排放标准：${projectInfo.dischargeStandard || '一级A标准'}
+
+要求：
+1. 简明扼要描述项目背景和目标
+2. 说明处理工艺的核心技术特点
+3. 突出项目的环保效益和社会价值`;
+
+    const response = await this.aiClient.chat({
+      messages: [
+        { role: 'system', content: '你是一位资深的环保工程师，擅长编写污水处理项目的技术方案。' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      maxTokens: 500
+    });
+
+    return `## 一、项目概述\n\n${response.text || '本项目是针对生活污水的治理工程，旨在采用先进的污水处理技术，实现污水的达标排放，保护水环境，改善区域生态环境质量。'}`;
+  }
+
+  /**
+   * 生成工艺比选
+   */
+  private async generateProcessComparison(projectInfo: any, products: Product[]): Promise<string> {
+    const prompt = `请为污水处理项目进行工艺比选分析：
+处理规模：${projectInfo.scale || 60}吨/天
+项目类型：${projectInfo.projectType || '生活污水'}
+
+请对比以下3种工艺：
+1. A²/O工艺
+2. SBR工艺
+3. MBR工艺
+
+从以下维度分析：
+- 技术成熟度
+- 处理效果
+- 占地面积
+- 运行成本
+- 维护管理难度
+- 投资成本
+
+最后给出推荐工艺及理由。`;
+
+    const response = await this.aiClient.chat({
+      messages: [
+        { role: 'system', content: '你是一位资深的环保工程师，擅长污水处理工艺选择和技术分析。' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      maxTokens: 800
+    });
+
+    return `## 二、工艺比选\n\n${response.text || '根据项目特点，经综合比较分析，推荐采用A²/O工艺。该工艺技术成熟、运行稳定、处理效果好，能够满足一级A排放标准要求。'}`;
+  }
+
+  /**
+   * 生成选定工艺说明
+   */
+  private async generateSelectedProcess(projectInfo: any): Promise<string> {
+    const prompt = `请详细描述A²/O工艺的工作原理和技术特点：
+处理规模：${projectInfo.scale || 60}吨/天
+
+要求包含：
+1. 工艺流程图及说明
+2. 各处理单元的功能和设计参数
+3. 主要技术指标（去除率、停留时间等）
+4. 工艺优势`;
+
+    const response = await this.aiClient.chat({
+      messages: [
+        { role: 'system', content: '你是一位资深的环保工程师，擅长污水处理工艺设计。' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      maxTokens: 600
+    });
+
+    return `## 三、选定工艺方案\n\n${response.text || '本项目采用A²/O工艺，工艺流程为：格栅→调节池→A²/O生化池→二沉池→消毒池→达标排放。该工艺具有脱氮除磷效果好、运行稳定、管理方便等优点。'}`;
+  }
+
+  /**
+   * 生成详细设备清单（含价格）
+   */
+  private async generateEquipmentListWithDetails(products: Product[]): Promise<string> {
+    let content = `## 四、配置清单及价格\n\n`;
+    content += `### 4.1 主要设备清单\n\n`;
+    content += `| 序号 | 设备名称 | 型号规格 | 数量 | 单价(元) | 总价(元) | 备注 |\n`;
+    content += `|------|----------|----------|------|----------|----------|------|\n`;
+    
+    let total = 0;
+    products.forEach((product, index) => {
+      const price = product.price || 0;
+      const subtotal = price * product.quantity;
+      total += subtotal;
+      
+      content += `| ${index + 1} | ${product.name} | ${product.specs || '-'} | ${product.quantity} | ${price.toFixed(0)} | ${subtotal.toFixed(0)} | ${product.remark || '-'} |\n`;
+    });
+    
+    content += `\n**设备总价：${total.toFixed(2)} 元**\n\n`;
+    
+    // 为每个设备生成详细描述
+    content += `### 4.2 主要设备技术说明\n\n`;
+    for (const product of products.slice(0, 5)) { // 只为前5个设备生成详细说明
+      content += await this.generateEquipmentDescription(product);
+    }
+    
+    return content;
+  }
+
+  /**
+   * 生成单个设备描述
+   */
+  private async generateEquipmentDescription(product: Product): Promise<string> {
+    const prompt = `请为以下设备生成技术说明（150-200字）：
+设备名称：${product.name}
+型号规格：${product.specs || product.model || '-'}
+
+说明内容应包含：
+1. 设备工作原理
+2. 主要技术参数
+3. 材质和结构特点
+4. 适用范围`;
+
+    try {
+      const response = await this.aiClient.chat({
+        messages: [
+          { role: 'system', content: '你是一位设备工程师，擅长编写设备技术说明。' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        maxTokens: 300
+      });
+
+      return `**${product.name}**\n\n${response.text || '该设备采用先进的设计理念，结构紧凑，运行稳定，能够满足系统处理要求。'}\n\n`;
+    } catch (error) {
+      return `**${product.name}**\n\n${product.remark || '标准配置，运行稳定。'}\n\n`;
+    }
+  }
+
+  /**
+   * 生成成本分析
+   */
+  private async generateCostAnalysis(projectInfo: any, products: Product[]): Promise<string> {
+    const equipmentTotal = products.reduce((sum, p) => sum + (p.price || 0) * p.quantity, 0);
+    const civilCost = equipmentTotal * 0.2; // 土建费
+    const installCost = equipmentTotal * 0.15; // 安装费
+    const otherCost = equipmentTotal * 0.1; // 其他费用
+    const total = equipmentTotal + civilCost + installCost + otherCost;
+
+    const prompt = `请为以下污水处理项目进行运行成本分析：
+处理规模：${projectInfo.scale || 60}吨/天
+设备投资：${equipmentTotal.toFixed(2)} 元
+
+分析以下运行成本（按年计算）：
+1. 电费（电耗估算）
+2. 药剂费
+3. 人工费
+4. 维护费
+5. 其他费用
+
+计算吨水处理成本。`;
+
+    const response = await this.aiClient.chat({
+      messages: [
+        { role: 'system', content: '你是一位环保工程师，擅长进行污水处理项目经济分析。' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      maxTokens: 500
+    });
+
+    let content = `## 五、投资及运行成本分析\n\n`;
+    content += `### 5.1 工程总投资\n\n`;
+    content += `| 项目 | 金额(元) | 占比 |\n`;
+    content += `|------|----------|------|\n`;
+    content += `| 设备费 | ${equipmentTotal.toFixed(2)} | ${(equipmentTotal/total*100).toFixed(1)}% |\n`;
+    content += `| 土建费 | ${civilCost.toFixed(2)} | ${(civilCost/total*100).toFixed(1)}% |\n`;
+    content += `| 安装费 | ${installCost.toFixed(2)} | ${(installCost/total*100).toFixed(1)}% |\n`;
+    content += `| 其他费 | ${otherCost.toFixed(2)} | ${(otherCost/total*100).toFixed(1)}% |\n`;
+    content += `| **合计** | **${total.toFixed(2)}** | **100%** |\n\n`;
+    content += `### 5.2 运行成本分析\n\n`;
+    content += response.text || `预计年运行成本约 ${(total * 0.1).toFixed(2)} 元，吨水处理成本约 ${(total * 0.1 / projectInfo.scale / 365).toFixed(2)} 元/吨。\n`;
+    
+    return content;
+  }
+
+  /**
+   * 生成安装调试内容
+   */
+  private async generateInstallationAndCommissioning(): Promise<string> {
+    let content = `## 六、安装调试\n\n`;
+    content += `### 6.1 安装要求\n\n`;
+    content += `1. 设备基础：按照设备基础图施工，混凝土强度不低于C25\n`;
+    content += `2. 设备就位：设备就位时应找平找正，水平度偏差≤2mm/m\n`;
+    content += `3. 管道连接：管道安装应符合GB50242规范要求\n`;
+    content += `4. 电气接线：电气安装应符合GB50303规范要求\n\n`;
+    
+    content += `### 6.2 调试步骤\n\n`;
+    content += `1. 单机调试：各设备单独运行，检查运行状态\n`;
+    content += `2. 联动调试：各设备联动运行，测试自控系统\n`;
+    content += `3. 水质调试：通过进出水水质监测，调整运行参数\n`;
+    content += `4. 性能验收：连续运行72小时，出水水质达标\n\n`;
+    
+    return content;
+  }
+
+  /**
+   * 生成运行维护内容
+   */
+  private async generateOperationAndMaintenance(): Promise<string> {
+    let content = `## 七、运行维护\n\n`;
+    content += `### 7.1 运行管理\n\n`;
+    content += `1. 运行人员需经过专业培训，持证上岗\n`;
+    content += `2. 建立完善的运行记录制度，每日记录进出水水质、设备运行状态\n`;
+    content += `3. 定期巡检，发现问题及时处理\n`;
+    content += `4. 制定应急预案，应对突发情况\n\n`;
+    
+    content += `### 7.2 维护保养\n\n`;
+    content += `1. 日常维护：每日检查设备运行状态，清理格栅杂物\n`;
+    content += `2. 定期维护：每周检查曝气系统，每月清理沉淀池\n`;
+    content += `3. 年度维护：每年对设备进行全面检修，更换易损件\n`;
+    content += `4. 药剂管理：规范药剂存储和使用，定期检测药剂浓度\n\n`;
+    
+    return content;
+  }
+
+  /**
+   * 生成售后服务内容
+   */
+  private async generateAfterSalesService(): Promise<string> {
+    let content = `## 八、售后服务\n\n`;
+    content += `### 8.1 质保期\n\n`;
+    content += `- 设备质保期：12个月\n`;
+    content += `- 电气系统质保期：18个月\n`;
+    content += `- 钢结构质保期：24个月\n\n`;
+    
+    content += `### 8.2 服务承诺\n\n`;
+    content += `1. 技术培训：免费为业主提供操作人员培训\n`;
+    content += `2. 质保期内服务：免费维修或更换损坏部件\n`;
+    content += `3. 技术支持：提供7×24小时电话技术支持\n`;
+    content += `4. 应急响应：接到故障通知后24小时内到达现场\n`;
+    content += `5. 终身服务：质保期后提供终身有偿服务\n\n`;
+    
+    return content;
+  }
+
+  /**
+   * 格式化完整方案
+   */
+  private formatProposal(sections: string[]): string {
+    return `# 污水处理工程详细技术方案\n\n${sections.join('\n\n')}`;
+  }
+
+  /**
+   * 生成基础方案（回退方案）
+   */
+  private generateBasicProposal(projectInfo: any, products: Product[]): Promise<string> {
+    return Promise.resolve(`# 污水处理工程方案\n\n## 一、项目概述\n\n本项目处理规模${projectInfo.scale || 60}吨/天，采用A²/O工艺，出水达到一级A标准。\n\n## 二、配置清单\n\n共配置设备${products.length}台（套），详见设备清单。\n\n## 三、服务承诺\n\n提供完善的安装调试、技术培训和售后服务。`);
+  }
+}
+
+// ============================================================================
 // 报价单生成器（增强版）- 优化PDF打印，保留所有颜色
 // ============================================================================
 
@@ -3219,11 +3536,13 @@ class IntentResponseGenerator {
   private projectParser: ProjectInfoParser;
   private quoteGenerator: QuoteGenerator;
   private webSearch: WebSearchService;
+  private detailedProposalGenerator: DetailedProposalGenerator;
 
   constructor() {
     this.projectParser = new ProjectInfoParser();
     this.quoteGenerator = new QuoteGenerator();
     this.webSearch = new WebSearchService();
+    this.detailedProposalGenerator = new DetailedProposalGenerator();
   }
 
   /**
@@ -3371,6 +3690,60 @@ class IntentResponseGenerator {
         }
         
         return proposalResponse;
+      
+      case 'simple_quote':
+        console.log('[ResponseGenerator] 生成纯报价单（基础版）');
+        return `正在为您生成纯报价单...\n\n报价单将包含：\n• 供需双方信息\n• 设备清单及报价\n• 商务条款\n\n请稍候...`;
+      
+      case 'enhanced_quote':
+        console.log('[ResponseGenerator] 生成增强型报价单');
+        return `正在为您生成增强型报价单...\n\n报价单将包含：\n• 供需双方信息\n• 设备清单及报价\n• 设备应用范围描述\n• 安装调试说明\n• 商务条款\n\n请稍候...`;
+      
+      case 'detailed_proposal':
+        console.log('[ResponseGenerator] 生成详细技术方案');
+        
+        try {
+          // 解析项目信息
+          const projectInfo = this.projectParser.parseProjectInfo(baseContent);
+          
+          // 模拟产品清单（实际应从文件或输入中提取）
+          const products: Product[] = [
+            {
+              name: '机械格栅',
+              model: 'GS-500',
+              brand: '',
+              specs: '渠宽500mm，栅隙5mm',
+              quantity: 1,
+              unit: '台',
+              price: 8500,
+              total: 8500,
+              remark: '不锈钢材质'
+            },
+            {
+              name: '一体化污水处理设备',
+              model: 'WSZ-60',
+              brand: '',
+              specs: '处理量60m³/d',
+              quantity: 1,
+              unit: '套',
+              price: 156000,
+              total: 156000,
+              remark: '含A²/O生化系统'
+            }
+          ];
+          
+          // 生成详细方案
+          const detailedProposal = await this.detailedProposalGenerator.generateDetailedProposal(
+            projectInfo,
+            products,
+            baseContent
+          );
+          
+          return detailedProposal;
+        } catch (error) {
+          console.error('[ResponseGenerator] 生成详细方案失败:', error);
+          return `抱歉，生成详细方案时出现错误：${error instanceof Error ? error.message : '未知错误'}\n\n请稍后重试或联系技术支持。`;
+        }
       
       case 'unknown':
         if (processedInput.type === 'image') {

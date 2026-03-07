@@ -1,14 +1,17 @@
 import { ProcessedInput } from './input-processor';
 
 export type UserIntent = 
-  | 'ask_quote'       // 询问报价
-  | 'upload_document' // 上传文档（需要解析）
-  | 'ask_general'     // 一般性问题
-  | 'compare_quotes'  // 比较报价
-  | 'modify_quote'    // 修改报价
-  | 'export_quote'    // 导出报价
-  | 'generate_proposal' // 生成方案（技术方案/设计方案）
-  | 'unknown';        // 未知意图
+  | 'ask_quote'           // 询问报价
+  | 'upload_document'     // 上传文档（需要解析）
+  | 'ask_general'         // 一般性问题
+  | 'compare_quotes'      // 比较报价
+  | 'modify_quote'        // 修改报价
+  | 'export_quote'        // 导出报价
+  | 'generate_proposal'   // 生成方案（技术方案/设计方案）
+  | 'simple_quote'        // 纯报价单（基础版：供需双方信息 + 清单 + 商务条款）
+  | 'enhanced_quote'      // 增强型报价单（在纯报价单基础上增加应用范围、安装调试等）
+  | 'detailed_proposal'   // 详细方案（项目概述、工艺比选、配置清单、成本分析、安装调试、运行维护、售后服务等）
+  | 'unknown';            // 未知意图
 
 export interface IntentResult {
   intent: UserIntent;
@@ -146,6 +149,27 @@ export class IntentDetector {
       'solution', 'design', 'proposal', 'recommendation', 'configuration'
     ];
     
+    // 详细方案关键词（用于区分是否需要生成详细方案）
+    const detailedProposalKeywords = [
+      '概述', '工艺比选', '运行成本', '安装调试', '运行维护', '售后服务',
+      '投资估算', '经济效益', '技术参数', '工艺流程', '系统设计',
+      '项目概述', '工艺选择', '成本分析', '维护说明', '技术方案',
+      '详细方案', '完整方案', '技术分析', '投资分析', '运营分析'
+    ];
+    
+    // 增强型报价单关键词（需要额外说明）
+    const enhancedQuoteKeywords = [
+      '应用范围', '应用场景', '适用范围', '安装', '调试', '交付',
+      '设备介绍', '产品介绍', '技术说明', '使用说明', '操作说明',
+      '安装说明', '调试说明', '产品描述', '设备描述'
+    ];
+    
+    // 纯报价单关键词（简单清单）
+    const simpleQuoteKeywords = [
+      '清单', '列表', '报价表', '价格表', '产品清单', '设备清单',
+      '简单报价', '基础报价', '快速报价'
+    ];
+    
     // 产品类型关键词
     const productKeywords = [
       '泵', '阀', '罐', '电机', '设备', '机器', '装置', '污水', '处理',
@@ -174,13 +198,19 @@ export class IntentDetector {
     const modifyScore = matchScore(modifyKeywords);
     const exportScore = matchScore(exportKeywords);
     const proposalScore = matchScore(proposalKeywords);
+    const detailedProposalScore = matchScore(detailedProposalKeywords);
+    const enhancedQuoteScore = matchScore(enhancedQuoteKeywords);
+    const simpleQuoteScore = matchScore(simpleQuoteKeywords);
     
     console.log('[IntentDetector] 关键词匹配分数:', {
       ask_quote: quoteScore,
       compare_quotes: compareScore,
       modify_quote: modifyScore,
       export_quote: exportScore,
-      generate_proposal: proposalScore
+      generate_proposal: proposalScore,
+      detailed_proposal: detailedProposalScore,
+      enhanced_quote: enhancedQuoteScore,
+      simple_quote: simpleQuoteScore
     });
     
     // 找出最高分
@@ -192,7 +222,10 @@ export class IntentDetector {
       compare_quotes: compareScore,
       modify_quote: modifyScore,
       export_quote: exportScore,
-      generate_proposal: proposalScore
+      generate_proposal: proposalScore,
+      detailed_proposal: detailedProposalScore,
+      enhanced_quote: enhancedQuoteScore,
+      simple_quote: simpleQuoteScore
     };
     
     for (const [intent, score] of Object.entries(scores)) {
