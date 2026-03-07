@@ -228,10 +228,16 @@ export class IntentDetector {
       simple_quote: simpleQuoteScore
     };
     
-    for (const [intent, score] of Object.entries(scores)) {
-      if (score > maxScore) {
-        maxScore = score;
-        maxIntent = intent as UserIntent;
+    // 特殊处理：详细方案的优先级高于普通方案
+    if (detailedProposalScore >= proposalScore && detailedProposalScore > 0.5) {
+      maxScore = detailedProposalScore;
+      maxIntent = 'detailed_proposal';
+    } else {
+      for (const [intent, score] of Object.entries(scores)) {
+        if (score > maxScore) {
+          maxScore = score;
+          maxIntent = intent as UserIntent;
+        }
       }
     }
     
