@@ -363,11 +363,19 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
   // 检查是否是完整HTML
   const isFullHTML = htmlContent.includes('<!DOCTYPE html') || 
                      htmlContent.includes('<html') || 
-                     htmlContent.includes('<style') ||
+                     htmlContent.includes('<style>') ||
                      htmlContent.includes('<table');
 
+  console.log('[IframeHTMLContainer] 内容长度:', htmlContent.length);
+  console.log('[IframeHTMLContainer] 包含 <!DOCTYPE html:', htmlContent.includes('<!DOCTYPE html'));
+  console.log('[IframeHTMLContainer] 包含 <html:', htmlContent.includes('<html'));
+  console.log('[IframeHTMLContainer] 包含 <style>:', htmlContent.includes('<style>'));
+  console.log('[IframeHTMLContainer] 包含 <table:', htmlContent.includes('<table'));
+  console.log('[IframeHTMLContainer] 是否渲染:', isFullHTML);
+
   if (!isFullHTML) {
-    return null;
+    console.log('[IframeHTMLContainer] 不满足渲染条件，返回SimpleMarkdown');
+    return <SimpleMarkdown content={htmlContent} />;
   }
 
   return (
@@ -420,18 +428,70 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
 };
 
 // ============================================================================
-// 简单的Markdown渲染组件
+// 简单的Markdown渲染组件（增强版）
 // ============================================================================
 
 const SimpleMarkdown = ({ content }: { content: string }) => {
   if (!content) return null;
   
+  // 解析Markdown并转换为简单的HTML
+  const parseMarkdown = (text: string) => {
+    let html = text;
+    
+    // 处理标题（## 标题）
+    html = html.replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold mt-6 mb-3 text-slate-800">$1</h2>');
+    
+    // 处理子标题（### 标题）
+    html = html.replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-slate-700">$1</h3>');
+    
+    // 处理粗体（**文本**）
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>');
+    
+    // 处理斜体（*文本*）
+    html = html.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>');
+    
+    // 处理表格（| 列1 | 列2 |）
+    const tableRegex = /\|(.+)\|\n\|[-|\s]+\|\n((?:\|.+\|\n?)+)/g;
+    html = html.replace(tableRegex, (match, headerRow, bodyRows) => {
+      // 处理表头
+      const headers = headerRow.split('|').filter(h => h.trim());
+      const headerHtml = headers.map(h => `<th class="px-4 py-2 bg-slate-100 text-left font-semibold border border-slate-200">${h.trim()}</th>`).join('');
+      
+      // 处理表体
+      const rows = bodyRows.trim().split('\n');
+      const bodyHtml = rows.map(row => {
+        const cells = row.split('|').filter(c => c.trim());
+        return `<tr>${cells.map(c => `<td class="px-4 py-2 border border-slate-200">${c.trim()}</td>`).join('')}</tr>`;
+      }).join('');
+      
+      return `<table class="w-full border-collapse my-4"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
+    });
+    
+    // 处理列表项（- 项目）
+    html = html.replace(/^- (.+)$/gm, '<li class="ml-6 list-disc">$1</li>');
+    
+    // 处理连续的列表项，包裹在 ul 中
+    html = html.replace(/(<li[^>]*>.*<\/li>\n?)+/g, (match) => {
+      return `<ul class="my-2 space-y-1">${match}</ul>`;
+    });
+    
+    // 处理普通段落
+    html = html.split('\n\n').map(para => {
+      // 如果已经包含HTML标签，则不添加 p 标签
+      if (para.trim().startsWith('<h') || para.trim().startsWith('<table') || para.trim().startsWith('<ul')) {
+        return para;
+      }
+      return `<p class="mb-3 text-slate-700 leading-relaxed">${para.trim()}</p>`;
+    }).join('');
+    
+    return html;
+  };
+  
   return (
-    <div className="whitespace-pre-wrap break-words">
-      {content.split('\n').map((line, i) => (
-        <p key={i} className="mb-1">{line}</p>
-      ))}
-    </div>
+    <div 
+      className="prose prose-slate max-w-none"
+      dangerouslySetInnerHTML={{ __html: parseMarkdown(content) }}
+    />
   );
 };
 
@@ -687,6 +747,21 @@ export default function ChatMessage({
     const files = getFiles();
     const isTemporary = message.isTemporary;
     const action = message.action;
+    const intent = message.metadata?.intent;
+    
+    // 判断是否是详细方案（包含方案相关关键词或metadata中有detailed_proposal意图）
+    const isDetailedProposal = 
+      intent === 'detailed_proposal' ||
+      (message.content && (message.content.includes('技术方案') || message.content.includes('项目概述')));
+    
+    console.log('[ChatMessage] ========== 渲染助手消息 ==========');
+    console.log('[ChatMessage] 消息ID:', message.id);
+    console.log('[ChatMessage] 意图:', intent);
+    console.log('[ChatMessage] 是否详细方案:', isDetailedProposal);
+    console.log('[ChatMessage] 是否报价单:', hasQuote);
+    console.log('[ChatMessage] 内容长度:', message.content?.length);
+    console.log('[ChatMessage] 内容预览:', message.content?.substring(0, 100));
+    console.log('[ChatMessage] metadata:', message.metadata);
     
     if (action === 'ASK_INTENT' && files.length > 0) {
       return (
@@ -744,6 +819,8 @@ export default function ChatMessage({
       );
     }
     
+    console.log('[ChatMessage] 选择渲染组件:', isDetailedProposal ? 'SimpleMarkdown (详细方案)' : (hasQuote ? 'IframeHTMLContainer (报价单)' : 'SimpleMarkdown (普通)'));
+    
     return (
       <div className="flex items-start gap-3">
         <Avatar className="h-8 w-8 flex-shrink-0">
@@ -753,9 +830,28 @@ export default function ChatMessage({
         </Avatar>
         
         <div className="flex-1 min-w-0 space-y-3">
-          <IframeHTMLContainer htmlContent={message.content} />
+          {/* 根据内容类型选择渲染方式 */}
+          {isDetailedProposal ? (
+            /* 详细方案使用 SimpleMarkdown 渲染 */
+            (() => {
+              console.log('[ChatMessage] 渲染详细方案');
+              return <SimpleMarkdown content={message.content} />;
+            })()
+          ) : hasQuote ? (
+            /* 报价单使用 IframeHTMLContainer 渲染 */
+            (() => {
+              console.log('[ChatMessage] 渲染报价单');
+              return <IframeHTMLContainer htmlContent={message.content} />;
+            })()
+          ) : (
+            /* 普通消息使用 SimpleMarkdown 渲染 */
+            (() => {
+              console.log('[ChatMessage] 渲染普通消息');
+              return <SimpleMarkdown content={message.content} />;
+            })()
+          )}
           
-          {hasQuote && quoteData && (
+          {hasQuote && quoteData && !isDetailedProposal && (
             <div className="mt-4">
               <QuoteTable
                 data={quoteData}
