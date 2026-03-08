@@ -920,35 +920,6 @@ export default function ChatMessage({
     const contactPhone = supplierInfo?.phone || '未填写';
     const contactEmail = supplierInfo?.email || '未填写';
     
-    // 生成目录
-    const generateTOC = (content: string) => {
-      const tocItems: string[] = [];
-      
-      // 提取H2标题
-      const h2Matches = content.match(/<h2[^>]*>(.+?)<\/h2>/g);
-      if (h2Matches) {
-        h2Matches.forEach((match, index) => {
-          const title = match.replace(/<[^>]*>/g, '');
-          const pageNum = index + 2; // 简化的页码估算
-          tocItems.push(`<div class="toc-item toc-item-1">${title}　　...　${pageNum}</div>`);
-          
-          // 提取该H2下的H3标题
-          const h3Regex = new RegExp(`<h3[^>]*>(.+?)<\/h3>`, 'g');
-          const h3Matches = content.substring(content.indexOf(match)).match(h3Regex);
-          if (h3Matches) {
-            h3Matches.forEach(h3Match => {
-              const h3Title = h3Match.replace(/<[^>]*>/g, '');
-              tocItems.push(`<div class="toc-item toc-item-2">${h3Title}　　...　${pageNum + 0.5}</div>`);
-            });
-          }
-        });
-      }
-      
-      return tocItems.join('');
-    };
-    
-    const tocHTML = generateTOC(parsedContent);
-    
     // 将Markdown转换为更美观的HTML
     const htmlContent = `
 <!DOCTYPE html>
@@ -980,56 +951,58 @@ export default function ChatMessage({
       background: white;
     }
     
-    /* 封面样式 - 简洁商务风格（参考附件） */
+    /* 封面样式 - 简洁商务 */
     .cover {
       text-align: center;
-      padding: 60pt 80pt;
+      padding: 50pt 60pt;
       page-break-after: always;
-      background: white;
-      color: #333333;
-      min-height: 90vh;
+      background: #1e40af;
+      color: white;
+      min-height: 85vh;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
 
     .cover-title {
-      font-size: 32pt;
-      font-weight: bold;
-      color: #000000;
-      margin-bottom: 60pt;
+      font-size: 34pt;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 15pt;
       margin-top: 40pt;
       letter-spacing: 2pt;
     }
 
     .cover-divider {
-      width: 150pt;
+      width: 120pt;
       height: 2pt;
-      background: #333333;
-      margin: 0 auto 50pt;
+      background: #3b82f6;
+      margin: 0 auto 40pt;
     }
 
     .cover-info {
-      font-size: 14pt;
-      color: #333333;
+      font-size: 13pt;
+      color: #e0e7ff;
       margin: 0 auto;
-      max-width: 400pt;
-      line-height: 2.5;
+      max-width: 500pt;
+      line-height: 2.2;
       text-align: left;
     }
 
     .cover-info p {
       text-indent: 0;
-      margin: 8pt 0;
-      color: #333333;
+      margin: 6pt 0;
+      color: #e0e7ff;
       font-weight: 400;
     }
 
     .cover-info strong {
-      color: #000000;
+      color: #ffffff;
       font-weight: 600;
       display: inline-block;
-      min-width: 100pt;
+      min-width: 90pt;
     }
     
     /* 分页控制 - 强制封面独占一页 */
@@ -1064,71 +1037,42 @@ export default function ChatMessage({
       color: #64748b;
     }
     
-    /* 标题样式 - 商务风格（参考附件） */
+    /* 标题样式 - 简洁商务 */
     h1 {
-      font-size: 20pt;
-      font-weight: bold;
-      color: #000000;
-      margin-top: 24pt;
-      margin-bottom: 16pt;
+      font-size: 18pt;
+      font-weight: 700;
+      color: #1e40af;
+      margin-top: 20pt;
+      margin-bottom: 14pt;
       padding-bottom: 6pt;
-      border-bottom: 2px solid #000000;
+      border-bottom: 2px solid #1e40af;
       text-align: center;
       page-break-after: avoid;
     }
 
     h2 {
-      font-size: 16pt;
-      font-weight: bold;
-      color: #000000;
-      margin-top: 20pt;
+      font-size: 15pt;
+      font-weight: 700;
+      color: #1e40af;
+      margin-top: 18pt;
       margin-bottom: 12pt;
-      padding-top: 0pt;
-      padding-bottom: 0pt;
-      text-align: left;
+      padding-top: 6pt;
+      padding-bottom: 6pt;
+      padding-left: 12pt;
+      border-left: 4px solid #3b82f6;
+      background: linear-gradient(to right, #eff6ff 0%, #ffffff 100%);
       page-break-after: avoid;
-      page-break-before: always;
     }
 
     h3 {
-      font-size: 14pt;
-      font-weight: bold;
-      color: #000000;
+      font-size: 13pt;
+      font-weight: 600;
+      color: #334155;
       margin-top: 16pt;
       margin-bottom: 10pt;
-      text-align: left;
+      padding-left: 10pt;
+      border-left: 3px solid #60a5fa;
       page-break-after: avoid;
-    }
-    
-    /* 目录样式 */
-    .toc {
-      margin: 24pt 0;
-      padding: 20pt;
-      border: 1px solid #000000;
-    }
-    
-    .toc-title {
-      font-size: 18pt;
-      font-weight: bold;
-      text-align: center;
-      margin-bottom: 16pt;
-      color: #000000;
-    }
-    
-    .toc-item {
-      font-size: 12pt;
-      margin: 8pt 0;
-      color: #333333;
-      text-indent: 0;
-    }
-    
-    .toc-item-1 {
-      font-weight: bold;
-      margin-left: 0;
-    }
-    
-    .toc-item-2 {
-      margin-left: 24pt;
     }
     
     /* 段落样式 - 简洁 */
@@ -1141,27 +1085,27 @@ export default function ChatMessage({
       color: #333;
     }
     
-    /* 表格样式 - 商务风格（参考附件） */
+    /* 表格样式 - 简洁商务 */
     table {
       width: 100%;
       border-collapse: collapse;
       margin: 16pt 0;
-      border: 1px solid #000000;
+      border: 1px solid #cbd5e1;
     }
 
     th {
-      background: #000000;
+      background: #1e40af;
       color: white;
-      font-weight: bold;
+      font-weight: 600;
       padding: 8pt 6pt;
-      border: 1px solid #000000;
+      border: 1px solid #1e40af;
       text-align: center;
       font-size: 11pt;
     }
 
     td {
-      padding: 8pt 6pt;
-      border: 1px solid #000000;
+      padding: 6pt 4pt;
+      border: 1px solid #cbd5e1;
       text-align: center;
       font-size: 11pt;
       color: #333;
@@ -1169,11 +1113,11 @@ export default function ChatMessage({
     }
 
     tr:nth-child(even) {
-      background-color: #ffffff;
+      background-color: #f8fafc;
     }
 
     tr:nth-child(odd) {
-      background-color: #f9f9f9;
+      background-color: white;
     }
     
     /* 列表样式 - 简洁 */
@@ -1274,22 +1218,15 @@ export default function ChatMessage({
     <div class="cover-title">${projectTitle}</div>
     <div class="cover-divider"></div>
     <div class="cover-info">
-      <p><strong>编制单位：</strong>${supplierName}</p>
-      <p><strong>编制人：</strong>${contactPerson}</p>
-      <p><strong>联系电话：</strong>${contactPhone}</p>
-      <p><strong>编制日期：</strong>${currentDate}</p>
+      <p><strong>编制单位</strong>　${supplierName}</p>
+      <p><strong>编制人</strong>　${contactPerson}</p>
+      <p><strong>联系电话</strong>　${contactPhone}</p>
+      ${contactEmail !== '未填写' ? `<p><strong>电子邮箱</strong>　${contactEmail}</p>` : ''}
+      <p><strong>编制日期</strong>　${currentDate}</p>
     </div>
   </div>
   
   <!-- 分页控制 - 确保正文从新页开始 -->
-  <div style="page-break-after: always; break-after: page;"></div>
-  
-  <!-- 目录页 -->
-  <div class="toc">
-    <div class="toc-title">目　　录</div>
-    ${tocHTML}
-  </div>
-  
   <div style="page-break-after: always; break-after: page;"></div>
   
   <!-- 正文 -->
@@ -1757,22 +1694,15 @@ export default function ChatMessage({
     <div class="cover-title">${projectTitle}</div>
     <div class="cover-divider"></div>
     <div class="cover-info">
-      <p><strong>编制单位：</strong>${supplierName}</p>
-      <p><strong>编制人：</strong>${contactPerson}</p>
-      <p><strong>联系电话：</strong>${contactPhone}</p>
-      <p><strong>编制日期：</strong>${currentDate}</p>
+      <p><strong>编制单位</strong>　${supplierName}</p>
+      <p><strong>编制人</strong>　${contactPerson}</p>
+      <p><strong>联系电话</strong>　${contactPhone}</p>
+      ${contactEmail !== '未填写' ? `<p><strong>电子邮箱</strong>　${contactEmail}</p>` : ''}
+      <p><strong>编制日期</strong>　${currentDate}</p>
     </div>
   </div>
   
   <!-- 分页控制 - 确保正文从新页开始 -->
-  <div style="page-break-after: always; break-after: page;"></div>
-  
-  <!-- 目录页 -->
-  <div class="toc">
-    <div class="toc-title">目　　录</div>
-    ${tocHTML}
-  </div>
-  
   <div style="page-break-after: always; break-after: page;"></div>
   
   <!-- 正文 -->
