@@ -68,25 +68,38 @@ export default function CustomerPanel() {
 
   // 保存客户信息到报价单
   const handleSave = () => {
-    updateCustomerInfo({
-      name: formData.name,
-      projectName: formData.projectName,
-      contactPerson: formData.contactPerson,
-      phone: formData.phone,
-      email: formData.email,
-      address: formData.address,
-      bankName: formData.bankName,
-      bankAccount: formData.bankAccount,
-      taxNumber: formData.taxNumber,
-      paymentTerms: formData.paymentTerms,
-      creditLimit: formData.creditLimit,
-      notes: formData.notes,
-    });
-    
-    toast({
-      title: '保存成功',
-      description: '客户信息已更新到报价单',
-    });
+    try {
+      console.log('[CustomerPanel] 保存客户信息:', formData);
+      
+      updateCustomerInfo({
+        name: formData.name,
+        projectName: formData.projectName,
+        contactPerson: formData.contactPerson,
+        phone: formData.phone,
+        email: formData.email,
+        address: formData.address,
+        bankName: formData.bankName,
+        bankAccount: formData.bankAccount,
+        taxNumber: formData.taxNumber,
+        paymentTerms: formData.paymentTerms,
+        creditLimit: formData.creditLimit,
+        notes: formData.notes,
+      });
+      
+      toast({
+        title: '保存成功',
+        description: '客户信息已更新到报价单',
+      });
+      
+      console.log('[CustomerPanel] 保存成功');
+    } catch (error) {
+      console.error('[CustomerPanel] 保存失败:', error);
+      toast({
+        title: '保存失败',
+        description: error instanceof Error ? error.message : '未知错误',
+        variant: 'destructive',
+      });
+    }
   };
 
   // 清空表单

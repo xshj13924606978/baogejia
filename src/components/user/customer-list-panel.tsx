@@ -126,6 +126,8 @@ export default function CustomerListPanel({
   // 添加新客户
   const handleAddCustomer = async (customerData: Omit<Customer, 'id'>) => {
     try {
+      console.log('[CustomerListPanel] 添加客户:', customerData);
+      
       const response = await fetch('/api/customers', {
         method: 'POST',
         headers: {
@@ -136,6 +138,7 @@ export default function CustomerListPanel({
 
       if (response.ok) {
         const data = await response.json();
+        console.log('[CustomerListPanel] 添加成功:', data);
         setCustomers([...customers, data.customer]);
         setShowAddDialog(false);
         toast({
@@ -143,12 +146,21 @@ export default function CustomerListPanel({
           description: '客户已添加到资料库',
         });
         return data.customer;
+      } else {
+        const errorData = await response.json();
+        console.error('[CustomerListPanel] 添加失败:', errorData);
+        toast({
+          title: '添加失败',
+          description: errorData.error || '添加客户失败，请重试',
+          variant: 'destructive',
+        });
+        return null;
       }
     } catch (error) {
-      console.error('添加客户失败:', error);
+      console.error('[CustomerListPanel] 添加客户异常:', error);
       toast({
         title: '添加失败',
-        description: '添加客户失败，请重试',
+        description: error instanceof Error ? error.message : '添加客户失败，请重试',
         variant: 'destructive',
       });
       return null;
