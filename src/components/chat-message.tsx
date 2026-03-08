@@ -103,8 +103,16 @@ const addSectionNumbers = (html: string): string => {
   let chapterCount = 0;
   h1Matches.forEach((match, index) => {
     const content = match[1].trim();
+
     // 判断是否是文档标题
-    const isDocTitle = index === 0 || /方案|报价单|技术方案|设计书|报告书|说明书/.test(content);
+    // 规则：必须是第一个H1，并且内容不包含"一"、"二"、"三"等章节编号
+    // 如果H1内容包含中文编号或数字编号，说明它是一级章节，不是文档标题
+    const isDocTitle = index === 0 &&
+                        !/^[一二三四五六七八九十]+[、\.]/.test(content) &&
+                        !/^\d+[、\.]/.test(content) &&
+                        !/第[一二三四五六七八九十]+章/.test(content) &&
+                        !/^[一二三四五六七八九十]+、/.test(content);
+
     const isChapter = !isDocTitle;
 
     if (isChapter) {
@@ -138,8 +146,9 @@ const addSectionNumbers = (html: string): string => {
     // 检查是否已经有编号
     const hasChineseNumber = /^[一二三四五六七八九十]+[、\.]/.test(content.trim());
     const hasNumberNumber = /^\d+[、\.]/.test(content.trim());
+    const hasChapterPrefix = /第[一二三四五六七八九十]+章/.test(content.trim());
 
-    if (!hasChineseNumber && !hasNumberNumber) {
+    if (!hasChineseNumber && !hasNumberNumber && !hasChapterPrefix) {
       const attrMatch = match.match(/<h1([^>]*)>/);
       const attrs = attrMatch ? attrMatch[1] : '';
       return `<h1${attrs}>${number}、${content}</h1>`;
