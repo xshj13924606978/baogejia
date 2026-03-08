@@ -157,33 +157,46 @@ const addSectionNumbers = (html: string): string => {
   });
 
   // 第三步：处理H2标题
+  // 先提取所有H2，记录它们在原始HTML中的位置
+  const h2Matches = Array.from(html.matchAll(h2Regex));
   const h2Counters: { [key: number]: number } = {};
 
-  html = html.replace(h2Regex, (match, content) => {
-    // 找到这个H2之前最近的一个一级章节
-    const beforeMatch = html.substring(0, html.indexOf(match));
-    const h1Before = (beforeMatch.match(/<h1/g) || []).length;
-
-    // 找到第h1Before个H1的chapterNum
+  // 计算每个H2所属的章节编号
+  h2Matches.forEach((match, index) => {
+    const h1Before = (html.substring(0, match.index).match(/<h1/g) || []).length;
     const currentChapter = chapterInfo[h1Before - 1];
 
-    // 如果H2之前没有一级章节（只有文档标题），跳过处理
+    // 如果H2之前没有一级章节，跳过
     if (!currentChapter || !currentChapter.isChapter) {
-      // 这种H2直接属于文档标题，不添加编号或添加特殊编号
-      return match;
+      return;
     }
 
     const currentH1Index = currentChapter.chapterNum;
-
     if (!h2Counters[currentH1Index]) {
       h2Counters[currentH1Index] = 0;
     }
     h2Counters[currentH1Index]++;
+  });
 
-    const h2Number = h2Counters[currentH1Index];
+  // 重置计数器并实际替换
+  const h2Counters2: { [key: number]: number } = {};
+  html = html.replace(h2Regex, (match, content, offset) => {
+    const h1Before = (html.substring(0, offset).match(/<h1/g) || []).length;
+    const currentChapter = chapterInfo[h1Before - 1];
+
+    if (!currentChapter || !currentChapter.isChapter) {
+      return match;
+    }
+
+    const currentH1Index = currentChapter.chapterNum;
+    if (!h2Counters2[currentH1Index]) {
+      h2Counters2[currentH1Index] = 0;
+    }
+    h2Counters2[currentH1Index]++;
+
+    const h2Number = h2Counters2[currentH1Index];
     const fullNumber = `${currentH1Index}.${h2Number}`;
 
-    // 检查是否已经有编号
     const hasNumber = /^\d+\.\d+/.test(content.trim());
 
     if (!hasNumber) {
@@ -195,17 +208,15 @@ const addSectionNumbers = (html: string): string => {
   });
 
   // 第四步：处理H3标题
+  const h3Matches = Array.from(html.matchAll(h3Regex));
   const h3Counters: { [key: string]: number } = {};
 
-  html = html.replace(h3Regex, (match, content) => {
-    // 找到这个H3之前最近的一个H2，确定它属于哪个章节
-    const beforeMatch = html.substring(0, html.indexOf(match));
-    const h1Before = (beforeMatch.match(/<h1/g) || []).length;
-    const h2Before = (beforeMatch.match(/<h2/g) || []).length;
+  html = html.replace(h3Regex, (match, content, offset) => {
+    const h1Before = (html.substring(0, offset).match(/<h1/g) || []).length;
+    const h2Before = (html.substring(0, offset).match(/<h2/g) || []).length;
 
     const currentChapter = chapterInfo[h1Before - 1];
 
-    // 如果H3之前没有一级章节，跳过
     if (!currentChapter || !currentChapter.isChapter) {
       return match;
     }
@@ -221,7 +232,6 @@ const addSectionNumbers = (html: string): string => {
     const h3Number = h3Counters[h3Key];
     const fullNumber = `${currentH1Index}.${h2Before}.${h3Number}`;
 
-    // 检查是否已经有编号
     const hasNumber = /^\d+\.\d+\.\d+/.test(content.trim());
 
     if (!hasNumber) {
@@ -235,11 +245,10 @@ const addSectionNumbers = (html: string): string => {
   // 第五步：处理H4标题
   const h4Counters: { [key: string]: number } = {};
 
-  html = html.replace(h4Regex, (match, content) => {
-    const beforeMatch = html.substring(0, html.indexOf(match));
-    const h1Before = (beforeMatch.match(/<h1/g) || []).length;
-    const h2Before = (beforeMatch.match(/<h2/g) || []).length;
-    const h3Before = (beforeMatch.match(/<h3/g) || []).length;
+  html = html.replace(h4Regex, (match, content, offset) => {
+    const h1Before = (html.substring(0, offset).match(/<h1/g) || []).length;
+    const h2Before = (html.substring(0, offset).match(/<h2/g) || []).length;
+    const h3Before = (html.substring(0, offset).match(/<h3/g) || []).length;
 
     const currentChapter = chapterInfo[h1Before - 1];
 
@@ -258,7 +267,6 @@ const addSectionNumbers = (html: string): string => {
     const h4Number = h4Counters[h4Key];
     const fullNumber = `${currentH1Index}.${h2Before}.${h3Before}.${h4Number}`;
 
-    // 检查是否已经有编号
     const hasNumber = /^\d+\.\d+\.\d+\.\d+/.test(content.trim());
 
     if (!hasNumber) {
