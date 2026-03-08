@@ -80,3 +80,38 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+/**
+ * 删除客户
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const db = getSupabaseClient();
+    const searchParams = request.nextUrl.searchParams;
+    const customerId = searchParams.get('id');
+
+    if (!customerId) {
+      return NextResponse.json(
+        { error: 'Customer ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await db
+      .from('customers')
+      .delete()
+      .eq('id', customerId);
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Failed to delete customer:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete customer' },
+      { status: 500 }
+    );
+  }
+}

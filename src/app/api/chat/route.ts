@@ -2520,6 +2520,32 @@ async function generateQuoteData(products: Product[]) {
   // 移除详细的产品列表输出，只输出产品名称
   Logger.info('[QuoteGen] 产品列表', products.map(p => p.name).join(', '));
 
+  // ✅ 自动获取商务信息（供应方、客户、商务条款）
+  let businessInfo: any = {
+    supplier: null,
+    customer: null,
+    terms: null
+  };
+
+  try {
+    // 调用商务信息API
+    const businessUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000'}/api/business-info?type=all`;
+    const businessResponse = await fetch(businessUrl);
+    if (businessResponse.ok) {
+      const businessData = await businessResponse.json();
+      if (businessData.success && businessData.data) {
+        businessInfo = businessData.data;
+        Logger.info('[QuoteGen] 商务信息获取成功', {
+          hasSupplier: !!businessInfo.supplier,
+          hasCustomer: !!businessInfo.customer,
+          hasTerms: !!businessInfo.terms
+        });
+      }
+    }
+  } catch (error) {
+    Logger.warn('[QuoteGen] 获取商务信息失败，使用默认信息', error);
+  }
+
 
   const matchedProducts = [];
   const matchResults = [];
@@ -2589,6 +2615,11 @@ async function generateQuoteData(products: Product[]) {
   console.log('[QuoteGen] 匹配统计:', matchStats);
   console.log('[QuoteGen] 小计:', subtotal, '总计:', totalAmount);
 
+  // ✅ 使用自动获取的商务信息，如果没有则使用默认值
+  const terms = businessInfo.terms || {};
+  const supplier = businessInfo.supplier || {};
+  const customer = businessInfo.customer || {};
+
   return {
     quoteNumber: `Q-${Date.now()}`,
     products: matchedProducts,
@@ -2596,11 +2627,34 @@ async function generateQuoteData(products: Product[]) {
     taxRate,
     taxAmount,
     totalAmount,
+    // ✅ 整合商务条款信息
     terms: {
-      payment: '预付30%，发货前付清',
-      warranty: '12个月',
-      delivery: '7个工作日',
-      validity: '15天'
+      payment: terms.paymentTerms || '预付30%，发货前付清',
+      warranty: terms.warrantyPeriod || '12个月',
+      delivery: terms.deliveryPeriod || '7个工作日',
+      validity: terms.validityPeriod || '15天',
+      remarks: terms.remarks || ''
+    },
+    // ✅ 添加供应方信息
+    supplierInfo: {
+      companyName: supplier.companyName || '环保设备有限公司',
+      contactPerson: supplier.contactPerson || '张经理',
+      phone: supplier.phone || '400-888-8888',
+      email: supplier.email || 'contact@example.com',
+      address: supplier.address || '上海市浦东新区张江高科技园区',
+      website: supplier.website || 'www.example.com',
+      bankName: supplier.bankName || '中国银行',
+      bankAccount: supplier.bankAccount || '1234567890123456',
+      taxId: supplier.taxId || '310115XXXXXXXXXXXX'
+    },
+    // ✅ 添加客户信息
+    customerInfo: {
+      companyName: customer.companyName || 'XX工程项目部',
+      projectName: customer.projectName || '污水处理设备采购项目',
+      contactPerson: customer.contactPerson || '李工',
+      phone: customer.phone || '13912345678',
+      email: customer.email || 'ligong@example.com',
+      address: customer.address || '江苏省苏州市工业园区'
     },
     matchStats
   };
