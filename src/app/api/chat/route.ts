@@ -2930,7 +2930,7 @@ class DetailedProposalGenerator {
    */
   private async generateEquipmentListWithDetails(products: Product[]): Promise<string> {
     let content = `## 四、配置清单及价格\n\n`;
-    content += `### 4.1 主要设备清单\n\n`;
+    content += `### 4.1 设备配置清单（完整版）\n\n`;
     content += `| 序号 | 设备名称 | 型号规格 | 数量 | 单价(元) | 总价(元) | 备注 |\n`;
     content += `|------|----------|----------|------|----------|----------|------|\n`;
     
@@ -2945,9 +2945,9 @@ class DetailedProposalGenerator {
     
     content += `\n**设备总价：${total.toFixed(2)} 元**\n\n`;
     
-    // 为每个设备生成详细描述
-    content += `### 4.2 主要设备技术说明\n\n`;
-    for (const product of products.slice(0, 5)) { // 只为前5个设备生成详细说明
+    // 为每个设备生成详细描述（包含所有设备）
+    content += `### 4.2 设备技术说明（完整版）\n\n`;
+    for (const product of products) { // 为所有设备生成详细说明
       content += await this.generateEquipmentDescription(product);
     }
     

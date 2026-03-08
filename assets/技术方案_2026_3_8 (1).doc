@@ -1,0 +1,303 @@
+﻿
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head>
+  <meta charset="utf-8">
+  <title>技术方案</title>
+  <style>
+    /* 页面设置 */
+    @page {
+      size: A4;
+      margin: 1.8cm 1.2cm;
+    }
+    
+    body {
+      font-family: "Microsoft YaHei", "SimSun", "Arial Unicode MS", Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #333333;
+      margin: 0;
+      padding: 0;
+    }
+    
+    /* 封面样式 */
+    .cover {
+      text-align: center;
+      padding: 60pt 0;
+      page-break-after: always;
+      background-color: #1e40af;
+      color: white;
+      min-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .cover-title {
+      font-size: 36pt;
+      font-weight: bold;
+      color: white;
+      margin-bottom: 20pt;
+      letter-spacing: 2pt;
+    }
+
+    .cover-subtitle {
+      font-size: 18pt;
+      color: white;
+      margin-bottom: 60pt;
+      font-weight: normal;
+      letter-spacing: 1pt;
+    }
+
+    .cover-info {
+      font-size: 12pt;
+      color: white;
+      margin-top: 40pt;
+      line-height: 2;
+    }
+
+    .cover-info p {
+      text-indent: 0;
+      margin: 12pt 0;
+      color: white;
+    }
+
+    .cover-logo {
+      font-size: 14pt;
+      font-weight: bold;
+      color: white;
+      margin-bottom: 10pt;
+    }
+    
+    /* 页眉 */
+    .header {
+      border-bottom: 3px solid #1e40af;
+      padding-bottom: 12pt;
+      margin-bottom: 20pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-title {
+      font-size: 12pt;
+      font-weight: bold;
+      color: #1e40af;
+    }
+
+    .header-date {
+      font-size: 10pt;
+      color: #666666;
+    }
+    
+    /* 标题样式 */
+    h1 {
+      font-size: 18pt;
+      font-weight: bold;
+      color: #1e40af;
+      margin-top: 24pt;
+      margin-bottom: 16pt;
+      padding-bottom: 6pt;
+      border-bottom: 3px solid #3b82f6;
+      text-align: center;
+      page-break-after: avoid;
+    }
+
+    h2 {
+      font-size: 14pt;
+      font-weight: bold;
+      color: #1e3a8a;
+      margin-top: 20pt;
+      margin-bottom: 12pt;
+      padding-left: 14px;
+      padding-right: 12px;
+      padding-top: 8pt;
+      padding-bottom: 8pt;
+      border-left: 5px solid #3b82f6;
+      background-color: #eff6ff;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 12pt;
+      font-weight: bold;
+      color: #334155;
+      margin-top: 16pt;
+      margin-bottom: 10pt;
+      padding-left: 12px;
+      border-left: 4px solid #60a5fa;
+      page-break-after: avoid;
+    }
+    
+    /* 段落样式 */
+    p {
+      margin-bottom: 10pt;
+      text-align: justify;
+      text-indent: 2em;
+      font-size: 11pt;
+      line-height: 1.7;
+      color: #333333;
+    }
+    
+    /* 表格样式 - Word优化版 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14pt 0;
+      border: 1px solid #1e40af;
+    }
+
+    th {
+      background-color: #2563eb;
+      color: white;
+      font-weight: bold;
+      padding: 8pt 6pt;
+      border: 1px solid #1e40af;
+      text-align: center;
+      font-size: 10pt;
+      line-height: 1.5;
+    }
+
+    td {
+      padding: 6pt 5pt;
+      border: 1px solid #cbd5e1;
+      text-align: center;
+      font-size: 10pt;
+      color: #333333;
+      vertical-align: middle;
+      line-height: 1.6;
+    }
+
+    /* 第一列（序号列）样式 */
+    td:first-child {
+      text-align: center;
+      font-weight: bold;
+      color: #1e40af;
+    }
+
+    /* 交替行背景 */
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    tr:nth-child(odd) {
+      background-color: white;
+    }
+
+    /* 表格中的换行处理 */
+    td br {
+      display: block;
+      margin: 3pt 0;
+    }
+    
+    /* 列表样式 */
+    ul, ol {
+      margin: 12pt 0;
+      padding-left: 32pt;
+    }
+
+    li {
+      margin-bottom: 6pt;
+      font-size: 11pt;
+      line-height: 1.7;
+      color: #333333;
+      text-indent: 0;
+    }
+
+    ul li {
+      list-style-type: disc;
+      color: #3b82f6;
+    }
+
+    ol li {
+      list-style-type: decimal;
+      color: #333333;
+    }
+    
+    /* 强调文本 */
+    strong {
+      color: #1e40af;
+      font-weight: bold;
+    }
+
+    /* 斜体文本 */
+    em {
+      color: #64748b;
+      font-style: italic;
+    }
+    
+    /* 分隔线 */
+    hr {
+      border: none;
+      border-top: 2px solid #cbd5e1;
+      margin: 18pt 0;
+    }
+    
+    /* 内容区域 */
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* 移除首行缩进的特殊情况 */
+    .cover p, ul, ol, td, th {
+      text-indent: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- 封面页 -->
+  <div class="cover">
+    <div class="cover-title">技术方案</div>
+    <div class="cover-subtitle">Technical Proposal</div>
+    <div class="cover-info">
+      <p>生成日期：2026年3月8日</p>
+      <p style="margin-top: 30pt;">智能报价管理系统</p>
+      <p style="margin-top: 20pt; font-size: 10pt;">Professional Solution</p>
+    </div>
+  </div>
+  
+  <!-- 正文 -->
+  <div class="content">
+    <!-- 页眉 -->
+    <div class="header">
+      <div class="header-title">技术方案</div>
+      <div class="header-date">2026年3月8日</div>
+    </div>
+    
+    <h1>垃圾转运站渗滤液处理项目技术方案  </h1><strong>项目编号：</strong> LFL-10T-2024  
+<strong>客户需求：</strong> 日处理10吨垃圾转运站渗滤液  
+<strong>方案版本：</strong> V1.0  
+<strong>编制日期：</strong> 2024年  
+<p>---</p><h2>一、项目概述  </h2>
+本项目针对垃圾转运站产生的渗滤液，设计处理规模为 <strong>10 m³/d</strong>，采用“预处理+生化处理+深度处理”组合工艺，确保出水稳定达到《生活垃圾填埋场污染控制标准》（GB 16889-2008）表2标准或地方排放要求。  
+<p>---</p><h2>二、设计依据与标准  </h2><table><thead><tr><th>序号</th><th>依据名称</th><th>标准号/文号</th></tr></thead><tbody><tr><td>1</td><td>《生活垃圾填埋场污染控制标准》</td><td>GB 16889-2008</td></tr><tr><td>2</td><td>《室外排水设计标准》</td><td>GB 50014-2021</td></tr><tr><td>3</td><td>《给水排水工程构筑物结构设计规范》</td><td>GB 50069-2002</td></tr><tr><td>4</td><td>《恶臭污染物排放标准》</td><td>GB 14554-1993</td></tr><tr><td>5</td><td>《环境空气质量标准》</td><td>GB 3095-2012</td></tr><tr><td>6</td><td>地方环保部门排放要求</td><td>/</td></tr></tbody></table>
+---
+<h2>三、进出水水质与排放要求  </h2><table><thead><tr><th>指标</th><th>进水水质（典型值）</th><th>设计出水水质</th><th>去除率要求</th></tr></thead><tbody><tr><td>CODₐₑ (mg/L)</td><td>8000-15000</td><td>≤100</td><td>≥99%</td></tr><tr><td>BOD₅ (mg/L)</td><td>4000-8000</td><td>≤30</td><td>≥99.5%</td></tr><tr><td>NH₃-N (mg/L)</td><td>1000-2000</td><td>≤25</td><td>≥98%</td></tr><tr><td>TN (mg/L)</td><td>1500-2500</td><td>≤40</td><td>≥98%</td></tr><tr><td>SS (mg/L)</td><td>500-1000</td><td>≤30</td><td>≥95%</td></tr><tr><td>pH</td><td>5.5-8.5</td><td>6-9</td><td>-</td></tr></tbody></table>
+><strong>备注：</strong> 实际进水水质需以实测为准，本方案按最不利条件设计。
+<p>---</p><h2>四、工艺比选与确定  </h2><table><thead><tr><th>工艺路线</th><th>优点</th><th>缺点</th><th>适用性</th></tr></thead><tbody><tr><td><strong>A/O+MBR+NF</strong></td><td>脱氮效果好、污泥浓度高、出水稳定</td><td>投资较高、膜需定期清洗</td><td>★★★★☆ 推荐</td></tr><tr><td><strong>两级A/O+混凝沉淀</strong></td><td>投资较低、运行简单</td><td>占地面积大、出水稳定性一般</td><td>★★★☆☆</td></tr><tr><td><strong>UASB+A/O+高级氧化</strong></td><td>高COD去除、产沼气可利用</td><td>启动慢、操作复杂</td><td>★★☆☆☆</td></tr></tbody></table><strong>最终选定工艺：</strong><strong>“调节池 + 混凝气浮 + A/O-MBR + 纳滤(NF) + 消毒”</strong>  
+> 理由：适应水质波动强、占地紧凑、自动化程度高、出水可达回用标准。
+<p>---</p><h2>五、工艺流程与说明  </h2>
+```mermaid
+graph TD
+    A[渗滤液收集] --> B[调节池<br/>均质均量]
+    B --> C[混凝气浮系统<br/>去除SS/油脂]
+    C --> D[A/O-MBR系统<br/>生化降解+泥水分离]
+    D --> E[纳滤系统<br/>深度脱盐/COD]
+    E --> F[消毒池<br/>次氯酸钠]
+    F --> G[达标排放/回用]
+    D --> H[污泥池]
+    H --> I[板框压滤机]
+    I --> J[泥饼外运]
+```
+<p>---</p><h2>六、占地面积与布局  </h2><table><thead><tr><th>单元</th><th>尺寸（长×宽×高）</th><th>数量</th><th>备注</th></tr></thead><tbody><tr><td>调节池</td><td>4.0m×3.0m×3.5m</td><td>1座</td><td>地下钢砼</td></tr><tr><td>设备间</td><td>6.0m×4.0m×3.5m</td><td>1间</td><td>彩钢保温</td></tr><tr><td>MBR膜组</td><td>2.5m×1.5m×2.2m</td><td>1套</td><td>室内安装</td></tr><tr><td>NF系统</td><td>2.0m×1.2m×2.0m</td><td>1套</td><td>集成撬装</td></tr><tr><td>污泥脱水区</td><td>3.0m×2.0m</td><td>1区</td><td>含压滤机</td></tr><tr><td><strong>总占地面积</strong></td><td><strong>约50 m²</strong></td><td></td><td>含操作通道</td></tr></tbody></table>
+---
+<h2>七、运行成本分析（按满负荷计）  </h2><table><thead><tr><th>项目</th><th>单价</th><th>日耗量</th><th>日成本（元）</th><th>年成本（万元）</th></tr></thead><tbody><tr><td>电费</td><td>0.8元/kWh</td><td>120 kWh</td><td>96</td><td>3.5</td></tr><tr><td>药剂费</td><td>-</td><td>-</td><td>85</td><td>3.1</td></tr><tr><td>膜清洗/更换</td><td>-</td><td>-</td><td>40</td><td>1.5</td></tr><tr><td>人工费</td><td>150元/人·天</td><td>0.5人</td><td>75</td><td>2.7</td></tr><tr><td>维修保养</td><td>-</td><td>-</td><td>30</td><td>1.1</td></tr><tr><td><strong>合计</strong></td><td>-</td><td>-</td><td><strong>326元/天</strong></td><td><strong>11.9万元/年</strong></td></tr><tr><td><strong>吨水运行成本</strong></td><td><strong>32.6元/吨</strong></td><td></td><td></td><td></td></tr></tbody></table>
+> 注：未包含污泥处置费；实际成本随水质、电价、人工浮动。
+<p>---</p><h2>八、详细配置清单与报价  </h2><h3>8.1 设备清单（共112项，节选关键设备）</h3><table><thead><tr><th>序号</th><th>设备名称</th><th>规格型号</th><th>单位</th><th>数量</th><th>单价（万元）</th><th>总价（万元）</th><th>品牌/备注</th></tr></thead><tbody><tr><td>1</td><td>调节池提升泵</td><td>Q=1.5m³/h, H=15m</td><td>台</td><td>2</td><td>0.45</td><td>0.9</td><td>南方泵业</td></tr><tr><td>2</td><td>混凝气浮机</td><td>处理量0.5m³/h</td><td>套</td><td>1</td><td>6.8</td><td>6.8</td><td>江苏一环</td></tr><tr><td>3</td><td>A/O-MBR一体化设备</td><td>10m³/d, 含风机/膜组</td><td>套</td><td>1</td><td>24.5</td><td>24.5</td><td>碧水源膜</td></tr><tr><td>4</td><td>纳滤系统</td><td>膜面积40m², 集成撬装</td><td>套</td><td>1</td><td>9.6</td><td>9.6</td><td>时代沃顿</td></tr><tr><td>5</td><td>加药装置</td><td>PE桶+计量泵</td><td>套</td><td>4</td><td>1.2</td><td>4.8</td><td>力高</td></tr><tr><td>6</td><td>板框压滤机</td><td>过滤面积20m²</td><td>台</td><td>1</td><td>3.8</td><td>3.8</td><td>景津</td></tr><tr><td>7</td><td>PLC自动控制系统</td><td>西门子S7-1200</td><td>套</td><td>1</td><td>5.5</td><td>5.5</td><td>西门子</td></tr><tr><td>8</td><td>在线监测仪</td><td>COD/氨氮/pH</td><td>套</td><td>1</td><td>8.2</td><td>8.2</td><td>哈希</td></tr><tr><td>9</td><td>管道阀门管件</td><td>UPVC/304不锈钢</td><td>批</td><td>1</td><td>3.5</td><td>3.5</td><td>环琪/新正丰</td></tr><tr><td>10</td><td>安装辅材与电缆</td><td>国标铜芯</td><td>批</td><td>1</td><td>2.8</td><td>2.8</td><td>远东电缆</td></tr><tr><td><strong>小计</strong></td><td><strong>设备投资</strong></td><td></td><td></td><td></td><td></td><td><strong>71.4万元</strong></td><td></td></tr></tbody></table><h3>8.2 土建与其它费用  </h3><table><thead><tr><th>项目</th><th>内容</th><th>费用（万元）</th></tr></thead><tbody><tr><td>土建施工</td><td>调节池、设备基础、管线沟</td><td>9.6</td></tr><tr><td>设备安装调试</td><td>安装、管道连接、调试</td><td>5.2</td></tr><tr><td>设计、运输、税金</td><td>总费用的8%</td><td>6.9</td></tr><tr><td><strong>小计</strong></td><td></td><td><strong>21.7万元</strong></td></tr></tbody></table><h3>8.3 总投资汇总  </h3><table><thead><tr><th>项目</th><th>金额（万元）</th><th>占比</th></tr></thead><tbody><tr><td>设备购置费</td><td>71.4</td><td>76.7%</td></tr><tr><td>土建与安装费</td><td>21.7</td><td>23.3%</td></tr><tr><td><strong>总投资（含税）</strong></td><td><strong>93.1万元</strong></td><td>100%</td></tr></tbody></table>
+><strong>报价有效期：</strong> 30天  
+><strong>付款方式：</strong> 合同签订付30%，发货付50%，调试合格付15%，质保金5%一年后付清。
+<p>---</p><h2>九、实施步骤  </h2><ul><li><strong>前期准备（5天）</strong>：现场勘测、图纸深化、设备采购。  </li><li><strong>土建施工（10天）</strong>：调节池浇筑、设备基础制作。  </li><li><strong>设备安装（7天）</strong>：设备就位、管道连接、电气接线。  </li></ul>4
+  </div>
+</body>
+</html>

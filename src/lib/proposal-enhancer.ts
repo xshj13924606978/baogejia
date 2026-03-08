@@ -365,10 +365,10 @@ export class ProposalEnhancer {
 进水水质：${JSON.stringify(context.influentQuality, null, 2)}
 出水标准：${JSON.stringify(context.effluentStandards, null, 2)}
 
-原始方案摘要（前500字）：
-${proposal.substring(0, 500)}
+原始方案：
+${proposal}
 
-请生成详细的技术参数（至少20个参数）。`;
+请生成详细的技术参数（至少20个参数，涵盖进水、工艺、出水、设备等各类参数）。`;
 
       const response = await callDeepSeekChat({
         messages: [
@@ -443,10 +443,10 @@ ${proposal.substring(0, 500)}
 处理规模：${context.capacity} 吨/天
 工艺类型：${context.processType || '智能推荐'}
 
-原始方案摘要（前500字）：
-${proposal.substring(0, 500)}
+原始方案：
+${proposal}
 
-请生成详细的工艺流程（至少5个工艺单元，包含预处理、生化处理、深度处理等）。`;
+请生成详细的工艺流程（至少5个工艺单元，包含预处理、生化处理、深度处理等全流程）。`;
 
       const response = await callDeepSeekChat({
         messages: [
@@ -487,7 +487,7 @@ ${proposal.substring(0, 500)}
         return [];
       }
 
-      const systemPrompt = `你是一个污水处理设备配置专家。根据项目上下文和原始方案，生成详细的设备配置清单。
+      const systemPrompt = `你是一个污水处理设备配置专家。根据项目上下文和原始方案，生成完整的设备配置清单。
 
 ## 输出格式（JSON）：
 [
@@ -505,11 +505,18 @@ ${proposal.substring(0, 500)}
 ]
 
 设备类别参考：
-- 预处理：格栅、调节池、沉砂池等
-- 生化：曝气系统、沉淀池、反应池等
-- 深度处理：过滤、消毒、膜处理等
-- 控制：PLC、仪表、阀门等
-- 辅助：泵、风机、加药设备等
+- 预处理：格栅、调节池、沉砂池、筛网等
+- 生化：曝气系统、沉淀池、反应池、膜生物反应器等
+- 深度处理：过滤、消毒、膜处理、活性炭吸附等
+- 控制：PLC、仪表、阀门、传感器等
+- 辅助：泵、风机、加药设备、管道、支架等
+
+**重要要求**：
+1. 必须生成完整的设备清单，包括所有主项和分项设备
+2. 严禁节选或省略设备，必须全面覆盖整个工艺流程
+3. 每个类别都要完整列出所有设备，包括小配件
+4. 设备数量要充足，根据项目规模合理配置
+5. 设备清单要清晰明了，让人一目了然
 
 请只输出 JSON，不要包含其他说明文字。`;
 
@@ -518,10 +525,18 @@ ${proposal.substring(0, 500)}
 工艺类型：${context.processType || '智能推荐'}
 预算：${context.budget ? context.budget + ' 万元' : '未指定'}
 
-原始方案摘要（前500字）：
-${proposal.substring(0, 500)}
+原始方案：
+${proposal}
 
-请生成详细的设备配置清单（至少20项设备，覆盖全流程）。`;
+请生成完整的设备配置清单，包括所有主项和分项设备，确保覆盖整个工艺流程。要求：
+1. 设备要完整、详细，包括预处理、生化处理、深度处理、控制系统、辅助设备等所有环节
+2. 每个设备都要有明确的型号、规格参数、数量、功率
+3. 按类别分组展示，让人一目了然
+4. **设备清单要全面完整，绝对不能有遗漏，绝对不能节选**
+5. **必须包含所有设备，包括大型设备、小型设备、配件、管道、阀门、仪表等**
+6. 根据项目规模，至少包含100项以上的设备（主项+分项）
+7. 每个类别下的设备都要完整列出，不能省略
+8. 这是商务沟通的核心内容，必须完整、准确、清晰`;
 
       const response = await callDeepSeekChat({
         messages: [
@@ -529,7 +544,7 @@ ${proposal.substring(0, 500)}
           { role: 'user', content: userPrompt },
         ],
         temperature: 0.6,
-        maxTokens: 3072,
+        maxTokens: 16384,
       });
 
       const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/) ||
@@ -836,10 +851,10 @@ ${proposal.substring(0, 500)}
 工艺类型：${context.processType || 'A/O工艺'}
 预算：${context.budget ? context.budget + ' 万元' : '未指定'}
 
-原始方案摘要（前300字）：
-${proposal.substring(0, 300)}
+原始方案：
+${proposal}
 
-请生成优化建议（至少3条，涵盖不同类别）。`;
+请生成优化建议（至少3条，涵盖不同类别，包括技术、经济、运营等方面的优化）。`;
 
       const response = await callDeepSeekChat({
         messages: [
