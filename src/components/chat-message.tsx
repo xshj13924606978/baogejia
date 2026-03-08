@@ -674,7 +674,44 @@ const SimpleMarkdown = ({ content }: { content: string }) => {
   if (!content) return null;
 
   // 使用 markdown-it 渲染 Markdown 内容
-  const html = md.render(content);
+  let html = md.render(content);
+
+  // 后处理：增强章节分隔和视觉层次
+  // 1. 为一级标题添加底部边距和分隔线
+  html = html.replace(
+    /<h1([^>]*)>([\s\S]*?)<\/h1>/g,
+    '<h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mb-6 pb-4 border-b-2 border-border"$1>$2</h1>'
+  );
+
+  // 2. 为二级标题添加左边框和背景色
+  html = html.replace(
+    /<h2([^>]*)>([\s\S]*?)<\/h2>/g,
+    '<h2 class="scroll-m-20 border-l-4 border-primary pl-4 py-2 my-6 bg-muted/50 text-2xl font-semibold tracking-tight"$1>$2</h2>'
+  );
+
+  // 3. 为三级标题添加左边框（颜色递变）和左缩进
+  html = html.replace(
+    /<h3([^>]*)>([\s\S]*?)<\/h3>/g,
+    '<h3 class="scroll-m-20 border-l-2 border-primary/60 pl-8 py-2 my-4 text-xl font-semibold tracking-tight text-slate-700"$1>$2</h3>'
+  );
+
+  // 4. 为四级标题添加左边框（颜色递变）和左缩进
+  html = html.replace(
+    /<h4([^>]*)>([\s\S]*?)<\/h4>/g,
+    '<h4 class="scroll-m-20 border-l-2 border-primary/40 pl-12 py-2 my-4 text-lg font-semibold tracking-tight text-slate-600"$1>$2</h4>'
+  );
+
+  // 5. 为段落添加适当间距
+  html = html.replace(
+    /<p([^>]*)>/g,
+    '<p class="leading-7 my-4"$1>'
+  );
+
+  // 6. 为列表项添加适当间距
+  html = html.replace(
+    /<li([^>]*)>/g,
+    '<li class="my-2"$1>'
+  );
 
   // 检查是否包含 mermaid 代码块
   const hasMermaid = /```mermaid\n([\s\S]*?)\n```/.test(content);
@@ -685,13 +722,41 @@ const SimpleMarkdown = ({ content }: { content: string }) => {
     if (mermaidMatch) {
       const mermaidCode = mermaidMatch[1];
       const contentWithoutMermaid = content.replace(/```mermaid\n[\s\S]*?\n```/, '');
+      const htmlWithoutMermaid = md.render(contentWithoutMermaid);
+
+      // 应用同样的后处理
+      let processedHtml = htmlWithoutMermaid;
+      processedHtml = processedHtml.replace(
+        /<h1([^>]*)>([\s\S]*?)<\/h1>/g,
+        '<h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mb-6 pb-4 border-b-2 border-border"$1>$2</h1>'
+      );
+      processedHtml = processedHtml.replace(
+        /<h2([^>]*)>([\s\S]*?)<\/h2>/g,
+        '<h2 class="scroll-m-20 border-l-4 border-primary pl-4 py-2 my-6 bg-muted/50 text-2xl font-semibold tracking-tight"$1>$2</h2>'
+      );
+      processedHtml = processedHtml.replace(
+        /<h3([^>]*)>([\s\S]*?)<\/h3>/g,
+        '<h3 class="scroll-m-20 border-l-2 border-primary/60 pl-8 py-2 my-4 text-xl font-semibold tracking-tight text-slate-700"$1>$2</h3>'
+      );
+      processedHtml = processedHtml.replace(
+        /<h4([^>]*)>([\s\S]*?)<\/h4>/g,
+        '<h4 class="scroll-m-20 border-l-2 border-primary/40 pl-12 py-2 my-4 text-lg font-semibold tracking-tight text-slate-600"$1>$2</h4>'
+      );
+      processedHtml = processedHtml.replace(
+        /<p([^>]*)>/g,
+        '<p class="leading-7 my-4"$1>'
+      );
+      processedHtml = processedHtml.replace(
+        /<li([^>]*)>/g,
+        '<li class="my-2"$1>'
+      );
 
       return (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <MermaidDiagram code={mermaidCode} />
-          <div 
+          <div
             className="prose prose-slate max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-table:w-full"
-            dangerouslySetInnerHTML={{ __html: md.render(contentWithoutMermaid) }}
+            dangerouslySetInnerHTML={{ __html: processedHtml }}
           />
         </div>
       );
@@ -699,7 +764,7 @@ const SimpleMarkdown = ({ content }: { content: string }) => {
   }
 
   return (
-    <div 
+    <div
       className="prose prose-slate max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-table:w-full"
       dangerouslySetInnerHTML={{ __html: html }}
     />

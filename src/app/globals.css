@@ -579,6 +579,76 @@
     break-before: page !important;
     margin-top: 0 !important;
   }
+
+  /* Markdown表格样式 - 增强表格显示效果 */
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .prose thead {
+    background-color: var(--muted);
+    border-bottom: 2px solid var(--border);
+  }
+
+  .prose th {
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--foreground);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prose tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.2s;
+  }
+
+  .prose tbody tr:hover {
+    background-color: var(--muted);
+  }
+
+  .prose tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .prose td {
+    padding: 12px 8px;
+    color: var(--muted-foreground);
+    vertical-align: middle;
+    word-break: break-word;
+  }
+
+  /* Markdown表格居中对齐 */
+  .prose th.text-center,
+  .prose td.text-center {
+    text-align: center;
+  }
+
+  .prose th.text-right,
+  .prose td.text-right {
+    text-align: right;
+  }
+
+  /* 表格行高优化 */
+  .prose tr {
+    min-height: 40px;
+  }
+
+  /* 小屏幕适配 */
+  @media (max-width: 768px) {
+    .prose table {
+      font-size: 13px;
+    }
+
+    .prose th,
+    .prose td {
+      padding: 8px 6px;
+    }
+  }
 }
 
 body {
