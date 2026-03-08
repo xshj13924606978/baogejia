@@ -69,6 +69,9 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 
+// 业务组件导入
+import CustomerPanel from '@/components/user/customer-panel';
+
 // 图标导入
 import {
   FileText,
@@ -859,6 +862,7 @@ export default function QuoteTable({
   const [showFeeConfig, setShowFeeConfig] = useState(false);
   const [showColumnConfig, setShowColumnConfig] = useState(false);
   const [showProjectConfig, setShowProjectConfig] = useState(false);
+  const [showCustomerPanel, setShowCustomerPanel] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [fillPricesLoading, setFillPricesLoading] = useState(false);
   const [marketPriceStats, setMarketPriceStats] = useState<{
@@ -2062,18 +2066,29 @@ export default function QuoteTable({
             <Building2 className="h-4 w-4" />
             项目概况
           </h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setTempProjectFields(projectFields);
-              setShowProjectConfig(true);
-            }}
-            className="h-8 text-xs"
-          >
-            <Settings className="h-3.5 w-3.5 mr-1" />
-            自定义字段
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCustomerPanel(true)}
+              className="h-8 text-xs"
+            >
+              <Users className="h-3.5 w-3.5 mr-1" />
+              管理客户
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setTempProjectFields(projectFields);
+                setShowProjectConfig(true);
+              }}
+              className="h-8 text-xs"
+            >
+              <Settings className="h-3.5 w-3.5 mr-1" />
+              自定义字段
+            </Button>
+          </div>
         </div>
         <div className="grid grid-cols-4 gap-4">
           {/* 客户名称 */}
@@ -2970,6 +2985,24 @@ export default function QuoteTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 客户资料管理弹窗 */}
+      {showCustomerPanel && (
+        <Dialog open={showCustomerPanel} onOpenChange={setShowCustomerPanel}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-green-500" />
+                客户资料管理
+              </DialogTitle>
+              <DialogDescription>
+                选择已有客户或添加新客户
+              </DialogDescription>
+            </DialogHeader>
+            <CustomerPanel />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
