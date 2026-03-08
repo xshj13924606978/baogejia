@@ -86,7 +86,7 @@ interface ChatMessageProps {
 }
 
 // ============================================================================
-// 自动添加章节编号工具函数
+// 自动添加章节编号工具函数（优化版）
 // ============================================================================
 
 const addSectionNumbers = (html: string): string => {
@@ -96,47 +96,50 @@ const addSectionNumbers = (html: string): string => {
   const h3Regex = /<h3[^>]*>([\s\S]*?)<\/h3>/g;
   const h4Regex = /<h4[^>]*>([\s\S]*?)<\/h4>/g;
 
-  // 第一步：识别并标记文档标题
+  // 第一步：识别所有H1，确定哪些是文档标题，哪些是一级章节
   const h1Matches = Array.from(html.matchAll(h1Regex));
-  const docTitleIndices: number[] = []; // 存储文档标题的索引
+  const chapterInfo: { index: number; isDocTitle: boolean; isChapter: boolean; chapterNum: number }[] = [];
 
+  let chapterCount = 0;
   h1Matches.forEach((match, index) => {
     const content = match[1].trim();
-    // 判断是否是文档标题（第一个H1或包含文档标题关键词）
-    const isDocTitle = index === 0 ||
-                        /方案|报价单|技术方案|设计书|报告书|说明书/.test(content);
-    if (isDocTitle) {
-      docTitleIndices.push(index);
+    // 判断是否是文档标题
+    const isDocTitle = index === 0 || /方案|报价单|技术方案|设计书|报告书|说明书/.test(content);
+    const isChapter = !isDocTitle;
+
+    if (isChapter) {
+      chapterCount++;
     }
+
+    chapterInfo.push({
+      index,
+      isDocTitle,
+      isChapter,
+      chapterNum: isChapter ? chapterCount : 0
+    });
   });
 
   // 第二步：处理H1标题
   const h1Counters = { count: 0 };
   const chineseNumbers = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五'];
 
-  html = html.replace(h1Regex, (match, content, offset, string) => {
+  html = html.replace(h1Regex, (match, content) => {
     h1Counters.count++;
-
-    // 判断当前H1是否是文档标题
-    const isDocTitle = docTitleIndices.includes(h1Counters.count - 1);
+    const info = chapterInfo[h1Counters.count - 1];
 
     // 如果是文档标题，不添加编号
-    if (isDocTitle) {
+    if (info.isDocTitle) {
       return match;
     }
 
-    // 否则添加章节编号
-    // 计算实际的一级章节编号（跳过文档标题）
-    const actualIndex = h1Counters.count - docTitleIndices.length;
-    const number = chineseNumbers[actualIndex - 1] || actualIndex;
+    // 如果是一级章节，添加编号
+    const number = chineseNumbers[info.chapterNum - 1] || info.chapterNum;
 
-    // 检查是否已经有中文编号（如"一、"）
+    // 检查是否已经有编号
     const hasChineseNumber = /^[一二三四五六七八九十]+[、\.]/.test(content.trim());
-    // 检查是否已经有数字编号（如"1、"）
     const hasNumberNumber = /^\d+[、\.]/.test(content.trim());
 
     if (!hasChineseNumber && !hasNumberNumber) {
-      // 提取原始属性
       const attrMatch = match.match(/<h1([^>]*)>/);
       const attrs = attrMatch ? attrMatch[1] : '';
       return `<h1${attrs}>${number}、${content}</h1>`;
@@ -148,21 +151,20 @@ const addSectionNumbers = (html: string): string => {
   const h2Counters: { [key: number]: number } = {};
 
   html = html.replace(h2Regex, (match, content) => {
-    // 检查这个h2之前有几个h1
+    // 找到这个H2之前最近的一个一级章节
     const beforeMatch = html.substring(0, html.indexOf(match));
     const h1Before = (beforeMatch.match(/<h1/g) || []).length;
 
-    // 计算实际的一级章节编号
-    // 统计h1Before之前有多少个文档标题
-    let docTitleCountBefore = 0;
-    docTitleIndices.forEach(titleIndex => {
-      if (titleIndex < h1Before - 1) {
-        docTitleCountBefore++;
-      }
-    });
+    // 找到第h1Before个H1的chapterNum
+    const currentChapter = chapterInfo[h1Before - 1];
 
-    // 计算实际的一级章节编号（从1开始）
-    const currentH1Index = h1Before - docTitleCountBefore;
+    // 如果H2之前没有一级章节（只有文档标题），跳过处理
+    if (!currentChapter || !currentChapter.isChapter) {
+      // 这种H2直接属于文档标题，不添加编号或添加特殊编号
+      return match;
+    }
+
+    const currentH1Index = currentChapter.chapterNum;
 
     if (!h2Counters[currentH1Index]) {
       h2Counters[currentH1Index] = 0;
@@ -172,7 +174,7 @@ const addSectionNumbers = (html: string): string => {
     const h2Number = h2Counters[currentH1Index];
     const fullNumber = `${currentH1Index}.${h2Number}`;
 
-    // 检查是否已经有编号（如"1.1"）
+    // 检查是否已经有编号
     const hasNumber = /^\d+\.\d+/.test(content.trim());
 
     if (!hasNumber) {
@@ -187,21 +189,21 @@ const addSectionNumbers = (html: string): string => {
   const h3Counters: { [key: string]: number } = {};
 
   html = html.replace(h3Regex, (match, content) => {
-    // 确定这个h3属于哪个h2
+    // 找到这个H3之前最近的一个H2，确定它属于哪个章节
     const beforeMatch = html.substring(0, html.indexOf(match));
     const h1Before = (beforeMatch.match(/<h1/g) || []).length;
     const h2Before = (beforeMatch.match(/<h2/g) || []).length;
 
-    // 计算实际的一级章节编号
-    let docTitleCountBefore = 0;
-    docTitleIndices.forEach(titleIndex => {
-      if (titleIndex < h1Before - 1) {
-        docTitleCountBefore++;
-      }
-    });
-    const currentH1Index = h1Before - docTitleCountBefore;
+    const currentChapter = chapterInfo[h1Before - 1];
 
+    // 如果H3之前没有一级章节，跳过
+    if (!currentChapter || !currentChapter.isChapter) {
+      return match;
+    }
+
+    const currentH1Index = currentChapter.chapterNum;
     const h3Key = `${currentH1Index}-${h2Before}`;
+
     if (!h3Counters[h3Key]) {
       h3Counters[h3Key] = 0;
     }
@@ -210,7 +212,7 @@ const addSectionNumbers = (html: string): string => {
     const h3Number = h3Counters[h3Key];
     const fullNumber = `${currentH1Index}.${h2Before}.${h3Number}`;
 
-    // 检查是否已经有编号（如"1.1.1"）
+    // 检查是否已经有编号
     const hasNumber = /^\d+\.\d+\.\d+/.test(content.trim());
 
     if (!hasNumber) {
@@ -225,22 +227,20 @@ const addSectionNumbers = (html: string): string => {
   const h4Counters: { [key: string]: number } = {};
 
   html = html.replace(h4Regex, (match, content) => {
-    // 确定这个h4属于哪个h3
     const beforeMatch = html.substring(0, html.indexOf(match));
     const h1Before = (beforeMatch.match(/<h1/g) || []).length;
     const h2Before = (beforeMatch.match(/<h2/g) || []).length;
     const h3Before = (beforeMatch.match(/<h3/g) || []).length;
 
-    // 计算实际的一级章节编号
-    let docTitleCountBefore = 0;
-    docTitleIndices.forEach(titleIndex => {
-      if (titleIndex < h1Before - 1) {
-        docTitleCountBefore++;
-      }
-    });
-    const currentH1Index = h1Before - docTitleCountBefore;
+    const currentChapter = chapterInfo[h1Before - 1];
 
+    if (!currentChapter || !currentChapter.isChapter) {
+      return match;
+    }
+
+    const currentH1Index = currentChapter.chapterNum;
     const h4Key = `${currentH1Index}-${h2Before}-${h3Before}`;
+
     if (!h4Counters[h4Key]) {
       h4Counters[h4Key] = 0;
     }
@@ -249,7 +249,7 @@ const addSectionNumbers = (html: string): string => {
     const h4Number = h4Counters[h4Key];
     const fullNumber = `${currentH1Index}.${h2Before}.${h3Before}.${h4Number}`;
 
-    // 检查是否已经有编号（如"1.1.1.1"）
+    // 检查是否已经有编号
     const hasNumber = /^\d+\.\d+\.\d+\.\d+/.test(content.trim());
 
     if (!hasNumber) {
