@@ -1016,6 +1016,15 @@ export default function ChatMessage({
       break-before: page;
     }
     
+    /* 确保页眉不在封面页显示 */
+    .content > .header {
+      display: block;
+    }
+    
+    .cover + .page-break + .content > .header {
+      display: block;
+    }
+    
     /* 页眉 - 简洁 */
     .header {
       border-bottom: 2px solid #1e40af;
@@ -1037,7 +1046,7 @@ export default function ChatMessage({
       color: #64748b;
     }
     
-    /* 标题样式 - 简洁商务 */
+    /* 标题样式 - 多级编号商务风格 */
     h1 {
       font-size: 18pt;
       font-weight: 700;
@@ -1053,25 +1062,37 @@ export default function ChatMessage({
     h2 {
       font-size: 15pt;
       font-weight: 700;
-      color: #1e40af;
-      margin-top: 18pt;
+      color: #000000;
+      margin-top: 20pt;
       margin-bottom: 12pt;
       padding-top: 6pt;
       padding-bottom: 6pt;
       padding-left: 12pt;
-      border-left: 4px solid #3b82f6;
-      background: linear-gradient(to right, #eff6ff 0%, #ffffff 100%);
+      border-left: 4px solid #1e40af;
+      background: #f0f9ff;
       page-break-after: avoid;
     }
 
     h3 {
       font-size: 13pt;
       font-weight: 600;
-      color: #334155;
+      color: #333333;
       margin-top: 16pt;
       margin-bottom: 10pt;
-      padding-left: 10pt;
+      padding-left: 16pt;
       border-left: 3px solid #60a5fa;
+      background: #f8fafc;
+      page-break-after: avoid;
+    }
+
+    h4 {
+      font-size: 12pt;
+      font-weight: 600;
+      color: #333333;
+      margin-top: 14pt;
+      margin-bottom: 8pt;
+      padding-left: 20pt;
+      border-left: 2px solid #93c5fd;
       page-break-after: avoid;
     }
     
@@ -1462,7 +1483,7 @@ export default function ChatMessage({
       color: #64748b;
     }
     
-    /* 标题样式 */
+    /* 标题样式 - 多级编号商务风格 */
     h1 {
       font-size: 28px;
       font-weight: 700;
@@ -1470,33 +1491,46 @@ export default function ChatMessage({
       margin-top: 32px;
       margin-bottom: 20px;
       padding-bottom: 8px;
-      border-bottom: 3px solid #3b82f6;
+      border-bottom: 3px solid #1e40af;
       text-align: center;
     }
 
     h2 {
       font-size: 20px;
-      font-weight: 600;
-      color: #1e3a8a;
+      font-weight: 700;
+      color: #000000;
       margin-top: 28px;
       margin-bottom: 14px;
       padding-left: 18px;
       padding-right: 15px;
       padding-top: 12px;
       padding-bottom: 12px;
-      border-left: 5px solid #3b82f6;
-      background: linear-gradient(to right, #eff6ff 0%, #ffffff 100%);
+      border-left: 5px solid #1e40af;
+      background: #f0f9ff;
       border-radius: 0 6px 6px 0;
     }
 
     h3 {
       font-size: 17px;
       font-weight: 600;
-      color: #334155;
+      color: #333333;
       margin-top: 20px;
       margin-bottom: 12px;
-      padding-left: 14px;
+      padding-left: 22px;
       border-left: 4px solid #60a5fa;
+      background: #f8fafc;
+      line-height: 1.6;
+    }
+
+    h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333333;
+      margin-top: 18px;
+      margin-bottom: 10px;
+      padding-left: 26px;
+      border-left: 3px solid #93c5fd;
+      background: #f0f9ff;
       line-height: 1.6;
     }
     
