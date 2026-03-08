@@ -28,6 +28,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import MarkdownIt from 'markdown-it';
+const md = new MarkdownIt({ html: true, breaks: true });
 
 interface Message {
   id: number;
@@ -549,69 +551,19 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
 };
 
 // ============================================================================
-// 简单的Markdown渲染组件（增强版）
+// 简单的Markdown渲染组件（增强版 - 使用 markdown-it）
 // ============================================================================
 
 const SimpleMarkdown = ({ content }: { content: string }) => {
   if (!content) return null;
-  
-  // 解析Markdown并转换为简单的HTML
-  const parseMarkdown = (text: string) => {
-    let html = text;
-    
-    // 处理标题（## 标题）
-    html = html.replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold mt-6 mb-3 text-slate-800">$1</h2>');
-    
-    // 处理子标题（### 标题）
-    html = html.replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-slate-700">$1</h3>');
-    
-    // 处理粗体（**文本**）
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>');
-    
-    // 处理斜体（*文本*）
-    html = html.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>');
-    
-    // 处理表格（| 列1 | 列2 |）
-    const tableRegex = /\|(.+)\|\n\|[-|\s]+\|\n((?:\|.+\|\n?)+)/g;
-    html = html.replace(tableRegex, (match, headerRow, bodyRows) => {
-      // 处理表头
-      const headers = headerRow.split('|').filter(h => h.trim());
-      const headerHtml = headers.map(h => `<th class="px-4 py-2 bg-slate-100 text-left font-semibold border border-slate-200">${h.trim()}</th>`).join('');
-      
-      // 处理表体
-      const rows = bodyRows.trim().split('\n');
-      const bodyHtml = rows.map(row => {
-        const cells = row.split('|').filter(c => c.trim());
-        return `<tr>${cells.map(c => `<td class="px-4 py-2 border border-slate-200">${c.trim()}</td>`).join('')}</tr>`;
-      }).join('');
-      
-      return `<table class="w-full border-collapse my-4"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
-    });
-    
-    // 处理列表项（- 项目）
-    html = html.replace(/^- (.+)$/gm, '<li class="ml-6 list-disc">$1</li>');
-    
-    // 处理连续的列表项，包裹在 ul 中
-    html = html.replace(/(<li[^>]*>.*<\/li>\n?)+/g, (match) => {
-      return `<ul class="my-2 space-y-1">${match}</ul>`;
-    });
-    
-    // 处理普通段落
-    html = html.split('\n\n').map(para => {
-      // 如果已经包含HTML标签，则不添加 p 标签
-      if (para.trim().startsWith('<h') || para.trim().startsWith('<table') || para.trim().startsWith('<ul')) {
-        return para;
-      }
-      return `<p class="mb-3 text-slate-700 leading-relaxed">${para.trim()}</p>`;
-    }).join('');
-    
-    return html;
-  };
-  
+
+  // 使用 markdown-it 渲染 Markdown 内容
+  const html = md.render(content);
+
   return (
     <div 
-      className="prose prose-slate max-w-none"
-      dangerouslySetInnerHTML={{ __html: parseMarkdown(content) }}
+      className="prose prose-slate max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-table:w-full"
+      dangerouslySetInnerHTML={{ __html: html }}
     />
   );
 };

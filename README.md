@@ -74,7 +74,26 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 
 **使用指南**：见 `docs/PROPOSAL_ENHANCER_GUIDE.md`
 
-### 6. Coze 工具集成（已预留配置）
+### 6. Markdown 渲染增强 🆕
+
+#### 🎯 功能说明
+- **完整 Markdown 支持**：使用 `markdown-it` 库替换原有的正则表达式解析器
+- **正确处理复杂表格**：修复了长文本方案内容截断问题
+- **支持所有 Markdown 语法**：标题、列表、表格、粗体、斜体、链接等
+- **自适应样式**：使用 Tailwind CSS 的 prose 插件，自动适配主题
+
+#### 🔧 技术实现
+- **解析器**：`markdown-it`（成熟的 Markdown 解析库）
+- **类型定义**：`@types/markdown-it`
+- **样式**：`prose prose-slate max-w-none`
+- **配置**：支持 HTML 和换行符（`{ html: true, breaks: true }`）
+
+#### 📝 修复内容
+- 修复了长文本方案内容被截断的问题
+- 提升了表格渲染的准确性
+- 优化了复杂 Markdown 结构的解析性能
+
+### 7. Coze 工具集成（已预留配置）
 
 #### 🌐 联网搜索
 - 实时查询产品市场价格
@@ -188,6 +207,7 @@ pnpm dev
 - **样式**：Tailwind CSS 4
 - **语言**：TypeScript 5
 - **数据库**：Supabase (PostgreSQL)
+- **Markdown 渲染**：markdown-it + @types/markdown-it
 - **AI 引擎**：
   - ✅ **DeepSeek**：对话理解、技术方案、报价生成（已配置）
   - ⏳ **Coze**：联网搜索、向量搜索、生图模型（待配置）
