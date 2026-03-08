@@ -96,18 +96,29 @@ const addSectionNumbers = (html: string): string => {
   const h3Regex = /<h3[^>]*>([\s\S]*?)<\/h3>/g;
   const h4Regex = /<h4[^>]*>([\s\S]*?)<\/h4>/g;
 
-  // 获取所有h1标题
+  // 第一步：识别并标记文档标题
   const h1Matches = Array.from(html.matchAll(h1Regex));
+  const docTitleIndices: number[] = []; // 存储文档标题的索引
+
+  h1Matches.forEach((match, index) => {
+    const content = match[1].trim();
+    // 判断是否是文档标题（第一个H1或包含文档标题关键词）
+    const isDocTitle = index === 0 ||
+                        /方案|报价单|技术方案|设计书|报告书|说明书/.test(content);
+    if (isDocTitle) {
+      docTitleIndices.push(index);
+    }
+  });
+
+  // 第二步：处理H1标题
   const h1Counters = { count: 0 };
   const chineseNumbers = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五'];
 
-  // 处理H1标题
   html = html.replace(h1Regex, (match, content, offset, string) => {
     h1Counters.count++;
 
-    // 判断是否是文档标题（第一个H1或包含文档标题关键词）
-    const isDocTitle = h1Counters.count === 1 ||
-                        /方案|报价单|技术方案|设计书|报告书|说明书/.test(content.trim());
+    // 判断当前H1是否是文档标题
+    const isDocTitle = docTitleIndices.includes(h1Counters.count - 1);
 
     // 如果是文档标题，不添加编号
     if (isDocTitle) {
@@ -115,7 +126,9 @@ const addSectionNumbers = (html: string): string => {
     }
 
     // 否则添加章节编号
-    const number = chineseNumbers[h1Counters.count - 2] || (h1Counters.count - 1);
+    // 计算实际的一级章节编号（跳过文档标题）
+    const actualIndex = h1Counters.count - docTitleIndices.length;
+    const number = chineseNumbers[actualIndex - 1] || actualIndex;
 
     // 检查是否已经有中文编号（如"一、"）
     const hasChineseNumber = /^[一二三四五六七八九十]+[、\.]/.test(content.trim());
@@ -131,23 +144,25 @@ const addSectionNumbers = (html: string): string => {
     return match;
   });
 
-  // 处理H2标题
+  // 第三步：处理H2标题
   const h2Counters: { [key: number]: number } = {};
-  let currentH1Index = 0;
 
   html = html.replace(h2Regex, (match, content) => {
-    // 检查这个h2之前有几个h1，确定它是第几个h1下的h2
+    // 检查这个h2之前有几个h1
     const beforeMatch = html.substring(0, html.indexOf(match));
     const h1Before = (beforeMatch.match(/<h1/g) || []).length;
 
-    // 计算实际的一级章节编号（跳过文档标题）
-    // 如果第一个H1是文档标题，那么实际的章节编号 = h1Before - 1
-    // 否则，实际的章节编号 = h1Before
-    const allH1s = (html.match(/<h1/g) || []).length;
-    const firstH1Content = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1] || '';
-    const isFirstDocTitle = h1Before === 1 && /方案|报价单|技术方案|设计书|报告书|说明书/.test(firstH1Content);
+    // 计算实际的一级章节编号
+    // 统计h1Before之前有多少个文档标题
+    let docTitleCountBefore = 0;
+    docTitleIndices.forEach(titleIndex => {
+      if (titleIndex < h1Before - 1) {
+        docTitleCountBefore++;
+      }
+    });
 
-    currentH1Index = isFirstDocTitle ? h1Before - 1 : h1Before;
+    // 计算实际的一级章节编号（从1开始）
+    const currentH1Index = h1Before - docTitleCountBefore;
 
     if (!h2Counters[currentH1Index]) {
       h2Counters[currentH1Index] = 0;
@@ -168,7 +183,7 @@ const addSectionNumbers = (html: string): string => {
     return match;
   });
 
-  // 处理H3标题
+  // 第四步：处理H3标题
   const h3Counters: { [key: string]: number } = {};
 
   html = html.replace(h3Regex, (match, content) => {
@@ -178,9 +193,13 @@ const addSectionNumbers = (html: string): string => {
     const h2Before = (beforeMatch.match(/<h2/g) || []).length;
 
     // 计算实际的一级章节编号
-    const firstH1Content = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1] || '';
-    const isFirstDocTitle = h1Before === 1 && /方案|报价单|技术方案|设计书|报告书|说明书/.test(firstH1Content);
-    currentH1Index = isFirstDocTitle ? h1Before - 1 : h1Before;
+    let docTitleCountBefore = 0;
+    docTitleIndices.forEach(titleIndex => {
+      if (titleIndex < h1Before - 1) {
+        docTitleCountBefore++;
+      }
+    });
+    const currentH1Index = h1Before - docTitleCountBefore;
 
     const h3Key = `${currentH1Index}-${h2Before}`;
     if (!h3Counters[h3Key]) {
@@ -202,7 +221,7 @@ const addSectionNumbers = (html: string): string => {
     return match;
   });
 
-  // 处理H4标题
+  // 第五步：处理H4标题
   const h4Counters: { [key: string]: number } = {};
 
   html = html.replace(h4Regex, (match, content) => {
@@ -213,9 +232,13 @@ const addSectionNumbers = (html: string): string => {
     const h3Before = (beforeMatch.match(/<h3/g) || []).length;
 
     // 计算实际的一级章节编号
-    const firstH1Content = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1] || '';
-    const isFirstDocTitle = h1Before === 1 && /方案|报价单|技术方案|设计书|报告书|说明书/.test(firstH1Content);
-    currentH1Index = isFirstDocTitle ? h1Before - 1 : h1Before;
+    let docTitleCountBefore = 0;
+    docTitleIndices.forEach(titleIndex => {
+      if (titleIndex < h1Before - 1) {
+        docTitleCountBefore++;
+      }
+    });
+    const currentH1Index = h1Before - docTitleCountBefore;
 
     const h4Key = `${currentH1Index}-${h2Before}-${h3Before}`;
     if (!h4Counters[h4Key]) {
