@@ -86,6 +86,134 @@ interface ChatMessageProps {
 }
 
 // ============================================================================
+// 自动添加章节编号工具函数
+// ============================================================================
+
+const addSectionNumbers = (html: string): string => {
+  // 提取所有标题标签
+  const h1Regex = /<h1[^>]*>([\s\S]*?)<\/h1>/g;
+  const h2Regex = /<h2[^>]*>([\s\S]*?)<\/h2>/g;
+  const h3Regex = /<h3[^>]*>([\s\S]*?)<\/h3>/g;
+  const h4Regex = /<h4[^>]*>([\s\S]*?)<\/h4>/g;
+
+  // 获取所有h1标题
+  const h1Matches = Array.from(html.matchAll(h1Regex));
+  const h1Counters = { count: 0 };
+  const chineseNumbers = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五'];
+
+  // 处理H1标题
+  html = html.replace(h1Regex, (match, content, offset, string) => {
+    h1Counters.count++;
+    const number = chineseNumbers[h1Counters.count - 1] || h1Counters.count;
+
+    // 检查是否已经有中文编号（如"一、"）
+    const hasChineseNumber = /^[一二三四五六七八九十]+[、\.]/.test(content.trim());
+    // 检查是否已经有数字编号（如"1、"）
+    const hasNumberNumber = /^\d+[、\.]/.test(content.trim());
+
+    if (!hasChineseNumber && !hasNumberNumber) {
+      // 提取原始属性
+      const attrMatch = match.match(/<h1([^>]*)>/);
+      const attrs = attrMatch ? attrMatch[1] : '';
+      return `<h1${attrs}>${number}、${content}</h1>`;
+    }
+    return match;
+  });
+
+  // 处理H2标题
+  const h2Counters: { [key: number]: number } = {};
+  let currentH1Index = 0;
+
+  html = html.replace(h2Regex, (match, content) => {
+    // 检查这个h2之前有几个h1，确定它是第几个h1下的h2
+    const beforeMatch = html.substring(0, html.indexOf(match));
+    const h1Before = (beforeMatch.match(/<h1/g) || []).length;
+    currentH1Index = h1Before;
+
+    if (!h2Counters[currentH1Index]) {
+      h2Counters[currentH1Index] = 0;
+    }
+    h2Counters[currentH1Index]++;
+
+    const h2Number = h2Counters[currentH1Index];
+    const fullNumber = `${currentH1Index}.${h2Number}`;
+
+    // 检查是否已经有编号（如"1.1"）
+    const hasNumber = /^\d+\.\d+/.test(content.trim());
+
+    if (!hasNumber) {
+      const attrMatch = match.match(/<h2([^>]*)>/);
+      const attrs = attrMatch ? attrMatch[1] : '';
+      return `<h2${attrs}>${fullNumber} ${content}</h2>`;
+    }
+    return match;
+  });
+
+  // 处理H3标题
+  const h3Counters: { [key: string]: number } = {};
+
+  html = html.replace(h3Regex, (match, content) => {
+    // 确定这个h3属于哪个h2
+    const beforeMatch = html.substring(0, html.indexOf(match));
+    const h1Before = (beforeMatch.match(/<h1/g) || []).length;
+    const h2Before = (beforeMatch.match(/<h2/g) || []).length;
+    currentH1Index = h1Before;
+
+    const h3Key = `${currentH1Index}-${h2Before}`;
+    if (!h3Counters[h3Key]) {
+      h3Counters[h3Key] = 0;
+    }
+    h3Counters[h3Key]++;
+
+    const h3Number = h3Counters[h3Key];
+    const fullNumber = `${currentH1Index}.${h2Before}.${h3Number}`;
+
+    // 检查是否已经有编号（如"1.1.1"）
+    const hasNumber = /^\d+\.\d+\.\d+/.test(content.trim());
+
+    if (!hasNumber) {
+      const attrMatch = match.match(/<h3([^>]*)>/);
+      const attrs = attrMatch ? attrMatch[1] : '';
+      return `<h3${attrs}>${fullNumber} ${content}</h3>`;
+    }
+    return match;
+  });
+
+  // 处理H4标题
+  const h4Counters: { [key: string]: number } = {};
+
+  html = html.replace(h4Regex, (match, content) => {
+    // 确定这个h4属于哪个h3
+    const beforeMatch = html.substring(0, html.indexOf(match));
+    const h1Before = (beforeMatch.match(/<h1/g) || []).length;
+    const h2Before = (beforeMatch.match(/<h2/g) || []).length;
+    const h3Before = (beforeMatch.match(/<h3/g) || []).length;
+    currentH1Index = h1Before;
+
+    const h4Key = `${currentH1Index}-${h2Before}-${h3Before}`;
+    if (!h4Counters[h4Key]) {
+      h4Counters[h4Key] = 0;
+    }
+    h4Counters[h4Key]++;
+
+    const h4Number = h4Counters[h4Key];
+    const fullNumber = `${currentH1Index}.${h2Before}.${h3Before}.${h4Number}`;
+
+    // 检查是否已经有编号（如"1.1.1.1"）
+    const hasNumber = /^\d+\.\d+\.\d+\.\d+/.test(content.trim());
+
+    if (!hasNumber) {
+      const attrMatch = match.match(/<h4([^>]*)>/);
+      const attrs = attrMatch ? attrMatch[1] : '';
+      return `<h4${attrs}>${fullNumber} ${content}</h4>`;
+    }
+    return match;
+  });
+
+  return html;
+};
+
+// ============================================================================
 // Markdown转HTML工具函数（独立函数，供下载功能使用）
 // ============================================================================
 
@@ -121,13 +249,19 @@ const parseMarkdownToHtml = (text: string): string => {
   
   // 处理主标题（# 标题）
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  
+
   // 处理副标题（## 标题）
   html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  
+
   // 处理子标题（### 标题）
   html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  
+
+  // 处理四级标题（#### 标题）
+  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+
+  // 自动添加章节编号
+  html = addSectionNumbers(html);
+
   // 处理粗体（**文本**）- 优化：避免过度加粗
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   
@@ -676,6 +810,9 @@ const SimpleMarkdown = ({ content }: { content: string }) => {
   // 使用 markdown-it 渲染 Markdown 内容
   let html = md.render(content);
 
+  // 自动添加章节编号（在添加样式之前）
+  html = addSectionNumbers(html);
+
   // 后处理：增强章节分隔和视觉层次
   // 1. 为一级标题添加底部边距和分隔线
   html = html.replace(
@@ -722,7 +859,10 @@ const SimpleMarkdown = ({ content }: { content: string }) => {
     if (mermaidMatch) {
       const mermaidCode = mermaidMatch[1];
       const contentWithoutMermaid = content.replace(/```mermaid\n[\s\S]*?\n```/, '');
-      const htmlWithoutMermaid = md.render(contentWithoutMermaid);
+      let htmlWithoutMermaid = md.render(contentWithoutMermaid);
+
+      // 自动添加章节编号
+      htmlWithoutMermaid = addSectionNumbers(htmlWithoutMermaid);
 
       // 应用同样的后处理
       let processedHtml = htmlWithoutMermaid;
