@@ -954,30 +954,31 @@ export default function ChatMessage({
     /* 封面样式 - 优化版 */
     .cover {
       text-align: center;
-      padding: 40pt 0;
+      padding: 20pt 0;
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 75vh;
+      min-height: 90vh;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
 
     .cover-title {
-      font-size: 36pt;
+      font-size: 38pt;
       font-weight: 700;
       color: #ffffff;
-      margin-bottom: 12pt;
+      margin-bottom: 10pt;
+      margin-top: 60pt;
       letter-spacing: 2pt;
     }
 
     .cover-subtitle {
       font-size: 14pt;
       color: #cbd5e1;
-      margin-bottom: 40pt;
+      margin-bottom: 35pt;
       font-weight: 400;
       letter-spacing: 1pt;
       text-transform: uppercase;
@@ -987,19 +988,21 @@ export default function ChatMessage({
       width: 100pt;
       height: 2pt;
       background: #3b82f6;
-      margin: 0 auto 30pt;
+      margin: 0 auto 25pt;
     }
 
     .cover-info {
       font-size: 11pt;
       color: #e0e7ff;
-      margin-top: 0;
-      line-height: 2.2;
+      margin: 0 auto;
+      max-width: 500pt;
+      line-height: 2.4;
+      text-align: left;
     }
 
     .cover-info p {
       text-indent: 0;
-      margin: 6pt 0;
+      margin: 5pt 0;
       color: #e0e7ff;
       font-weight: 400;
     }
@@ -1007,6 +1010,19 @@ export default function ChatMessage({
     .cover-info strong {
       color: #ffffff;
       font-weight: 600;
+      display: inline-block;
+      min-width: 80pt;
+    }
+    
+    /* 分页控制 - 强制封面独占一页 */
+    .page-break {
+      page-break-after: always;
+      break-after: page;
+    }
+    
+    .page-break-before {
+      page-break-before: always;
+      break-before: page;
     }
     
     /* 页眉 - 简洁 */
@@ -1220,8 +1236,11 @@ export default function ChatMessage({
     </div>
   </div>
   
+  <!-- 分页控制 - 确保正文从新页开始 -->
+  <div style="page-break-after: always; break-after: page;"></div>
+  
   <!-- 正文 -->
-  <div class="content">
+  <div class="content page-break-before">
     <!-- 页眉 -->
     <div class="header">
       <div class="header-title">技术方案</div>
@@ -1373,30 +1392,31 @@ export default function ChatMessage({
     /* 封面样式 - 优化版 */
     .cover {
       text-align: center;
-      padding: 40px 0;
+      padding: 20px 0;
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 75vh;
+      min-height: 70vh;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     
     .cover-title {
-      font-size: 36px;
+      font-size: 38px;
       font-weight: bold;
       color: #ffffff;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
+      margin-top: 60px;
       letter-spacing: 2px;
     }
     
     .cover-subtitle {
       font-size: 14px;
       color: #cbd5e1;
-      margin-bottom: 40px;
+      margin-bottom: 35px;
       font-weight: 400;
       letter-spacing: 1px;
       text-transform: uppercase;
@@ -1406,25 +1426,29 @@ export default function ChatMessage({
       width: 100px;
       height: 2px;
       background: #3b82f6;
-      margin: 0 auto 30px;
+      margin: 0 auto 25px;
     }
     
     .cover-info {
       font-size: 13px;
       color: #e0e7ff;
-      margin-top: 0;
-      line-height: 2.2;
+      margin: 0 auto;
+      max-width: 500px;
+      line-height: 2.4;
+      text-align: left;
     }
     
     .cover-info p {
       text-indent: 0;
-      margin: 6px 0;
+      margin: 5px 0;
       color: #e0e7ff;
     }
     
     .cover-info strong {
       color: #ffffff;
       font-weight: 600;
+      display: inline-block;
+      min-width: 80px;
     }
     
     /* 页眉 */
@@ -1689,8 +1713,11 @@ export default function ChatMessage({
     </div>
   </div>
   
+  <!-- 分页控制 - 确保正文从新页开始 -->
+  <div style="page-break-after: always; break-after: page;"></div>
+  
   <!-- 正文 -->
-  <div class="content">
+  <div class="content page-break-before">
     <!-- 页眉 -->
     <div class="header">
       <div class="header-title">技术方案</div>
