@@ -1,0 +1,433 @@
+﻿
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>技术方案</title>
+  <style>
+    /* 页面设置 */
+    @page {
+      size: A4;
+      margin: 2cm 1.5cm;
+    }
+    
+    @media print {
+      body {
+        padding: 0;
+      }
+    }
+    
+    body {
+      font-family: "Microsoft YaHei UI", "Microsoft YaHei", "SimSun", "Arial Unicode MS", Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.8;
+      color: #333333;
+      margin: 0;
+      padding: 0;
+      background: white;
+    }
+    
+    /* 封面样式 - 优化版 */
+    .cover {
+      text-align: center;
+      padding: 80pt 0;
+      page-break-after: always;
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      color: white;
+      min-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .cover-title {
+      font-size: 42pt;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 24pt;
+      letter-spacing: 6pt;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .cover-subtitle {
+      font-size: 22pt;
+      color: rgba(255,255,255,0.95);
+      margin-bottom: 70pt;
+      font-weight: 300;
+      letter-spacing: 3pt;
+    }
+
+    .cover-info {
+      font-size: 13pt;
+      color: rgba(255,255,255,0.9);
+      margin-top: 60pt;
+      line-height: 2.5;
+    }
+
+    .cover-info p {
+      text-indent: 0;
+      margin: 8pt 0;
+      color: rgba(255,255,255,0.95);
+      font-weight: 500;
+    }
+
+    .cover-logo {
+      font-size: 16pt;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 14pt;
+      letter-spacing: 2pt;
+    }
+    
+    /* 页眉 */
+    .header {
+      border-bottom: 3px solid #1e40af;
+      padding-bottom: 14pt;
+      margin-bottom: 28pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(to bottom, #eff6ff 0%, transparent 100%);
+      padding-top: 14pt;
+    }
+
+    .header-title {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #1e40af;
+      letter-spacing: 1pt;
+    }
+
+    .header-date {
+      font-size: 11pt;
+      color: #64748b;
+      font-weight: 500;
+    }
+    
+    /* 标题样式 - 优化版 */
+    h1 {
+      font-size: 22pt;
+      font-weight: 700;
+      color: #1e40af;
+      margin-top: 36pt;
+      margin-bottom: 24pt;
+      padding-bottom: 12pt;
+      border-bottom: 3px solid #3b82f6;
+      text-align: center;
+      page-break-after: avoid;
+      letter-spacing: 2pt;
+    }
+
+    h2 {
+      font-size: 16pt;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-top: 32pt;
+      margin-bottom: 18pt;
+      padding-left: 18px;
+      padding-right: 15px;
+      padding-top: 12px;
+      padding-bottom: 12px;
+      border-left: 6px solid #3b82f6;
+      background: linear-gradient(to right, #eff6ff 0%, #ffffff 100%);
+      border-radius: 0 8px 8px 0;
+      page-break-after: avoid;
+      letter-spacing: 0.5pt;
+    }
+
+    h3 {
+      font-size: 14pt;
+      font-weight: 700;
+      color: #334155;
+      margin-top: 24pt;
+      margin-bottom: 14pt;
+      padding-left: 16px;
+      border-left: 4px solid #60a5fa;
+      page-break-after: avoid;
+      letter-spacing: 0.5pt;
+    }
+    
+    /* 段落样式 - 优化版 */
+    p {
+      margin-bottom: 14pt;
+      text-align: justify;
+      text-indent: 2em;
+      font-size: 11pt;
+      line-height: 2;
+      color: #334155;
+    }
+    
+    /* 表格样式 - Word优化版 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24pt 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1.5px solid #1e40af;
+      table-layout: auto;
+    }
+
+    th {
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      color: white;
+      font-weight: 700;
+      padding: 12pt 10pt;
+      border: 1px solid #1e40af;
+      text-align: center;
+      font-size: 11pt;
+      line-height: 1.6;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      letter-spacing: 0.5pt;
+    }
+
+    td {
+      padding: 10pt 8pt;
+      border: 1px solid #cbd5e1;
+      text-align: center;
+      font-size: 10pt;
+      color: #334155;
+      vertical-align: middle;
+      line-height: 1.8;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      hyphens: auto;
+    }
+
+    /* 第一列（序号列）样式 */
+    td:first-child {
+      text-align: center;
+      font-weight: 700;
+      color: #1e40af;
+      background-color: #f8fafc;
+    }
+
+    /* 交替行背景 - 增强对比度 */
+    tr:nth-child(even) {
+      background-color: #f0f9ff;
+    }
+
+    tr:nth-child(odd) {
+      background-color: white;
+    }
+
+    tr:hover {
+      background-color: #e0f2fe;
+    }
+
+    /* 表格中的换行处理 */
+    td br {
+      display: block;
+      margin: 4pt 0;
+    }
+    
+    /* 列表样式 - 优化版 */
+    ul, ol {
+      margin: 18pt 0;
+      padding-left: 40pt;
+    }
+
+    li {
+      margin-bottom: 8pt;
+      font-size: 11pt;
+      line-height: 2;
+      color: #334155;
+      text-indent: 0;
+    }
+
+    ul li {
+      list-style-type: disc;
+      color: #3b82f6;
+      margin-bottom: 10pt;
+    }
+
+    ul li::marker {
+      color: #3b82f6;
+      font-size: 1.2em;
+    }
+
+    ol li {
+      list-style-type: decimal;
+      color: #334155;
+      font-weight: 500;
+    }
+    
+    ol li::marker {
+      color: #1e40af;
+      font-weight: 700;
+    }
+    
+    /* 强调文本 */
+    strong {
+      color: #1e40af;
+      font-weight: 700;
+    }
+
+    /* 斜体文本 */
+    em {
+      color: #64748b;
+      font-style: italic;
+    }
+    
+    /* 分隔线 */
+    hr {
+      border: none;
+      border-top: 2px solid #cbd5e1;
+      margin: 32pt 0;
+    }
+    
+    /* 内容区域 */
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* 移除首行缩进的特殊情况 */
+    .cover p, ul, ol, td, th, li {
+      text-indent: 0;
+    }
+    
+    /* 防止表格和列表被分页打断 */
+    table, ul, ol {
+      page-break-inside: avoid;
+    }
+    
+    /* 章节标题前分页 */
+    h2, h3 {
+      page-break-after: avoid;
+    }
+    
+    /* 水印效果 */
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      font-size: 100px;
+      color: rgba(30, 64, 175, 0.03);
+      font-weight: 700;
+      pointer-events: none;
+      z-index: -1;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <!-- 水印 -->
+  <div class="watermark">技术方案</div>
+  
+  <!-- 封面页 -->
+  <div class="cover">
+    <div class="cover-title">技术方案</div>
+    <div class="cover-subtitle">Technical Proposal</div>
+    <div class="cover-info">
+      <p>生成日期：2026年3月8日</p>
+      <p style="margin-top: 40pt; font-size: 14pt; color: #1a56db; font-weight: 700;">智能报价管理系统</p>
+      <p style="margin-top: 20pt; font-size: 11pt; opacity: 0.8;">Professional Solution System</p>
+    </div>
+  </div>
+  
+  <!-- 正文 -->
+  <div class="content">
+    <!-- 页眉 -->
+    <div class="header">
+      <div class="header-title">技术方案</div>
+      <div class="header-date">2026年3月8日</div>
+    </div>
+    
+    <h1>垃圾转运站渗滤液处理项目技术方案</h1>
+*<em>项目编号：<strong> LFL-10T-2024  </strong></em>
+*<em>客户需求：<strong> 日处理10吨垃圾转运站渗滤液  </strong></em>
+*<em>方案版本：<strong> V1.0  </strong></em>
+*<em>编制日期：<strong> 2024年1月
+<p>---</p><h2>一、 项目概述与设计依据</h2><h3>1.1 项目背景</strong></em></h3>
+本方案针对典型生活垃圾转运站产生的渗滤液进行处理设计。垃圾转运站渗滤液具有*<em>水质波动大、有机物浓度高（CODcr）、氨氮高、悬浮物多、可生化性较好但含有难降解物质<strong>等特点，需采用针对性的组合工艺确保稳定达标。
+<h3>1.2 设计依据与标准</strong></em></h3><ul><li><strong>设计水量：</strong> 平均日处理量 <strong>10 m³/d</strong>，设计按 *<em>0.5 m³/h<strong> 连续运行（20小时/天），预留峰值调节能力。</strong></em></li><li> *<em>设计进水水质（参考典型值）：<strong></li></ul>    | 指标 | CODcr (mg/L) | BOD5 (mg/L) | NH3-N (mg/L) | SS (mg/L) | pH |
+    | :--- | :--- | :--- | :--- | :--- | :--- |
+    | 范围 | 10,000 - 30,000 | 4,000 - 10,000 | 800 - 2,000 | 1,000 - 5,000 | 5 - 6.5 |</strong></em>|
+    | 设计值 | <strong>20,000</strong> | <strong>8,000</strong> | <strong>1,500</strong> | <strong>3,000</strong> | *<em>6.0<strong> |</strong></em>|
+<ul><li> *<em>排放要求：<strong> 执行《污水排入城镇下水道水质标准》（GB/T 31962-2015）A级标准，或接入后续市政污水处理厂。</li></ul>    | 指标 | CODcr | BOD5 | NH3-N | SS | pH |
+    | :--- | :--- | :--- | :--- | :--- | :--- |
+    | 限值 | ≤500 mg/L | ≤350 mg/L | ≤45 mg/L | ≤400 mg/L | 6.5-9.5 |
+<p>---</p><h2>二、 工艺比选与确定</h2><h3>2.1 工艺路线比选</h3>
+| 工艺组合 | 核心工艺 | 优点 | 缺点 | 适用性分析 |
+| :--- | :--- | :--- | :--- | :--- |</strong></em>|
+| <strong>方案A：预处理+两级A/O+MBR</strong> | 调节池 → 混凝气浮 → 两级A/O → MBR → 消毒 | 脱氮除碳效率高，出水水质好且稳定，占地面积相对小，抗冲击强。 | 投资和运行成本较高，膜需要定期清洗和更换。 | *<em>⭐ 推荐方案<strong> 适合本项目中高浓度、要求稳定达标的渗滤液。 |
+| 方案B：预处理+UASB+好氧+沉淀 | 调节池 → UASB厌氧 → 好氧 → 沉淀 → 消毒 | 厌氧段可大幅去除COD，降低后续好氧负荷，运行成本较低。 | 启动慢，对温度敏感，出水氨氮可能偏高，占地面积大。 | 适用于有足够场地、对氨氮要求不极端严格的项目。 |
+| 方案C：高级氧化+生化 | 调节池 → Fenton氧化 → 中和沉淀 → 好氧 → 消毒 | 对难降解COD去除效果好，可提高可生化性。 | 药剂成本高，产生化学污泥，运行管理复杂。 | 适用于可生化性极差（B/C<0.2）的晚期渗滤液。 |
+<h3>2.2 确定工艺</strong></em></h3><strong>推荐采用：“混凝气浮预处理 + 两级A/O + MBR + 消毒” 组合工艺。</strong><ul><li>*<em>理由：<strong> 该工艺成熟可靠，能有效应对高COD、高氨氮，MBR保证了出水SS极低且微生物浓度高，系统紧凑，自动化程度高，适合10吨/天的小型站场。</li></ul>
+---
+<h2>三、 工艺流程与系统设计</h2><h3>3.1 工艺流程图</h3>
+```
+垃圾渗滤液 → 格栅井 → 调节池（均质均量） → 提升泵 → 混凝气浮一体机（去除SS、胶体、部分COD）
+          ↓
+    气浮出水 → 一级A池（反硝化） → 一级O池（硝化） → 二级A池 → 二级O池（内置MBR膜组件）
+          ↓
+    MBR产水 → 清水池 → 消毒装置（次氯酸钠） → 达标排放或回用
+          ↓
+       污泥 → 污泥池 → 叠螺脱水机 → 泥饼外运
+```
+<h3>3.2 主要单元功能与设计参数</strong></em></h3><ul><li> *<em>格栅井：<strong> 设置一道人工细格栅，间隙5mm，拦截大颗粒杂物。</strong></em></li><li> *<em>调节池（地下钢砼）：<strong></li></ul>    - 功能：均化水质、调节水量。</strong></em>
+    - 尺寸：有效容积 *<em>30 m³<strong>（满足3天平均水量储存），HRT=72h。
+    - 配套：防腐提升泵2台（1用1备），液位控制器。</strong></em><ul><li> *<em>混凝气浮一体机（碳钢防腐）：<strong></li></ul>    - 处理量：0.5-1.0 m³/h。
+    - 功能：投加PAC、PAM，去除大部分悬浮物、胶体及部分COD（去除率约30%）。</strong></em><ul><li><strong>两级A/O-MBR生化系统（一体化设备主体）：</strong></li></ul>    - *<em>设计总HRT：<strong> 约7-8天（一级A/O HRT 5天，二级A/O HRT 2-3天）。</strong></em>
+    - *<em>A池（缺氧池）：<strong> 内置潜水搅拌器，进行反硝化脱氮。</strong></em>
+    - *<em>O池（好氧池）：<strong> 内置微孔曝气盘、MBR膜组件（PVDF，孔径0.1μm）。</strong></em>
+    - *<em>MBR系统：<strong> 膜通量取10-12 L/(m²·h)，膜面积约50m²。配套自吸泵、在线反洗系统。</strong></em><ul><li> *<em>污泥处理系统：<strong> 剩余污泥排入污泥池，由叠螺脱水机脱水至含水率80%以下泥饼。</strong></em></li><li> *<em>消毒及清水池：<strong> 投加次氯酸钠消毒，清水池容积5m³。</strong></em></li><li> *<em>电气与自控系统：<strong> PLC自动控制，实现水泵、风机、液位、膜清洗的联动与报警。</li></ul><h3>3.3 占地面积</strong></em></h3><ul><li><strong>设备占地面积：</strong> 主体一体化设备约 *<em>6.0m(L) × 2.5m(W) × 2.8m(H)<strong>，占地约15㎡。</strong></em></li><li><strong>总站区占地（含操作通道、药剂堆放）：</strong> 建议预留 *<em>6m × 5m = 30㎡<strong> 的场地。</li></ul>
+---
+<h2>四、 运行成本分析（按满负荷10吨/天估算）</h2><p>| 成本项 | 计算依据 | 单日成本（元） | 单吨水成本（元/吨） |
+| :--- | :--- | :--- | :--- |</strong></em>|
+| <strong>电费</strong> | 总功率约8.5kW，运行20h，电费0.8元/度 | 8.5kW×20h×0.8= *<em>136.0<strong> | 13.60 |</strong></em>|
+| <strong>药剂费</strong> | PAC: 1kg/吨，单价2元/kg；PAM: 0.05kg/吨，单价25元/kg；次氯酸钠：0.1kg/吨，单价3元/kg | (1×2+0.05×25+0.1×3)×10= *<em>38.5<strong> | 3.85 |</strong></em>|
+| <strong>膜更换费</strong> | MBR膜寿命3-5年，年均分摊 | *<em>25.0<strong> (日均) | 2.50 |</strong></em>|
+| <strong>人工费</strong> | 兼职或与其他岗位合并，日均分摊 | *<em>50.0<strong> | 5.00 |</strong></em>|
+| <strong>维护费</strong> | 备件、润滑等，年均分摊 | *<em>15.0<strong> (日均) | 1.50 |</strong></em>|
+| <strong>污泥处置费</strong> | 产泥量约0.5-1%，外运处置 | *<em>20.0<strong> | 2.00 |</strong></em>|
+| <strong>合计</strong> | | <strong>约284.5元/天</strong> | *<em>约28.5元/吨<strong> |</p><p>---</p><h2>五、 详细配置清单与报价（预算）</h2><p>| 序号 | 设备/材料名称 | 规格型号 | 单位 | 数量 | 单价（万元） | 合价（万元） | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |</strong></em>|
+| *<em>一、 土建部分（客户自建或我方指导）<strong> | | | | | | | |
+| 1 | 格栅井、调节池 | 钢砼，防腐防渗 | 座 | 1 | (客户自建) | - | 容积30m³ |
+| 2 | 设备基础 | C25混凝土 | 项 | 1 | 0.8 | 0.8 | |</strong></em>|
+| *<em>二、 主体处理设备<strong> | | | | | | | |
+| 3 | 混凝气浮一体机 | QF-0.5，碳钢防腐 | 套 | 1 | 3.8 | 3.8 | 含加药泵、反应区 |</strong></em>|
+| 4 | <strong>A/O-MBR一体化设备</strong> | 10m³/d，碳钢防腐 | 套 | 1 | <strong>18.5</strong> | *<em>18.5<strong> | 核心设备，含池体、曝气、膜组、内循环泵 |
+| 5 | MBR膜组件 | PVDF，50m² | 套 | 1 | 4.5 | 4.5 | 国际品牌，含膜架 |
+| 6 | 自吸泵（MBR产水） | 1.0m³/h，15m | 台 | 2 | 0.45 | 0.9 | 1用1备 |
+| 7 | 罗茨鼓风机 | SSR-80，风量2.4m³/min | 台 | 2 | 0.95 | 1.9 | 1用1备，生化曝气 |
+| 8 | 潜水搅拌器 | QJB0.85，不锈钢 | 台 | 2 | 0.65 | 1.3 | A池用 |</strong></em>|
+| *<em>三、 辅助及配套系统<strong> | | | | | | | |
+| 9 | 提升泵（调节池） | 防腐，1.5m³/h，15m | 台 | 2 | 0.3 | 0.6 | 1用1备 |
+| 10 | 加药装置（PAC/PAM） | 500L，PE | 套 | 2 | 0.7 | 1.4 | 搅拌、计量泵 |
+| 11 | 消毒加药装置 | 200L，PE | 套 | 1 | 0.5 | 0.5 | 次氯酸钠 |
+| 12 | 叠螺污泥脱水机 | DL-201，不锈钢 | 套 | 1 | 4.2 | 4.2 | 含污泥泵、PAC/PAM加药 |
+| 13 | 电气控制系统 | PLC柜，触摸屏 | 套 | 1 | 3.5 | 3.5 | 自动运行、远程监控 |
+| 14 | 管道阀门电料 | UPVC/ABS/不锈钢 | 批 | 1 | 2.5 | 2.5 | |</strong></em>|
+| *<em>四、 其他费用<strong> | | | | | | | |
+| 15 | 设备运输与安装 | | 项 | 1 | 2.0 | 2.0 | |
+| 16 | 调试与培训 | | 项 | 1 | 1.5 | 1.5 | |
+| 17 | 税金与管理费 | (一至三项合计)×10% | 项 | 1 | 4.7 | 4.7 | |</strong></em>|
+| | <strong>设备及直接费用小计</strong> | | | | | *<em>53.4<strong> | |</strong></em>|
+| | <strong>工程总投资估算（不含土建）</strong> | | | | | *<em>约 55-60 万元<strong> | 此为预算价，最终以合同为准 |</p><p>---</p><h2>六、 项目实施步骤</strong></em></h2><ul><li> *<em>前期准备（1周）：<strong> 现场勘测、技术交底、图纸确认。</strong></em></li><li> *<em>土建施工（2-3周）：<strong> 客户完成调节池等土建。</strong></em></li><li> *<em>设备进场（1周）：<strong> 设备制造、发货、运输。</strong></em></li><li> *<em>安装就位（1周）：<strong> 设备吊装、管道连接、电气接线。</strong></em></li><li> *<em>单机调试（1周）：<strong> 各水泵、风机、自控单点测试。</strong></em></li><li> *<em>系统联动调试（2-3周）：<strong> 接种污泥、驯化培养、工艺参数优化。</strong></em></li><li> *<em>环保验收（1周）：<strong> 出水水质监测，达标后移交。</strong></em></li><li> *<em>培训与交付（1周）：<strong> 操作、维护培训，资料交付。</li></ul>
+---
+<h2>七、 安全防护与竣工验收</strong></em></h2><ul><li>*<em>安全防护：<strong> 设备设置防护罩、急停按钮；电气系统接地、防雷；池体加盖并设警示标识；操作人员配备劳保用品；制定应急预案。</strong></em></li><li>*<em>竣工验收：<strong></li></ul>    1.  设备安装质量检查。
+    2.  清水联动试车。</strong></em>
+    3.  *<em>性能考核：<strong> 连续7天取样检测，出水水质稳定达到设计排放标准。
+    4.  竣工图纸、操作手册、合格证等资料移交。
+<p>---</p><h2>八、 维护保养、售后服务与运维</strong></em></h2><ul><li> *<em>日常维护：<strong></li></ul>    - 每日：巡视设备运行状态，记录仪表数据（流量、压力、液位）。
+    - 每周：清理格栅，检查加药系统，MBR在线反洗。
+    - 每月：清洗MBR膜组件（维护性清洗），检查风机油位、泵的密封。</strong></em><ul><li> *<em>定期保养：<strong></li></ul>    - 每季度：对风机、泵进行深度保养，校准在线仪表。
+    - 每年：系统全面检修，膜组件进行恢复性化学清洗。</strong></em><ul><li><strong>售后服务：</strong></li></ul>    - *<em>质保期：<strong> 设备整体质保1年，MBR膜质保3年（非人为损坏）。</strong></em>
+    - *<em>响应时间：<strong> 7×24小时电话支持，一般问题2小时内响应，重大故障48小时内工程师到场。</strong></em>
+    - *<em>终身有偿服务：<strong> 质保期后提供优惠的备件供应及维修服务。</strong></em><ul><li><strong>运维模式建议：</strong></li></ul>    - *<em>模式A（业主自营）：<strong> 我方提供全面培训，业主安排兼职人员管理。</strong></em>
+    - *<em>模式B（托管运营）：<strong> 可由我方或第三方专业公司提供全托管运营服务，按吨水或包年计费。
+<p>---</strong></em>
+*<em>方案编制：<strong> 智能报价助手  </strong></em>
+*<em>声明：<strong> 本方案为初步技术方案与预算，具体设计参数及报价需根据最终水质检测报告及现场条件进行优化调整。我们期待与您进一步沟通，为您提供最合适的解决方案。</strong></em></p>
+  </div>
+</body>
+</html>

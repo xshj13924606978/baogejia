@@ -115,6 +115,10 @@ const parseMarkdownToHtml = (text: string): string => {
     return match;
   });
   
+  // 5. 去除表格对齐符号行（优化：更严格的匹配）
+  // 匹配包含 :---, :--:, --: 等对齐符号的行
+  html = html.replace(/^\|[-:\s]+\|$\n?/gm, '');
+  
   // 处理主标题（# 标题）
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
   
@@ -124,7 +128,7 @@ const parseMarkdownToHtml = (text: string): string => {
   // 处理子标题（### 标题）
   html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
   
-  // 处理粗体（**文本**）
+  // 处理粗体（**文本**）- 优化：避免过度加粗
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   
   // 处理斜体（*文本*）
@@ -132,7 +136,7 @@ const parseMarkdownToHtml = (text: string): string => {
   
   // 处理表格（| 列1 | 列2 |）
   // 优化：正确处理单元格中的<br>标签和换行符，并确保列宽足够
-  const tableRegex = /\|(.+)\|\n\|[-|\s]+\|\n((?:\|.+\|\n?)+)/g;
+  const tableRegex = /\|(.+)\|\n((?:\|.+\|\n?)+)/g;
   html = html.replace(tableRegex, (match, headerRow, bodyRows) => {
     // 处理表头 - 获取表头列数
     const headers = headerRow.split('|').filter(h => h.trim());
@@ -149,7 +153,7 @@ const parseMarkdownToHtml = (text: string): string => {
     // 处理表体 - 正确处理单元格中的换行
     const rows = bodyRows.trim().split('\n');
     const bodyHtml = rows.map(row => {
-      // 跳过空行和分隔线
+      // 跳过空行和分隔线（包含对齐符号的行）
       if (!row.trim() || row.trim().startsWith('|---')) return '';
 
       // 去除首尾的|，然后按|分割
@@ -934,19 +938,19 @@ export default function ChatMessage({
     body {
       font-family: "Microsoft YaHei UI", "Microsoft YaHei", "SimSun", "Arial Unicode MS", Arial, sans-serif;
       font-size: 11pt;
-      line-height: 1.8;
+      line-height: 1.6;
       color: #333333;
       margin: 0;
       padding: 0;
       background: white;
     }
     
-    /* 封面样式 - 优化版 */
+    /* 封面样式 - 简洁商务 */
     .cover {
       text-align: center;
       padding: 80pt 0;
       page-break-after: always;
-      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      background: #1e40af;
       color: white;
       min-height: 85vh;
       display: flex;
@@ -957,228 +961,185 @@ export default function ChatMessage({
     }
 
     .cover-title {
-      font-size: 42pt;
-      font-weight: 700;
+      font-size: 36pt;
+      font-weight: 600;
       color: white;
-      margin-bottom: 24pt;
-      letter-spacing: 6pt;
-      text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+      margin-bottom: 20pt;
+      letter-spacing: 4pt;
     }
 
     .cover-subtitle {
-      font-size: 22pt;
-      color: rgba(255,255,255,0.95);
-      margin-bottom: 70pt;
-      font-weight: 300;
-      letter-spacing: 3pt;
+      font-size: 18pt;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 60pt;
+      font-weight: normal;
+      letter-spacing: 2pt;
     }
 
     .cover-info {
-      font-size: 13pt;
-      color: rgba(255,255,255,0.9);
-      margin-top: 60pt;
-      line-height: 2.5;
+      font-size: 12pt;
+      color: rgba(255,255,255,0.85);
+      margin-top: 50pt;
+      line-height: 2;
     }
 
     .cover-info p {
       text-indent: 0;
       margin: 8pt 0;
-      color: rgba(255,255,255,0.95);
-      font-weight: 500;
+      color: rgba(255,255,255,0.9);
+      font-weight: normal;
     }
 
     .cover-logo {
-      font-size: 16pt;
-      font-weight: 700;
+      font-size: 14pt;
+      font-weight: 600;
       color: white;
-      margin-bottom: 14pt;
-      letter-spacing: 2pt;
+      margin-bottom: 12pt;
+      letter-spacing: 1pt;
     }
     
-    /* 页眉 */
+    /* 页眉 - 简洁 */
     .header {
-      border-bottom: 3px solid #1e40af;
-      padding-bottom: 14pt;
-      margin-bottom: 28pt;
+      border-bottom: 2px solid #1e40af;
+      padding-bottom: 10pt;
+      margin-bottom: 24pt;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: linear-gradient(to bottom, #eff6ff 0%, transparent 100%);
-      padding-top: 14pt;
     }
 
     .header-title {
       font-size: 13pt;
-      font-weight: 700;
+      font-weight: 600;
       color: #1e40af;
-      letter-spacing: 1pt;
     }
 
     .header-date {
       font-size: 11pt;
       color: #64748b;
-      font-weight: 500;
     }
     
-    /* 标题样式 - 优化版 */
+    /* 标题样式 - 简洁商务 */
     h1 {
-      font-size: 22pt;
-      font-weight: 700;
+      font-size: 20pt;
+      font-weight: 600;
       color: #1e40af;
-      margin-top: 36pt;
-      margin-bottom: 24pt;
-      padding-bottom: 12pt;
-      border-bottom: 3px solid #3b82f6;
+      margin-top: 30pt;
+      margin-bottom: 20pt;
+      padding-bottom: 10pt;
+      border-bottom: 2px solid #3b82f6;
       text-align: center;
       page-break-after: avoid;
-      letter-spacing: 2pt;
     }
 
     h2 {
-      font-size: 16pt;
-      font-weight: 700;
-      color: #1e3a8a;
-      margin-top: 32pt;
-      margin-bottom: 18pt;
-      padding-left: 18px;
-      padding-right: 15px;
-      padding-top: 12px;
-      padding-bottom: 12px;
-      border-left: 6px solid #3b82f6;
-      background: linear-gradient(to right, #eff6ff 0%, #ffffff 100%);
-      border-radius: 0 8px 8px 0;
+      font-size: 15pt;
+      font-weight: 600;
+      color: #1e40af;
+      margin-top: 25pt;
+      margin-bottom: 15pt;
+      padding-left: 12pt;
+      border-left: 4px solid #3b82f6;
+      background: #f0f9ff;
+      padding-top: 8pt;
+      padding-bottom: 8pt;
       page-break-after: avoid;
-      letter-spacing: 0.5pt;
     }
 
     h3 {
-      font-size: 14pt;
-      font-weight: 700;
+      font-size: 13pt;
+      font-weight: 600;
       color: #334155;
-      margin-top: 24pt;
-      margin-bottom: 14pt;
-      padding-left: 16px;
-      border-left: 4px solid #60a5fa;
+      margin-top: 20pt;
+      margin-bottom: 12pt;
+      padding-left: 10pt;
+      border-left: 3px solid #60a5fa;
       page-break-after: avoid;
-      letter-spacing: 0.5pt;
     }
     
-    /* 段落样式 - 优化版 */
+    /* 段落样式 - 简洁 */
     p {
-      margin-bottom: 14pt;
+      margin-bottom: 12pt;
       text-align: justify;
       text-indent: 2em;
       font-size: 11pt;
-      line-height: 2;
-      color: #334155;
+      line-height: 1.7;
+      color: #333;
     }
     
-    /* 表格样式 - Word优化版 */
+    /* 表格样式 - 简洁商务 */
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 24pt 0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      border-radius: 6px;
-      overflow: hidden;
-      border: 1.5px solid #1e40af;
-      table-layout: auto;
+      margin: 20pt 0;
+      border: 1px solid #cbd5e1;
     }
 
     th {
-      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      background: #1e40af;
       color: white;
-      font-weight: 700;
-      padding: 12pt 10pt;
+      font-weight: 600;
+      padding: 10pt 8pt;
       border: 1px solid #1e40af;
       text-align: center;
       font-size: 11pt;
-      line-height: 1.6;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      letter-spacing: 0.5pt;
     }
 
     td {
-      padding: 10pt 8pt;
+      padding: 8pt 6pt;
       border: 1px solid #cbd5e1;
       text-align: center;
-      font-size: 10pt;
-      color: #334155;
+      font-size: 11pt;
+      color: #333;
       vertical-align: middle;
-      line-height: 1.8;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      hyphens: auto;
     }
 
-    /* 第一列（序号列）样式 */
-    td:first-child {
-      text-align: center;
-      font-weight: 700;
-      color: #1e40af;
-      background-color: #f8fafc;
-    }
-
-    /* 交替行背景 - 增强对比度 */
     tr:nth-child(even) {
-      background-color: #f0f9ff;
+      background-color: #f8fafc;
     }
 
     tr:nth-child(odd) {
       background-color: white;
     }
-
-    tr:hover {
-      background-color: #e0f2fe;
-    }
-
-    /* 表格中的换行处理 */
-    td br {
-      display: block;
-      margin: 4pt 0;
-    }
     
-    /* 列表样式 - 优化版 */
+    /* 列表样式 - 简洁 */
     ul, ol {
-      margin: 18pt 0;
-      padding-left: 40pt;
+      margin: 15pt 0;
+      padding-left: 35pt;
     }
 
     li {
       margin-bottom: 8pt;
       font-size: 11pt;
-      line-height: 2;
-      color: #334155;
+      line-height: 1.7;
+      color: #333;
       text-indent: 0;
     }
 
     ul li {
       list-style-type: disc;
       color: #3b82f6;
-      margin-bottom: 10pt;
+      margin-bottom: 8pt;
     }
 
     ul li::marker {
       color: #3b82f6;
-      font-size: 1.2em;
     }
 
     ol li {
       list-style-type: decimal;
-      color: #334155;
-      font-weight: 500;
+      color: #333;
     }
     
     ol li::marker {
       color: #1e40af;
-      font-weight: 700;
+      font-weight: 600;
     }
     
-    /* 强调文本 */
+    /* 强调文本 - 适度 */
     strong {
       color: #1e40af;
-      font-weight: 700;
+      font-weight: 600;
     }
 
     /* 斜体文本 */
