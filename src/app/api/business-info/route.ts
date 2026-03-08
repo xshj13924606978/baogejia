@@ -218,3 +218,113 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+/**
+ * 保存商务信息API
+ * 支持保存供应方、客户、商务条款信息
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const db = getSupabaseClient();
+    const body = await request.json();
+    
+    // 获取参数
+    const type = body.type; // 'supplier', 'customer', 'terms'
+    const data = body.data;
+
+    console.log('[Business Info API] 保存商务信息:', { type, data });
+
+    if (type === 'terms') {
+      // 保存或更新商务条款
+      const termsData = {
+        name: data.name || '标准条款',
+        payment_terms: data.paymentTerms || data.payment,
+        warranty_period: data.warrantyPeriod || data.warranty,
+        delivery_period: data.deliveryPeriod || data.delivery,
+        validity_period: data.validityPeriod || data.validity,
+        remarks: data.remarks || '',
+        tax_rate: data.taxRate,
+        shipping: data.shipping,
+        installation: data.installation,
+        other_fees: data.otherFees,
+        is_default: data.isDefault !== false,
+        updated_at: new Date().toISOString()
+      };
+
+      // 检查是否存在默认条款
+      const { data: existingTerms } = await db
+        .from('quote_terms')
+        .select('id')
+        .eq('is_default', true)
+        .single();
+
+      if (existingTerms) {
+        // 更新默认条款
+        const { error: updateError } = await db
+          .from('quote_terms')
+          .update(termsData)
+          .eq('id', existingTerms.id);
+
+        if (updateError) {
+          console.error('[Business Info API] 更新商务条款失败:', updateError);
+          return NextResponse.json(
+            {
+              success: false,
+              error: '更新商务条款失败',
+              message: updateError.message
+            },
+            { status: 500 }
+          );
+        }
+      } else {
+        // 插入新条款
+        const { error: insertError } = await db
+          .from('quote_terms')
+          .insert({
+            ...termsData,
+            created_at: new Date().toISOString()
+          });
+
+        if (insertError) {
+          console.error('[Business Info API] 保存商务条款失败:', insertError);
+          return NextResponse.json(
+            {
+              success: false,
+              error: '保存商务条款失败',
+              message: insertError.message
+            },
+            { status: 500 }
+          );
+        }
+      }
+
+      console.log('[Business Info API] 商务条款保存成功');
+      
+      return NextResponse.json({
+        success: true,
+        message: '商务条款保存成功',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: '不支持的信息类型',
+        message: '目前只支持保存商务条款'
+      },
+      { status: 400 }
+    );
+
+  } catch (error) {
+    console.error('[Business Info API] 保存商务信息失败:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: '保存商务信息失败',
+        message: error instanceof Error ? error.message : '未知错误'
+      },
+      { status: 500 }
+    );
+  }
+}

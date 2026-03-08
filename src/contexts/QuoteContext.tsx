@@ -90,6 +90,49 @@ const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
 export function QuoteProvider({ children }: { children: React.ReactNode }) {
   const [quoteData, setQuoteData] = useState<QuoteData>(defaultQuoteData);
 
+  // 初始化时从数据库加载商务信息
+  React.useEffect(() => {
+    loadBusinessInfo();
+  }, []);
+
+  const loadBusinessInfo = async () => {
+    try {
+      const response = await fetch('/api/business-info?type=all');
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          const businessInfo = result.data;
+          
+          // 更新状态
+          setQuoteData(prev => ({
+            ...prev,
+            supplierInfo: businessInfo.supplier || prev.supplierInfo,
+            customerInfo: businessInfo.customer ? {
+              name: businessInfo.customer.companyName || prev.customerInfo.name,
+              projectName: businessInfo.customer.projectName || prev.customerInfo.projectName,
+              contactPerson: businessInfo.customer.contactPerson || prev.customerInfo.contactPerson,
+              phone: businessInfo.customer.phone || prev.customerInfo.phone,
+              email: businessInfo.customer.email || prev.customerInfo.email,
+              address: businessInfo.customer.address || prev.customerInfo.address,
+            } : prev.customerInfo,
+            terms: businessInfo.terms ? {
+              payment: businessInfo.terms.paymentTerms || prev.terms.payment,
+              warranty: businessInfo.terms.warrantyPeriod || prev.terms.warranty,
+              delivery: businessInfo.terms.deliveryPeriod || prev.terms.delivery,
+              validity: businessInfo.terms.validityPeriod || prev.terms.validity,
+              taxRate: businessInfo.terms.taxRate ?? prev.terms.taxRate,
+              shipping: businessInfo.terms.shipping ?? prev.terms.shipping,
+              installation: businessInfo.terms.installation ?? prev.terms.installation,
+              otherFees: businessInfo.terms.otherFees ?? prev.terms.otherFees,
+            } : prev.terms,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('加载商务信息失败:', error);
+    }
+  };
+
   const updateSupplierInfo = (info: SupplierInfo) => {
     setQuoteData(prev => ({ ...prev, supplierInfo: info }));
   };
@@ -98,8 +141,30 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
     setQuoteData(prev => ({ ...prev, customerInfo: info }));
   };
 
-  const updateTerms = (terms: TermsInfo) => {
+  const updateTerms = async (terms: TermsInfo) => {
+    // 更新状态
     setQuoteData(prev => ({ ...prev, terms }));
+    
+    // 保存到数据库
+    try {
+      const response = await fetch('/api/business-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'terms',
+          data: terms
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('商务条款保存成功:', result);
+      } else {
+        console.error('商务条款保存失败:', await response.text());
+      }
+    } catch (error) {
+      console.error('保存商务条款时出错:', error);
+    }
   };
 
   const updateProducts = (products: any[]) => {

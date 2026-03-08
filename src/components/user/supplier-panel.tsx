@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,13 @@ export default function SupplierPanel() {
     bankAccount: '3100 1234 5678 9012 345',
     taxNumber: '91310115MA1H123456'
   });
+
+  // 同步 quoteData 的变化到表单
+  useEffect(() => {
+    if (quoteData?.supplierInfo) {
+      setFormData(quoteData.supplierInfo);
+    }
+  }, [quoteData?.supplierInfo]);
 
   const handleSave = () => {
     updateSupplierInfo(formData);
