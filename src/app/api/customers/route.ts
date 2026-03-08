@@ -1,116 +1,145 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseClient } from '@/lib/supabase';
 
+// GET - 获取客户列表
 export async function GET(request: NextRequest) {
   try {
-    const db = getSupabaseClient();
+    const searchParams = request.nextUrl.searchParams;
+    const search = searchParams.get('search');
 
-    const { data, error } = await db
+    const supabase = getSupabaseClient();
+
+    let query = supabase
       .from('customers')
       .select('*')
-      .order('updated_at', { ascending: false })
-      .limit(50);
+      .order('created_at', { ascending: false });
 
-    if (error) {
-      throw error;
+    // 搜索功能
+    if (search) {
+      query = query.or(`company_name.ilike.%${search}%,project_name.ilike.%${search}%,contact_person.ilike.%${search}%,phone.ilike.%${search}%`);
     }
 
-    const customers = data.map((customer: any) => ({
-      id: customer.id,
-      companyName: customer.company_name,
-      projectName: customer.project_name,
-      contactPerson: customer.contact_person,
-      phone: customer.phone,
-      email: customer.email,
-      address: customer.address,
-    }));
+    const { data: customers, error } = await query;
 
-    return NextResponse.json({ customers });
-  } catch (error) {
-    console.error('Failed to load customers:', error);
+    if (error) throw error;
+
+    return NextResponse.json({ customers: customers || [] });
+  } catch (error: any) {
+    console.error('获取客户列表失败:', error);
     return NextResponse.json(
-      { error: 'Failed to load customers' },
+      { error: error.message || '获取客户列表失败' },
       { status: 500 }
     );
   }
 }
 
+// POST - 添加新客户
 export async function POST(request: NextRequest) {
   try {
-    const db = getSupabaseClient();
-    const customerData = await request.json();
+    const body = await request.json();
 
-    const now = new Date().toISOString();
+    const supabase = getSupabaseClient();
 
-    const { data, error } = await db
+    const { data: customer, error } = await supabase
       .from('customers')
       .insert({
-        company_name: customerData.companyName,
-        project_name: customerData.projectName,
-        contact_person: customerData.contactPerson,
-        phone: customerData.phone,
-        email: customerData.email,
-        address: customerData.address,
-        created_at: now,
-        updated_at: now,
+        company_name: body.companyName,
+        project_name: body.projectName,
+        contact_person: body.contactPerson,
+        phone: body.phone,
+        email: body.email,
+        address: body.address,
+        bank_name: body.bankName,
+        bank_account: body.bankAccount,
+        tax_number: body.taxNumber,
+        credit_limit: body.creditLimit,
+        payment_terms: body.paymentTerms,
+        notes: body.notes,
       })
       .select()
       .single();
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
-    const customer = {
-      id: data.id,
-      companyName: data.company_name,
-      projectName: data.project_name,
-      contactPerson: data.contact_person,
-      phone: data.phone,
-      email: data.email,
-      address: data.address,
-    };
-
-    return NextResponse.json({ customer });
-  } catch (error) {
-    console.error('Failed to save customer:', error);
+    return NextResponse.json({ customer }, { status: 201 });
+  } catch (error: any) {
+    console.error('添加客户失败:', error);
     return NextResponse.json(
-      { error: 'Failed to save customer' },
+      { error: error.message || '添加客户失败' },
       { status: 500 }
     );
   }
 }
 
-/**
- * 删除客户
- */
+// DELETE - 删除客户
 export async function DELETE(request: NextRequest) {
   try {
-    const db = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
-    const customerId = searchParams.get('id');
+    const id = searchParams.get('id');
 
-    if (!customerId) {
-      return NextResponse.json(
-        { error: 'Customer ID is required' },
-        { status: 400 }
-      );
+    if (!id) {
+      return NextResponse.json({ error: '缺少客户ID' }, { status: 400 });
     }
 
-    const { error } = await db
+    const supabase = getSupabaseClient();
+
+    const { error } = await supabase
       .from('customers')
       .delete()
-      .eq('id', customerId);
+      .eq('id', id);
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Failed to delete customer:', error);
+  } catch (error: any) {
+    console.error('删除客户失败:', error);
     return NextResponse.json(
-      { error: 'Failed to delete customer' },
+      { error: error.message || '删除客户失败' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT - 更新客户
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, ...updateData } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: '缺少客户ID' }, { status: 400 });
+    }
+
+    const supabase = getSupabaseClient();
+
+    const { data: customer, error } = await supabase
+      .from('customers')
+      .update({
+        company_name: updateData.companyName,
+        project_name: updateData.projectName,
+        contact_person: updateData.contactPerson,
+        phone: updateData.phone,
+        email: updateData.email,
+        address: updateData.address,
+        bank_name: updateData.bankName,
+        bank_account: updateData.bankAccount,
+        tax_number: updateData.taxNumber,
+        credit_limit: updateData.creditLimit,
+        payment_terms: updateData.paymentTerms,
+        notes: updateData.notes,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({ customer });
+  } catch (error: any) {
+    console.error('更新客户失败:', error);
+    return NextResponse.json(
+      { error: error.message || '更新客户失败' },
       { status: 500 }
     );
   }

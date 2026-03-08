@@ -3,250 +3,329 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { 
+  Users, 
+  Save,
+  RefreshCw,
+  Building,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  CreditCard,
+  DollarSign,
+  FileText
+} from 'lucide-react';
+import { useQuote } from '@/contexts/QuoteContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Users, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Building,
-  Edit2,
-  Save,
-  X,
-  User,
-  FolderOpen
-} from 'lucide-react';
-import { useQuote } from '@/contexts/QuoteContext';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CustomerListPanel from './customer-list-panel';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function CustomerPanel() {
   const { quoteData, updateCustomerInfo } = useQuote();
-  const [editing, setEditing] = useState(false);
+  const { toast } = useToast();
   const [showCustomerList, setShowCustomerList] = useState(false);
-  const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState(quoteData?.customerInfo || {
-    name: 'XX工程项目部',
-    projectName: '污水处理设备采购项目',
-    contactPerson: '李工',
-    phone: '13912345678',
-    email: 'ligong@example.com',
-    address: '江苏省苏州市工业园区'
+
+  // 本地状态
+  const [formData, setFormData] = useState({
+    name: quoteData?.customerInfo?.name || '',
+    projectName: quoteData?.customerInfo?.projectName || '',
+    contactPerson: quoteData?.customerInfo?.contactPerson || '',
+    phone: quoteData?.customerInfo?.phone || '',
+    email: quoteData?.customerInfo?.email || '',
+    address: quoteData?.customerInfo?.address || '',
+    bankName: quoteData?.customerInfo?.bankName || '',
+    bankAccount: quoteData?.customerInfo?.bankAccount || '',
+    taxNumber: quoteData?.customerInfo?.taxNumber || '',
+    paymentTerms: quoteData?.customerInfo?.paymentTerms || '',
+    creditLimit: quoteData?.customerInfo?.creditLimit || 0,
+    notes: quoteData?.customerInfo?.notes || '',
   });
 
-  // 从数据库加载客户信息
+  // 同步quoteData到本地状态
   useEffect(() => {
-    loadCustomers();
-  }, []);
-
-  // 当quoteData更新时，同步更新表单数据
-  useEffect(() => {
-    if (quoteData?.customerInfo) {
-      setFormData(quoteData.customerInfo);
-    }
+    setFormData({
+      name: quoteData?.customerInfo?.name || '',
+      projectName: quoteData?.customerInfo?.projectName || '',
+      contactPerson: quoteData?.customerInfo?.contactPerson || '',
+      phone: quoteData?.customerInfo?.phone || '',
+      email: quoteData?.customerInfo?.email || '',
+      address: quoteData?.customerInfo?.address || '',
+      bankName: quoteData?.customerInfo?.bankName || '',
+      bankAccount: quoteData?.customerInfo?.bankAccount || '',
+      taxNumber: quoteData?.customerInfo?.taxNumber || '',
+      paymentTerms: quoteData?.customerInfo?.paymentTerms || '',
+      creditLimit: quoteData?.customerInfo?.creditLimit || 0,
+      notes: quoteData?.customerInfo?.notes || '',
+    });
   }, [quoteData?.customerInfo]);
 
-  const loadCustomers = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/customers');
-      if (response.ok) {
-        const data = await response.json();
-        setCustomers(data.customers || []);
-        
-        // 如果有客户，自动选择第一个
-        if (data.customers && data.customers.length > 0) {
-          const firstCustomer = data.customers[0];
-          const customerInfo = {
-            name: firstCustomer.companyName,
-            projectName: firstCustomer.projectName,
-            contactPerson: firstCustomer.contactPerson,
-            phone: firstCustomer.phone,
-            email: firstCustomer.email,
-            address: firstCustomer.address,
-          };
-          setFormData(customerInfo);
-          updateCustomerInfo(customerInfo);
-        }
-      }
-    } catch (error) {
-      console.error('加载客户列表失败:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // 保存客户信息到报价单
   const handleSave = () => {
-    updateCustomerInfo(formData);
-    setEditing(false);
+    updateCustomerInfo({
+      name: formData.name,
+      projectName: formData.projectName,
+      contactPerson: formData.contactPerson,
+      phone: formData.phone,
+      email: formData.email,
+      address: formData.address,
+      bankName: formData.bankName,
+      bankAccount: formData.bankAccount,
+      taxNumber: formData.taxNumber,
+      paymentTerms: formData.paymentTerms,
+      creditLimit: formData.creditLimit,
+      notes: formData.notes,
+    });
+    
+    toast({
+      title: '保存成功',
+      description: '客户信息已更新到报价单',
+    });
   };
 
-  // 从客户列表中选择客户
-  const handleSelectCustomer = (customer: any) => {
-    const customerInfo = {
+  // 清空表单
+  const handleClear = () => {
+    setFormData({
+      name: '',
+      projectName: '',
+      contactPerson: '',
+      phone: '',
+      email: '',
+      address: '',
+      bankName: '',
+      bankAccount: '',
+      taxNumber: '',
+      paymentTerms: '',
+      creditLimit: 0,
+      notes: '',
+    });
+    
+    toast({
+      title: '已清空',
+      description: '客户信息已清空',
+    });
+  };
+
+  // 从资料库选择客户
+  const handleSelectFromLibrary = () => {
+    setShowCustomerList(true);
+  };
+
+  // 客户选择后的回调
+  const handleCustomerSelected = (customer: any) => {
+    setFormData({
       name: customer.companyName,
       projectName: customer.projectName,
       contactPerson: customer.contactPerson,
       phone: customer.phone,
       email: customer.email,
       address: customer.address,
-    };
-    setFormData(customerInfo);
-    updateCustomerInfo(customerInfo);
-    setShowCustomerList(false);
+      bankName: customer.bankName || '',
+      bankAccount: customer.bankAccount || '',
+      taxNumber: customer.taxNumber || '',
+      paymentTerms: customer.paymentTerms || '',
+      creditLimit: customer.creditLimit || 0,
+      notes: customer.notes || '',
+    });
+    
+    toast({
+      title: '已加载客户信息',
+      description: `${customer.companyName} 的信息已加载`,
+    });
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Users className="h-5 w-5 text-green-500" />
-              客户信息
-            </CardTitle>
-            <CardDescription>管理您的客户资料</CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowCustomerList(true)}
-            >
-              <FolderOpen className="h-3 w-3 mr-2" />
-              管理客户
-            </Button>
-            {!editing ? (
-              <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                <Edit2 className="h-3 w-3 mr-2" />
-                编辑
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
-                  <X className="h-3 w-3 mr-2" />
-                  取消
-                </Button>
-                <Button size="sm" onClick={handleSave}>
-                  <Save className="h-3 w-3 mr-2" />
-                  保存
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="text-xs flex items-center gap-1">
-              <Building className="h-3 w-3" /> 客户名称
-            </Label>
-            {editing ? (
-              <Input 
-                value={formData.name} 
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="h-8 text-sm"
-              />
-            ) : (
-              <p className="text-sm font-medium p-2 bg-gray-50 rounded">{formData.name}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs">项目名称</Label>
-            {editing ? (
-              <Input 
-                value={formData.projectName} 
-                onChange={(e) => setFormData({...formData, projectName: e.target.value})}
-                className="h-8 text-sm"
-              />
-            ) : (
-              <p className="text-sm p-2 bg-gray-50 rounded">{formData.projectName}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs flex items-center gap-1">
-              <User className="h-3 w-3" /> 联系人
-            </Label>
-            {editing ? (
-              <Input 
-                value={formData.contactPerson} 
-                onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
-                className="h-8 text-sm"
-              />
-            ) : (
-              <p className="text-sm p-2 bg-gray-50 rounded">{formData.contactPerson}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs flex items-center gap-1">
-              <Phone className="h-3 w-3" /> 电话
-            </Label>
-            {editing ? (
-              <Input 
-                value={formData.phone} 
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                className="h-8 text-sm"
-              />
-            ) : (
-              <p className="text-sm p-2 bg-gray-50 rounded">{formData.phone}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs flex items-center gap-1">
-              <Mail className="h-3 w-3" /> 邮箱
-            </Label>
-            {editing ? (
-              <Input 
-                value={formData.email} 
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                className="h-8 text-sm"
-              />
-            ) : (
-              <p className="text-sm p-2 bg-gray-50 rounded">{formData.email}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> 地址
-            </Label>
-            {editing ? (
-              <Input 
-                value={formData.address} 
-                onChange={(e) => setFormData({...formData, address: e.target.value})}
-                className="h-8 text-sm"
-              />
-            ) : (
-              <p className="text-sm p-2 bg-gray-50 rounded">{formData.address}</p>
-            )}
-          </div>
-        </div>
-      </CardContent>
+    <div className="space-y-4">
+      {/* 操作按钮 */}
+      <div className="flex gap-2">
+        <Button size="sm" onClick={handleSave}>
+          <Save className="h-4 w-4 mr-2" />
+          保存信息
+        </Button>
+        <Button size="sm" variant="outline" onClick={handleSelectFromLibrary}>
+          <Users className="h-4 w-4 mr-2" />
+          从资料库选择
+        </Button>
+        <Button size="sm" variant="outline" onClick={handleClear}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          清空
+        </Button>
+      </div>
 
-      {/* 客户列表对话框 */}
-      <Dialog open={showCustomerList} onOpenChange={setShowCustomerList}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-green-500" />
-              客户资料管理
-            </DialogTitle>
-            <DialogDescription>
-              选择已有客户或添加新客户
-            </DialogDescription>
-          </DialogHeader>
-          <CustomerListPanel />
-        </DialogContent>
-      </Dialog>
-    </Card>
+      {/* 客户信息表单 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Building className="h-5 w-5 text-green-500" />
+            客户信息
+          </CardTitle>
+          <CardDescription>
+            填写客户基本信息和财务信息
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="basic">基本信息</TabsTrigger>
+              <TabsTrigger value="financial">财务信息</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="basic" className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    <Building className="h-3 w-3" />
+                    公司名称
+                  </Label>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="XX工程有限公司"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs">项目名称</Label>
+                  <Input
+                    value={formData.projectName}
+                    onChange={(e) => setFormData({...formData, projectName: e.target.value})}
+                    placeholder="污水处理设备采购项目"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    <User className="h-3 w-3" />
+                    联系人
+                  </Label>
+                  <Input
+                    value={formData.contactPerson}
+                    onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
+                    placeholder="张经理"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    <Phone className="h-3 w-3" />
+                    电话
+                  </Label>
+                  <Input
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    placeholder="13912345678"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    <Mail className="h-3 w-3" />
+                    邮箱
+                  </Label>
+                  <Input
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    placeholder="contact@example.com"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    <MapPin className="h-3 w-3" />
+                    地址
+                  </Label>
+                  <Input
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    placeholder="XX省XX市XX区XX路XX号"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="financial" className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    <CreditCard className="h-3 w-3" />
+                    银行名称
+                  </Label>
+                  <Input
+                    value={formData.bankName}
+                    onChange={(e) => setFormData({...formData, bankName: e.target.value})}
+                    placeholder="中国建设银行XX分行"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    <DollarSign className="h-3 w-3" />
+                    银行账号
+                  </Label>
+                  <Input
+                    value={formData.bankAccount}
+                    onChange={(e) => setFormData({...formData, bankAccount: e.target.value})}
+                    placeholder="6222 0000 0000 0000"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    <FileText className="h-3 w-3" />
+                    税号
+                  </Label>
+                  <Input
+                    value={formData.taxNumber}
+                    onChange={(e) => setFormData({...formData, taxNumber: e.target.value})}
+                    placeholder="91310000XXXXXXXXXX"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs">付款方式</Label>
+                  <Input
+                    value={formData.paymentTerms}
+                    onChange={(e) => setFormData({...formData, paymentTerms: e.target.value})}
+                    placeholder="月结30天"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs">信用额度</Label>
+                  <Input
+                    type="number"
+                    value={formData.creditLimit}
+                    onChange={(e) => setFormData({...formData, creditLimit: parseFloat(e.target.value) || 0})}
+                    placeholder="100000"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">备注</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  placeholder="其他备注信息..."
+                  rows={3}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* 客户资料库面板 */}
+      {showCustomerList && (
+        <CustomerListPanel
+          onSelect={handleCustomerSelected}
+          onClose={() => setShowCustomerList(false)}
+        />
+      )}
+    </div>
   );
 }

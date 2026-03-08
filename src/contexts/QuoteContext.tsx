@@ -20,6 +20,12 @@ interface CustomerInfo {
   phone: string;
   email: string;
   address: string;
+  bankName?: string;
+  bankAccount?: string;
+  taxNumber?: string;
+  paymentTerms?: string;
+  creditLimit?: number;
+  notes?: string;
 }
 
 interface TermsInfo {

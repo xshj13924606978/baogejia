@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -14,7 +14,13 @@ import {
   Mail,
   MapPin,
   Building,
-  User
+  User,
+  Download,
+  Upload,
+  FileText,
+  DollarSign,
+  CreditCard,
+  Building2
 } from 'lucide-react';
 import { useQuote } from '@/contexts/QuoteContext';
 import {
@@ -27,6 +33,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Customer {
   id: string;
@@ -36,10 +45,38 @@ interface Customer {
   phone: string;
   email: string;
   address: string;
+  bankName?: string;
+  bankAccount?: string;
+  taxNumber?: string;
+  creditLimit?: number;
+  paymentTerms?: string;
+  notes?: string;
 }
 
-export default function CustomerListPanel() {
+interface CustomerTemplate {
+  name: string;
+  companyName: string;
+  projectName: string;
+  contactPerson: string;
+  phone: string;
+  email: string;
+  address: string;
+  bankName: string;
+  bankAccount: string;
+  taxNumber: string;
+  paymentTerms: string;
+  notes: string;
+}
+
+export default function CustomerListPanel({ 
+  onSelect, 
+  onClose 
+}: { 
+  onSelect?: (customer: Customer) => void;
+  onClose?: () => void;
+}) {
   const { quoteData, updateCustomerInfo } = useQuote();
+  const { toast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -47,12 +84,30 @@ export default function CustomerListPanel() {
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [templates, setTemplates] = useState<CustomerTemplate[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 从localStorage加载模板
+  useEffect(() => {
+    const savedTemplates = localStorage.getItem('customerTemplates');
+    if (savedTemplates) {
+      setTemplates(JSON.parse(savedTemplates));
+    }
+  }, []);
+
+  // 保存模板到localStorage
+  const saveTemplates = (newTemplates: CustomerTemplate[]) => {
+    localStorage.setItem('customerTemplates', JSON.stringify(newTemplates));
+    setTemplates(newTemplates);
+  };
 
   // 获取客户列表
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/customers');
+      const url = searchTerm ? `/api/customers?search=${encodeURIComponent(searchTerm)}` : '/api/customers';
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setCustomers(data.customers || []);
@@ -66,7 +121,7 @@ export default function CustomerListPanel() {
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [searchTerm]);
 
   // 添加新客户
   const handleAddCustomer = async (customerData: Omit<Customer, 'id'>) => {
@@ -83,10 +138,19 @@ export default function CustomerListPanel() {
         const data = await response.json();
         setCustomers([...customers, data.customer]);
         setShowAddDialog(false);
+        toast({
+          title: '添加成功',
+          description: '客户已添加到资料库',
+        });
         return data.customer;
       }
     } catch (error) {
       console.error('添加客户失败:', error);
+      toast({
+        title: '添加失败',
+        description: '添加客户失败，请重试',
+        variant: 'destructive',
+      });
       return null;
     }
   };
@@ -107,13 +171,21 @@ export default function CustomerListPanel() {
 
       if (response.ok) {
         setCustomers(customers.filter(c => c.id !== customerToDelete.id));
-        // 如果删除的是当前选中的客户，重置选中状态
+        toast({
+          title: '删除成功',
+          description: '客户已删除',
+        });
         if (selectedCustomer?.id === customerToDelete.id) {
           setSelectedCustomer(null);
         }
       }
     } catch (error) {
       console.error('删除客户失败:', error);
+      toast({
+        title: '删除失败',
+        description: '删除客户失败，请重试',
+        variant: 'destructive',
+      });
     } finally {
       setShowDeleteConfirm(false);
       setCustomerToDelete(null);
@@ -131,15 +203,114 @@ export default function CustomerListPanel() {
       email: customer.email,
       address: customer.address,
     });
+    
+    // 触发选择回调并关闭弹窗
+    if (onSelect) {
+      onSelect(customer);
+    }
+    if (onClose) {
+      onClose();
+    }
   };
 
-  // 过滤客户
-  const filteredCustomers = customers.filter(customer => 
-    customer.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm)
-  );
+  // 下载客户列表
+  const handleDownload = () => {
+    const headers = [
+      '公司名称', '项目名称', '联系人', '电话', '邮箱', '地址',
+      '银行名称', '银行账号', '税号', '信用额度', '付款方式', '备注'
+    ];
+    
+    const rows = customers.map(c => [
+      c.companyName,
+      c.projectName,
+      c.contactPerson,
+      c.phone,
+      c.email,
+      c.address,
+      c.bankName || '',
+      c.bankAccount || '',
+      c.taxNumber || '',
+      c.creditLimit || '',
+      c.paymentTerms || '',
+      c.notes || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `客户列表_${new Date().toLocaleDateString()}.csv`;
+    link.click();
+
+    toast({
+      title: '下载成功',
+      description: '客户列表已下载',
+    });
+  };
+
+  // 批量导入客户
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split('\n').slice(1); // 跳过表头
+
+      const importPromises = lines
+        .filter(line => line.trim())
+        .map(line => {
+          const values = line.match(/"([^"]*)"/g)?.map(v => v.slice(1, -1)) || [];
+          
+          if (values.length >= 3) {
+            return fetch('/api/customers', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                companyName: values[0] || '',
+                projectName: values[1] || '',
+                contactPerson: values[2] || '',
+                phone: values[3] || '',
+                email: values[4] || '',
+                address: values[5] || '',
+                bankName: values[6] || '',
+                bankAccount: values[7] || '',
+                taxNumber: values[8] || '',
+                creditLimit: parseFloat(values[9]) || 0,
+                paymentTerms: values[10] || '',
+                notes: values[11] || '',
+              }),
+            });
+          }
+          return Promise.resolve();
+        });
+
+      try {
+        await Promise.all(importPromises);
+        await fetchCustomers();
+        toast({
+          title: '导入成功',
+          description: '客户已批量导入',
+        });
+      } catch (error) {
+        console.error('批量导入失败:', error);
+        toast({
+          title: '导入失败',
+          description: '批量导入失败，请检查文件格式',
+          variant: 'destructive',
+        });
+      }
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   return (
     <>
@@ -155,13 +326,36 @@ export default function CustomerListPanel() {
                 {customers.length} 个客户记录
               </CardDescription>
             </div>
-            <Button size="sm" onClick={() => setShowAddDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              添加客户
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>
+                <FileText className="h-4 w-4 mr-2" />
+                模板
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4 mr-2" />
+                导入
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleDownload}>
+                <Download className="h-4 w-4 mr-2" />
+                导出
+              </Button>
+              <Button size="sm" onClick={() => setShowAddDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                添加客户
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* 批量导入隐藏输入 */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleImport}
+            className="hidden"
+          />
+
           {/* 搜索框 */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -177,12 +371,12 @@ export default function CustomerListPanel() {
           <div className="space-y-2 max-h-[400px] overflow-y-auto">
             {loading ? (
               <div className="text-center text-gray-500 py-8">加载中...</div>
-            ) : filteredCustomers.length === 0 ? (
+            ) : customers.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
                 {searchTerm ? '未找到匹配的客户' : '暂无客户记录'}
               </div>
             ) : (
-              filteredCustomers.map((customer) => (
+              customers.map((customer) => (
                 <div
                   key={customer.id}
                   className={`border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
@@ -210,14 +404,18 @@ export default function CustomerListPanel() {
                           <Phone className="h-3 w-3 ml-2" />
                           <span>{customer.phone}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-3 w-3" />
-                          <span className="truncate">{customer.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-3 w-3" />
-                          <span className="truncate">{customer.address}</span>
-                        </div>
+                        {customer.email && (
+                          <div className="flex items-center gap-2">
+                            <Mail className="h-3 w-3" />
+                            <span className="truncate">{customer.email}</span>
+                          </div>
+                        )}
+                        {customer.bankName && (
+                          <div className="flex items-center gap-2 text-blue-600">
+                            <CreditCard className="h-3 w-3" />
+                            <span className="truncate">{customer.bankName}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -226,7 +424,10 @@ export default function CustomerListPanel() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => handleSelectCustomer(customer)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectCustomer(customer);
+                        }}
                       >
                         <Check className="h-4 w-4" />
                       </Button>
@@ -234,7 +435,10 @@ export default function CustomerListPanel() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeleteCustomer(customer)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCustomer(customer);
+                        }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -244,21 +448,6 @@ export default function CustomerListPanel() {
               ))
             )}
           </div>
-
-          {/* 当前选中的客户信息 */}
-          {selectedCustomer && (
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="text-sm font-medium text-blue-900 mb-2">
-                当前选中客户
-              </div>
-              <div className="text-xs text-blue-700 space-y-1">
-                <div><span className="font-medium">公司:</span> {selectedCustomer.companyName}</div>
-                <div><span className="font-medium">项目:</span> {selectedCustomer.projectName}</div>
-                <div><span className="font-medium">联系人:</span> {selectedCustomer.contactPerson}</div>
-                <div><span className="font-medium">电话:</span> {selectedCustomer.phone}</div>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -287,16 +476,31 @@ export default function CustomerListPanel() {
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onAdd={handleAddCustomer}
+        templates={templates}
+      />
+
+      {/* 模板管理对话框 */}
+      <TemplateDialog
+        open={showTemplateDialog}
+        onOpenChange={setShowTemplateDialog}
+        templates={templates}
+        setTemplates={saveTemplates}
       />
     </>
   );
 }
 
 // 添加客户对话框组件
-function AddCustomerDialog({ open, onOpenChange, onAdd }: {
+function AddCustomerDialog({ 
+  open, 
+  onOpenChange, 
+  onAdd,
+  templates 
+}: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (customer: Omit<Customer, 'id'>) => Promise<Customer | null>;
+  templates: CustomerTemplate[];
 }) {
   const [formData, setFormData] = useState({
     companyName: '',
@@ -305,6 +509,12 @@ function AddCustomerDialog({ open, onOpenChange, onAdd }: {
     phone: '',
     email: '',
     address: '',
+    bankName: '',
+    bankAccount: '',
+    taxNumber: '',
+    paymentTerms: '',
+    creditLimit: 0,
+    notes: '',
   });
 
   const handleSubmit = async () => {
@@ -322,13 +532,37 @@ function AddCustomerDialog({ open, onOpenChange, onAdd }: {
         phone: '',
         email: '',
         address: '',
+        bankName: '',
+        bankAccount: '',
+        taxNumber: '',
+        paymentTerms: '',
+        creditLimit: 0,
+        notes: '',
       });
     }
   };
 
+  // 应用模板
+  const applyTemplate = (template: CustomerTemplate) => {
+    setFormData({
+      companyName: template.companyName,
+      projectName: template.projectName,
+      contactPerson: template.contactPerson,
+      phone: template.phone,
+      email: template.email,
+      address: template.address,
+      bankName: template.bankName,
+      bankAccount: template.bankAccount,
+      taxNumber: template.taxNumber,
+      paymentTerms: template.paymentTerms,
+      creditLimit: 0,
+      notes: template.notes,
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>添加新客户</DialogTitle>
           <DialogDescription>
@@ -336,61 +570,148 @@ function AddCustomerDialog({ open, onOpenChange, onAdd }: {
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid grid-cols-2 gap-4 py-4">
-          <div className="space-y-2">
-            <Label className="text-xs">公司名称 <span className="text-red-500">*</span></Label>
-            <Input
-              value={formData.companyName}
-              onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-              placeholder="XX工程有限公司"
-            />
+        {templates.length > 0 && (
+          <div className="space-y-2 pb-4 border-b">
+            <Label className="text-xs font-medium">快速应用模板</Label>
+            <div className="flex gap-2 flex-wrap">
+              {templates.map((template, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => applyTemplate(template)}
+                >
+                  <FileText className="h-3 w-3 mr-1" />
+                  {template.name}
+                </Button>
+              ))}
+            </div>
           </div>
+        )}
+        
+        <Tabs defaultValue="basic" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="basic">基本信息</TabsTrigger>
+            <TabsTrigger value="financial">财务信息</TabsTrigger>
+          </TabsList>
           
-          <div className="space-y-2">
-            <Label className="text-xs">项目名称</Label>
-            <Input
-              value={formData.projectName}
-              onChange={(e) => setFormData({...formData, projectName: e.target.value})}
-              placeholder="污水处理设备采购项目"
-            />
-          </div>
+          <TabsContent value="basic" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">公司名称 <span className="text-red-500">*</span></Label>
+                <Input
+                  value={formData.companyName}
+                  onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                  placeholder="XX工程有限公司"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">项目名称</Label>
+                <Input
+                  value={formData.projectName}
+                  onChange={(e) => setFormData({...formData, projectName: e.target.value})}
+                  placeholder="污水处理设备采购项目"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">联系人 <span className="text-red-500">*</span></Label>
+                <Input
+                  value={formData.contactPerson}
+                  onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
+                  placeholder="张经理"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">电话 <span className="text-red-500">*</span></Label>
+                <Input
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  placeholder="13912345678"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">邮箱</Label>
+                <Input
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  placeholder="contact@example.com"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">地址</Label>
+                <Input
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  placeholder="XX省XX市XX区XX路XX号"
+                />
+              </div>
+            </div>
+          </TabsContent>
           
-          <div className="space-y-2">
-            <Label className="text-xs">联系人 <span className="text-red-500">*</span></Label>
-            <Input
-              value={formData.contactPerson}
-              onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
-              placeholder="张经理"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label className="text-xs">电话 <span className="text-red-500">*</span></Label>
-            <Input
-              value={formData.phone}
-              onChange={(e) => setFormData({...formData, phone: e.target.value})}
-              placeholder="13912345678"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label className="text-xs">邮箱</Label>
-            <Input
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              placeholder="contact@example.com"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label className="text-xs">地址</Label>
-            <Input
-              value={formData.address}
-              onChange={(e) => setFormData({...formData, address: e.target.value})}
-              placeholder="XX省XX市XX区XX路XX号"
-            />
-          </div>
-        </div>
+          <TabsContent value="financial" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-2">
+                  <CreditCard className="h-3 w-3" />
+                  银行名称
+                </Label>
+                <Input
+                  value={formData.bankName}
+                  onChange={(e) => setFormData({...formData, bankName: e.target.value})}
+                  placeholder="中国建设银行XX分行"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-2">
+                  <DollarSign className="h-3 w-3" />
+                  银行账号
+                </Label>
+                <Input
+                  value={formData.bankAccount}
+                  onChange={(e) => setFormData({...formData, bankAccount: e.target.value})}
+                  placeholder="6222 0000 0000 0000"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-2">
+                  <FileText className="h-3 w-3" />
+                  税号
+                </Label>
+                <Input
+                  value={formData.taxNumber}
+                  onChange={(e) => setFormData({...formData, taxNumber: e.target.value})}
+                  placeholder="91310000XXXXXXXXXX"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">付款方式</Label>
+                <Input
+                  value={formData.paymentTerms}
+                  onChange={(e) => setFormData({...formData, paymentTerms: e.target.value})}
+                  placeholder="月结30天"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-xs">备注</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                placeholder="其他备注信息..."
+                rows={3}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -400,6 +721,306 @@ function AddCustomerDialog({ open, onOpenChange, onAdd }: {
             添加
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// 模板管理对话框
+function TemplateDialog({ 
+  open, 
+  onOpenChange, 
+  templates,
+  setTemplates 
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  templates: CustomerTemplate[];
+  setTemplates: (templates: CustomerTemplate[]) => void;
+}) {
+  const [editingTemplate, setEditingTemplate] = useState<CustomerTemplate | null>(null);
+  const [formData, setFormData] = useState<CustomerTemplate>({
+    name: '',
+    companyName: '',
+    projectName: '',
+    contactPerson: '',
+    phone: '',
+    email: '',
+    address: '',
+    bankName: '',
+    bankAccount: '',
+    taxNumber: '',
+    paymentTerms: '',
+    notes: '',
+  });
+
+  const handleSaveTemplate = () => {
+    if (!formData.name.trim()) {
+      alert('请输入模板名称');
+      return;
+    }
+
+    if (editingTemplate) {
+      // 更新模板
+      const index = templates.findIndex(t => t.name === editingTemplate.name);
+      if (index !== -1) {
+        const newTemplates = [...templates];
+        newTemplates[index] = formData;
+        setTemplates(newTemplates);
+      }
+    } else {
+      // 添加新模板
+      setTemplates([...templates, formData]);
+    }
+
+    setEditingTemplate(null);
+    setFormData({
+      name: '',
+      companyName: '',
+      projectName: '',
+      contactPerson: '',
+      phone: '',
+      email: '',
+      address: '',
+      bankName: '',
+      bankAccount: '',
+      taxNumber: '',
+      paymentTerms: '',
+      notes: '',
+    });
+  };
+
+  const handleEditTemplate = (template: CustomerTemplate) => {
+    setEditingTemplate(template);
+    setFormData(template);
+  };
+
+  const handleDeleteTemplate = (templateName: string) => {
+    if (confirm(`确定要删除模板 "${templateName}" 吗？`)) {
+      setTemplates(templates.filter(t => t.name !== templateName));
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>客户信息模板</DialogTitle>
+          <DialogDescription>
+            管理客户信息模板，快速填充常用信息
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          {/* 模板列表 */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium">现有模板</Label>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => {
+                  setEditingTemplate(null);
+                  setFormData({
+                    name: '',
+                    companyName: '',
+                    projectName: '',
+                    contactPerson: '',
+                    phone: '',
+                    email: '',
+                    address: '',
+                    bankName: '',
+                    bankAccount: '',
+                    taxNumber: '',
+                    paymentTerms: '',
+                    notes: '',
+                  });
+                }}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                新建模板
+              </Button>
+            </div>
+            
+            {templates.length === 0 ? (
+              <div className="text-center text-gray-500 py-4 border rounded-lg">
+                暂无模板，点击"新建模板"创建
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {templates.map((template, index) => (
+                  <div
+                    key={index}
+                    className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleEditTemplate(template)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-sm">{template.name}</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-red-500"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTemplate(template.name);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <div>{template.companyName}</div>
+                      <div>{template.contactPerson} - {template.phone}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 编辑/新建模板 */}
+          <div className="border-t pt-4 space-y-4">
+            <h3 className="font-medium text-sm">
+              {editingTemplate ? '编辑模板' : '新建模板'}
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">模板名称 <span className="text-red-500">*</span></Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  placeholder="例如：政府客户模板"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">公司名称</Label>
+                <Input
+                  value={formData.companyName}
+                  onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                  placeholder="XX工程有限公司"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">项目名称</Label>
+                <Input
+                  value={formData.projectName}
+                  onChange={(e) => setFormData({...formData, projectName: e.target.value})}
+                  placeholder="污水处理设备采购项目"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">联系人</Label>
+                <Input
+                  value={formData.contactPerson}
+                  onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
+                  placeholder="张经理"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">电话</Label>
+                <Input
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  placeholder="13912345678"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">邮箱</Label>
+                <Input
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  placeholder="contact@example.com"
+                />
+              </div>
+              
+              <div className="space-y-2 col-span-2">
+                <Label className="text-xs">地址</Label>
+                <Input
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  placeholder="XX省XX市XX区XX路XX号"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">银行名称</Label>
+                <Input
+                  value={formData.bankName}
+                  onChange={(e) => setFormData({...formData, bankName: e.target.value})}
+                  placeholder="中国建设银行XX分行"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">银行账号</Label>
+                <Input
+                  value={formData.bankAccount}
+                  onChange={(e) => setFormData({...formData, bankAccount: e.target.value})}
+                  placeholder="6222 0000 0000 0000"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">税号</Label>
+                <Input
+                  value={formData.taxNumber}
+                  onChange={(e) => setFormData({...formData, taxNumber: e.target.value})}
+                  placeholder="91310000XXXXXXXXXX"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">付款方式</Label>
+                <Input
+                  value={formData.paymentTerms}
+                  onChange={(e) => setFormData({...formData, paymentTerms: e.target.value})}
+                  placeholder="月结30天"
+                />
+              </div>
+              
+              <div className="space-y-2 col-span-2">
+                <Label className="text-xs">备注</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  placeholder="其他备注信息..."
+                  rows={2}
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => {
+                setEditingTemplate(null);
+                setFormData({
+                  name: '',
+                  companyName: '',
+                  projectName: '',
+                  contactPerson: '',
+                  phone: '',
+                  email: '',
+                  address: '',
+                  bankName: '',
+                  bankAccount: '',
+                  taxNumber: '',
+                  paymentTerms: '',
+                  notes: '',
+                });
+              }}>
+                取消
+              </Button>
+              <Button onClick={handleSaveTemplate}>
+                保存模板
+              </Button>
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
