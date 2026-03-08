@@ -30,37 +30,39 @@ export default function CustomerPanel() {
   const [showCustomerList, setShowCustomerList] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 本地状态
+  // 本地状态 - 确保所有字段都初始化为空字符串
+  const customerInfo = quoteData?.customerInfo;
   const [formData, setFormData] = useState({
-    name: quoteData?.customerInfo?.name || '',
-    projectName: quoteData?.customerInfo?.projectName || '',
-    contactPerson: quoteData?.customerInfo?.contactPerson || '',
-    phone: quoteData?.customerInfo?.phone || '',
-    email: quoteData?.customerInfo?.email || '',
-    address: quoteData?.customerInfo?.address || '',
-    bankName: quoteData?.customerInfo?.bankName || '',
-    bankAccount: quoteData?.customerInfo?.bankAccount || '',
-    taxNumber: quoteData?.customerInfo?.taxNumber || '',
-    paymentTerms: quoteData?.customerInfo?.paymentTerms || '',
-    creditLimit: quoteData?.customerInfo?.creditLimit || 0,
-    notes: quoteData?.customerInfo?.notes || '',
+    name: customerInfo?.name ?? '',
+    projectName: customerInfo?.projectName ?? '',
+    contactPerson: customerInfo?.contactPerson ?? '',
+    phone: customerInfo?.phone ?? '',
+    email: customerInfo?.email ?? '',
+    address: customerInfo?.address ?? '',
+    bankName: customerInfo?.bankName ?? '',
+    bankAccount: customerInfo?.bankAccount ?? '',
+    taxNumber: customerInfo?.taxNumber ?? '',
+    paymentTerms: customerInfo?.paymentTerms ?? '',
+    creditLimit: customerInfo?.creditLimit ?? 0,
+    notes: customerInfo?.notes ?? '',
   });
 
   // 同步quoteData到本地状态
   useEffect(() => {
+    const info = quoteData?.customerInfo;
     setFormData({
-      name: quoteData?.customerInfo?.name || '',
-      projectName: quoteData?.customerInfo?.projectName || '',
-      contactPerson: quoteData?.customerInfo?.contactPerson || '',
-      phone: quoteData?.customerInfo?.phone || '',
-      email: quoteData?.customerInfo?.email || '',
-      address: quoteData?.customerInfo?.address || '',
-      bankName: quoteData?.customerInfo?.bankName || '',
-      bankAccount: quoteData?.customerInfo?.bankAccount || '',
-      taxNumber: quoteData?.customerInfo?.taxNumber || '',
-      paymentTerms: quoteData?.customerInfo?.paymentTerms || '',
-      creditLimit: quoteData?.customerInfo?.creditLimit || 0,
-      notes: quoteData?.customerInfo?.notes || '',
+      name: info?.name ?? '',
+      projectName: info?.projectName ?? '',
+      contactPerson: info?.contactPerson ?? '',
+      phone: info?.phone ?? '',
+      email: info?.email ?? '',
+      address: info?.address ?? '',
+      bankName: info?.bankName ?? '',
+      bankAccount: info?.bankAccount ?? '',
+      taxNumber: info?.taxNumber ?? '',
+      paymentTerms: info?.paymentTerms ?? '',
+      creditLimit: info?.creditLimit ?? 0,
+      notes: info?.notes ?? '',
     });
   }, [quoteData?.customerInfo]);
 
