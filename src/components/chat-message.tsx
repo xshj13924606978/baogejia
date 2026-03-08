@@ -881,16 +881,16 @@ const SimpleMarkdown = ({ content }: { content: string }) => {
   html = addSectionNumbers(html);
 
   // 后处理：增强章节分隔和视觉层次
-  // 1. 为一级标题添加底部边距和分隔线（左对齐，字号大于正文两个号）
+  // 1. 为一级标题添加底部边距和分隔线（左对齐）
   html = html.replace(
     /<h1([^>]*)>([\s\S]*?)<\/h1>/g,
-    '<h1 class="scroll-m-20 text-xl font-bold tracking-tight mb-4 pb-2 border-b-2 border-border text-left"$1>$2</h1>'
+    '<h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mb-6 pb-4 border-b-2 border-border text-left"$1>$2</h1>'
   );
 
-  // 2. 为二级标题添加左边框和背景色
+  // 2. 为二级标题添加左边框和背景色（字号小于一级目录）
   html = html.replace(
     /<h2([^>]*)>([\s\S]*?)<\/h2>/g,
-    '<h2 class="scroll-m-20 border-l-4 border-primary pl-4 py-2 my-6 bg-muted/50 text-2xl font-semibold tracking-tight"$1>$2</h2>'
+    '<h2 class="scroll-m-20 border-l-4 border-primary pl-4 py-2 my-6 bg-muted/50 text-xl font-semibold tracking-tight"$1>$2</h2>'
   );
 
   // 3. 为三级标题添加左边框（颜色递变）和左缩进
@@ -935,11 +935,11 @@ const SimpleMarkdown = ({ content }: { content: string }) => {
       let processedHtml = htmlWithoutMermaid;
       processedHtml = processedHtml.replace(
         /<h1([^>]*)>([\s\S]*?)<\/h1>/g,
-        '<h1 class="scroll-m-20 text-xl font-bold tracking-tight mb-4 pb-2 border-b-2 border-border text-left"$1>$2</h1>'
+        '<h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mb-6 pb-4 border-b-2 border-border text-left"$1>$2</h1>'
       );
       processedHtml = processedHtml.replace(
         /<h2([^>]*)>([\s\S]*?)<\/h2>/g,
-        '<h2 class="scroll-m-20 border-l-4 border-primary pl-4 py-2 my-6 bg-muted/50 text-2xl font-semibold tracking-tight"$1>$2</h2>'
+        '<h2 class="scroll-m-20 border-l-4 border-primary pl-4 py-2 my-6 bg-muted/50 text-xl font-semibold tracking-tight"$1>$2</h2>'
       );
       processedHtml = processedHtml.replace(
         /<h3([^>]*)>([\s\S]*?)<\/h3>/g,
