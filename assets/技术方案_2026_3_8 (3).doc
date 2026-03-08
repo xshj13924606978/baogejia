@@ -1,0 +1,324 @@
+﻿
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>技术方案</title>
+  <style>
+    /* 页面设置 */
+    @page {
+      size: A4;
+      margin: 2cm 1.5cm;
+    }
+    
+    @media print {
+      body {
+        padding: 0;
+      }
+    }
+    
+    body {
+      font-family: "Microsoft YaHei UI", "Microsoft YaHei", "SimSun", "Arial Unicode MS", Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #333333;
+      margin: 0;
+      padding: 0;
+      background: white;
+    }
+    
+    /* 封面样式 - 简洁商务 */
+    .cover {
+      text-align: center;
+      padding: 80pt 0;
+      page-break-after: always;
+      background: #1e40af;
+      color: white;
+      min-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .cover-title {
+      font-size: 36pt;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 20pt;
+      letter-spacing: 4pt;
+    }
+
+    .cover-subtitle {
+      font-size: 18pt;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 60pt;
+      font-weight: normal;
+      letter-spacing: 2pt;
+    }
+
+    .cover-info {
+      font-size: 12pt;
+      color: rgba(255,255,255,0.85);
+      margin-top: 50pt;
+      line-height: 2;
+    }
+
+    .cover-info p {
+      text-indent: 0;
+      margin: 8pt 0;
+      color: rgba(255,255,255,0.9);
+      font-weight: normal;
+    }
+
+    .cover-logo {
+      font-size: 14pt;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 12pt;
+      letter-spacing: 1pt;
+    }
+    
+    /* 页眉 - 简洁 */
+    .header {
+      border-bottom: 2px solid #1e40af;
+      padding-bottom: 10pt;
+      margin-bottom: 24pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-title {
+      font-size: 13pt;
+      font-weight: 600;
+      color: #1e40af;
+    }
+
+    .header-date {
+      font-size: 11pt;
+      color: #64748b;
+    }
+    
+    /* 标题样式 - 简洁商务 */
+    h1 {
+      font-size: 20pt;
+      font-weight: 600;
+      color: #1e40af;
+      margin-top: 30pt;
+      margin-bottom: 20pt;
+      padding-bottom: 10pt;
+      border-bottom: 2px solid #3b82f6;
+      text-align: center;
+      page-break-after: avoid;
+    }
+
+    h2 {
+      font-size: 15pt;
+      font-weight: 600;
+      color: #1e40af;
+      margin-top: 25pt;
+      margin-bottom: 15pt;
+      padding-left: 12pt;
+      border-left: 4px solid #3b82f6;
+      background: #f0f9ff;
+      padding-top: 8pt;
+      padding-bottom: 8pt;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 13pt;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 20pt;
+      margin-bottom: 12pt;
+      padding-left: 10pt;
+      border-left: 3px solid #60a5fa;
+      page-break-after: avoid;
+    }
+    
+    /* 段落样式 - 简洁 */
+    p {
+      margin-bottom: 12pt;
+      text-align: justify;
+      text-indent: 2em;
+      font-size: 11pt;
+      line-height: 1.7;
+      color: #333;
+    }
+    
+    /* 表格样式 - 简洁商务 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20pt 0;
+      border: 1px solid #cbd5e1;
+    }
+
+    th {
+      background: #1e40af;
+      color: white;
+      font-weight: 600;
+      padding: 10pt 8pt;
+      border: 1px solid #1e40af;
+      text-align: center;
+      font-size: 11pt;
+    }
+
+    td {
+      padding: 8pt 6pt;
+      border: 1px solid #cbd5e1;
+      text-align: center;
+      font-size: 11pt;
+      color: #333;
+      vertical-align: middle;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    tr:nth-child(odd) {
+      background-color: white;
+    }
+    
+    /* 列表样式 - 简洁 */
+    ul, ol {
+      margin: 15pt 0;
+      padding-left: 35pt;
+    }
+
+    li {
+      margin-bottom: 8pt;
+      font-size: 11pt;
+      line-height: 1.7;
+      color: #333;
+      text-indent: 0;
+    }
+
+    ul li {
+      list-style-type: disc;
+      color: #3b82f6;
+      margin-bottom: 8pt;
+    }
+
+    ul li::marker {
+      color: #3b82f6;
+    }
+
+    ol li {
+      list-style-type: decimal;
+      color: #333;
+    }
+    
+    ol li::marker {
+      color: #1e40af;
+      font-weight: 600;
+    }
+    
+    /* 强调文本 - 适度 */
+    strong {
+      color: #1e40af;
+      font-weight: 600;
+    }
+
+    /* 斜体文本 */
+    em {
+      color: #64748b;
+      font-style: italic;
+    }
+    
+    /* 分隔线 */
+    hr {
+      border: none;
+      border-top: 2px solid #cbd5e1;
+      margin: 32pt 0;
+    }
+    
+    /* 内容区域 */
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* 移除首行缩进的特殊情况 */
+    .cover p, ul, ol, td, th, li {
+      text-indent: 0;
+    }
+    
+    /* 防止表格和列表被分页打断 */
+    table, ul, ol {
+      page-break-inside: avoid;
+    }
+    
+    /* 章节标题前分页 */
+    h2, h3 {
+      page-break-after: avoid;
+    }
+    
+    /* 水印效果 */
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      font-size: 100px;
+      color: rgba(30, 64, 175, 0.03);
+      font-weight: 700;
+      pointer-events: none;
+      z-index: -1;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <!-- 水印 -->
+  <div class="watermark">技术方案</div>
+  
+  <!-- 封面页 -->
+  <div class="cover">
+    <div class="cover-title">技术方案</div>
+    <div class="cover-subtitle">Technical Proposal</div>
+    <div class="cover-info">
+      <p>生成日期：2026年3月8日</p>
+      <p style="margin-top: 40pt; font-size: 14pt; color: #1a56db; font-weight: 700;">智能报价管理系统</p>
+      <p style="margin-top: 20pt; font-size: 11pt; opacity: 0.8;">Professional Solution System</p>
+    </div>
+  </div>
+  
+  <!-- 正文 -->
+  <div class="content">
+    <!-- 页眉 -->
+    <div class="header">
+      <div class="header-title">技术方案</div>
+      <div class="header-date">2026年3月8日</div>
+    </div>
+    
+    <h1>垃圾转运站渗滤液处理项目技术方案</h1><h2>项目概述</h2>
+本项目旨在为日处理10吨垃圾的转运站，设计一套高效、稳定、经济的渗滤液处理系统。方案将全面覆盖从设计依据到后期运维的全生命周期管理，确保出水达标排放或回用，满足环保要求。
+<h2>系统设计依据</h2><ul><li><strong>设计规模</strong>：日处理渗滤液量 <strong>10 m³/d</strong>，按24小时连续运行设计，小时处理能力 *<em>0.42 m³/h<strong>。</strong></em></li><li> *<em>设计规范<strong>：方案遵循《生活垃圾填埋场污染控制标准》（GB 16889-2008）、《室外排水设计规范》（GB 50014-2021）及国家相关环保法规。</strong></em></li><li> *<em>设计原则<strong>：技术先进、运行稳定、操作简便、投资节省、占地集约。</li></ul><h2>设计进出水指标与排放要求</h2><table style="width: 100%; table-layout: fixed; border-collapse: collapse;"><thead><tr><th style="width: 25%">污染物指标</th><th style="width: 25%">设计进水浓度</th><th style="width: 25%">设计出水标准（一级A标准）</th><th style="width: 25%">去除率要求</th></tr></thead><tbody><tr><td style="width: 25%; word-wrap: break-word; word-break: break-all;">污染物指标</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">设计进水浓度</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">设计出水标准（一级A标准）</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">去除率要求</td></tr><tr><td style="width: 25%; word-wrap: break-word; word-break: break-all;">CODcr</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≤20000 mg/L</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≤60 mg/L</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≥99.7%</td></tr><tr><td style="width: 25%; word-wrap: break-word; word-break: break-all;">BOD5</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≤10000 mg/L</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≤10 mg/L</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≥99.9%</td></tr><tr><td style="width: 25%; word-wrap: break-word; word-break: break-all;">NH3-N</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≤1500 mg/L</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≤5 (8) mg/L</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≥99.7%</td></tr><tr><td style="width: 25%; word-wrap: break-word; word-break: break-all;">SS</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≤800 mg/L</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≤10 mg/L</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≥98.8%</td></tr><tr><td style="width: 25%; word-wrap: break-word; word-break: break-all;">TN</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≤2000 mg/L</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≤15 mg/L</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">≥99.3%</td></tr><tr><td style="width: 25%; word-wrap: break-word; word-break: break-all;">pH值</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">5.0 - 8.0</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">6.0 - 9.0</td><td style="width: 25%; word-wrap: break-word; word-break: break-all;">-</td></tr></tbody></table></strong></em>
+*<em>备注<strong>：出水标准参照《城镇污水处理厂污染物排放标准》（GB 18918-2002）一级A标准，括号外数值为水温>12℃时的控制指标。
+<h2>工艺比选与确定</h2>
+针对垃圾渗滤液高COD、高氨氮、可生化性尚可但水质波动大的特点，进行工艺比选：
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;"><thead><tr><th style="width: 20%">工艺方案</th><th style="width: 20%">核心工艺</th><th style="width: 20%">优点</th><th style="width: 20%">缺点</th><th style="width: 20%">适用性分析</th></tr></thead><tbody><tr><td style="width: 20%; word-wrap: break-word; word-break: break-all;">工艺方案</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">核心工艺</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">优点</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">缺点</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">适用性分析</td></tr><tr><td style="width: 20%; word-wrap: break-word; word-break: break-all;">方案一</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">两级A/O + MBR + 纳滤(NF)</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">脱氮除碳效率高，出水水质优且稳定，抗冲击负荷强，自动化程度高。</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">投资及运行成本相对较高，膜组件需定期清洗更换。</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">*<em>推荐<strong>。特别适合中小规模、高标准的渗滤液处理项目，能确保稳定达标。</td></tr><tr><td style="width: 20%; word-wrap: break-word; word-break: break-all;">方案二</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">混凝沉淀 + 水解酸化 + 接触氧化</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">投资较低，工艺相对简单。</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">出水稳定性较差，难以应对高氨氮，占地面积较大，污泥产量高。</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">适用于排放标准较低或预算极其有限的场景。</td></tr><tr><td style="width: 20%; word-wrap: break-word; word-break: break-all;">方案三</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">蒸发结晶（MVR）</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">减量化彻底，出水可回用，不受原水水质波动影响。</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">能耗极高，投资巨大，易结垢，运行维护复杂。</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">适用于零排放要求或浓缩液最终处置。</td></tr></tbody></table></strong></em><strong>结论</strong>：综合技术可靠性、达标保障及本项目规模，*<em>推荐采用“预处理 + 两级A/O + MBR + 纳滤(NF)”组合工艺<strong>作为本方案的核心。
+<h2>工艺流程说明</strong></em></h2><ul><li><strong>预处理单元</strong>：渗滤液原水经<strong>格栅</strong>去除大颗粒杂物后，进入*<em>调节池<strong>，均质均量，缓冲水质水量波动。</strong></em></li><li><strong>生化处理单元</strong>：调节池出水提升至*<em>两级A/O生化池<strong>。一级A/O主要进行高效碳氧化和部分硝化反硝化；二级A/O进一步深度脱氮。利用微生物降解绝大部分有机物和氨氮。</strong></em></li><li><strong>膜分离单元</strong>：生化池混合液进入*<em>MBR膜池<strong>，利用膜组件实现泥水高效分离，出水清澈，污泥被完全截留，生化系统可维持高浓度活性污泥。</strong></em></li><li><strong>深度处理单元</strong>：MBR产水进入*<em>纳滤(NF)系统<strong>，截留难降解有机物、色度及部分二价盐离子，确保COD、色度等指标稳定达标。</strong></em></li><li><strong>污泥处理单元</strong>：系统产生的剩余污泥排入<strong>污泥池</strong>，经*<em>叠螺脱水机<strong>脱水后，泥饼外运处置。</strong></em></li><li><strong>辅助系统</strong>：配套<strong>加药系统</strong>（碳源、酸碱、PAC/PAM）、<strong>仪表与自动控制系统</strong>、*<em>臭气收集与处理系统<strong>。</li></ul><h2>占地面积估算</strong></em></h2>
+整套处理系统采用一体化撬装或模块化钢结构设计，预计总占地面积约为：*<em>长15m × 宽8m = 120平方米<strong>。可根据现场地形灵活布置。
+<h2>运行成本分析（估算）</h2><table style="width: 100%; table-layout: fixed; border-collapse: collapse;"><thead><tr><th style="width: 20%">成本项</th><th style="width: 20%">单位消耗量</th><th style="width: 20%">单价</th><th style="width: 20%">日运行成本（元/天）</th><th style="width: 20%">吨水处理成本（元/吨）</th></tr></thead><tbody><tr><td style="width: 20%; word-wrap: break-word; word-break: break-all;">成本项</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">单位消耗量</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">单价</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">日运行成本（元/天）</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">吨水处理成本（元/吨）</td></tr><tr><td style="width: 20%; word-wrap: break-word; word-break: break-all;">电费</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">约80 kWh/d</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">0.8元/kWh</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">64.0</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">6.4</td></tr><tr><td style="width: 20%; word-wrap: break-word; word-break: break-all;">药剂费（碳源、酸碱等）</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">-</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">-</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">40.0</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">4.0</td></tr><tr><td style="width: 20%; word-wrap: break-word; word-break: break-all;">膜更换摊销</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">-</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">-</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">25.0</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">2.5</td></tr><tr><td style="width: 20%; word-wrap: break-word; word-break: break-all;">人工费（0.5人编制）</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">-</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">300元/人·天</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">150.0</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">15.0</td></tr><tr><td style="width: 20%; word-wrap: break-word; word-break: break-all;">维护费及其他</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">-</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">-</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">21.0</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">2.1</td></tr><tr><td style="width: 20%; word-wrap: break-word; word-break: break-all;"><strong>合计</strong></td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">-</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">-</td><td style="width: 20%; word-wrap: break-word; word-break: break-all;"><strong>300.0</strong></td><td style="width: 20%; word-wrap: break-word; word-break: break-all;">*<em>30.0<strong></td></tr></tbody></table></strong></em><strong>备注</strong>：吨水处理成本约为 *<em>30元/吨<strong>。人工费占比最高，若实现无人值守或兼管，成本可显著下降。
+<h2>详细配置清单与报价（估算）</h2><table style="width: 100%; table-layout: fixed; border-collapse: collapse;"><thead><tr><th style="width: 15%">序号</th><th style="width: 15%">设备/材料名称</th><th style="width: 15%">规格型号</th><th style="width: 15%">单位</th><th style="width: 15%">数量</th><th style="width: 15%">单价（万元）</th><th style="width: 15%">总价（万元）</th><th style="width: 15%">备注</th></tr></thead><tbody><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">序号</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">设备/材料名称</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">规格型号</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">单位</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">数量</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">单价（万元）</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">总价（万元）</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">备注</td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;"><strong>一、预处理单元</strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">*<em>6.5<strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">机械格栅</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">栅隙3mm，304不锈钢</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">台</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1.8</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1.8</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">2</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">调节池提升泵</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">Q=1m³/h，H=15m，防腐</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">台</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">2</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.5</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">一用一备</td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">3</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">调节池</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">PE材质，有效容积30m³</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">座</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">3.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">3.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">含防腐搅拌器</td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">4</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">液位控制器</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">浮球式</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">套</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">2</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.2</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.4</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;"><strong>二、生化处理单元</strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">*<em>22.0<strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">5</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">两级A/O生化池</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">碳钢防腐，总有效容积60m³</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">套</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">12.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">12.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">含填料、曝气系统、管道</td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">6</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">曝气风机</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">罗茨风机，风量1.5m³/min</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">台</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">2</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1.5</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">3.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">一用一备</td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">7</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">硝化液回流泵</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">Q=3m³/h，H=10m</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">台</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">2</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.4</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.8</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">8</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">污泥回流泵</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">Q=2m³/h，H=10m</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">台</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">2</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.4</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.8</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;"><strong>三、膜分离单元</strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">*<em>18.0<strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">9</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">MBR膜组件</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">中空纤维膜，面积100㎡</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">组</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">10.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">10.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">含膜架、集水管</td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">10</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">膜池抽吸泵</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">自吸泵，Q=0.5m³/h</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">台</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">2</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.6</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1.2</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">一用一备</td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">11</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">反洗泵</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">离心泵，Q=2m³/h</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">台</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.5</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.5</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">12</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">MBR膜池</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">碳钢防腐，配套</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">套</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">6.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">6.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;"><strong>四、深度处理单元</strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">*<em>16.0<strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">13</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">纳滤(NF)系统</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.5m³/h，卷式膜，含保安过滤器</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">套</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">14.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">14.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">14</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">清水箱</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">PE，2m³</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">个</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.8</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">0.8</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">15</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">清洗装置</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">配套</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">套</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1.2</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1.2</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;"><strong>五、污泥处理单元</strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">*<em>5.5<strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">16</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">污泥池</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">PE，5m³</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">座</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1.5</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1.5</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">17</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">叠螺式脱水机</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">处理量10kgDS/h，全自动</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">台</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">4.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">4.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;"><strong>六、辅助系统</strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">*<em>15.0<strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">18</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">加药装置（碳源、酸碱、PAC/PAM）</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">4套，PE储罐+计量泵</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">套</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">4</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1.5</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">6.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">19</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">仪表系统</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">pH、ORP、DO、液位、流量计等</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">批</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">3.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">3.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">20</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">PLC自动控制系统</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">触摸屏、柜体、编程</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">套</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">5.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">5.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">21</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">臭气处理装置</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">活性炭吸附塔</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">套</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;"><strong>七、其他费用</strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">*<em>17.0<strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">22</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">设备安装、管道、电缆</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">含管件、阀门、电缆等</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">项</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">8.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">8.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">23</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">系统调试与培训</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">项</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">3.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">3.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;">24</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">运输、税费及不可预见费</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">项</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">1</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">6.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">6.0</td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr><tr><td style="width: 15%; word-wrap: break-word; word-break: break-all;"><strong>总投资估算</strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;">*<em>100.0万元<strong></td><td style="width: 15%; word-wrap: break-word; word-break: break-all;"></td></tr></tbody></table></strong></em>
+*<em>备注<strong>：以上为交钥匙工程估算总价，具体价格可能因品牌、材质、市场波动及现场条件而异。
+<h2>项目实施步骤</strong></em></h2><ul><li> *<em>前期准备<strong>：现场勘查、技术交底、图纸深化设计。</strong></em></li><li> *<em>土建施工<strong>：设备基础施工、池体改造或制作。</strong></em></li><li> *<em>设备安装<strong>：所有设备就位、管道连接、电气接线。</strong></em></li><li> *<em>系统调试<strong>：单机调试、清水联动调试、工艺参数驯化（投加菌种、活性污泥培养）。</strong></em></li><li> *<em>试运行与验收<strong>：带负荷连续运行30天，检测出水水质，进行环保竣工验收。</strong></em></li><li> *<em>技术培训与移交<strong>：对业主操作人员进行全面培训，移交全套技术资料。</li></ul><h2>安全防护措施</strong></em></h2><ul><li>*<em>电气安全<strong>：所有电气设备接地、防雷，控制柜设漏电保护。</strong></em></li><li>*<em>操作安全<strong>：设备转动部位加防护罩，高空及池边设置护栏和警示标志。</strong></em></li><li>*<em>化学品安全<strong>：加药间独立设置，通风良好，配备防护用具和应急冲洗装置。</strong></em></li><li>*<em>有限空间作业<strong>：进入池体检修前，必须强制通风、检测有害气体，并执行审批监护制度。</li></ul><h2>竣工验收</h2><ul><li> 提供完整的竣工图纸、设备说明书、合格证。</li><li> 提供系统调试报告及连续30天的第三方水质检测报告（证明出水稳定达标）。</li><li> 双方签署《工程竣工验收报告》及《设备移交清单》。</li></ul><h2>维护保养计划</strong></em></h2><ul><li>*<em>日常维护<strong>：每日巡检设备运行状态、仪表读数，记录运行参数，清理格栅。</strong></em></li><li>*<em>定期保养<strong>：</li></ul>  - 每月：检查风机润滑油、清洗泵类过滤器。
+  - 每季度：对MBR膜进行化学清洗，校准在线仪表。
+  - 每年：进行全面检修，检查更换易损件，风机大保养。</strong></em><ul><li>*<em>膜组件维护<strong>：严格按照操作规程进行在线反洗和离线化学清洗，延长膜寿命（通常3-5年更换）。</li></ul><h2>售后服务与运维支持</strong></em></h2><ul><li> *<em>质保期<strong>：整体工程质保一年，膜组件质保两年（非人为损坏）。质保期内免费维修或更换故障部件。</strong></em></li><li> *<em>响应时间<strong>：提供7x24小时技术热线支持，接到故障通知后，2小时内响应，48小时内派员到达现场（视距离而定）。</strong></em></li><li> *<em>运维服务<strong>：可提供灵活的运维服务模式，包括：</strong></em></li></ul>    - *<em>技术指导型<strong>：远程指导，定期巡检。</strong></em>
+    - *<em>托管运营型<strong>：我方派遣人员负责全套日常运行维护，确保出水达标。</strong></em>
+    - *<em>培训服务<strong>：定期举办操作、维护专项培训。</strong></em><ul><li> *<em>备件供应<strong>：长期以优惠价格供应设备备品备件及专用药剂。</li></ul>
+---</strong></em>
+*<em>后续建议<strong>
+为使方案更精准，建议您提供以下信息：
+<ul><li> 项目所在地的具体排放标准（是国标一级A，还是地方更严格的标准）？</li><li> 现场可供使用的确切占地面积及形状？</li><li> 渗滤液原水是否有近期的水质检测报告？</li></ul></strong></em>
+*<em>快速操作<strong><ul><li>如果您认可本方案框架，我可基于您提供的进一步信息，生成更精确的报价单。</li><li>如需将方案导出为Word/PDF文档，请告知，我可调整格式供您下载。</strong></em></li></ul>
+  </div>
+</body>
+</html>

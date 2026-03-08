@@ -131,8 +131,8 @@ const parseMarkdownToHtml = (text: string): string => {
   // 处理粗体（**文本**）- 优化：避免过度加粗
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   
-  // 处理斜体（*文本*）
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // 处理斜体（*文本*）- 禁用：减少斜体使用，保持文档清晰
+  // html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   
   // 处理表格（| 列1 | 列2 |）
   // 优化：正确处理单元格中的<br>标签和换行符，并确保列宽足够
@@ -926,7 +926,7 @@ export default function ChatMessage({
     /* 页面设置 */
     @page {
       size: A4;
-      margin: 2cm 1.5cm;
+      margin: 1.5cm 1.2cm;
     }
     
     @media print {
@@ -938,7 +938,7 @@ export default function ChatMessage({
     body {
       font-family: "Microsoft YaHei UI", "Microsoft YaHei", "SimSun", "Arial Unicode MS", Arial, sans-serif;
       font-size: 11pt;
-      line-height: 1.6;
+      line-height: 1.5;
       color: #333333;
       margin: 0;
       padding: 0;
@@ -948,11 +948,11 @@ export default function ChatMessage({
     /* 封面样式 - 简洁商务 */
     .cover {
       text-align: center;
-      padding: 80pt 0;
+      padding: 60pt 0;
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 85vh;
+      min-height: 80vh;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -961,48 +961,48 @@ export default function ChatMessage({
     }
 
     .cover-title {
-      font-size: 36pt;
-      font-weight: 600;
-      color: white;
-      margin-bottom: 20pt;
-      letter-spacing: 4pt;
-    }
-
-    .cover-subtitle {
-      font-size: 18pt;
-      color: rgba(255,255,255,0.9);
-      margin-bottom: 60pt;
-      font-weight: normal;
+      font-size: 32pt;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 16pt;
       letter-spacing: 2pt;
     }
 
+    .cover-subtitle {
+      font-size: 16pt;
+      color: #e0e7ff;
+      margin-bottom: 50pt;
+      font-weight: 400;
+      letter-spacing: 1pt;
+    }
+
     .cover-info {
-      font-size: 12pt;
-      color: rgba(255,255,255,0.85);
-      margin-top: 50pt;
-      line-height: 2;
+      font-size: 11pt;
+      color: #c7d2fe;
+      margin-top: 40pt;
+      line-height: 1.8;
     }
 
     .cover-info p {
       text-indent: 0;
-      margin: 8pt 0;
-      color: rgba(255,255,255,0.9);
-      font-weight: normal;
+      margin: 6pt 0;
+      color: #e0e7ff;
+      font-weight: 400;
     }
 
     .cover-logo {
-      font-size: 14pt;
+      font-size: 13pt;
       font-weight: 600;
-      color: white;
-      margin-bottom: 12pt;
+      color: #e0e7ff;
+      margin-bottom: 10pt;
       letter-spacing: 1pt;
     }
     
     /* 页眉 - 简洁 */
     .header {
       border-bottom: 2px solid #1e40af;
-      padding-bottom: 10pt;
-      margin-bottom: 24pt;
+      padding-bottom: 8pt;
+      margin-bottom: 18pt;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -1024,9 +1024,9 @@ export default function ChatMessage({
       font-size: 20pt;
       font-weight: 600;
       color: #1e40af;
-      margin-top: 30pt;
-      margin-bottom: 20pt;
-      padding-bottom: 10pt;
+      margin-top: 24pt;
+      margin-bottom: 16pt;
+      padding-bottom: 8pt;
       border-bottom: 2px solid #3b82f6;
       text-align: center;
       page-break-after: avoid;
@@ -1036,8 +1036,8 @@ export default function ChatMessage({
       font-size: 15pt;
       font-weight: 600;
       color: #1e40af;
-      margin-top: 25pt;
-      margin-bottom: 15pt;
+      margin-top: 20pt;
+      margin-bottom: 12pt;
       padding-left: 12pt;
       border-left: 4px solid #3b82f6;
       background: #f0f9ff;
@@ -1050,8 +1050,8 @@ export default function ChatMessage({
       font-size: 13pt;
       font-weight: 600;
       color: #334155;
-      margin-top: 20pt;
-      margin-bottom: 12pt;
+      margin-top: 16pt;
+      margin-bottom: 10pt;
       padding-left: 10pt;
       border-left: 3px solid #60a5fa;
       page-break-after: avoid;
@@ -1059,11 +1059,11 @@ export default function ChatMessage({
     
     /* 段落样式 - 简洁 */
     p {
-      margin-bottom: 12pt;
+      margin-bottom: 10pt;
       text-align: justify;
       text-indent: 2em;
       font-size: 11pt;
-      line-height: 1.7;
+      line-height: 1.6;
       color: #333;
     }
     
@@ -1071,7 +1071,7 @@ export default function ChatMessage({
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 20pt 0;
+      margin: 16pt 0;
       border: 1px solid #cbd5e1;
     }
 
@@ -1104,14 +1104,14 @@ export default function ChatMessage({
     
     /* 列表样式 - 简洁 */
     ul, ol {
-      margin: 15pt 0;
-      padding-left: 35pt;
+      margin: 12pt 0;
+      padding-left: 30pt;
     }
 
     li {
-      margin-bottom: 8pt;
+      margin-bottom: 6pt;
       font-size: 11pt;
-      line-height: 1.7;
+      line-height: 1.6;
       color: #333;
       text-indent: 0;
     }
@@ -1119,7 +1119,7 @@ export default function ChatMessage({
     ul li {
       list-style-type: disc;
       color: #3b82f6;
-      margin-bottom: 8pt;
+      margin-bottom: 6pt;
     }
 
     ul li::marker {
@@ -1272,7 +1272,7 @@ export default function ChatMessage({
     /* 打印设置 */
     @page {
       size: A4;
-      margin: 2cm 1.5cm;
+      margin: 1.5cm 1.2cm;
     }
     
     @media print {
@@ -1283,8 +1283,8 @@ export default function ChatMessage({
       /* 分页控制 - 移除H2强制分页，使用更智能的分页策略 */
       h2 {
         page-break-before: auto;
-        margin-top: 40px;
-        margin-bottom: 20px;
+        margin-top: 32px;
+        margin-bottom: 16px;
       }
 
       h2:first-child {
@@ -1340,20 +1340,20 @@ export default function ChatMessage({
     
     body {
       font-family: "Microsoft YaHei", "SimSun", Arial, sans-serif;
-      line-height: 1.8;
+      line-height: 1.6;
       color: #333;
       margin: 0;
-      padding: 20px;
+      padding: 16px;
     }
     
     /* 封面样式 */
     .cover {
       text-align: center;
-      padding: 80px 0;
+      padding: 60px 0;
       page-break-after: always;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
       color: white;
-      min-height: 90vh;
+      min-height: 85vh;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -1362,40 +1362,40 @@ export default function ChatMessage({
     }
     
     .cover-title {
-      font-size: 42px;
+      font-size: 32px;
       font-weight: bold;
-      color: white;
+      color: #e0e7ff;
       margin-bottom: 20px;
-      letter-spacing: 5px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+      letter-spacing: 4px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     }
     
     .cover-subtitle {
-      font-size: 20px;
-      color: rgba(255,255,255,0.9);
-      margin-bottom: 80px;
+      font-size: 18px;
+      color: #cbd5e1;
+      margin-bottom: 60px;
       font-weight: 300;
-      letter-spacing: 2px;
+      letter-spacing: 1.5px;
     }
     
     .cover-info {
-      font-size: 14px;
-      color: rgba(255,255,255,0.8);
-      margin-top: 60px;
-      line-height: 2;
+      font-size: 13px;
+      color: #e2e8f0;
+      margin-top: 40px;
+      line-height: 1.8;
     }
     
     .cover-info p {
       text-indent: 0;
-      margin: 10px 0;
-      color: rgba(255,255,255,0.9);
+      margin: 8px 0;
+      color: #e2e8f0;
     }
     
     /* 页眉 */
     .header {
       border-bottom: 2px solid #3b82f6;
-      padding-bottom: 16px;
-      margin-bottom: 36px;
+      padding-bottom: 12px;
+      margin-bottom: 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -1417,9 +1417,9 @@ export default function ChatMessage({
       font-size: 28px;
       font-weight: 700;
       color: #1e40af;
-      margin-top: 50px;
-      margin-bottom: 28px;
-      padding-bottom: 12px;
+      margin-top: 40px;
+      margin-bottom: 24px;
+      padding-bottom: 10px;
       border-bottom: 3px solid #3b82f6;
       text-align: center;
     }
@@ -1428,8 +1428,8 @@ export default function ChatMessage({
       font-size: 20px;
       font-weight: 600;
       color: #1e3a8a;
-      margin-top: 40px;
-      margin-bottom: 20px;
+      margin-top: 32px;
+      margin-bottom: 16px;
       padding-left: 18px;
       padding-right: 15px;
       padding-top: 14px;
@@ -1443,8 +1443,8 @@ export default function ChatMessage({
       font-size: 17px;
       font-weight: 600;
       color: #334155;
-      margin-top: 28px;
-      margin-bottom: 16px;
+      margin-top: 24px;
+      margin-bottom: 14px;
       padding-left: 14px;
       border-left: 4px solid #60a5fa;
       line-height: 1.6;
@@ -1452,11 +1452,11 @@ export default function ChatMessage({
     
     /* 段落样式 */
     p {
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       text-align: justify;
       text-indent: 2em;
       font-size: 14px;
-      line-height: 1.95;
+      line-height: 1.8;
       color: #334155;
     }
     
@@ -1464,7 +1464,7 @@ export default function ChatMessage({
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 25px 0;
+      margin: 20px 0;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       border-radius: 6px;
       overflow: hidden;
@@ -1476,7 +1476,7 @@ export default function ChatMessage({
       background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
       color: white;
       font-weight: 600;
-      padding: 14px 12px;
+      padding: 12px 10px;
       border: 1px solid #1e40af;
       text-align: center;
       font-size: 13px;
@@ -1488,13 +1488,13 @@ export default function ChatMessage({
     }
 
     td {
-      padding: 12px 10px;
+      padding: 10px 8px;
       border: 1px solid #e2e8f0;
       text-align: center;
       font-size: 12px;
       color: #334155;
       vertical-align: middle;
-      line-height: 1.8;
+      line-height: 1.6;
       word-wrap: break-word;
       overflow-wrap: break-word;
       hyphens: auto;
@@ -1525,20 +1525,20 @@ export default function ChatMessage({
     /* 表格中的换行处理 */
     td br {
       display: block;
-      margin: 4px 0;
+      margin: 3px 0;
       content: "";
     }
     
     /* 列表样式 */
     ul, ol {
-      margin: 20px 0;
-      padding-left: 50px;
+      margin: 16px 0;
+      padding-left: 45px;
     }
 
     li {
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       font-size: 14px;
-      line-height: 1.95;
+      line-height: 1.8;
       color: #334155;
     }
 
@@ -1582,7 +1582,7 @@ export default function ChatMessage({
     hr {
       border: none;
       border-top: 2px solid #cbd5e1;
-      margin: 36px 0;
+      margin: 28px 0;
     }
 
     /* 分隔线变体 */
@@ -1645,7 +1645,7 @@ export default function ChatMessage({
     <div class="cover-subtitle">Technical Proposal</div>
     <div class="cover-info">
       <p>生成日期：${currentDate}</p>
-      <p style="margin-top: 30px; font-size: 16px; color: #1a56db;">智能报价管理系统</p>
+      <p style="margin-top: 30px; font-size: 16px; color: #cbd5e1;">智能报价管理系统</p>
     </div>
   </div>
   
