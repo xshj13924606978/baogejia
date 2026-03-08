@@ -1142,10 +1142,10 @@ export default function ChatMessage({
       font-weight: 600;
     }
 
-    /* 斜体文本 */
+    /* 斜体文本 - 禁用斜体，保持文档清晰 */
     em {
       color: #64748b;
-      font-style: italic;
+      font-style: normal;
     }
     
     /* 分隔线 */
@@ -1261,6 +1261,16 @@ export default function ChatMessage({
       month: 'long',
       day: 'numeric'
     });
+    
+    // 提取方案标题（第一个 h1 标签）
+    const titleMatch = parsedContent.match(/<h1[^>]*>(.+?)<\/h1>/);
+    const projectTitle = titleMatch ? titleMatch[1] : '技术方案';
+    
+    // 获取供应方信息
+    const supplierName = supplierInfo?.companyName || '未填写';
+    const contactPerson = supplierInfo?.contactPerson || '未填写';
+    const contactPhone = supplierInfo?.phone || '未填写';
+    const contactEmail = supplierInfo?.email || '未填写';
     
     const printContent = `
 <!DOCTYPE html>
@@ -1558,10 +1568,10 @@ export default function ChatMessage({
       font-weight: 600;
     }
 
-    /* 斜体文本 */
+    /* 斜体文本 - 禁用斜体，保持文档清晰 */
     em {
       color: #64748b;
-      font-style: italic;
+      font-style: normal;
     }
     
     /* 水印 */
@@ -1641,11 +1651,14 @@ export default function ChatMessage({
   
   <!-- 封面页 -->
   <div class="cover">
-    <div class="cover-title">技术方案</div>
+    <div class="cover-title">${projectTitle}</div>
     <div class="cover-subtitle">Technical Proposal</div>
     <div class="cover-info">
-      <p>生成日期：${currentDate}</p>
-      <p style="margin-top: 30px; font-size: 16px; color: #cbd5e1;">智能报价管理系统</p>
+      <p><strong>编制单位：</strong>${supplierName}</p>
+      <p><strong>编制人：</strong>${contactPerson}</p>
+      <p><strong>联系方式：</strong>${contactPhone}</p>
+      ${contactEmail !== '未填写' ? `<p><strong>邮箱：</strong>${contactEmail}</p>` : ''}
+      <p style="margin-top: 20px;"><strong>编制日期：</strong>${currentDate}</p>
     </div>
   </div>
   
