@@ -33,7 +33,48 @@
 - 相似产品推荐（Coze 向量搜索）
 - 批量导入产品
 
-### 5. Coze 工具集成（已预留配置）
+### 5. 智能方案增强器 🆕
+
+#### 🎯 方案增强功能
+- **技术参数细化**：提取和生成详细的技术参数（进水、工艺、出水、设备）
+- **工艺流程优化**：生成详细的工艺流程步骤和运行参数
+- **设备配置优化**：生成完整的设备配置清单和技术规格
+- **成本分析增强**：提供投资成本和运营成本详细分析
+- **实施指导**：提供项目实施的详细步骤和指导
+- **运营建议**：提供启动、日常操作、维护、故障排查等建议
+- **风险评估**：识别项目风险并提供应对措施
+- **优化建议**：提供技术、经济、运营等多维度优化建议
+
+#### 🚀 使用方式
+```bash
+# 检查增强器状态
+curl http://localhost:5000/api/proposal/enhance
+
+# 增强技术方案
+curl -X POST http://localhost:5000/api/proposal/enhance \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "action": "enhance",
+    "context": {
+      "projectType": "生活污水处理",
+      "capacity": 60,
+      "processType": "A/O工艺"
+    },
+    "originalProposal": "60吨/天生活污水处理项目...",
+    "options": {
+      "enhancementLevel": "standard"
+    }
+  }'
+```
+
+#### 📊 增强级别
+- **Basic（基础）**：技术参数 + 工艺流程 + 设备清单 + 基础成本
+- **Standard（标准）**⭐：完整技术参数 + 详细工艺 + 完整设备 + 详细成本 + 实施指导 + 运营建议
+- **Comprehensive（全面）**：所有功能 + 风险评估 + 优化建议 + 市场数据
+
+**使用指南**：见 `docs/PROPOSAL_ENHANCER_GUIDE.md`
+
+### 6. Coze 工具集成（已预留配置）
 
 #### 🌐 联网搜索
 - 实时查询产品市场价格
@@ -103,6 +144,7 @@ pnpm dev
 │   │   │   ├── chat/          # AI 对话接口（DeepSeek）
 │   │   │   ├── customers/     # 客户管理接口
 │   │   │   ├── coze/          # Coze 工具接口
+│   │   │   ├── proposal/      # 方案增强接口
 │   │   │   └── quotes/        # 报价管理接口
 │   │   ├── page.tsx           # 主页面
 │   │   └── layout.tsx         # 布局
@@ -119,6 +161,7 @@ pnpm dev
 │   │   ├── ai-service-selector.ts # 智能服务选择器
 │   │   ├── coze-tools.ts      # Coze 工具服务
 │   │   ├── quote-enhancer.ts  # 报价增强器（DeepSeek + Coze）
+│   │   ├── proposal-enhancer.ts # 方案增强器（DeepSeek）
 │   │   ├── deepseek-client.ts # DeepSeek 客户端
 │   │   ├── smart-chat-processor.ts # 智能对话处理器
 │   │   ├── logger.ts          # 日志工具
@@ -126,6 +169,7 @@ pnpm dev
 │   └── types/                 # TypeScript 类型定义
 ├── docs/                      # 文档
 │   ├── DEEPSEEK_COZE_DUAL_ENGINE.md # 双引擎架构说明
+│   ├── PROPOSAL_ENHANCER_GUIDE.md   # 方案增强器使用指南
 │   ├── COZE_QUICK_START.md    # Coze 工具快速启用
 │   ├── COZE_TOOLS_SETUP.md    # Coze 工具详细配置
 │   └── COZE_INTEGRATION_COMPLETE.md # 集成完成报告
