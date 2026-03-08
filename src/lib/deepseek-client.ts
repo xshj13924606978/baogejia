@@ -127,7 +127,7 @@ export class AIClient {
           model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
           messages: params.messages,
           temperature: params.temperature ?? 0.7,
-          max_tokens: params.maxTokens ?? 1024,
+          max_tokens: params.maxTokens ?? 8192,
           stream: false,
         }),
       });
@@ -194,7 +194,7 @@ export class AIClient {
         model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
         messages: params.messages,
         temperature: params.temperature ?? 0.7,
-        max_tokens: params.maxTokens ?? 1024,
+        max_tokens: params.maxTokens ?? 8192,
         stream: true,
       }) as Stream<ChatCompletionChunk>;
       
