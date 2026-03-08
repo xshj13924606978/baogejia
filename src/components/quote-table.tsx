@@ -838,9 +838,13 @@ export default function QuoteTable({
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [groupBy, setGroupBy] = useState<string>('none');
   const [showNotes, setShowNotes] = useState<Record<number, boolean>>({});
-  const [selectedColumns, setSelectedColumns] = useState<string[]>(
-    ALL_COLUMNS.filter(col => col.visible).map(col => col.key)
-  );
+  const [selectedColumns, setSelectedColumns] = useState<string[]>(() => {
+    // 初始化列配置，确保单价和总价列始终包含在内
+    const columns = ALL_COLUMNS.filter(col => col.visible).map(col => col.key);
+    const requiredColumns = ['unitPrice', 'totalPrice'];
+    const uniqueColumns = Array.from(new Set([...requiredColumns, ...columns]));
+    return uniqueColumns;
+  });
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [projectFields, setProjectFields] = useState<CustomField[]>([
     { id: '1', name: '联系人', value: data?.customerInfo?.contactPerson || '' },
@@ -1222,7 +1226,10 @@ export default function QuoteTable({
 
   // 保存列配置
   const handleSaveColumnConfig = () => {
-    setSelectedColumns(tempSelectedColumns);
+    // 确保单价和总价列始终包含在内
+    const requiredColumns = ['unitPrice', 'totalPrice'];
+    const uniqueColumns = Array.from(new Set([...requiredColumns, ...tempSelectedColumns]));
+    setSelectedColumns(uniqueColumns);
     setShowColumnConfig(false);
   };
 
@@ -1234,6 +1241,10 @@ export default function QuoteTable({
 
   // 切换列显示
   const toggleColumnVisibility = (columnKey: string) => {
+    // 单价和总价列为必选项，不允许取消勾选
+    if (columnKey === 'unitPrice' || columnKey === 'totalPrice') {
+      return;
+    }
     setTempSelectedColumns(prev =>
       prev.includes(columnKey)
         ? prev.filter(k => k !== columnKey)
@@ -2877,16 +2888,33 @@ export default function QuoteTable({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
-            {columns.map(column => (
-              <div key={`column-${column.key}`} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`col-${column.key}`}
-                  checked={tempSelectedColumns.includes(column.key)}
-                  onCheckedChange={() => toggleColumnVisibility(column.key)}
-                />
-                <Label htmlFor={`col-${column.key}`}>{column.label}</Label>
-              </div>
-            ))}
+            {columns.map(column => {
+              const isRequired = column.key === 'unitPrice' || column.key === 'totalPrice';
+              return (
+                <div
+                  key={`column-${column.key}`}
+                  className={`flex items-center space-x-2 ${isRequired ? 'opacity-60' : ''}`}
+                >
+                  <Checkbox
+                    id={`col-${column.key}`}
+                    checked={tempSelectedColumns.includes(column.key)}
+                    disabled={isRequired}
+                    onCheckedChange={() => toggleColumnVisibility(column.key)}
+                  />
+                  <Label
+                    htmlFor={`col-${column.key}`}
+                    className={isRequired ? 'flex items-center gap-1' : ''}
+                  >
+                    {column.label}
+                    {isRequired && (
+                      <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                        必选
+                      </Badge>
+                    )}
+                  </Label>
+                </div>
+              );
+            })}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={handleCancelColumnConfig}>
