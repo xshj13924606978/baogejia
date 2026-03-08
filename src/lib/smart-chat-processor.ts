@@ -106,7 +106,7 @@ export class SmartChatProcessor {
       const aiResponse = await callDeepSeekChat({
         messages: messages,
         temperature: 0.7,
-        maxTokens: 2048,
+        maxTokens: 8192,
       });
 
       console.log('[SmartChatProcessor] LLM 响应:', aiResponse.text.substring(0, 200));
