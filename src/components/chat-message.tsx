@@ -29,6 +29,30 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import MarkdownIt from 'markdown-it';
+import mermaid from 'mermaid';
+
+// 初始化 mermaid
+if (typeof window !== 'undefined') {
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'loose',
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      curve: 'basis'
+    },
+    themeVariables: {
+      primaryColor: '#3b82f6',
+      primaryTextColor: '#ffffff',
+      primaryBorderColor: '#1e40af',
+      lineColor: '#64748b',
+      secondaryColor: '#e0f2fe',
+      tertiaryColor: '#f8fafc'
+    }
+  });
+}
+
 const md = new MarkdownIt({ html: true, breaks: true });
 
 interface Message {
@@ -66,7 +90,30 @@ interface ChatMessageProps {
 // ============================================================================
 
 const parseMarkdownToHtml = (text: string): string => {
+  if (!text) return '';
+  
   let html = text;
+  
+  // 修复：检测并修复不完整的内容
+  // 1. 修复未闭合的粗体标记
+  html = html.replace(/\*\*([^*]+)$/gm, '<strong>$1</strong>');
+  
+  // 2. 修复未闭合的斜体标记
+  html = html.replace(/\*([^*]+)$/gm, '<em>$1</em>');
+  
+  // 3. 修复未闭合的代码块
+  const codeBlockCount = (html.match(/```/g) || []).length;
+  if (codeBlockCount % 2 !== 0) {
+    html += '\n```'; // 闭合最后一个代码块
+  }
+  
+  // 4. 修复未闭合的表格行
+  html = html.replace(/\|([^\n]+)$/gm, (match, content) => {
+    if (!content.endsWith('|')) {
+      return `|${content}|`;
+    }
+    return match;
+  });
   
   // 处理主标题（# 标题）
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
@@ -84,7 +131,7 @@ const parseMarkdownToHtml = (text: string): string => {
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   
   // 处理表格（| 列1 | 列2 |）
-  // 优化：正确处理单元格中的<br>标签和换行符
+  // 优化：正确处理单元格中的<br>标签和换行符，并确保列宽足够
   const tableRegex = /\|(.+)\|\n\|[-|\s]+\|\n((?:\|.+\|\n?)+)/g;
   html = html.replace(tableRegex, (match, headerRow, bodyRows) => {
     // 处理表头 - 获取表头列数
@@ -94,7 +141,9 @@ const parseMarkdownToHtml = (text: string): string => {
       let headerText = h.trim();
       // 将Markdown中的<br>转换为HTML的<br/>
       headerText = headerText.replace(/<br>/gi, '<br/>');
-      return `<th>${headerText}</th>`;
+      // 计算列宽百分比（最小15%，防止内容重叠）
+      const colWidth = Math.max(15, Math.floor(100 / numColumns));
+      return `<th style="width: ${colWidth}%">${headerText}</th>`;
     }).join('');
 
     // 处理表体 - 正确处理单元格中的换行
@@ -125,19 +174,21 @@ const parseMarkdownToHtml = (text: string): string => {
       }
 
       // 处理每个单元格的内容
-      const processedCells = cells.map(c => {
+      const processedCells = cells.map((c, idx) => {
         let cellText = c.trim();
         // 保留单元格中的<br>标签，并确保使用<br/>
         cellText = cellText.replace(/<br>/gi, '<br/>');
         // 将换行符也转换为<br/>
         cellText = cellText.replace(/\n/g, '<br/>');
-        return cellText;
+        // 计算列宽百分比
+        const colWidth = Math.max(15, Math.floor(100 / numColumns));
+        return `<td style="width: ${colWidth}%; word-wrap: break-word; word-break: break-all;">${cellText}</td>`;
       });
 
-      return `<tr>${processedCells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+      return `<tr>${processedCells.map(c => c).join('')}</tr>`;
     }).filter(row => row).join('');
 
-    return `<table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
+    return `<table style="width: 100%; table-layout: fixed; border-collapse: collapse;"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
   });
   
   // 处理列表项（- 项目）
@@ -551,7 +602,68 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
 };
 
 // ============================================================================
-// 简单的Markdown渲染组件（增强版 - 使用 markdown-it）
+// Mermaid 图表渲染组件
+// ============================================================================
+
+const MermaidDiagram = ({ code }: { code: string }) => {
+  const svgContainerRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [svg, setSvg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const renderMermaid = async () => {
+      try {
+        if (!svgContainerRef.current) return;
+
+        // 生成唯一ID
+        const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        // 渲染 mermaid
+        const { svg } = await mermaid.render(id, code);
+        setSvg(svg);
+        setError(null);
+      } catch (err) {
+        console.error('Mermaid 渲染失败:', err);
+        setError('流程图渲染失败，请检查语法');
+        setSvg(null);
+      }
+    };
+
+    renderMermaid();
+  }, [code]);
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+        <p className="font-medium">⚠️ {error}</p>
+        <pre className="mt-2 text-sm overflow-auto">{code}</pre>
+      </div>
+    );
+  }
+
+  if (!svg) {
+    return (
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
+        <div className="animate-pulse">
+          <div className="h-4 bg-slate-200 rounded w-1/4 mx-auto mb-2"></div>
+          <div className="h-32 bg-slate-200 rounded"></div>
+        </div>
+        <p className="mt-2 text-sm text-slate-500">正在生成流程图...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      ref={svgContainerRef}
+      className="bg-white border border-slate-200 rounded-lg p-4 overflow-x-auto my-4"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
+};
+
+// ============================================================================
+// 简单的Markdown渲染组件（增强版 - 使用 markdown-it + mermaid）
 // ============================================================================
 
 const SimpleMarkdown = ({ content }: { content: string }) => {
@@ -559,6 +671,28 @@ const SimpleMarkdown = ({ content }: { content: string }) => {
 
   // 使用 markdown-it 渲染 Markdown 内容
   const html = md.render(content);
+
+  // 检查是否包含 mermaid 代码块
+  const hasMermaid = /```mermaid\n([\s\S]*?)\n```/.test(content);
+
+  if (hasMermaid) {
+    // 提取 mermaid 代码块
+    const mermaidMatch = content.match(/```mermaid\n([\s\S]*?)\n```/);
+    if (mermaidMatch) {
+      const mermaidCode = mermaidMatch[1];
+      const contentWithoutMermaid = content.replace(/```mermaid\n[\s\S]*?\n```/, '');
+
+      return (
+        <div className="space-y-4">
+          <MermaidDiagram code={mermaidCode} />
+          <div 
+            className="prose prose-slate max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-table:w-full"
+            dangerouslySetInnerHTML={{ __html: md.render(contentWithoutMermaid) }}
+          />
+        </div>
+      );
+    }
+  }
 
   return (
     <div 
@@ -758,7 +892,7 @@ export default function ChatMessage({
   };
 
   /**
-   * 下载为Word（使用HTML模板方式 - 商务风格）
+   * 下载为Word（使用HTML模板方式 - 商务风格优化版）
    */
   const downloadAsWord = () => {
     const content = message.content;
@@ -772,227 +906,279 @@ export default function ChatMessage({
       day: 'numeric'
     });
     
+    // 提取项目标题（第一个 h1 标签）
+    const titleMatch = parsedContent.match(/<h1[^>]*>(.+?)<\/h1>/);
+    const projectTitle = titleMatch ? titleMatch[1] : '技术方案';
+    
     // 将Markdown转换为更美观的HTML
     const htmlContent = `
 <!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>技术方案</title>
   <style>
     /* 页面设置 */
     @page {
       size: A4;
-      margin: 1.8cm 1.2cm;
+      margin: 2cm 1.5cm;
+    }
+    
+    @media print {
+      body {
+        padding: 0;
+      }
     }
     
     body {
-      font-family: "Microsoft YaHei", "SimSun", "Arial Unicode MS", Arial, sans-serif;
+      font-family: "Microsoft YaHei UI", "Microsoft YaHei", "SimSun", "Arial Unicode MS", Arial, sans-serif;
       font-size: 11pt;
-      line-height: 1.6;
+      line-height: 1.8;
       color: #333333;
       margin: 0;
       padding: 0;
+      background: white;
     }
     
-    /* 封面样式 */
+    /* 封面样式 - 优化版 */
     .cover {
       text-align: center;
-      padding: 60pt 0;
+      padding: 80pt 0;
       page-break-after: always;
-      background-color: #1e40af;
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
       color: white;
-      min-height: 70vh;
+      min-height: 85vh;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
 
     .cover-title {
-      font-size: 36pt;
-      font-weight: bold;
+      font-size: 42pt;
+      font-weight: 700;
       color: white;
-      margin-bottom: 20pt;
-      letter-spacing: 2pt;
+      margin-bottom: 24pt;
+      letter-spacing: 6pt;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
     }
 
     .cover-subtitle {
-      font-size: 18pt;
-      color: white;
-      margin-bottom: 60pt;
-      font-weight: normal;
-      letter-spacing: 1pt;
+      font-size: 22pt;
+      color: rgba(255,255,255,0.95);
+      margin-bottom: 70pt;
+      font-weight: 300;
+      letter-spacing: 3pt;
     }
 
     .cover-info {
-      font-size: 12pt;
-      color: white;
-      margin-top: 40pt;
-      line-height: 2;
+      font-size: 13pt;
+      color: rgba(255,255,255,0.9);
+      margin-top: 60pt;
+      line-height: 2.5;
     }
 
     .cover-info p {
       text-indent: 0;
-      margin: 12pt 0;
-      color: white;
+      margin: 8pt 0;
+      color: rgba(255,255,255,0.95);
+      font-weight: 500;
     }
 
     .cover-logo {
-      font-size: 14pt;
-      font-weight: bold;
+      font-size: 16pt;
+      font-weight: 700;
       color: white;
-      margin-bottom: 10pt;
+      margin-bottom: 14pt;
+      letter-spacing: 2pt;
     }
     
     /* 页眉 */
     .header {
       border-bottom: 3px solid #1e40af;
-      padding-bottom: 12pt;
-      margin-bottom: 20pt;
+      padding-bottom: 14pt;
+      margin-bottom: 28pt;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background: linear-gradient(to bottom, #eff6ff 0%, transparent 100%);
+      padding-top: 14pt;
     }
 
     .header-title {
-      font-size: 12pt;
-      font-weight: bold;
+      font-size: 13pt;
+      font-weight: 700;
       color: #1e40af;
+      letter-spacing: 1pt;
     }
 
     .header-date {
-      font-size: 10pt;
-      color: #666666;
+      font-size: 11pt;
+      color: #64748b;
+      font-weight: 500;
     }
     
-    /* 标题样式 */
+    /* 标题样式 - 优化版 */
     h1 {
-      font-size: 18pt;
-      font-weight: bold;
+      font-size: 22pt;
+      font-weight: 700;
       color: #1e40af;
-      margin-top: 24pt;
-      margin-bottom: 16pt;
-      padding-bottom: 6pt;
+      margin-top: 36pt;
+      margin-bottom: 24pt;
+      padding-bottom: 12pt;
       border-bottom: 3px solid #3b82f6;
       text-align: center;
       page-break-after: avoid;
+      letter-spacing: 2pt;
     }
 
     h2 {
-      font-size: 14pt;
-      font-weight: bold;
+      font-size: 16pt;
+      font-weight: 700;
       color: #1e3a8a;
-      margin-top: 20pt;
-      margin-bottom: 12pt;
-      padding-left: 14px;
-      padding-right: 12px;
-      padding-top: 8pt;
-      padding-bottom: 8pt;
-      border-left: 5px solid #3b82f6;
-      background-color: #eff6ff;
+      margin-top: 32pt;
+      margin-bottom: 18pt;
+      padding-left: 18px;
+      padding-right: 15px;
+      padding-top: 12px;
+      padding-bottom: 12px;
+      border-left: 6px solid #3b82f6;
+      background: linear-gradient(to right, #eff6ff 0%, #ffffff 100%);
+      border-radius: 0 8px 8px 0;
       page-break-after: avoid;
+      letter-spacing: 0.5pt;
     }
 
     h3 {
-      font-size: 12pt;
-      font-weight: bold;
+      font-size: 14pt;
+      font-weight: 700;
       color: #334155;
-      margin-top: 16pt;
-      margin-bottom: 10pt;
-      padding-left: 12px;
+      margin-top: 24pt;
+      margin-bottom: 14pt;
+      padding-left: 16px;
       border-left: 4px solid #60a5fa;
       page-break-after: avoid;
+      letter-spacing: 0.5pt;
     }
     
-    /* 段落样式 */
+    /* 段落样式 - 优化版 */
     p {
-      margin-bottom: 10pt;
+      margin-bottom: 14pt;
       text-align: justify;
       text-indent: 2em;
       font-size: 11pt;
-      line-height: 1.7;
-      color: #333333;
+      line-height: 2;
+      color: #334155;
     }
     
     /* 表格样式 - Word优化版 */
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 14pt 0;
-      border: 1px solid #1e40af;
+      margin: 24pt 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1.5px solid #1e40af;
+      table-layout: auto;
     }
 
     th {
-      background-color: #2563eb;
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
       color: white;
-      font-weight: bold;
-      padding: 8pt 6pt;
+      font-weight: 700;
+      padding: 12pt 10pt;
       border: 1px solid #1e40af;
       text-align: center;
-      font-size: 10pt;
-      line-height: 1.5;
+      font-size: 11pt;
+      line-height: 1.6;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      letter-spacing: 0.5pt;
     }
 
     td {
-      padding: 6pt 5pt;
+      padding: 10pt 8pt;
       border: 1px solid #cbd5e1;
       text-align: center;
       font-size: 10pt;
-      color: #333333;
+      color: #334155;
       vertical-align: middle;
-      line-height: 1.6;
+      line-height: 1.8;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      hyphens: auto;
     }
 
     /* 第一列（序号列）样式 */
     td:first-child {
       text-align: center;
-      font-weight: bold;
+      font-weight: 700;
       color: #1e40af;
+      background-color: #f8fafc;
     }
 
-    /* 交替行背景 */
+    /* 交替行背景 - 增强对比度 */
     tr:nth-child(even) {
-      background-color: #f8fafc;
+      background-color: #f0f9ff;
     }
 
     tr:nth-child(odd) {
       background-color: white;
     }
 
+    tr:hover {
+      background-color: #e0f2fe;
+    }
+
     /* 表格中的换行处理 */
     td br {
       display: block;
-      margin: 3pt 0;
+      margin: 4pt 0;
     }
     
-    /* 列表样式 */
+    /* 列表样式 - 优化版 */
     ul, ol {
-      margin: 12pt 0;
-      padding-left: 32pt;
+      margin: 18pt 0;
+      padding-left: 40pt;
     }
 
     li {
-      margin-bottom: 6pt;
+      margin-bottom: 8pt;
       font-size: 11pt;
-      line-height: 1.7;
-      color: #333333;
+      line-height: 2;
+      color: #334155;
       text-indent: 0;
     }
 
     ul li {
       list-style-type: disc;
       color: #3b82f6;
+      margin-bottom: 10pt;
+    }
+
+    ul li::marker {
+      color: #3b82f6;
+      font-size: 1.2em;
     }
 
     ol li {
       list-style-type: decimal;
-      color: #333333;
+      color: #334155;
+      font-weight: 500;
+    }
+    
+    ol li::marker {
+      color: #1e40af;
+      font-weight: 700;
     }
     
     /* 强调文本 */
     strong {
       color: #1e40af;
-      font-weight: bold;
+      font-weight: 700;
     }
 
     /* 斜体文本 */
@@ -1005,7 +1191,7 @@ export default function ChatMessage({
     hr {
       border: none;
       border-top: 2px solid #cbd5e1;
-      margin: 18pt 0;
+      margin: 32pt 0;
     }
     
     /* 内容区域 */
@@ -1015,20 +1201,47 @@ export default function ChatMessage({
     }
     
     /* 移除首行缩进的特殊情况 */
-    .cover p, ul, ol, td, th {
+    .cover p, ul, ol, td, th, li {
       text-indent: 0;
+    }
+    
+    /* 防止表格和列表被分页打断 */
+    table, ul, ol {
+      page-break-inside: avoid;
+    }
+    
+    /* 章节标题前分页 */
+    h2, h3 {
+      page-break-after: avoid;
+    }
+    
+    /* 水印效果 */
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      font-size: 100px;
+      color: rgba(30, 64, 175, 0.03);
+      font-weight: 700;
+      pointer-events: none;
+      z-index: -1;
+      white-space: nowrap;
     }
   </style>
 </head>
 <body>
+  <!-- 水印 -->
+  <div class="watermark">技术方案</div>
+  
   <!-- 封面页 -->
   <div class="cover">
     <div class="cover-title">技术方案</div>
     <div class="cover-subtitle">Technical Proposal</div>
     <div class="cover-info">
       <p>生成日期：${currentDate}</p>
-      <p style="margin-top: 30pt;">智能报价管理系统</p>
-      <p style="margin-top: 20pt; font-size: 10pt;">Professional Solution</p>
+      <p style="margin-top: 40pt; font-size: 14pt; color: #1a56db; font-weight: 700;">智能报价管理系统</p>
+      <p style="margin-top: 20pt; font-size: 11pt; opacity: 0.8;">Professional Solution System</p>
     </div>
   </div>
   
@@ -1426,41 +1639,6 @@ export default function ChatMessage({
     .cover p, ul, ol {
       text-indent: 0;
     }
-  </style>
-</head>
-<body>
-  <!-- 封面页 -->
-  <div class="cover">
-    <div class="cover-title">技术方案</div>
-    <div class="cover-subtitle">Technical Proposal</div>
-    <div class="cover-info">
-      <p>生成日期：${currentDate}</p>
-      <p style="margin-top: 30px;">智能报价管理系统</p>
-      <p style="margin-top: 20px; font-size: 12px; opacity: 0.8;">Professional Solution</p>
-    </div>
-  </div>
-  
-  <!-- 正文 -->
-  <div class="content">
-    <!-- 页眉 -->
-    <div class="header">
-      <div class="header-title">技术方案</div>
-      <div class="header-date">${currentDate}</div>
-    </div>
-    
-    ${parsedContent}
-  </div>
-  
-  <!-- 水印 -->
-  <div class="watermark">技术方案</div>
-  
-  <script>
-    window.onload = function() {
-      // 5秒后自动打印
-      setTimeout(function() {
-        window.print();
-      }, 500);
-    };
     
     /* 打印提示 */
     .print-hint {
@@ -1472,6 +1650,7 @@ export default function ChatMessage({
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       text-align: center;
+      z-index: 1000;
     }
     
     .print-hint h3 {
