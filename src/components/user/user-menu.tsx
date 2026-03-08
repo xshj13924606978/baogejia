@@ -85,6 +85,7 @@ import {
 import ManufacturerPaymentPanel from '@/components/manufacturer-payment-panel';
 import { ProfileDialog } from '@/components/shared/profile-dialog';
 import { useUser } from '@/contexts/UserContext';
+import CustomerPanel from '@/components/user/customer-panel';
 import { useRouter } from 'next/navigation';
 
 export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
@@ -752,7 +753,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               
               <DropdownMenuItem className="cursor-pointer" onClick={() => setShowCustomerDialog(true)}>
                 <Users className="mr-2 h-4 w-4" />
-                <span>客户信息</span>
+                <span>客户管理</span>
               </DropdownMenuItem>
               
               <DropdownMenuItem className="cursor-pointer" onClick={() => setShowTermsDialog(true)}>
@@ -1362,78 +1363,19 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
           </DialogContent>
         </Dialog>
 
-        {/* 客户信息弹窗 */}
+        {/* 客户管理弹窗 */}
         <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>客户信息</DialogTitle>
-              <DialogDescription>管理您的客户资料</DialogDescription>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-green-500" />
+                客户资料管理
+              </DialogTitle>
+              <DialogDescription>
+                选择已有客户或添加新客户
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="flex justify-end">
-                {!editingCustomer ? (
-                  <Button variant="outline" size="sm" onClick={() => setEditingCustomer(true)}>
-                    <Edit2 className="h-3 w-3 mr-2" />编辑
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setEditingCustomer(false)}>取消</Button>
-                    <Button size="sm" onClick={handleSaveCustomer}>保存</Button>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">客户名称</label>
-                  {editingCustomer ? (
-                    <Input value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} />
-                  ) : (
-                    <p className="text-sm p-2 bg-gray-50 rounded">{customerForm.name}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">项目名称</label>
-                  {editingCustomer ? (
-                    <Input value={customerForm.projectName} onChange={(e) => setCustomerForm({...customerForm, projectName: e.target.value})} />
-                  ) : (
-                    <p className="text-sm p-2 bg-gray-50 rounded">{customerForm.projectName}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">联系人</label>
-                  {editingCustomer ? (
-                    <Input value={customerForm.contactPerson} onChange={(e) => setCustomerForm({...customerForm, contactPerson: e.target.value})} />
-                  ) : (
-                    <p className="text-sm p-2 bg-gray-50 rounded">{customerForm.contactPerson}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">电话</label>
-                  {editingCustomer ? (
-                    <Input value={customerForm.phone} onChange={(e) => setCustomerForm({...customerForm, phone: e.target.value})} />
-                  ) : (
-                    <p className="text-sm p-2 bg-gray-50 rounded">{customerForm.phone}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">邮箱</label>
-                  {editingCustomer ? (
-                    <Input value={customerForm.email} onChange={(e) => setCustomerForm({...customerForm, email: e.target.value})} />
-                  ) : (
-                    <p className="text-sm p-2 bg-gray-50 rounded">{customerForm.email}</p>
-                  )}
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <label className="text-sm font-medium">地址</label>
-                  {editingCustomer ? (
-                    <Input value={customerForm.address} onChange={(e) => setCustomerForm({...customerForm, address: e.target.value})} />
-                  ) : (
-                    <p className="text-sm p-2 bg-gray-50 rounded">{customerForm.address}</p>
-                  )}
-                </div>
-              </div>
-            </div>
+            <CustomerPanel />
           </DialogContent>
         </Dialog>
 
