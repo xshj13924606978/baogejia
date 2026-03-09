@@ -1600,7 +1600,7 @@ export default function ChatMessage({
         <p><strong>编制人</strong>　${contactPerson}</p>
         <p><strong>联系电话</strong>　${contactPhone}</p>
         ${contactEmail !== '未填写' ? `<p><strong>电子邮箱</strong>　${contactEmail}</p>` : ''}
-        <p><strong>编制日期</strong>　${currentDate}</p>
+        <p style="page-break-after: always; break-after: page; mso-element: none; mso-pagination: none; mso-break-type: section-break;"><strong>编制日期</strong>　${currentDate}</p>
       </div>
     </div>
   </div>
