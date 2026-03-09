@@ -449,9 +449,10 @@ export default function ChatArea({
           index === self.findIndex(f => f.id === file.id)
         );
         
+        // 注意：不要在这里调用 setFiles(uniqueFiles)
+        // 历史消息中的文件应该只在消息历史中显示，不应该再次添加到输入框
         if (uniqueFiles.length > 0) {
-          console.log('[ChatArea] 设置文件:', uniqueFiles.length, uniqueFiles);
-          setFiles(uniqueFiles);
+          console.log('[ChatArea] 检测到历史消息中的文件，但不会将其添加到输入框，数量:', uniqueFiles.length);
         } else {
           console.log('[ChatArea] 没有文件可设置');
         }
@@ -698,9 +699,10 @@ export default function ChatArea({
           
           setMessages(formattedMessages);
           
+          // 注意：不要在这里设置 setFiles(allFiles)
+          // 历史消息中的文件应该只在消息历史中显示，不应该再次添加到输入框
           if (allFiles.length > 0) {
-            console.log('[ChatArea] 设置文件:', allFiles);
-            setFiles(allFiles);
+            console.log('[ChatArea] 检测到历史消息中的文件，但不会将其添加到输入框');
           }
           
           const firstUserMessage = formattedMessages.find(m => m.role === 'user');
