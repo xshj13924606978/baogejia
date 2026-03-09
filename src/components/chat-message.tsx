@@ -311,7 +311,7 @@ const parseMarkdownToHtml = (text: string): string => {
     return match;
   });
   
-  // 5. 去除表格对齐符号行（优化：更严格的匹配）
+  // 5. 去除表格对齐符号行（:---, :--:, --:）
   // 匹配包含 :---, :--:, --: 等对齐符号的行，包括各种格式变体
   // 例如：
   // |:---|:---|:---|
@@ -321,19 +321,7 @@ const parseMarkdownToHtml = (text: string): string => {
   // ---|---|---
   // | :--- | :---: | ---: |
   // | :--- | --- | --- |
-  
-  // 第一步：移除简单格式的对齐符号行
-  html = html.replace(/^\|?\s*:?-{3,}:?\s*\|?\s*$/gm, '');
-  
-  // 第二步：移除包含空格的复杂格式对齐符号行（关键修复）
-  html = html.replace(/^\s*\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|.*$/gm, '');
-  html = html.replace(/^\s*\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|.*$/gm, '');
-  
-  // 第三步：移除更多列的对齐符号行
-  html = html.replace(/^\s*\|\s*:?-{3,}[:?\s|]*\|\s*$/gm, '');
-  
-  // 第四步：最终兜底，移除只包含对齐符号的行
-  html = html.replace(/^\s*[\s|:-]{4,}[\s|:]*\s*$/gm, '');
+  html = html.replace(/^\|?\s*:?-{3,}[:?\s|:]+\|?\s*$/gm, '');
   
   // 处理主标题（# 标题）
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
@@ -377,24 +365,8 @@ const parseMarkdownToHtml = (text: string): string => {
     const bodyHtml = rows.map(row => {
       const trimmedRow = row.trim();
       
-      // 多重检查，确保过滤掉所有对齐符号行
-      // 检查1：空行
-      if (!trimmedRow) return '';
-      
-      // 检查2：简单对齐符号行（如 |---|）
-      if (/^\|?\s*:?-{3,}:?\s*\|?\s*$/.test(trimmedRow)) return '';
-      
-      // 检查3：包含空格的2列对齐符号行（如 | :--- | :--- |）
-      if (/^\s*\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|.*$/.test(trimmedRow)) return '';
-      
-      // 检查4：包含空格的3列对齐符号行（如 | :--- | :--- | :--- |）
-      if (/^\s*\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|.*$/.test(trimmedRow)) return '';
-      
-      // 检查5：只包含连字符和竖线的行
-      if (/^[\s|:-]+$/.test(trimmedRow)) return '';
-      
-      // 检查6：包含4个或以上连字符字符的行（兜底检查）
-      if (/[\s|:-]{4,}/.test(trimmedRow) && !/[a-zA-Z\u4e00-\u9fa5]/.test(trimmedRow)) return '';
+      // 过滤掉对齐符号行（如 |:---|:---| 或 | :--- | :---: | ---: |）
+      if (/^\|?\s*:?-{3,}[:?\s|:]+\|?\s*$/.test(trimmedRow)) return '';
 
       // 去除首尾的|，然后按|分割
       const rowContent = row.trim();
