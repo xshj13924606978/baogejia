@@ -1197,13 +1197,7 @@ export default function ChatMessage({
     
     // 提取项目标题（第一个 h1 标签）
     const titleMatch = parsedContent.match(/<h1[^>]*>(.+?)<\/h1>/);
-    const projectTitle = titleMatch ? titleMatch[1] : '技术方案';
-    
-    // 移除正文中的第一个h1标签（避免重复显示）
-    let contentWithoutFirstH1 = parsedContent.replace(/<h1[^>]*>.+?<\/h1>/, '');
-    
-    // 移除正文中可能存在的"技术方案"重复标题（h2或h3标签）
-    contentWithoutFirstH1 = contentWithoutFirstH1.replace(/<h[23][^>]*>(技术方案|报价方案|报价单)[^<]*<\/h[23]>/, '');
+    let projectTitle = titleMatch ? titleMatch[1] : '技术方案';
     
     // 提取竖排文字（智能关键词提取）
     const rawTitle = projectTitle.replace(/<[^>]*>/g, '');
@@ -1214,14 +1208,24 @@ export default function ChatMessage({
     for (const keyword of keywords) {
       if (rawTitle.includes(keyword)) {
         verticalText = keyword;
+        // 从主标题中移除关键词，避免重复
+        projectTitle = projectTitle.replace(keyword, '').trim();
         break;
       }
     }
     
-    // 如果没有找到关键词，默认为"技术方案"
+    // 如果没有找到关键词，默认为"技术方案"，并从主标题移除
     if (!verticalText) {
       verticalText = '技术方案';
+      // 从主标题中移除"技术方案"
+      projectTitle = projectTitle.replace(/技术方案/g, '').trim();
     }
+    
+    // 移除正文中的第一个h1标签（避免重复显示）
+    let contentWithoutFirstH1 = parsedContent.replace(/<h1[^>]*>.+?<\/h1>/, '');
+    
+    // 移除正文中可能存在的"技术方案"重复标题（h2或h3标签）
+    contentWithoutFirstH1 = contentWithoutFirstH1.replace(/<h[23][^>]*>(技术方案|报价方案|报价单)[^<]*<\/h[23]>/, '');
     
     // 生成竖排文字（每个字符一行）- Word兼容性更好
     const verticalTextWithBreak = verticalText.split('').join('<br>');
@@ -1273,6 +1277,8 @@ export default function ChatMessage({
       text-align: center;
       padding: 40pt 60pt;
       page-break-after: always;
+      break-after: page;
+      mso-pagination: none;
       background: white;
       color: #333333;
       height: 270mm;
@@ -1350,6 +1356,16 @@ export default function ChatMessage({
     .page-break {
       page-break-after: always;
       break-after: page;
+      mso-element: none;
+      mso-pagination: none;
+      mso-break-type: section-break;
+      clear: both;
+      height: 0;
+      line-height: 0;
+      font-size: 0;
+      margin: 0;
+      padding: 0;
+      border: none;
     }
     
     .page-break-before {
@@ -1539,6 +1555,11 @@ export default function ChatMessage({
     .content {
       position: relative;
       z-index: 1;
+      page-break-before: always;
+      break-before: page;
+      mso-pagination: none;
+      display: block;
+      min-height: 100%;
     }
     
     /* 移除首行缩进的特殊情况 */
