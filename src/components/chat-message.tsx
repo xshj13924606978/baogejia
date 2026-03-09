@@ -1236,6 +1236,11 @@ export default function ChatMessage({
       background: white;
     }
     
+    /* 隐藏水印 */
+    .watermark {
+      display: none;
+    }
+    
     /* 封面样式 - 简洁商务 */
     .cover {
       text-align: center;
@@ -1564,14 +1569,11 @@ export default function ChatMessage({
     </div>
   </div>
   
+  <!-- 分页控制：强制正文从第二页开始 -->
+  <div class="page-break"></div>
+  
   <!-- 正文 -->
   <div class="content">
-    <!-- 页眉 -->
-    <div class="header">
-      <div class="header-title">技术方案</div>
-      <div class="header-date">${currentDate}</div>
-    </div>
-    
     ${parsedContent}
   </div>
 </body>
