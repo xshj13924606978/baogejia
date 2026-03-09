@@ -885,7 +885,7 @@ const SimpleMarkdown = ({ content, isStreaming }: { content: string; isStreaming
   // 1. 为一级标题添加底部边距和分隔线（左对齐）
   html = html.replace(
     /<h1([^>]*)>([\s\S]*?)<\/h1>/g,
-    '<h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mb-6 pb-4 border-b-2 border-border text-left"$1>$2</h1>'
+    '<h1 class="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-4xl mb-6 pb-4 border-b-2 border-border text-left"$1>$2</h1>'
   );
 
   // 2. 为二级标题添加左边框和背景色（字号小于一级目录）

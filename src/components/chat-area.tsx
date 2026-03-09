@@ -1147,6 +1147,8 @@ export default function ChatArea({
                       : msg
                   )
                 );
+                // 每次更新内容后滚动到底部
+                scrollToBottom();
               } else if (data.type === 'error') {
                 console.error('[ChatArea] 流式错误:', data.error);
                 throw new Error(data.error);
