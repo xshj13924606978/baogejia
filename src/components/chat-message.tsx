@@ -1755,7 +1755,7 @@ export default function ChatMessage({
       color: #ffffff;
       letter-spacing: 12px;
       height: 250px;
-      margin: 100px auto 0;
+      margin: 150px auto 0;
       font-weight: bold;
       line-height: 1.5;
     }
@@ -1769,7 +1769,7 @@ export default function ChatMessage({
     
     /* 封面底部区域 */
     .cover-bottom {
-      padding: 5px 80px 3px 80px;
+      padding: 5px 80px 20px 80px;
       text-align: left;
       position: absolute;
       bottom: 0;
