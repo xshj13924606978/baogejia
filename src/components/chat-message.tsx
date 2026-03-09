@@ -1484,8 +1484,6 @@ export default function ChatMessage({
     .content {
       position: relative;
       z-index: 1;
-      padding: 12mm 10mm;
-      min-height: 297mm;
     }
     
     /* 移除首行缩进的特殊情况 */
@@ -1591,7 +1589,10 @@ export default function ChatMessage({
     const content = message.content;
     
     // 将Markdown转换为HTML
-    const parsedContent = parseMarkdownToHtml(content);
+    let parsedContent = parseMarkdownToHtml(content);
+    
+    // 移除正文中的第一个 h1 标题，避免重复显示
+    parsedContent = parsedContent.replace(/<h1[^>]*>.+?<\/h1>/, '');
     
     const currentDate = new Date().toLocaleDateString('zh-CN', {
       year: 'numeric',
@@ -1600,8 +1601,26 @@ export default function ChatMessage({
     });
     
     // 提取方案标题（第一个 h1 标签）
-    const titleMatch = parsedContent.match(/<h1[^>]*>(.+?)<\/h1>/);
-    const projectTitle = titleMatch ? titleMatch[1] : '技术方案';
+    const titleMatch = content.match(/^#\s+(.+)$/m);
+    const rawTitle = titleMatch ? titleMatch[1].trim() : '技术方案';
+    
+    // 智能分割标题和方案类型
+    const keywords = ['技术方案', '报价方案', '报价单'];
+    let mainTitle = rawTitle;
+    let verticalText = '';
+    
+    for (const keyword of keywords) {
+      if (rawTitle.includes(keyword)) {
+        mainTitle = rawTitle.replace(keyword, '').trim();
+        verticalText = keyword;
+        break;
+      }
+    }
+    
+    // 如果没有找到关键词，默认为"技术方案"
+    if (!verticalText && !rawTitle.includes('技术方案') && !rawTitle.includes('报价方案') && !rawTitle.includes('报价单')) {
+      verticalText = '技术方案';
+    }
     
     // 获取供应方信息
     const supplierName = supplierInfo?.companyName || '未填写';
@@ -1619,7 +1638,7 @@ export default function ChatMessage({
     /* 打印设置 */
     @page {
       size: A4;
-      margin: 0;
+      margin: 1.2cm 1.0cm;
     }
     
     @media print {
@@ -1690,18 +1709,17 @@ export default function ChatMessage({
       line-height: 1.5;
       color: #333;
       margin: 0;
-      padding: 0;
+      padding: 12px;
     }
     
-    /* 封面样式 - 优化版 */
+    /* 封面样式 - 恢复版 */
     .cover {
       text-align: center;
-      padding: 0;
+      padding: 40px 0;
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 297mm; /* A4高度 */
-      height: 297mm;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -1716,32 +1734,32 @@ export default function ChatMessage({
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-top: 60px;
+      padding-top: 20px;
     }
     
     .cover-title {
-      font-size: 42px;
+      font-size: 36px;
       font-weight: bold;
       color: #ffffff;
-      margin-bottom: 30px;
-      letter-spacing: 4px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+      letter-spacing: 2px;
     }
     
     /* 竖排方案名称 */
     .cover-vertical-text {
       writing-mode: vertical-rl;
       text-orientation: mixed;
-      font-size: 16px;
-      color: #cbd5e1;
-      letter-spacing: 8px;
-      height: 120px;
+      font-size: 32px;
+      color: #ffffff;
+      letter-spacing: 12px;
+      height: 250px;
       margin: 0 auto;
-      font-weight: 400;
+      font-weight: bold;
+      line-height: 1.5;
     }
     
     .cover-divider {
-      width: 150px;
+      width: 100px;
       height: 2px;
       background: #3b82f6;
       margin: 20px auto 0;
@@ -1749,20 +1767,20 @@ export default function ChatMessage({
     
     /* 封面底部区域 */
     .cover-bottom {
-      padding: 0 80px 50px 80px;
+      padding: 0 80px 40px 80px;
       text-align: left;
     }
     
     .cover-info {
       font-size: 13px;
       color: #e0e7ff;
-      line-height: 2.5;
+      line-height: 2.2;
       text-align: left;
     }
     
     .cover-info p {
       text-indent: 0;
-      margin: 8px 0;
+      margin: 5px 0;
       color: #e0e7ff;
     }
     
@@ -2031,14 +2049,22 @@ export default function ChatMessage({
   
   <!-- 封面页 -->
   <div class="cover">
-    <div class="cover-title">${projectTitle}</div>
-    <div class="cover-divider"></div>
-    <div class="cover-info">
-      <p><strong>编制单位</strong>　${supplierName}</p>
-      <p><strong>编制人</strong>　${contactPerson}</p>
-      <p><strong>联系电话</strong>　${contactPhone}</p>
-      ${contactEmail !== '未填写' ? `<p><strong>电子邮箱</strong>　${contactEmail}</p>` : ''}
-      <p><strong>编制日期</strong>　${currentDate}</p>
+    <!-- 封面顶部区域 -->
+    <div class="cover-top">
+      <div class="cover-title">${mainTitle}</div>
+      ${verticalText ? `<div class="cover-vertical-text">${verticalText}</div>` : ''}
+      <div class="cover-divider"></div>
+    </div>
+    
+    <!-- 封面底部区域 -->
+    <div class="cover-bottom">
+      <div class="cover-info">
+        <p><strong>编制单位</strong>　${supplierName}</p>
+        <p><strong>编制人</strong>　${contactPerson}</p>
+        <p><strong>联系电话</strong>　${contactPhone}</p>
+        ${contactEmail !== '未填写' ? `<p><strong>电子邮箱</strong>　${contactEmail}</p>` : ''}
+        <p><strong>编制日期</strong>　${currentDate}</p>
+      </div>
     </div>
   </div>
   
