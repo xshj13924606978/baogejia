@@ -314,12 +314,22 @@ const parseMarkdownToHtml = (text: string): string => {
   // 5. 去除表格对齐符号行（优化：更严格的匹配）
   // 匹配包含 :---, :--:, --: 等对齐符号的行，包括各种格式变体
   // 例如：
-  // |:---|:---:|---:|
+  // |:---|:---|:---|
   // |---|---|---|
   // |---|
   // :---|:---|:---
   // ---|---|---
-  html = html.replace(/^\|?\s*(:?-{3,}:?\s*\|?)+\s*$/gm, '');
+  // | :--- | :---: | ---: |
+  // | :--- | --- | --- |
+  
+  // 第一步：移除简单格式的对齐符号行
+  html = html.replace(/^\|?\s*:?-{3,}:?\s*\|?\s*$/gm, '');
+  
+  // 第二步：移除包含空格的复杂格式对齐符号行
+  html = html.replace(/^\|?\s*(?:\|?\s*:?-{3,}:?\s*\|?\s*)+\s*$/gm, '');
+  
+  // 第三步：再次移除可能残留的对齐符号行（包含数字或其他字符的情况）
+  html = html.replace(/^\|?[\s|]*[-]{3,}[\s|:]*$/gm, '');
   
   // 处理主标题（# 标题）
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
@@ -361,15 +371,20 @@ const parseMarkdownToHtml = (text: string): string => {
     // 处理表体 - 正确处理单元格中的换行
     const rows = bodyRows.trim().split('\n');
     const bodyHtml = rows.map(row => {
-      // 跳过空行和分隔线（包含对齐符号的行）- 使用更准确的匹配
-      // 匹配各种Markdown表格对齐符号行的格式：
-      // |:---|:---:|---:|
-      // |---|---|---|
-      // |---|
-      // :---|:---|:---
-      // ---|---|---
       const trimmedRow = row.trim();
-      if (!trimmedRow || /^\|?\s*(:?-{3,}:?\s*\|?)+\s*$/.test(trimmedRow)) return '';
+      
+      // 多重检查，确保过滤掉所有对齐符号行
+      // 检查1：空行
+      if (!trimmedRow) return '';
+      
+      // 检查2：简单的对齐符号行（如 |---|）
+      if (/^\|?\s*:?-{3,}:?\s*\|?\s*$/.test(trimmedRow)) return '';
+      
+      // 检查3：包含空格的对齐符号行（如 | :--- | :--- |）
+      if (/^\|?[\s|]*:?-{3,}:?[\s|:]*$/.test(trimmedRow)) return '';
+      
+      // 检查4：只包含连字符和竖线的行
+      if (/^[\s|:-]+$/.test(trimmedRow)) return '';
 
       // 去除首尾的|，然后按|分割
       const rowContent = row.trim();
@@ -448,6 +463,14 @@ const parseMarkdownToHtml = (text: string): string => {
   // 清理：移除多余的换行和空格，确保HTML结构清晰
   html = html.replace(/\n{3,}/g, '\n\n'); // 多个连续换行替换为两个
   html = html.replace(/>\s+</g, '><'); // 移除标签之间的空白
+  
+  // 最终清理：移除任何可能残留的对齐符号行内容
+  // 移除只包含对齐符号的文本节点
+  html = html.replace(/<p>\s*:?-{3,}:?\s*<\/p>/gi, '');
+  html = html.replace(/<p>\s*[\s|:-]+\s*<\/p>/gi, '');
+  
+  // 移除表格中可能存在的对齐符号行（转换为HTML后的形式）
+  html = html.replace(/<tr>\s*(<td[^>]*>[\s|:-]*<\/td>\s*)+\s*<\/tr>/gi, '');
 
   return html;
 };
