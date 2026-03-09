@@ -205,7 +205,10 @@ export default function PriceLibrary() {
           const result = await response.json();
 
           if (result.success) {
-            alert(`✅ 导入成功！\n\n成功导入 ${result.successCount} 条产品数据${result.errorCount > 0 ? `\n失败 ${result.errorCount} 条` : ''}`);
+            const duplicateMsg = result.duplicateCount > 0 ? `\n跳过 ${result.duplicateCount} 条重复产品（名称、型号、品牌相同）` : '';
+            const errorMsg = result.errorCount > 0 ? `\n失败 ${result.errorCount} 条` : '';
+
+            alert(`✅ 导入成功！\n\n成功导入 ${result.successCount} 条产品数据${duplicateMsg}${errorMsg}`);
 
             // 刷新产品列表
             await loadProducts();
@@ -269,7 +272,11 @@ export default function PriceLibrary() {
       const result = await response.json();
 
       if (result.success) {
-        alert('产品添加成功！');
+        if (result.duplicateCount > 0) {
+          alert(`⚠️ 产品已存在！\n\n该产品（名称、型号、品牌相同）已在库中，无需重复添加。`);
+        } else {
+          alert('✅ 产品添加成功！');
+        }
         setNewProduct({
           product_name: '',
           model: '',

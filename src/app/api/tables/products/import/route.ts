@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
     const errors: string[] = [];
 
     const db = getSupabaseClient();
+    let duplicateCount = 0;
 
     // 批量插入产品
     for (const item of productData) {
@@ -42,6 +43,22 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
+        // 查重检查：根据名称、型号、品牌判断是否存在
+        const { data: existingProduct } = await db
+          .from('products')
+          .select('id')
+          .eq('name', product.name)
+          .eq('model', product.model)
+          .eq('supplier', product.supplier)
+          .maybeSingle();
+
+        // 如果已存在相同产品，跳过插入
+        if (existingProduct) {
+          duplicateCount++;
+          errors.push(`重复产品（已存在）: ${product.name} | 型号: ${product.model || '-'} | 品牌: ${product.supplier || '-'}`);
+          continue;
+        }
+
         // 插入数据库
         const { error: insertError } = await db.from('products').insert(product);
 
@@ -59,9 +76,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `成功导入 ${successCount} 条产品数据`,
+      message: `成功导入 ${successCount} 条产品数据${duplicateCount > 0 ? `，跳过 ${duplicateCount} 条重复产品` : ''}`,
       successCount,
       errorCount,
+      duplicateCount,
       errors,
     });
   } catch (error) {
