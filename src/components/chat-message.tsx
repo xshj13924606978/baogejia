@@ -64,6 +64,7 @@ interface Message {
   files?: any[];
   fileData?: any[];
   isTemporary?: boolean;
+  isStreaming?: boolean;
   action?: string;
   fileGroupId?: string;
   currentChoice?: string;
@@ -871,7 +872,7 @@ const MermaidDiagram = ({ code }: { code: string }) => {
 // 简单的Markdown渲染组件（增强版 - 使用 markdown-it + mermaid）
 // ============================================================================
 
-const SimpleMarkdown = ({ content }: { content: string }) => {
+const SimpleMarkdown = ({ content, isStreaming }: { content: string; isStreaming?: boolean }) => {
   if (!content) return null;
 
   // 使用 markdown-it 渲染 Markdown 内容
@@ -961,20 +962,32 @@ const SimpleMarkdown = ({ content }: { content: string }) => {
       return (
         <div className="space-y-6">
           <MermaidDiagram code={mermaidCode} />
-          <div
-            className="prose prose-slate max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-table:w-full"
-            dangerouslySetInnerHTML={{ __html: processedHtml }}
-          />
+          <div className="relative">
+            <div
+              className="prose prose-slate max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-table:w-full"
+              dangerouslySetInnerHTML={{ __html: processedHtml }}
+            />
+            {/* 打字机光标效果 - 仅在流式输出时显示 */}
+            {isStreaming && (
+              <span className="inline-block w-2 h-5 bg-blue-600 ml-1 animate-pulse align-middle" />
+            )}
+          </div>
         </div>
       );
     }
   }
 
   return (
-    <div
-      className="prose prose-slate max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-table:w-full"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="relative">
+      <div
+        className="prose prose-slate max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-table:w-full"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+      {/* 打字机光标效果 - 仅在流式输出时显示 */}
+      {isStreaming && (
+        <span className="inline-block w-2 h-5 bg-blue-600 ml-1 animate-pulse align-middle" />
+      )}
+    </div>
   );
 };
 
@@ -2225,7 +2238,7 @@ export default function ChatMessage({
             /* 详细方案使用 SimpleMarkdown 渲染 */
             (() => {
               console.log('[ChatMessage] 渲染详细方案');
-              return <SimpleMarkdown content={message.content} />;
+              return <SimpleMarkdown content={message.content} isStreaming={message.isStreaming} />;
             })()
           ) : hasQuote ? (
             /* 报价单使用 IframeHTMLContainer 渲染 */
@@ -2237,7 +2250,7 @@ export default function ChatMessage({
             /* 普通消息使用 SimpleMarkdown 渲染 */
             (() => {
               console.log('[ChatMessage] 渲染普通消息');
-              return <SimpleMarkdown content={message.content} />;
+              return <SimpleMarkdown content={message.content} isStreaming={message.isStreaming} />;
             })()
           )}
           

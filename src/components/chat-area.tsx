@@ -63,6 +63,7 @@ interface Message {
   files?: FileUpload[];
   fileData?: any[];
   isTemporary?: boolean;
+  isStreaming?: boolean;
   action?: string;
   fileGroupId?: string;
   currentChoice?: string;
@@ -1083,6 +1084,130 @@ export default function ChatArea({
     }
   };
 
+  // 处理流式聊天响应
+  const handleStreamingChat = async (message: string, conversationId: string) => {
+    const tempId = Date.now() + 1;
+    let fullContent = '';
+    
+    // 创建临时消息，显示加载动画
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toISOString(),
+        isStreaming: true,
+      },
+    ]);
+
+    try {
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          conversationId,
+        }),
+        signal: abortControllerRef.current?.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error('流式请求失败');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('无法获取响应流');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          break;
+        }
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'content') {
+                fullContent += data.content;
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === tempId
+                      ? { ...msg, content: fullContent }
+                      : msg
+                  )
+                );
+              } else if (data.type === 'error') {
+                console.error('[ChatArea] 流式错误:', data.error);
+                throw new Error(data.error);
+              } else if (data.type === 'end') {
+                // 流式结束，更新消息
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === tempId
+                      ? {
+                          ...msg,
+                          content: fullContent,
+                          isStreaming: false,
+                          metadata: data.metadata,
+                        }
+                      : msg
+                  )
+                );
+                
+                // 保存到数据库
+                await saveMessageToDatabase(
+                  conversationId,
+                  'assistant',
+                  fullContent,
+                  undefined,
+                  undefined,
+                  data.metadata
+                );
+                
+                // 滚动到底部
+                setTimeout(scrollToBottom, 100);
+              }
+            } catch (e) {
+              console.error('[ChatArea] 解析SSE数据失败:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('[ChatArea] 流式请求已取消');
+        return;
+      }
+      
+      console.error('[ChatArea] 流式聊天失败:', error);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempId
+            ? {
+                ...msg,
+                content: fullContent || '抱歉，生成内容时发生错误，请稍后重试。',
+                isStreaming: false,
+              }
+            : msg
+        )
+      );
+    } finally {
+      setLoading(false);
+      abortControllerRef.current = null;
+    }
+  };
+
   const handleSendMessage = async () => {
     const hasContent = input.trim() !== '' || files.length > 0;
     if (!hasContent) {
@@ -1207,6 +1332,13 @@ export default function ChatArea({
           abortControllerRef.current = null;
           return;
         }
+      }
+
+      // 如果没有文件上传，使用流式API
+      if (uploadedFiles.length === 0 && userMessage.content.trim()) {
+        console.log('[ChatArea] 使用流式API处理纯文本消息');
+        await handleStreamingChat(userMessage.content, activeConversationId);
+        return;
       }
 
       setMessages((prev) => prev.map(msg => {
