@@ -1217,7 +1217,7 @@ export default function ChatMessage({
     /* 页面设置 */
     @page {
       size: A4;
-      margin: 1.2cm 1.0cm;
+      margin: 0.8cm 0.8cm;
     }
     
     @media print {
@@ -1661,7 +1661,7 @@ export default function ChatMessage({
     /* 打印设置 */
     @page {
       size: A4;
-      margin: 1.2cm 1.0cm;
+      margin: 0.8cm 0.8cm;
     }
     
     @media print {
