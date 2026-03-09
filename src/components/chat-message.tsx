@@ -1275,7 +1275,7 @@ export default function ChatMessage({
       max-width: 500pt;
       line-height: 1.8;
       text-align: left;
-      padding-bottom: 40pt;
+      padding-bottom: 30pt;
     }
 
     .cover-info p {
@@ -1755,8 +1755,8 @@ export default function ChatMessage({
       font-size: 32px;
       color: #ffffff;
       letter-spacing: 12px;
-      height: 200px;
-      margin: 60px auto 0;
+      height: 220px;
+      margin: 80px auto 0;
       font-weight: bold;
       line-height: 1.5;
     }
@@ -1773,7 +1773,7 @@ export default function ChatMessage({
       padding: 5px 80px 20px 80px;
       text-align: left;
       position: absolute;
-      bottom: 0;
+      bottom: 50px;
       left: 0;
       right: 0;
     }
