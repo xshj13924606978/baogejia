@@ -1789,14 +1789,14 @@ export default function ChatMessage({
     /* 竖排方案名称 - 居中 */
     .cover-vertical-text {
       writing-mode: vertical-rl;
-      text-orientation: upright;
+      text-orientation: mixed;
       font-size: 56px;
       color: #000000;
-      letter-spacing: 8px;
+      letter-spacing: 12px;
       height: 320px;
       margin: 0 auto;
       font-weight: 800;
-      line-height: 1;
+      line-height: 1.5;
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
       align-self: center;
     }
