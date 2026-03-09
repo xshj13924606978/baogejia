@@ -1223,6 +1223,9 @@ export default function ChatMessage({
       verticalText = '技术方案';
     }
     
+    // 生成竖排文字（每个字符一行）- Word兼容性更好
+    const verticalTextWithBreak = verticalText.split('').join('<br>');
+    
     // 获取供应方信息
     const supplierName = supplierInfo?.companyName || '未填写';
     const contactPerson = supplierInfo?.contactPerson || '未填写';
@@ -1290,8 +1293,7 @@ export default function ChatMessage({
     }
 
     .cover-vertical-text {
-      writing-mode: vertical-rl;
-      text-orientation: mixed;
+      /* 竖排文字 - 使用br换行实现，兼容性最好 */
       font-size: 48pt;
       color: #333333;
       letter-spacing: 54pt;
@@ -1299,6 +1301,8 @@ export default function ChatMessage({
       margin: 200px auto 0;
       font-weight: bold;
       line-height: 1.5;
+      text-align: center;
+      white-space: nowrap;
     }
 
     .cover-divider {
@@ -1562,7 +1566,7 @@ export default function ChatMessage({
       <div class="cover-title">${projectTitle}</div>
       
       <!-- 竖排方案名称（居中） -->
-      <div class="cover-vertical-text">${verticalText}</div>
+      <div class="cover-vertical-text">${verticalTextWithBreak}</div>
     </div>
     
     <!-- 封面底部区域 -->
