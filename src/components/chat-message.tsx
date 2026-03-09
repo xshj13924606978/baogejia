@@ -313,7 +313,8 @@ const parseMarkdownToHtml = (text: string): string => {
   
   // 5. 去除表格对齐符号行（优化：更严格的匹配）
   // 匹配包含 :---, :--:, --: 等对齐符号的行，包括各种格式变体
-  html = html.replace(/^\|?\s*:?-+:?\s*\|?$/gm, '');
+  // 注意：-+ 表示一个或多个连字符
+  html = html.replace(/^\|?\s*:?-{3,}:?\s*\|?$/gm, '');
   
   // 处理主标题（# 标题）
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
@@ -356,8 +357,9 @@ const parseMarkdownToHtml = (text: string): string => {
     const rows = bodyRows.trim().split('\n');
     const bodyHtml = rows.map(row => {
       // 跳过空行和分隔线（包含对齐符号的行）- 使用更准确的匹配
+      // -{3,} 表示3个或更多连字符
       const trimmedRow = row.trim();
-      if (!trimmedRow || /^\|?\s*:?-+:?\s*\|?$/.test(trimmedRow)) return '';
+      if (!trimmedRow || /^\|?\s*:?-{3,}:?\s*\|?$/.test(trimmedRow)) return '';
 
       // 去除首尾的|，然后按|分割
       const rowContent = row.trim();
@@ -1659,27 +1661,10 @@ export default function ChatMessage({
       day: 'numeric'
     });
     
-    // 提取方案标题（第一个 h1 标签）
+    // 提取方案标题（第一个 h1 标签）- PDF保持原始标题
     const titleMatch = content.match(/^#\s+(.+)$/m);
-    const rawTitle = titleMatch ? titleMatch[1].trim() : '技术方案';
-    
-    // 智能分割标题和方案类型
-    const keywords = ['技术方案', '报价方案', '报价单'];
-    let mainTitle = rawTitle;
-    let verticalText = '';
-    
-    for (const keyword of keywords) {
-      if (rawTitle.includes(keyword)) {
-        mainTitle = rawTitle.replace(keyword, '').trim();
-        verticalText = keyword;
-        break;
-      }
-    }
-    
-    // 如果没有找到关键词，默认为"技术方案"
-    if (!verticalText && !rawTitle.includes('技术方案') && !rawTitle.includes('报价方案') && !rawTitle.includes('报价单')) {
-      verticalText = '技术方案';
-    }
+    const mainTitle = titleMatch ? titleMatch[1].trim() : '技术方案';
+    const verticalText = ''; // PDF不显示竖排文字
     
     // 获取供应方信息
     const supplierName = supplierInfo?.companyName || '未填写';
