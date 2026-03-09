@@ -365,7 +365,11 @@ export default function PriceLibrary() {
             '规格': newProduct.specifications,
             '单位': newProduct.unit,
             '价格': newProduct.price,
-            '供应商': newProduct.supplier
+            '供应商': newProduct.supplier,
+            '联系人': newProduct.contact_person,
+            '联系电话': newProduct.contact_phone,
+            '成本': newProduct.cost_price,
+            '最低售价': newProduct.min_price
           }]
         })
       });
@@ -384,8 +388,12 @@ export default function PriceLibrary() {
           brand: '',
           specifications: '',
           unit: '',
+          cost_price: '',
+          min_price: '',
           price: '',
-          supplier: ''
+          supplier: '',
+          contact_person: '',
+          contact_phone: ''
         });
         setShowAddForm(false);
         // 刷新产品列表
@@ -578,14 +586,66 @@ export default function PriceLibrary() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                规格
+                参数描述
               </label>
               <input
                 type="text"
                 value={newProduct.specifications}
                 onChange={(e) => setNewProduct({ ...newProduct, specifications: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                placeholder="输入产品规格"
+                placeholder="输入产品参数描述"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                联系人
+              </label>
+              <input
+                type="text"
+                value={newProduct.contact_person}
+                onChange={(e) => setNewProduct({ ...newProduct, contact_person: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                placeholder="输入联系人"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                联系电话
+              </label>
+              <input
+                type="text"
+                value={newProduct.contact_phone}
+                onChange={(e) => setNewProduct({ ...newProduct, contact_phone: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                placeholder="输入联系电话"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                成本
+              </label>
+              <input
+                type="number"
+                value={newProduct.cost_price}
+                onChange={(e) => setNewProduct({ ...newProduct, cost_price: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                placeholder="输入成本价格"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                最低售价
+              </label>
+              <input
+                type="number"
+                value={newProduct.min_price}
+                onChange={(e) => setNewProduct({ ...newProduct, min_price: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                placeholder="输入最低售价"
+                min="0"
+                step="0.01"
               />
             </div>
           </div>
@@ -698,14 +758,66 @@ export default function PriceLibrary() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                规格
+                参数描述
               </label>
               <input
                 type="text"
                 value={editingProduct.specifications || ''}
                 onChange={(e) => setEditingProduct({ ...editingProduct, specifications: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                placeholder="输入产品规格"
+                placeholder="输入产品参数描述"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                联系人
+              </label>
+              <input
+                type="text"
+                value={editingProduct.contact_person || ''}
+                onChange={(e) => setEditingProduct({ ...editingProduct, contact_person: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                placeholder="输入联系人"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                联系电话
+              </label>
+              <input
+                type="text"
+                value={editingProduct.contact_phone || ''}
+                onChange={(e) => setEditingProduct({ ...editingProduct, contact_phone: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                placeholder="输入联系电话"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                成本
+              </label>
+              <input
+                type="number"
+                value={editingProduct.cost_price || ''}
+                onChange={(e) => setEditingProduct({ ...editingProduct, cost_price: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                placeholder="输入成本价格"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                最低售价
+              </label>
+              <input
+                type="number"
+                value={editingProduct.min_price || ''}
+                onChange={(e) => setEditingProduct({ ...editingProduct, min_price: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                placeholder="输入最低售价"
+                min="0"
+                step="0.01"
               />
             </div>
           </div>
