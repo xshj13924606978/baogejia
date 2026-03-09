@@ -1243,8 +1243,9 @@ export default function ChatMessage({
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 100vh;
-      max-height: 100vh;
+      height: 285mm;
+      min-height: 285mm;
+      max-height: 285mm;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -1731,8 +1732,9 @@ export default function ChatMessage({
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 100vh;
-      max-height: 100vh;
+      height: 285mm;
+      min-height: 285mm;
+      max-height: 285mm;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
