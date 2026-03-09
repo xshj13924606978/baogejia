@@ -1267,9 +1267,9 @@ export default function ChatMessage({
       text-orientation: mixed;
       font-size: 36pt;
       color: #ffffff;
-      letter-spacing: 18pt;
+      letter-spacing: 36pt;
       height: auto;
-      margin: 100px auto 0;
+      margin: 200px auto 0;
       font-weight: bold;
       line-height: 1.5;
     }
@@ -1768,9 +1768,9 @@ export default function ChatMessage({
       text-orientation: mixed;
       font-size: 36px;
       color: #ffffff;
-      letter-spacing: 18px;
+      letter-spacing: 36px;
       height: auto;
-      margin: 100px auto 0;
+      margin: 200px auto 0;
       font-weight: bold;
       line-height: 1.5;
     }
