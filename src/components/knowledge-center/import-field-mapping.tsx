@@ -145,16 +145,24 @@ export default function ImportFieldMapping({
   };
 
   const handleConfirm = () => {
+    // 过滤掉值为 "none" 的字段
+    const filteredMapping: Record<string, string> = {};
+    Object.keys(mapping).forEach(key => {
+      if (mapping[key] && mapping[key] !== 'none') {
+        filteredMapping[key] = mapping[key];
+      }
+    });
+
     // 验证必填字段
     const requiredFields = SYSTEM_FIELDS.filter(f => f.required);
-    const missingFields = requiredFields.filter(field => !mapping[field.key]);
+    const missingFields = requiredFields.filter(field => !filteredMapping[field.key]);
 
     if (missingFields.length > 0) {
       alert(`请为以下必填字段选择对应的Excel列：\n${missingFields.map(f => f.label).join('、')}`);
       return;
     }
 
-    onConfirm(mapping);
+    onConfirm(filteredMapping);
   };
 
   const getExcelHeaderPreview = (header: string) => {
@@ -200,14 +208,14 @@ export default function ImportFieldMapping({
                     </td>
                     <td className="p-3">
                       <Select
-                        value={mapping[field.key] || ''}
-                        onValueChange={(value) => handleFieldMapping(field.key, value)}
+                        value={mapping[field.key] || 'none'}
+                        onValueChange={(value) => handleFieldMapping(field.key, value === 'none' ? '' : value)}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="请选择Excel列" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">不导入</SelectItem>
+                          <SelectItem value="none">不导入</SelectItem>
                           {excelHeaders.map((header) => (
                             <SelectItem key={header} value={header}>
                               {header}
