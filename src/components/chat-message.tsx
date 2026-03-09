@@ -1816,16 +1816,17 @@ export default function ChatMessage({
     .cover-vertical-text {
       writing-mode: vertical-lr;
       text-orientation: mixed;
-      font-size: 42px;
+      font-size: 52px;
       color: #ffffff;
-      letter-spacing: 15px;
+      letter-spacing: 45px;
       margin: 0 auto;
       font-weight: 800;
-      line-height: 1.5;
+      line-height: normal;
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
       align-self: center;
       z-index: 10;
       position: relative;
+      height: auto;
     }
     
     /* 蓝色渲染块 - 全尺寸封面 */
