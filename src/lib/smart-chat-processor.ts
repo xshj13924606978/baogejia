@@ -63,6 +63,12 @@ export class SmartChatProcessor {
       productName = productName.replace(keyword, '');
     });
 
+    // 移除常见的量词（一个、一台、一套等）
+    const unitKeywords = ['一个', '一台', '一套', '一件', '一只', '一支', '每台', '每套', '每件'];
+    unitKeywords.forEach(keyword => {
+      productName = productName.replace(keyword, '');
+    });
+
     // 清理标点符号和多余空格
     productName = productName.replace(/[？?！!，,。.;;、\s]+/g, ' ').trim();
 
@@ -70,9 +76,10 @@ export class SmartChatProcessor {
       return { isPriceQuery: false };
     }
 
-    // 尝试提取型号（例如：10M、PW-100等）
-    const modelMatch = productName.match(/([0-9]+[A-Za-z]?|[A-Za-z]+[-_]?[0-9]+)/);
-    const model = modelMatch ? modelMatch[1] : undefined;
+    // 尝试提取型号（例如：10M、PW-100、KQ-150等）
+    // 改进正则表达式，更好地匹配型号
+    const modelMatch = productName.match(/\b([A-Za-z]*[-_]?\d+[A-Za-z]*|\d+[A-Za-z]+\b)/);
+    const model = modelMatch ? modelMatch[1].trim() : undefined;
 
     // 如果找到型号，从产品名称中移除
     if (model) {

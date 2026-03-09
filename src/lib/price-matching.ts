@@ -91,21 +91,33 @@ export class PriceMatcher {
     product: ProductMatch
   ): Promise<PriceMatchResult | null> {
     try {
+      console.log('[PriceMatcher] ====== 开始产品库匹配 ======');
+      console.log('[PriceMatcher] 产品名称:', product.name);
+      console.log('[PriceMatcher] 产品型号:', product.model);
+
       // 构建搜索关键词
       const searchTerms = [product.name];
       if (product.model) searchTerms.push(product.model);
-      
+
+      console.log('[PriceMatcher] 搜索关键词:', searchTerms);
+
       // 尝试精确匹配
       for (const term of searchTerms) {
+        console.log('[PriceMatcher] 正在搜索:', term);
         const dbProducts = await ServerDatabaseUtils.searchProducts(
           term,
           '',
           product.model || ''
         );
 
+        console.log('[PriceMatcher] 搜索结果数量:', dbProducts?.length || 0);
         if (dbProducts && dbProducts.length > 0) {
+          console.log('[PriceMatcher] 搜索结果:', JSON.stringify(dbProducts.slice(0, 2))); // 只打印前2个
+
           // 找到最佳匹配
           const bestMatch = this.findBestMatch(dbProducts, product);
+          
+          console.log('[PriceMatcher] 最佳匹配:', JSON.stringify(bestMatch));
           
           if (bestMatch) {
             // 计算匹配度
@@ -123,6 +135,7 @@ export class PriceMatcher {
               confidence += 5;
             }
 
+            console.log('[PriceMatcher] ✅ 产品库匹配成功，价格:', bestMatch.price, '置信度:', confidence);
             return {
               price: bestMatch.price,
               source: 'database',
@@ -136,16 +149,22 @@ export class PriceMatcher {
       }
 
       // 如果没有精确匹配，尝试模糊搜索
+      console.log('[PriceMatcher] 精确匹配失败，尝试模糊搜索');
       const fuzzyResults = await ServerDatabaseUtils.searchProducts(
         product.name,
         '',
-        '',
-        20 // 返回更多结果
+        ''
       );
 
+      console.log('[PriceMatcher] 模糊搜索结果数量:', fuzzyResults?.length || 0);
       if (fuzzyResults && fuzzyResults.length > 0) {
+        console.log('[PriceMatcher] 模糊搜索结果:', JSON.stringify(fuzzyResults.slice(0, 2)));
+        
         const bestMatch = this.findBestMatch(fuzzyResults, product);
+        console.log('[PriceMatcher] 模糊搜索最佳匹配:', JSON.stringify(bestMatch));
+        
         if (bestMatch) {
+          console.log('[PriceMatcher] ✅ 模糊匹配成功，价格:', bestMatch.price);
           return {
             price: bestMatch.price,
             source: 'database',
@@ -156,6 +175,8 @@ export class PriceMatcher {
           };
         }
       }
+      
+      console.log('[PriceMatcher] ❌ 产品库匹配失败，未找到匹配项');
     } catch (error) {
       // 只在第一次遇到此错误时输出，避免重复
       if (this.shouldLogError('database-match', error)) {
