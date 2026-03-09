@@ -1243,10 +1243,10 @@ export default function ChatMessage({
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 85vh;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      justify-content: space-between;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -1274,6 +1274,7 @@ export default function ChatMessage({
       max-width: 500pt;
       line-height: 2.2;
       text-align: left;
+      padding-bottom: 40pt;
     }
 
     .cover-info p {
@@ -1336,8 +1337,8 @@ export default function ChatMessage({
       font-size: 18pt;
       font-weight: 700;
       color: #1e40af;
-      margin-top: 20pt;
-      margin-bottom: 14pt;
+      margin-top: 16pt;
+      margin-bottom: 12pt;
       padding-bottom: 6pt;
       border-bottom: 2px solid #1e40af;
       text-align: center;
@@ -1348,8 +1349,8 @@ export default function ChatMessage({
       font-size: 15pt;
       font-weight: 700;
       color: #000000;
-      margin-top: 20pt;
-      margin-bottom: 12pt;
+      margin-top: 18pt;
+      margin-bottom: 10pt;
       padding-top: 6pt;
       padding-bottom: 6pt;
       padding-left: 12pt;
@@ -1362,8 +1363,8 @@ export default function ChatMessage({
       font-size: 13pt;
       font-weight: 600;
       color: #333333;
-      margin-top: 16pt;
-      margin-bottom: 10pt;
+      margin-top: 14pt;
+      margin-bottom: 8pt;
       padding-left: 16pt;
       border-left: 3px solid #60a5fa;
       background: #f8fafc;
@@ -1374,8 +1375,8 @@ export default function ChatMessage({
       font-size: 12pt;
       font-weight: 600;
       color: #333333;
-      margin-top: 14pt;
-      margin-bottom: 8pt;
+      margin-top: 12pt;
+      margin-bottom: 6pt;
       padding-left: 20pt;
       border-left: 2px solid #93c5fd;
       page-break-after: avoid;
@@ -1383,7 +1384,7 @@ export default function ChatMessage({
     
     /* 段落样式 - 简洁 */
     p {
-      margin-bottom: 8pt;
+      margin-bottom: 6pt;
       text-align: justify;
       text-indent: 2em;
       font-size: 11pt;
@@ -1395,7 +1396,7 @@ export default function ChatMessage({
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 16pt 0;
+      margin: 12pt 0;
       border: 1px solid #cbd5e1;
     }
 
@@ -1428,12 +1429,12 @@ export default function ChatMessage({
     
     /* 列表样式 - 简洁 */
     ul, ol {
-      margin: 10pt 0;
+      margin: 8pt 0;
       padding-left: 28pt;
     }
 
     li {
-      margin-bottom: 5pt;
+      margin-bottom: 4pt;
       font-size: 11pt;
       line-height: 1.6;
       color: #333;
@@ -1532,11 +1533,8 @@ export default function ChatMessage({
     </div>
   </div>
   
-  <!-- 分页控制 - 确保正文从新页开始 -->
-  <div style="page-break-after: always; break-after: page;"></div>
-  
   <!-- 正文 -->
-  <div class="content page-break-before">
+  <div class="content">
     <!-- 页眉 -->
     <div class="header">
       <div class="header-title">技术方案</div>
@@ -1619,11 +1617,11 @@ export default function ChatMessage({
         padding: 0;
       }
 
-      /* 分页控制 - 移除H2强制分页，使用更智能的分页策略 */
+      /* 分页控制 */
       h2 {
         page-break-before: auto;
-        margin-top: 32px;
-        margin-bottom: 16px;
+        margin-top: 24px;
+        margin-bottom: 12px;
       }
 
       h2:first-child {
@@ -1692,10 +1690,10 @@ export default function ChatMessage({
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 70vh;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      justify-content: space-between;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -1732,6 +1730,7 @@ export default function ChatMessage({
       max-width: 500px;
       line-height: 2.4;
       text-align: left;
+      padding-bottom: 40px;
     }
     
     .cover-info p {
@@ -1773,8 +1772,8 @@ export default function ChatMessage({
       font-size: 28px;
       font-weight: 700;
       color: #1e40af;
-      margin-top: 32px;
-      margin-bottom: 20px;
+      margin-top: 20px;
+      margin-bottom: 16px;
       padding-bottom: 8px;
       border-bottom: 3px solid #1e40af;
       text-align: center;
@@ -1784,8 +1783,8 @@ export default function ChatMessage({
       font-size: 20px;
       font-weight: 700;
       color: #000000;
-      margin-top: 28px;
-      margin-bottom: 14px;
+      margin-top: 24px;
+      margin-bottom: 12px;
       padding-left: 18px;
       padding-right: 15px;
       padding-top: 12px;
@@ -1799,8 +1798,8 @@ export default function ChatMessage({
       font-size: 17px;
       font-weight: 600;
       color: #333333;
-      margin-top: 20px;
-      margin-bottom: 12px;
+      margin-top: 18px;
+      margin-bottom: 10px;
       padding-left: 22px;
       border-left: 4px solid #60a5fa;
       background: #f8fafc;
@@ -1811,8 +1810,8 @@ export default function ChatMessage({
       font-size: 16px;
       font-weight: 600;
       color: #333333;
-      margin-top: 18px;
-      margin-bottom: 10px;
+      margin-top: 16px;
+      margin-bottom: 8px;
       padding-left: 26px;
       border-left: 3px solid #93c5fd;
       background: #f0f9ff;
@@ -1821,7 +1820,7 @@ export default function ChatMessage({
     
     /* 段落样式 */
     p {
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       text-align: justify;
       text-indent: 2em;
       font-size: 14px;
@@ -1833,7 +1832,7 @@ export default function ChatMessage({
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 18px 0;
+      margin: 14px 0;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       border-radius: 6px;
       overflow: hidden;
@@ -1900,12 +1899,12 @@ export default function ChatMessage({
     
     /* 列表样式 */
     ul, ol {
-      margin: 14px 0;
+      margin: 12px 0;
       padding-left: 40px;
     }
 
     li {
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       font-size: 14px;
       line-height: 1.7;
       color: #334155;
