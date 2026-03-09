@@ -1548,26 +1548,9 @@ export default function ChatMessage({
     h2, h3 {
       page-break-after: avoid;
     }
-    
-    /* 水印效果 */
-    .watermark {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(-45deg);
-      font-size: 100px;
-      color: rgba(30, 64, 175, 0.03);
-      font-weight: 700;
-      pointer-events: none;
-      z-index: -1;
-      white-space: nowrap;
-    }
   </style>
 </head>
 <body>
-  <!-- 水印 -->
-  <div class="watermark">技术方案</div>
-  
   <!-- 封面页 -->
   <div class="cover">
     <!-- 封面顶部区域 -->
@@ -1729,7 +1712,7 @@ export default function ChatMessage({
 
       /* 打印时去除背景渐变（节省墨水），但保留基础颜色 */
       .cover {
-        background: #1e40af !important;
+        background: #ffffff !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
@@ -1761,8 +1744,8 @@ export default function ChatMessage({
       text-align: center;
       padding: 0;
       page-break-after: always;
-      background: #1e40af;
-      color: white;
+      background: #ffffff;
+      color: #333333;
       height: 270mm;
       min-height: 270mm;
       max-height: 270mm;
@@ -1788,7 +1771,7 @@ export default function ChatMessage({
     .cover-title {
       font-size: 36px;
       font-weight: bold;
-      color: #ffffff;
+      color: #333333;
       margin-bottom: 4px;
       letter-spacing: 2px;
     }
@@ -1798,8 +1781,8 @@ export default function ChatMessage({
       writing-mode: vertical-rl;
       text-orientation: mixed;
       font-size: 48px;
-      color: #ffffff;
-      letter-spacing: 54px;
+      color: #333333;
+      letter-spacing: 12px;
       height: auto;
       margin: 200px auto 0;
       font-weight: bold;
@@ -1825,7 +1808,7 @@ export default function ChatMessage({
     
     .cover-info {
       font-size: 12px;
-      color: #e0e7ff;
+      color: #333333;
       line-height: 1.6;
       text-align: left;
     }
@@ -1833,11 +1816,11 @@ export default function ChatMessage({
     .cover-info p {
       text-indent: 0;
       margin: 2px 0;
-      color: #e0e7ff;
+      color: #333333;
     }
     
     .cover-info strong {
-      color: #ffffff;
+      color: #333333;
       font-weight: 600;
       display: inline-block;
       min-width: 80px;
