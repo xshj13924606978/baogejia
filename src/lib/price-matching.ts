@@ -95,72 +95,65 @@ export class PriceMatcher {
       console.log('[PriceMatcher] 产品名称:', product.name);
       console.log('[PriceMatcher] 产品型号:', product.model);
 
-      // 构建搜索关键词
-      const searchTerms = [product.name];
-      if (product.model) searchTerms.push(product.model);
+      // 直接使用 Supabase 进行精确查询（避免 ServerDatabaseUtils 清理产品名称）
+      const supabase = getSupabaseClient();
+      
+      // 优先级1：名称和型号完全匹配
+      let query = supabase
+        .from('products')
+        .select('*');
 
-      console.log('[PriceMatcher] 搜索关键词:', searchTerms);
+      if (product.model) {
+        query = query
+          .ilike('name', `%${product.name}%`)
+          .eq('model', product.model);
+      } else {
+        query = query.ilike('name', `%${product.name}%`);
+      }
 
-      // 尝试精确匹配
-      for (const term of searchTerms) {
-        console.log('[PriceMatcher] 正在搜索:', term);
-        const dbProducts = await ServerDatabaseUtils.searchProducts(
-          term,
-          '',
-          product.model || ''
-        );
-
-        console.log('[PriceMatcher] 搜索结果数量:', dbProducts?.length || 0);
-        if (dbProducts && dbProducts.length > 0) {
-          console.log('[PriceMatcher] 搜索结果:', JSON.stringify(dbProducts.slice(0, 2))); // 只打印前2个
-
-          // 找到最佳匹配
-          const bestMatch = this.findBestMatch(dbProducts, product);
-          
-          console.log('[PriceMatcher] 最佳匹配:', JSON.stringify(bestMatch));
-          
-          if (bestMatch) {
-            // 计算匹配度
-            let confidence = 90;
-            if (bestMatch.verified) confidence += 5;
-            if (bestMatch.source === 'verified') confidence += 5;
-            
-            // 如果型号完全匹配，增加置信度
-            if (product.model && bestMatch.model === product.model) {
-              confidence += 5;
-            }
-            
-            // 如果名称高度匹配，增加置信度
-            if (this.calculateSimilarity(product.name, bestMatch.name) > 0.8) {
-              confidence += 5;
-            }
-
-            console.log('[PriceMatcher] ✅ 产品库匹配成功，价格:', bestMatch.price, '置信度:', confidence);
-            return {
-              price: bestMatch.price,
-              source: 'database',
-              confidence: Math.min(confidence, 100),
-              productName: bestMatch.name,
-              model: bestMatch.model,
-              sourceId: bestMatch.id
-            };
-          }
+      console.log('[PriceMatcher] 执行精确查询...');
+      const { data: exactMatches, error: exactError } = await query.limit(10);
+      
+      console.log('[PriceMatcher] 精确查询结果数量:', exactMatches?.length || 0);
+      if (exactMatches && exactMatches.length > 0) {
+        console.log('[PriceMatcher] 精确查询结果:', JSON.stringify(exactMatches.slice(0, 2)));
+        
+        // 找到最佳匹配
+        const bestMatch = this.findBestMatch(exactMatches, product);
+        
+        console.log('[PriceMatcher] 最佳匹配:', JSON.stringify(bestMatch));
+        
+        if (bestMatch) {
+          console.log('[PriceMatcher] ✅ 产品库匹配成功，价格:', bestMatch.price);
+          return {
+            price: bestMatch.price,
+            source: 'database',
+            confidence: 95,
+            productName: bestMatch.name,
+            model: bestMatch.model,
+            sourceId: bestMatch.id
+          };
         }
       }
 
-      // 如果没有精确匹配，尝试模糊搜索
+      // 优先级2：模糊搜索（名称包含）
       console.log('[PriceMatcher] 精确匹配失败，尝试模糊搜索');
-      const fuzzyResults = await ServerDatabaseUtils.searchProducts(
-        product.name,
-        '',
-        ''
-      );
+      let fuzzyQuery = supabase
+        .from('products')
+        .select('*')
+        .ilike('name', `%${product.name}%`);
+      
+      if (product.model) {
+        fuzzyQuery = fuzzyQuery.ilike('model', `%${product.model}%`);
+      }
 
-      console.log('[PriceMatcher] 模糊搜索结果数量:', fuzzyResults?.length || 0);
-      if (fuzzyResults && fuzzyResults.length > 0) {
-        console.log('[PriceMatcher] 模糊搜索结果:', JSON.stringify(fuzzyResults.slice(0, 2)));
+      const { data: fuzzyMatches, error: fuzzyError } = await fuzzyQuery.limit(10);
+
+      console.log('[PriceMatcher] 模糊搜索结果数量:', fuzzyMatches?.length || 0);
+      if (fuzzyMatches && fuzzyMatches.length > 0) {
+        console.log('[PriceMatcher] 模糊搜索结果:', JSON.stringify(fuzzyMatches.slice(0, 2)));
         
-        const bestMatch = this.findBestMatch(fuzzyResults, product);
+        const bestMatch = this.findBestMatch(fuzzyMatches, product);
         console.log('[PriceMatcher] 模糊搜索最佳匹配:', JSON.stringify(bestMatch));
         
         if (bestMatch) {
@@ -168,7 +161,7 @@ export class PriceMatcher {
           return {
             price: bestMatch.price,
             source: 'database',
-            confidence: 70, // 模糊匹配置信度稍低
+            confidence: 75,
             productName: bestMatch.name,
             model: bestMatch.model,
             sourceId: bestMatch.id
