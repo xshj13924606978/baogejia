@@ -313,8 +313,13 @@ const parseMarkdownToHtml = (text: string): string => {
   
   // 5. 去除表格对齐符号行（优化：更严格的匹配）
   // 匹配包含 :---, :--:, --: 等对齐符号的行，包括各种格式变体
-  // 注意：-+ 表示一个或多个连字符
-  html = html.replace(/^\|?\s*:?-{3,}:?\s*\|?$/gm, '');
+  // 例如：
+  // |:---|:---:|---:|
+  // |---|---|---|
+  // |---|
+  // :---|:---|:---
+  // ---|---|---
+  html = html.replace(/^\|?\s*(:?-{3,}:?\s*\|?)+\s*$/gm, '');
   
   // 处理主标题（# 标题）
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
@@ -357,9 +362,14 @@ const parseMarkdownToHtml = (text: string): string => {
     const rows = bodyRows.trim().split('\n');
     const bodyHtml = rows.map(row => {
       // 跳过空行和分隔线（包含对齐符号的行）- 使用更准确的匹配
-      // -{3,} 表示3个或更多连字符
+      // 匹配各种Markdown表格对齐符号行的格式：
+      // |:---|:---:|---:|
+      // |---|---|---|
+      // |---|
+      // :---|:---|:---
+      // ---|---|---
       const trimmedRow = row.trim();
-      if (!trimmedRow || /^\|?\s*:?-{3,}:?\s*\|?$/.test(trimmedRow)) return '';
+      if (!trimmedRow || /^\|?\s*(:?-{3,}:?\s*\|?)+\s*$/.test(trimmedRow)) return '';
 
       // 去除首尾的|，然后按|分割
       const rowContent = row.trim();
