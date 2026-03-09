@@ -1807,7 +1807,7 @@ export default function ChatMessage({
       letter-spacing: 2px;
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
       text-align: center;
-      margin-bottom: 80px;
+      margin-bottom: 100px;
       z-index: 10;
       position: relative;
     }
@@ -1816,9 +1816,9 @@ export default function ChatMessage({
     .cover-vertical-text {
       writing-mode: vertical-lr;
       text-orientation: mixed;
-      font-size: 48px;
+      font-size: 42px;
       color: #ffffff;
-      letter-spacing: 10px;
+      letter-spacing: 15px;
       margin: 0 auto;
       font-weight: 800;
       line-height: 1.5;
@@ -1853,7 +1853,7 @@ export default function ChatMessage({
     
     .cover-info {
       font-size: 14px;
-      color: #333333;
+      color: #ffffff;
       line-height: 1.8;
       text-align: left;
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
@@ -1862,11 +1862,11 @@ export default function ChatMessage({
     .cover-info p {
       text-indent: 0;
       margin: 0;
-      color: #333333;
+      color: #ffffff;
     }
     
     .cover-info strong {
-      color: #000000;
+      color: #ffffff;
       font-weight: 600;
       display: inline-block;
       min-width: 80px;
