@@ -5,7 +5,8 @@ import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import ImportFieldMapping, { SYSTEM_FIELDS } from './import-field-mapping';
+import ImportFieldMapping from './import-field-mapping';
+import FieldConfigManager from './field-config-manager';
 
 export default function PriceLibrary() {
   const [products, setProducts] = useState<any[]>([]);
@@ -14,6 +15,7 @@ export default function PriceLibrary() {
   const [importing, setImporting] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
+  const [showFieldConfig, setShowFieldConfig] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
@@ -494,6 +496,12 @@ export default function PriceLibrary() {
           >
             <span>📥</span> 下载模板
           </button>
+          <button
+            onClick={() => setShowFieldConfig(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm"
+          >
+            <span>⚙️</span> 字段配置
+          </button>
         </div>
       </div>
 
@@ -965,6 +973,13 @@ export default function PriceLibrary() {
           </table>
         </div>
       </div>
+
+      {/* 字段配置管理 */}
+      {showFieldConfig && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <FieldConfigManager onClose={() => setShowFieldConfig(false)} />
+        </div>
+      )}
 
       {/* 字段映射对话框 */}
       {showFieldMapping && pendingExcelData && (

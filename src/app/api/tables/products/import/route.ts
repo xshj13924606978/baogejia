@@ -21,8 +21,20 @@ export async function POST(request: NextRequest) {
 
     const db = getSupabaseClient();
 
-    // 必填字段定义
-    const requiredFields = ['product_name', 'price'];
+    // 从字段配置表获取必填字段
+    let requiredFields: string[] = ['product_name', 'price']; // 默认必填字段
+    try {
+      const { data: fieldConfigs } = await db
+        .from('product_field_configs')
+        .select('field_key')
+        .eq('is_required', true);
+
+      if (fieldConfigs && fieldConfigs.length > 0) {
+        requiredFields = fieldConfigs.map(c => c.field_key);
+      }
+    } catch (error) {
+      console.error('获取字段配置失败，使用默认必填字段:', error);
+    }
 
     // 批量插入产品
     for (const item of productData) {

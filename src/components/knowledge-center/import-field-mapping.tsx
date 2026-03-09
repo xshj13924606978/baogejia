@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 
-// 系统字段定义
+// 系统字段定义（默认配置，如果API加载失败会使用）
 export const SYSTEM_FIELDS = [
   {
     key: 'product_name',
@@ -88,6 +88,13 @@ export const SYSTEM_FIELDS = [
   }
 ];
 
+interface FieldConfig {
+  id: number;
+  field_key: string;
+  field_label: string;
+  is_required: boolean;
+}
+
 interface ImportFieldMappingProps {
   excelHeaders: string[];
   excelData: any[];
@@ -103,13 +110,78 @@ export default function ImportFieldMapping({
 }: ImportFieldMappingProps) {
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [autoMapped, setAutoMapped] = useState(false);
+  const [fieldConfigs, setFieldConfigs] = useState(SYSTEM_FIELDS);
+  const [loadingConfigs, setLoadingConfigs] = useState(true);
+
+  // 从API加载字段配置
+  useEffect(() => {
+    loadFieldConfigs();
+  }, []);
+
+  const loadFieldConfigs = async () => {
+    try {
+      const res = await fetch('/api/tables/products/field-configs');
+      const data = await res.json();
+
+      if (data.success && data.data && data.data.length > 0) {
+        // 将API返回的配置转换为组件需要的格式
+        const configs = data.data.map((config: FieldConfig) => ({
+          key: config.field_key,
+          label: config.field_label,
+          required: config.is_required,
+          description: getFieldDescription(config.field_key),
+          sampleValues: getFieldSampleValues(config.field_key)
+        }));
+        setFieldConfigs(configs);
+      }
+    } catch (error) {
+      console.error('加载字段配置失败:', error);
+      // 使用默认配置
+    } finally {
+      setLoadingConfigs(false);
+    }
+  };
+
+  const getFieldDescription = (key: string): string => {
+    const descriptions: Record<string, string> = {
+      'product_name': '产品的名称',
+      'model': '产品的型号规格',
+      'brand': '产品品牌',
+      'specifications': '产品详细参数',
+      'supplier': '产品供应商',
+      'contact_person': '供应商联系人',
+      'contact_phone': '供应商联系电话',
+      'unit': '产品计量单位',
+      'cost_price': '产品成本价格',
+      'min_price': '产品最低销售价格',
+      'price': '产品指导价格'
+    };
+    return descriptions[key] || '';
+  };
+
+  const getFieldSampleValues = (key: string): string[] => {
+    const samples: Record<string, string[]> = {
+      'product_name': ['工业提升泵', '搅拌罐', '板框压滤机'],
+      'model': ['CR5-12', '2.5m³', 'XMYZ100/800-U'],
+      'brand': ['格兰富', '通用', '景津'],
+      'specifications': ['流量12m³/h，扬程30m', '不锈钢材质，配搅拌器'],
+      'supplier': ['格兰富中国', '通用机械', '景津环保'],
+      'contact_person': ['张三', '李四', '王五'],
+      'contact_phone': ['13800138000', '13900139000'],
+      'unit': ['台', '套', '个', '件'],
+      'cost_price': ['3200', '14500', '88000'],
+      'min_price': ['3500', '15000', '90000'],
+      'price': ['3200', '14500', '88000']
+    };
+    return samples[key] || [];
+  };
 
   // 自动映射字段
   useEffect(() => {
-    if (!autoMapped && excelHeaders.length > 0) {
+    if (!autoMapped && excelHeaders.length > 0 && !loadingConfigs) {
       const autoMapping: Record<string, string> = {};
 
-      SYSTEM_FIELDS.forEach(field => {
+      fieldConfigs.forEach(field => {
         // 尝试精确匹配
         const exactMatch = excelHeaders.find(
           header => header.toLowerCase() === field.label.toLowerCase() ||
@@ -135,7 +207,7 @@ export default function ImportFieldMapping({
       setMapping(autoMapping);
       setAutoMapped(true);
     }
-  }, [excelHeaders, autoMapped]);
+  }, [excelHeaders, autoMapped, fieldConfigs, loadingConfigs]);
 
   const handleFieldMapping = (systemField: string, excelHeader: string) => {
     setMapping(prev => ({
@@ -154,7 +226,7 @@ export default function ImportFieldMapping({
     });
 
     // 验证必填字段
-    const requiredFields = SYSTEM_FIELDS.filter(f => f.required);
+    const requiredFields = fieldConfigs.filter(f => f.required);
     const missingFields = requiredFields.filter(field => !filteredMapping[field.key]);
 
     if (missingFields.length > 0) {
@@ -193,7 +265,7 @@ export default function ImportFieldMapping({
                 </tr>
               </thead>
               <tbody>
-                {SYSTEM_FIELDS.map((field) => (
+                {fieldConfigs.map((field) => (
                   <tr key={field.key} className="border-t">
                     <td className="p-3">
                       <div className="flex items-center gap-2">
