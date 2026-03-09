@@ -236,20 +236,30 @@ export async function POST(request: NextRequest) {
 
     if (type === 'terms') {
       // 保存或更新商务条款
-      const termsData = {
+      const termsData: any = {
         name: data.name || '标准条款',
         payment_terms: data.paymentTerms || data.payment,
         warranty_period: data.warrantyPeriod || data.warranty,
         delivery_period: data.deliveryPeriod || data.delivery,
         validity_period: data.validityPeriod || data.validity,
         remarks: data.remarks || '',
-        tax_rate: data.taxRate,
-        shipping: data.shipping,
-        installation: data.installation,
-        other_fees: data.otherFees,
         is_default: data.isDefault !== false,
         updated_at: new Date().toISOString()
       };
+
+      // 只包含数据库中存在的字段
+      if (data.taxRate !== undefined) {
+        termsData.tax_rate = data.taxRate;
+      }
+      if (data.shipping !== undefined) {
+        termsData.shipping = data.shipping;
+      }
+      if (data.installation !== undefined) {
+        termsData.installation = data.installation;
+      }
+      if (data.otherFees !== undefined) {
+        termsData.other_fees = data.otherFees;
+      }
 
       // 检查是否存在默认条款
       const { data: existingTerms } = await db
