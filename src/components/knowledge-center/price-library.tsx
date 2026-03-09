@@ -21,6 +21,7 @@ export default function PriceLibrary() {
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
   const [showFieldMapping, setShowFieldMapping] = useState(false);
   const [pendingExcelData, setPendingExcelData] = useState<{ headers: string[]; data: any[] } | null>(null);
+  const [fieldConfigs, setFieldConfigs] = useState<Record<string, { label: string; required: boolean }>>({});
   const [newProduct, setNewProduct] = useState({
     product_name: '',
     model: '',
@@ -191,8 +192,35 @@ export default function PriceLibrary() {
   // 判断是否全部选中
   const isAllSelected = products.length > 0 && selectedProducts.size === products.length;
 
+  // 加载字段配置
+  const loadFieldConfigs = async () => {
+    try {
+      const res = await fetch('/api/tables/products/field-configs');
+      const data = await res.json();
+
+      if (data.success && data.data) {
+        const configs: Record<string, { label: string; required: boolean }> = {};
+        data.data.forEach((config: any) => {
+          configs[config.field_key] = {
+            label: config.field_label,
+            required: config.is_required
+          };
+        });
+        setFieldConfigs(configs);
+      }
+    } catch (error) {
+      console.error('加载字段配置失败:', error);
+      // 使用默认配置
+      setFieldConfigs({
+        product_name: { label: '产品名称', required: true },
+        price: { label: '指导价', required: true }
+      });
+    }
+  };
+
   useEffect(() => {
     loadProducts();
+    loadFieldConfigs();
   }, []);
 
   // 搜索产品
@@ -350,8 +378,15 @@ export default function PriceLibrary() {
 
   // 手动添加产品
   const handleAddProduct = async () => {
-    if (!newProduct.product_name || !newProduct.price) {
-      alert('请至少填写产品名称和价格');
+    // 根据字段配置验证必填字段
+    const requiredFields = Object.entries(fieldConfigs)
+      .filter(([_, config]) => config.required)
+      .map(([key, config]) => ({ key, label: config.label }));
+
+    const missingFields = requiredFields.filter(field => !newProduct[field.key as keyof typeof newProduct]);
+
+    if (missingFields.length > 0) {
+      alert(`请填写必填字段：${missingFields.map(f => f.label).join('、')}`);
       return;
     }
 
@@ -520,7 +555,7 @@ export default function PriceLibrary() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                产品名称 <span className="text-red-500">*</span>
+                产品名称 {fieldConfigs.product_name?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
@@ -532,19 +567,19 @@ export default function PriceLibrary() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                型号
+                规格/型号 {fieldConfigs.model?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
                 value={newProduct.model}
                 onChange={(e) => setNewProduct({ ...newProduct, model: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                placeholder="输入型号"
+                placeholder="输入规格/型号"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                品牌
+                品牌 {fieldConfigs.brand?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
@@ -556,7 +591,7 @@ export default function PriceLibrary() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                单位
+                单位 {fieldConfigs.unit?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
@@ -568,7 +603,7 @@ export default function PriceLibrary() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                指导价 <span className="text-red-500">*</span>
+                指导价 {fieldConfigs.price?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="number"
@@ -582,7 +617,7 @@ export default function PriceLibrary() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                供应商
+                供应商 {fieldConfigs.supplier?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
@@ -594,7 +629,7 @@ export default function PriceLibrary() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                参数描述
+                参数描述 {fieldConfigs.specifications?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
@@ -606,7 +641,7 @@ export default function PriceLibrary() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                联系人
+                联系人 {fieldConfigs.contact_person?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
@@ -618,7 +653,7 @@ export default function PriceLibrary() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                联系电话
+                联系电话 {fieldConfigs.contact_phone?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
@@ -630,7 +665,7 @@ export default function PriceLibrary() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                成本
+                成本 {fieldConfigs.cost_price?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="number"
@@ -644,7 +679,7 @@ export default function PriceLibrary() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                最低售价
+                最低售价 {fieldConfigs.min_price?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="number"
@@ -977,7 +1012,11 @@ export default function PriceLibrary() {
       {/* 字段配置管理 */}
       {showFieldConfig && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <FieldConfigManager onClose={() => setShowFieldConfig(false)} />
+          <FieldConfigManager onClose={async () => {
+            setShowFieldConfig(false);
+            // 重新加载字段配置
+            await loadFieldConfigs();
+          }} />
         </div>
       )}
 
