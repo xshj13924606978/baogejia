@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import ImportFieldMapping, { SYSTEM_FIELDS } from './import-field-mapping';
 
 export default function PriceLibrary() {
   const [products, setProducts] = useState<any[]>([]);
@@ -12,14 +16,21 @@ export default function PriceLibrary() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
+  const [showFieldMapping, setShowFieldMapping] = useState(false);
+  const [pendingExcelData, setPendingExcelData] = useState<{ headers: string[]; data: any[] } | null>(null);
   const [newProduct, setNewProduct] = useState({
     product_name: '',
     model: '',
     brand: '',
     specifications: '',
     unit: '',
+    cost_price: '',
+    min_price: '',
     price: '',
-    supplier: ''
+    supplier: '',
+    contact_person: '',
+    contact_phone: ''
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,6 +131,64 @@ export default function PriceLibrary() {
     }
   };
 
+  // 批量删除产品
+  const handleBatchDelete = async () => {
+    if (selectedProducts.size === 0) {
+      alert('请先选择要删除的产品');
+      return;
+    }
+
+    if (!confirm(`确定要删除选中的 ${selectedProducts.size} 个产品吗？此操作不可撤销。`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/tables/products/batch-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedProducts) })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`✅ 成功删除 ${result.deletedCount} 个产品！`);
+        setSelectedProducts(new Set());
+        await loadProducts();
+      } else {
+        alert(`删除失败：${result.error}`);
+      }
+    } catch (error) {
+      console.error('批量删除产品失败:', error);
+      alert(`删除失败：${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
+  // 选择单个产品
+  const handleSelectProduct = (productId: number) => {
+    setSelectedProducts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
+
+  // 全选/取消全选
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(new Set(products.map(p => p.id)));
+    } else {
+      setSelectedProducts(new Set());
+    }
+  };
+
+  // 判断是否全部选中
+  const isAllSelected = products.length > 0 && selectedProducts.size === products.length;
+
   useEffect(() => {
     loadProducts();
   }, []);
@@ -181,7 +250,7 @@ export default function PriceLibrary() {
     try {
       // 读取Excel文件
       const reader = new FileReader();
-      reader.onload = async (evt) => {
+      reader.onload = (evt) => {
         try {
           const data = new Uint8Array(evt.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
@@ -195,40 +264,22 @@ export default function PriceLibrary() {
 
           console.log('解析到的Excel数据:', jsonData);
 
-          // 调用导入API
-          const response = await fetch('/api/tables/products/import', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ products: jsonData })
-          });
+          // 获取Excel表头
+          const headers = jsonData.length > 0 ? Object.keys(jsonData[0]) : [];
 
-          const result = await response.json();
-
-          if (result.success) {
-            const duplicateMsg = result.duplicateCount > 0 ? `\n跳过 ${result.duplicateCount} 条重复产品（名称、型号、品牌相同）` : '';
-            const errorMsg = result.errorCount > 0 ? `\n失败 ${result.errorCount} 条` : '';
-
-            alert(`✅ 导入成功！\n\n成功导入 ${result.successCount} 条产品数据${duplicateMsg}${errorMsg}`);
-
-            // 刷新产品列表
-            await loadProducts();
-
-            // 显示错误详情（如果有）
-            if (result.errors && result.errors.length > 0) {
-              console.log('导入错误:', result.errors);
-            }
-          } else {
-            alert(`❌ 导入失败：${result.error}`);
-          }
-        } catch (error) {
-          console.error('解析Excel失败:', error);
-          alert(`❌ 解析Excel文件失败：${error instanceof Error ? error.message : '未知错误'}`);
-        } finally {
+          // 保存数据，显示字段映射对话框
+          setPendingExcelData({ headers, data: jsonData });
+          setShowFieldMapping(true);
           setImporting(false);
+
           // 清空文件输入
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
           }
+        } catch (error) {
+          console.error('解析Excel失败:', error);
+          alert(`❌ 解析Excel文件失败：${error instanceof Error ? error.message : '未知错误'}`);
+          setImporting(false);
         }
       };
 
@@ -243,6 +294,56 @@ export default function PriceLibrary() {
       alert(`❌ 导入Excel失败：${error instanceof Error ? error.message : '未知错误'}`);
       setImporting(false);
     }
+  };
+
+  // 确认字段映射并导入
+  const handleConfirmMapping = async (mapping: Record<string, string>) => {
+    if (!pendingExcelData) return;
+
+    setImporting(true);
+    setShowFieldMapping(false);
+
+    try {
+      const response = await fetch('/api/tables/products/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          products: pendingExcelData.data,
+          fieldMapping: mapping
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        const duplicateMsg = result.duplicateCount > 0 ? `\n跳过 ${result.duplicateCount} 条重复产品` : '';
+        const errorMsg = result.errorCount > 0 ? `\n失败 ${result.errorCount} 条` : '';
+
+        alert(`✅ 导入成功！\n\n成功导入 ${result.successCount} 条产品数据${duplicateMsg}${errorMsg}`);
+
+        // 刷新产品列表
+        await loadProducts();
+
+        // 显示错误详情（如果有）
+        if (result.errors && result.errors.length > 0) {
+          console.log('导入错误:', result.errors);
+        }
+      } else {
+        alert(`❌ 导入失败：${result.error}`);
+      }
+    } catch (error) {
+      console.error('导入产品失败:', error);
+      alert(`❌ 导入产品失败：${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setImporting(false);
+      setPendingExcelData(null);
+    }
+  };
+
+  // 取消导入
+  const handleCancelMapping = () => {
+    setShowFieldMapping(false);
+    setPendingExcelData(null);
   };
 
   // 手动添加产品
@@ -300,25 +401,33 @@ export default function PriceLibrary() {
 
   // 下载模板
   const handleDownloadTemplate = () => {
-    // 创建示例数据
+    // 创建示例数据（包含所有字段）
     const templateData = [
       {
         '产品名称': '工业提升泵',
-        '型号': 'CR5-12',
+        '规格型号': 'CR5-12',
         '品牌': '格兰富',
-        '规格': '流量12m³/h，扬程30m',
+        '参数描述': '流量12m³/h，扬程30m',
+        '供应商': '格兰富中国',
+        '联系人': '张三',
+        '联系电话': '13800138000',
         '单位': '台',
-        '价格': 3200,
-        '供应商': '格兰富中国'
+        '成本': 2800,
+        '最低售价': 3000,
+        '指导价': 3200
       },
       {
         '产品名称': '搅拌罐',
-        '型号': '2.5m³',
+        '规格型号': '2.5m³',
         '品牌': '通用',
-        '规格': '不锈钢材质，配搅拌器',
+        '参数描述': '不锈钢材质，配搅拌器',
+        '供应商': '通用机械',
+        '联系人': '李四',
+        '联系电话': '13900139000',
         '单位': '台',
-        '价格': 14500,
-        '供应商': '通用机械'
+        '成本': 13000,
+        '最低售价': 14000,
+        '指导价': 14500
       }
     ];
 
@@ -659,16 +768,40 @@ export default function PriceLibrary() {
         </div>
       </div>
 
+      {/* 批量操作栏 */}
+      {selectedProducts.size > 0 && (
+        <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-blue-700 dark:text-blue-300">
+              已选择 <strong>{selectedProducts.size}</strong> 个产品
+            </span>
+          </div>
+          <button
+            onClick={handleBatchDelete}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 text-sm"
+          >
+            <span>🗑️</span> 批量删除
+          </button>
+        </div>
+      )}
+
       {/* 数据表格 */}
       <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 dark:bg-slate-800">
               <tr>
+                <th className="px-4 py-3 w-12 text-center">
+                  <Checkbox
+                    checked={isAllSelected}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="全选"
+                  />
+                </th>
                 <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">产品名称</th>
-                <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">型号</th>
+                <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">规格型号</th>
                 <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">品牌</th>
-                <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">规格</th>
+                <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">参数描述</th>
                 <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">单位</th>
                 <th className="px-4 py-3 text-right text-slate-700 dark:text-slate-300 font-medium">价格</th>
                 <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">供应商</th>
@@ -678,14 +811,21 @@ export default function PriceLibrary() {
             <tbody>
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={12} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                     暂无数据，请导入Excel或手动添加
                   </td>
                 </tr>
               ) : (
                 products.map((p, idx) => (
                   <tr key={idx} className="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                    <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{p.product_name}</td>
+                    <td className="px-4 py-3 w-12 text-center">
+                      <Checkbox
+                        checked={selectedProducts.has(p.id)}
+                        onCheckedChange={() => handleSelectProduct(p.id)}
+                        aria-label={`选择产品 ${p.product_name}`}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-slate-900 dark:text-slate-100 font-medium">{p.product_name}</td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{p.model}</td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{p.brand}</td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-[200px] truncate">{p.specifications}</td>
@@ -713,6 +853,18 @@ export default function PriceLibrary() {
           </table>
         </div>
       </div>
+
+      {/* 字段映射对话框 */}
+      {showFieldMapping && pendingExcelData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <ImportFieldMapping
+            excelHeaders={pendingExcelData.headers}
+            excelData={pendingExcelData.data}
+            onConfirm={handleConfirmMapping}
+            onCancel={handleCancelMapping}
+          />
+        </div>
+      )}
     </div>
   );
 }
