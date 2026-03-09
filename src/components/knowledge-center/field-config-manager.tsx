@@ -82,46 +82,46 @@ export default function FieldConfigManager({ onClose }: FieldConfigManagerProps)
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
+    <Card className="w-full max-w-2xl max-h-[85vh] flex flex-col">
+      <CardHeader className="flex-shrink-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
             <CardTitle>字段必填配置</CardTitle>
             <CardDescription>
               设置产品价格表单中各字段的必填/选填状态
             </CardDescription>
           </div>
           {onClose && (
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} className="flex-shrink-0">
               关闭
             </Button>
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="text-center py-8 text-muted-foreground">
             加载中...
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {configs.map((config) => (
               <div
                 key={config.field_key}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <Label htmlFor={`field-${config.field_key}`} className="text-base font-medium">
                     {config.field_label}
                   </Label>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-sm text-muted-foreground mt-0.5">
                     当前状态: <span className={config.is_required ? "text-red-600 font-medium" : "text-muted-foreground"}>
                       {config.is_required ? '必填' : '选填'}
                     </span>
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor={`field-${config.field_key}`} className="text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                  <Label htmlFor={`field-${config.field_key}`} className="text-sm text-muted-foreground whitespace-nowrap">
                     {config.is_required ? '必填' : '选填'}
                   </Label>
                   <Switch
