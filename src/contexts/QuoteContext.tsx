@@ -140,12 +140,63 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateSupplierInfo = (info: SupplierInfo) => {
+  const updateSupplierInfo = async (info: SupplierInfo) => {
+    // 更新状态
     setQuoteData(prev => ({ ...prev, supplierInfo: info }));
+
+    // 保存到数据库（如果 API 可用）
+    try {
+      const response = await fetch('/api/business-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'supplier',
+          data: info
+        })
+      });
+
+      if (response.ok) {
+        console.log('[QuoteContext] 供应商信息保存成功');
+      } else {
+        console.warn('[QuoteContext] 供应商信息保存失败，API 返回错误');
+      }
+    } catch (error) {
+      // API 不可用时静默失败，不影响用户体验
+      console.warn('[QuoteContext] 商务信息 API 不可用，未保存到数据库');
+    }
   };
 
-  const updateCustomerInfo = (info: CustomerInfo) => {
+  const updateCustomerInfo = async (info: CustomerInfo) => {
+    // 更新状态
     setQuoteData(prev => ({ ...prev, customerInfo: info }));
+
+    // 保存到数据库（如果 API 可用）
+    try {
+      const response = await fetch('/api/business-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'customer',
+          data: {
+            companyName: info.name,
+            projectName: info.projectName,
+            contactPerson: info.contactPerson,
+            phone: info.phone,
+            email: info.email,
+            address: info.address,
+          }
+        })
+      });
+
+      if (response.ok) {
+        console.log('[QuoteContext] 客户信息保存成功');
+      } else {
+        console.warn('[QuoteContext] 客户信息保存失败，API 返回错误');
+      }
+    } catch (error) {
+      // API 不可用时静默失败，不影响用户体验
+      console.warn('[QuoteContext] 商务信息 API 不可用，未保存到数据库');
+    }
   };
 
   const updateTerms = async (terms: TermsInfo) => {

@@ -1,339 +1,221 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { Pool } from 'pg';
 
-/**
- * 获取商务信息API
- * 统一获取供应方、客户、商务条款信息，用于生成报价和方案
- */
+// 从环境变量获取数据库连接信息
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres',
+});
+
+// ============================================================================
+// GET - 获取商务信息
+// ============================================================================
 export async function GET(request: NextRequest) {
   try {
-    const db = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
-    
-    // 获取参数
-    const type = searchParams.get('type'); // 'supplier', 'customer', 'terms', 或 'all'
-    const customerId = searchParams.get('customerId');
-    const useDefaultTerms = searchParams.get('useDefaultTerms') === 'true';
+    const type = searchParams.get('type') || 'all';
 
-    console.log('[Business Info API] 获取商务信息:', { type, customerId, useDefaultTerms });
-
-    let result: any = {};
-
-    // 1. 获取供应方信息
-    if (type === 'all' || type === 'supplier') {
-      const { data: supplierData, error: supplierError } = await db
-        .from('suppliers')
-        .select('*')
-        .limit(1)
-        .single();
-
-      if (supplierError && supplierError.code !== 'PGRST116') {
-        console.error('[Business Info API] 获取供应方信息失败:', supplierError);
-      }
-
-      if (supplierData) {
-        // 转换为camelCase
-        result.supplier = {
-          id: supplierData.id,
-          companyName: supplierData.company_name,
-          contactPerson: supplierData.contact_person,
-          phone: supplierData.phone,
-          email: supplierData.email,
-          address: supplierData.address,
-          website: supplierData.website,
-          bankName: supplierData.bank_name,
-          bankAccount: supplierData.bank_account,
-          taxId: supplierData.tax_id,
-          logo: supplierData.logo,
-        };
-      } else {
-        // 返回默认供应方信息
-        result.supplier = {
-          companyName: '环保设备有限公司',
-          contactPerson: '张经理',
-          phone: '400-888-8888',
-          email: 'contact@example.com',
-          address: '上海市浦东新区张江高科技园区',
-          website: 'www.example.com',
-          bankName: '中国银行',
-          bankAccount: '1234567890123456',
-          taxId: '310115XXXXXXXXXXXX',
-        };
-      }
-    }
-
-    // 2. 获取客户信息
-    if (type === 'all' || type === 'customer') {
-      if (customerId) {
-        // 获取指定客户
-        const { data: customerData, error: customerError } = await db
-          .from('customers')
-          .select('*')
-          .eq('id', customerId)
-          .single();
-
-        if (customerError) {
-          console.error('[Business Info API] 获取客户信息失败:', customerError);
-        }
-
-        if (customerData) {
-          result.customer = {
-            id: customerData.id,
-            companyName: customerData.company_name,
-            projectName: customerData.project_name,
-            contactPerson: customerData.contact_person,
-            phone: customerData.phone,
-            email: customerData.email,
-            address: customerData.address,
-          };
-        }
-      } else {
-        // 获取最近添加的客户
-        const { data: customersData, error: customersError } = await db
-          .from('customers')
-          .select('*')
-          .order('updated_at', { ascending: false })
-          .limit(1);
-
-        if (customersError) {
-          console.error('[Business Info API] 获取客户列表失败:', customersError);
-        }
-
-        if (customersData && customersData.length > 0) {
-          const customer = customersData[0];
-          result.customer = {
-            id: customer.id,
-            companyName: customer.company_name,
-            projectName: customer.project_name,
-            contactPerson: customer.contact_person,
-            phone: customer.phone,
-            email: customer.email,
-            address: customer.address,
-          };
-        } else {
-          // 返回默认客户信息
-          result.customer = {
-            companyName: 'XX工程项目部',
-            projectName: '污水处理设备采购项目',
-            contactPerson: '李工',
-            phone: '13912345678',
-            email: 'ligong@example.com',
-            address: '江苏省苏州市工业园区',
-          };
-        }
-      }
-    }
-
-    // 3. 获取商务条款
-    if (type === 'all' || type === 'terms') {
-      if (useDefaultTerms) {
-        // 获取默认条款
-        const { data: termsData, error: termsError } = await db
-          .from('quote_terms')
-          .select('*')
-          .eq('is_default', true)
-          .single();
-
-        if (termsError && termsError.code !== 'PGRST116') {
-          console.error('[Business Info API] 获取默认条款失败:', termsError);
-        }
-
-        if (termsData) {
-          result.terms = {
-            id: termsData.id,
-            name: termsData.name,
-            paymentTerms: termsData.payment_terms,
-            warrantyPeriod: termsData.warranty_period,
-            deliveryPeriod: termsData.delivery_period,
-            validityPeriod: termsData.validity_period,
-            remarks: termsData.remarks,
-            isDefault: termsData.is_default,
-          };
-        } else {
-          // 返回默认条款
-          result.terms = {
-            name: '标准条款',
-            paymentTerms: '合同签订后预付30%，发货前支付65%，验收合格后支付5%',
-            warrantyPeriod: '12个月',
-            deliveryPeriod: '15-20个工作日',
-            validityPeriod: '30天',
-            remarks: '',
-          };
-        }
-      } else {
-        // 获取最近添加的条款
-        const { data: termsList, error: termsError } = await db
-          .from('quote_terms')
-          .select('*')
-          .order('updated_at', { ascending: false })
-          .limit(1);
-
-        if (termsError) {
-          console.error('[Business Info API] 获取条款列表失败:', termsError);
-        }
-
-        if (termsList && termsList.length > 0) {
-          const terms = termsList[0];
-          result.terms = {
-            id: terms.id,
-            name: terms.name,
-            paymentTerms: terms.payment_terms,
-            warrantyPeriod: terms.warranty_period,
-            deliveryPeriod: terms.delivery_period,
-            validityPeriod: terms.validity_period,
-            remarks: terms.remarks,
-            isDefault: terms.is_default,
-          };
-        } else {
-          // 返回默认条款
-          result.terms = {
-            name: '标准条款',
-            paymentTerms: '合同签订后预付30%，发货前支付65%，验收合格后支付5%',
-            warrantyPeriod: '12个月',
-            deliveryPeriod: '15-20个工作日',
-            validityPeriod: '30天',
-            remarks: '',
-          };
-        }
-      }
-    }
-
-    console.log('[Business Info API] 商务信息获取成功');
-    
-    return NextResponse.json({
+    let result: any = {
       success: true,
-      data: result,
-      timestamp: new Date().toISOString()
-    });
+      data: {}
+    };
 
+    // 获取供应商信息
+    if (type === 'all' || type === 'supplier') {
+      const supplierResult = await pool.query(
+        'SELECT * FROM suppliers WHERE company_name = $1 ORDER BY created_at DESC LIMIT 1',
+        ['兴绿环境科技有限公司']
+      );
+      if (supplierResult.rows.length > 0) {
+        result.data.supplier = {
+          companyName: supplierResult.rows[0].company_name,
+          contactPerson: supplierResult.rows[0].contact_person,
+          phone: supplierResult.rows[0].phone,
+          email: supplierResult.rows[0].email,
+          address: supplierResult.rows[0].address,
+          bankName: supplierResult.rows[0].bank_name,
+          bankAccount: supplierResult.rows[0].bank_account,
+          taxNumber: supplierResult.rows[0].tax_id,
+        };
+      }
+    }
+
+    // 获取客户信息
+    if (type === 'all' || type === 'customer') {
+      const customerResult = await pool.query(
+        'SELECT * FROM customers ORDER BY created_at DESC LIMIT 1'
+      );
+      if (customerResult.rows.length > 0) {
+        result.data.customer = {
+          companyName: customerResult.rows[0].company_name,
+          projectName: customerResult.rows[0].project_name,
+          contactPerson: customerResult.rows[0].contact_person,
+          phone: customerResult.rows[0].phone,
+          email: customerResult.rows[0].email,
+          address: customerResult.rows[0].address,
+        };
+      }
+    }
+
+    // 获取报价条款
+    if (type === 'all' || type === 'terms') {
+      const termsResult = await pool.query(
+        'SELECT * FROM quote_terms WHERE is_default = true ORDER BY created_at DESC LIMIT 1'
+      );
+      if (termsResult.rows.length > 0) {
+        result.data.terms = {
+          paymentTerms: termsResult.rows[0].payment_terms,
+          warrantyPeriod: termsResult.rows[0].warranty_period,
+          deliveryPeriod: termsResult.rows[0].delivery_period,
+          validityPeriod: termsResult.rows[0].validity_period,
+          taxRate: termsResult.rows[0].tax_rate,
+          shipping: termsResult.rows[0].shipping,
+          installation: termsResult.rows[0].installation,
+          otherFees: termsResult.rows[0].other_fees,
+        };
+      }
+    }
+
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('[Business Info API] 获取商务信息失败:', error);
+    console.error('[business-info] 获取商务信息失败:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: '获取商务信息失败',
-        message: error instanceof Error ? error.message : '未知错误'
-      },
+      { success: false, error: '获取商务信息失败' },
       { status: 500 }
     );
   }
 }
 
-/**
- * 保存商务信息API
- * 支持保存供应方、客户、商务条款信息
- */
+// ============================================================================
+// POST - 保存商务信息
+// ============================================================================
 export async function POST(request: NextRequest) {
   try {
-    const db = getSupabaseClient();
     const body = await request.json();
-    
-    // 获取参数
-    const type = body.type; // 'supplier', 'customer', 'terms'
-    const data = body.data;
+    const { type, data } = body;
 
-    console.log('[Business Info API] 保存商务信息:', { type, data });
-
-    if (type === 'terms') {
-      // 保存或更新商务条款
-      const termsData: any = {
-        name: data.name || '标准条款',
-        payment_terms: data.paymentTerms || data.payment,
-        warranty_period: data.warrantyPeriod || data.warranty,
-        delivery_period: data.deliveryPeriod || data.delivery,
-        validity_period: data.validityPeriod || data.validity,
-        remarks: data.remarks || '',
-        is_default: data.isDefault !== false,
-        updated_at: new Date().toISOString()
-      };
-
-      // 只包含数据库中存在的字段
-      if (data.taxRate !== undefined) {
-        termsData.tax_rate = data.taxRate;
-      }
-      if (data.shipping !== undefined) {
-        termsData.shipping = data.shipping;
-      }
-      if (data.installation !== undefined) {
-        termsData.installation = data.installation;
-      }
-      if (data.otherFees !== undefined) {
-        termsData.other_fees = data.otherFees;
-      }
-
-      // 检查是否存在默认条款
-      const { data: existingTerms } = await db
-        .from('quote_terms')
-        .select('id')
-        .eq('is_default', true)
-        .single();
-
-      if (existingTerms) {
-        // 更新默认条款
-        const { error: updateError } = await db
-          .from('quote_terms')
-          .update(termsData)
-          .eq('id', existingTerms.id);
-
-        if (updateError) {
-          console.error('[Business Info API] 更新商务条款失败:', updateError);
-          return NextResponse.json(
-            {
-              success: false,
-              error: '更新商务条款失败',
-              message: updateError.message
-            },
-            { status: 500 }
-          );
-        }
-      } else {
-        // 插入新条款
-        const { error: insertError } = await db
-          .from('quote_terms')
-          .insert({
-            ...termsData,
-            created_at: new Date().toISOString()
-          });
-
-        if (insertError) {
-          console.error('[Business Info API] 保存商务条款失败:', insertError);
-          return NextResponse.json(
-            {
-              success: false,
-              error: '保存商务条款失败',
-              message: insertError.message
-            },
-            { status: 500 }
-          );
-        }
-      }
-
-      console.log('[Business Info API] 商务条款保存成功');
-      
-      return NextResponse.json({
-        success: true,
-        message: '商务条款保存成功',
-        timestamp: new Date().toISOString()
-      });
+    if (!type || !data) {
+      return NextResponse.json(
+        { success: false, error: '缺少必要参数' },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: '不支持的信息类型',
-        message: '目前只支持保存商务条款'
-      },
-      { status: 400 }
-    );
+    // 保存供应商信息
+    if (type === 'supplier') {
+      const result = await pool.query(
+        `UPDATE suppliers
+         SET company_name = $1, contact_person = $2, phone = $3, email = $4,
+             address = $5, bank_name = $6, bank_account = $7, tax_id = $8, updated_at = NOW()
+         WHERE company_name = '兴绿环境科技有限公司'`,
+        [
+          data.companyName,
+          data.contactPerson,
+          data.phone,
+          data.email,
+          data.address,
+          data.bankName,
+          data.bankAccount,
+          data.taxNumber,
+        ]
+      );
 
+      // 如果没有更新任何行，则插入新记录
+      if (result.rowCount === 0) {
+        await pool.query(
+          `INSERT INTO suppliers (company_name, contact_person, phone, email, address, bank_name, bank_account, tax_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            data.companyName,
+            data.contactPerson,
+            data.phone,
+            data.email,
+            data.address,
+            data.bankName,
+            data.bankAccount,
+            data.taxNumber,
+          ]
+        );
+      }
+    }
+
+    // 保存客户信息
+    if (type === 'customer') {
+      const result = await pool.query(
+        `UPDATE customers
+         SET company_name = $1, project_name = $2, contact_person = $3, phone = $4,
+             email = $5, address = $6, updated_at = NOW()
+         WHERE company_name = $1`,
+        [
+          data.companyName,
+          data.projectName,
+          data.contactPerson,
+          data.phone,
+          data.email,
+          data.address,
+        ]
+      );
+
+      // 如果没有更新任何行，则插入新记录
+      if (result.rowCount === 0) {
+        await pool.query(
+          `INSERT INTO customers (company_name, project_name, contact_person, phone, email, address)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            data.companyName,
+            data.projectName,
+            data.contactPerson,
+            data.phone,
+            data.email,
+            data.address,
+          ]
+        );
+      }
+    }
+
+    // 保存报价条款
+    if (type === 'terms') {
+      const result = await pool.query(
+        `UPDATE quote_terms
+         SET payment_terms = $1, warranty_period = $2, delivery_period = $3, validity_period = $4,
+             tax_rate = $5, shipping = $6, installation = $7, other_fees = $8, updated_at = NOW()
+         WHERE is_default = true`
+        .replace(/\$1/g, `'$1'`).replace(/\$2/g, `'$2'`).replace(/\$3/g, `'$3'`).replace(/\$4/g, `'$4'`),
+        [
+          data.payment,
+          data.warranty,
+          data.delivery,
+          data.validity,
+          data.taxRate,
+          data.shipping,
+          data.installation,
+          data.otherFees,
+        ]
+      );
+
+      // 如果没有更新任何行，则插入新记录
+      if (result.rowCount === 0) {
+        await pool.query(
+          `INSERT INTO quote_terms (name, payment_terms, warranty_period, delivery_period, validity_period, tax_rate, shipping, installation, other_fees, is_default)
+           VALUES ('标准条款', $1, $2, $3, $4, $5, $6, $7, $8, true)`,
+          [
+            data.payment,
+            data.warranty,
+            data.delivery,
+            data.validity,
+            data.taxRate,
+            data.shipping,
+            data.installation,
+            data.otherFees,
+          ]
+        );
+      }
+    }
+
+    return NextResponse.json({ success: true, message: '保存成功' });
   } catch (error) {
-    console.error('[Business Info API] 保存商务信息失败:', error);
+    console.error('[business-info] 保存商务信息失败:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: '保存商务信息失败',
-        message: error instanceof Error ? error.message : '未知错误'
-      },
+      { success: false, error: '保存商务信息失败' },
       { status: 500 }
     );
   }
