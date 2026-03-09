@@ -1874,27 +1874,6 @@ export default function ChatMessage({
       margin-right: 8px;
     }
     
-    /* 页眉 */
-    .header {
-      border-bottom: 2px solid #3b82f6;
-      padding-bottom: 8px;
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .header-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: #1e40af;
-    }
-
-    .header-date {
-      font-size: 12px;
-      color: #64748b;
-    }
-    
     /* 标题样式 - 多级编号商务风格 */
     h1 {
       font-size: 28px;
@@ -2154,12 +2133,6 @@ export default function ChatMessage({
   
   <!-- 正文 -->
   <div class="content">
-    <!-- 页眉 -->
-    <div class="header">
-      <div class="header-title">技术方案</div>
-      <div class="header-date">${currentDate}</div>
-    </div>
-    
     ${parsedContent}
   </div>
   
