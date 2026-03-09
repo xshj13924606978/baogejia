@@ -79,16 +79,16 @@ export async function POST(request: NextRequest) {
           stock: parseInt(item['库存'] || item['stock'] || '0') || 0,
           supplier: product.supplier || '',
           category: item['分类'] || item['category'] || '',
-          description: product.specifications || '',
-          // 存储额外字段到 JSON
-          metadata: {
+          // 将specifications和额外字段都存储到description字段（JSON格式）
+          description: JSON.stringify({
+            specifications: product.specifications || '',
             brand: product.brand || '',
             contact_person: product.contact_person || '',
             contact_phone: product.contact_phone || '',
             unit: product.unit || '',
             cost_price: product.cost_price || 0,
             min_price: product.min_price || 0,
-          }
+          }),
         };
 
         // 查重检查：根据名称、型号、供应商判断是否存在

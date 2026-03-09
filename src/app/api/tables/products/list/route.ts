@@ -33,18 +33,35 @@ export async function GET(request: NextRequest) {
     }
 
     // 转换为前端需要的格式
-    const formattedProducts = (data || []).map((p: any) => ({
-      id: p.id,
-      product_name: p.name,
-      model: p.model || '',
-      brand: p.supplier || '',
-      specifications: p.specifications || '',
-      unit: '台', // 默认单位
-      price: parseFloat(p.price) || 0,
-      supplier: p.supplier || '',
-      category: p.category || '',
-      stock: p.stock || 0,
-    }));
+    const formattedProducts = (data || []).map((p: any) => {
+      // 尝试从description字段解析JSON数据
+      let extraFields = {};
+      try {
+        if (p.description && typeof p.description === 'string' && p.description.startsWith('{')) {
+          extraFields = JSON.parse(p.description);
+        }
+      } catch (e) {
+        // 如果解析失败，使用空对象
+        extraFields = {};
+      }
+
+      return {
+        id: p.id,
+        product_name: p.name,
+        model: p.model || '',
+        brand: extraFields.brand || p.supplier || '',
+        specifications: extraFields.specifications || p.specifications || '',
+        unit: extraFields.unit || '台', // 默认单位
+        cost_price: extraFields.cost_price || 0,
+        min_price: extraFields.min_price || 0,
+        price: parseFloat(p.price) || 0,
+        supplier: p.supplier || '',
+        contact_person: extraFields.contact_person || '',
+        contact_phone: extraFields.contact_phone || '',
+        category: p.category || '',
+        stock: p.stock || 0,
+      };
+    });
 
     return NextResponse.json({
       success: true,
