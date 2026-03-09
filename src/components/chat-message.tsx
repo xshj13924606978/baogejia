@@ -1734,6 +1734,7 @@ export default function ChatMessage({
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: flex-start;
       padding-top: 30px;
     }
     
@@ -1753,7 +1754,7 @@ export default function ChatMessage({
       color: #ffffff;
       letter-spacing: 12px;
       height: 250px;
-      margin: 40px auto 0;
+      margin: 80px auto 0;
       font-weight: bold;
       line-height: 1.5;
     }
@@ -1767,20 +1768,20 @@ export default function ChatMessage({
     
     /* 封面底部区域 */
     .cover-bottom {
-      padding: 0 80px 20px 80px;
+      padding: 10px 80px 5px 80px;
       text-align: left;
     }
     
     .cover-info {
       font-size: 13px;
       color: #e0e7ff;
-      line-height: 2.2;
+      line-height: 2.0;
       text-align: left;
     }
     
     .cover-info p {
       text-indent: 0;
-      margin: 5px 0;
+      margin: 3px 0;
       color: #e0e7ff;
     }
     
