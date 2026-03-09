@@ -262,20 +262,29 @@ export default function ChatArea({
   const { setActiveGroup, setLoading: setSwitchLoading, fileGroupId: activeGroupId, currentChoice: activeChoice, isLoading: switchIsLoading, generatedChoice, setGeneratedChoice, resetSwitch } =
     switchContext;
 
-  // 清空浏览器控制台
-  const clearConsole = useCallback(() => {
-    if (typeof window !== 'undefined' && window.console) {
-      console.clear();
-      console.log('%c✨ 控制台已清空', 'color: #22c55e; font-weight: bold; font-size: 14px;');
-      console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #64748b;');
-      console.log(`%c📅 开始时间: ${new Date().toLocaleString('zh-CN')}`, 'color: #64748b;');
-      console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #64748b;');
-    }
-  }, []);
-
-  // 页面首次加载时清空控制台
+  // 页面首次加载时记录初始化日志
   useEffect(() => {
-    clearConsole();
+    if (typeof window !== 'undefined' && window.console) {
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(`📅 ChatArea 组件初始化: ${new Date().toLocaleString('zh-CN')}`);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      // 拦截 console.warn，过滤掉特定的无关警告
+      const originalWarn = console.warn;
+      console.warn = function(...args) {
+        const message = args.join(' ');
+        // 过滤掉 Console Bridge 相关的警告
+        if (message.includes('Console Bridge') || message.includes('Cannot send message')) {
+          return; // 不输出这个警告
+        }
+        originalWarn.apply(console, args);
+      };
+
+      // 返回清理函数
+      return () => {
+        console.warn = originalWarn;
+      };
+    }
   }, []); // 只在组件挂载时执行一次
 
   // 自动滚动到底部的函数
@@ -331,8 +340,9 @@ export default function ChatArea({
     const handleNewConversation = () => {
       console.log('[ChatArea] 收到新建对话事件，清空所有状态');
       
-      // 清空控制台日志
-      clearConsole();
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(`📅 新建对话: ${new Date().toLocaleString('zh-CN')}`);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       
       setMessages([]);
       setFiles([]);
@@ -356,7 +366,7 @@ export default function ChatArea({
     return () => {
       window.removeEventListener('new-conversation', handleNewConversation);
     };
-  }, [resetSwitch, onTitleChange, scrollToBottom, clearConsole]);
+  }, [resetSwitch, onTitleChange, scrollToBottom]);
 
   useEffect(() => {
     const handleSelectConversation = (event: Event) => {
@@ -938,8 +948,9 @@ export default function ChatArea({
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // 清空控制台日志（重新生成时）
-    clearConsole();
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`🔄 重新生成消息: ${new Date().toLocaleString('zh-CN')}`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     setLoading(true);
 
@@ -1272,10 +1283,10 @@ export default function ChatArea({
       ]);
     }
 
-    // 清空控制台日志（每次上传/解析开始时）
-    if (filesToUpload.length > 0) {
-      clearConsole();
-    }
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`📤 开始上传文件: ${new Date().toLocaleString('zh-CN')}`);
+    console.log(`📁 文件数量: ${filesToUpload.length}`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     try {
       const uploadedFiles: any[] = [];
