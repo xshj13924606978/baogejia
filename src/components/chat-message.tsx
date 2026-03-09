@@ -1256,9 +1256,21 @@ export default function ChatMessage({
       font-size: 32pt;
       font-weight: 700;
       color: #ffffff;
-      margin-bottom: 12pt;
+      margin-bottom: 4pt;
       margin-top: 30pt;
       letter-spacing: 2pt;
+    }
+
+    .cover-vertical-text {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-size: 36pt;
+      color: #ffffff;
+      letter-spacing: 18pt;
+      height: auto;
+      margin: 100px auto 0;
+      font-weight: bold;
+      line-height: 1.5;
     }
 
     .cover-divider {
@@ -1744,7 +1756,7 @@ export default function ChatMessage({
       font-size: 36px;
       font-weight: bold;
       color: #ffffff;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
       letter-spacing: 2px;
     }
     
@@ -1752,11 +1764,11 @@ export default function ChatMessage({
     .cover-vertical-text {
       writing-mode: vertical-rl;
       text-orientation: mixed;
-      font-size: 32px;
+      font-size: 36px;
       color: #ffffff;
-      letter-spacing: 12px;
-      height: 220px;
-      margin: 80px auto 0;
+      letter-spacing: 18px;
+      height: auto;
+      margin: 100px auto 0;
       font-weight: bold;
       line-height: 1.5;
     }
