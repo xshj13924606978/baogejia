@@ -1774,7 +1774,7 @@ export default function ChatMessage({
       text-align: center;
       padding: 0;
       page-break-after: always;
-      background: #ffffff;
+      background: transparent;
       color: #000000;
       height: 270mm;
       min-height: 270mm;
@@ -1783,9 +1783,9 @@ export default function ChatMessage({
       flex-direction: column;
       justify-content: space-between;
       position: relative;
-      overflow: hidden;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      overflow: visible;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
       padding: 25.4mm 31.8mm 25.4mm 31.8mm;
       box-sizing: border-box;
     }
@@ -1808,7 +1808,7 @@ export default function ChatMessage({
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
       text-align: center;
       margin-bottom: 80px;
-      z-index: 1;
+      z-index: 10;
       position: relative;
     }
     
@@ -1824,7 +1824,7 @@ export default function ChatMessage({
       line-height: 1.5;
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
       align-self: center;
-      z-index: 1;
+      z-index: 10;
       position: relative;
     }
     
@@ -1833,10 +1833,10 @@ export default function ChatMessage({
       position: absolute;
       top: 0;
       left: 0;
-      width: 210mm;
+      right: 0;
       height: 150mm;
       background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-      z-index: -1;
+      z-index: 0;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
