@@ -1790,12 +1790,12 @@ export default function ChatMessage({
       box-sizing: border-box;
     }
     
-    /* 封面顶部区域 - 主标题左对齐 */
+    /* 封面顶部区域 - 主标题居中 */
     .cover-top {
       flex: 1;
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
+      align-items: center;
       justify-content: flex-start;
       margin-top: 0;
     }
@@ -1803,11 +1803,13 @@ export default function ChatMessage({
     .cover-title {
       font-size: 36px;
       font-weight: 700;
-      color: #000000;
+      color: #ffffff;
       letter-spacing: 2px;
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
-      text-align: left;
+      text-align: center;
       margin-bottom: 80px;
+      z-index: 1;
+      position: relative;
     }
     
     /* 竖排方案名称 - 从上到下显示 */
@@ -1815,22 +1817,24 @@ export default function ChatMessage({
       writing-mode: vertical-lr;
       text-orientation: mixed;
       font-size: 48px;
-      color: #000000;
+      color: #ffffff;
       letter-spacing: 10px;
       margin: 0 auto;
       font-weight: 800;
       line-height: 1.5;
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
       align-self: center;
+      z-index: 1;
+      position: relative;
     }
     
-    /* 蓝色渲染块 - 297x210mm */
+    /* 蓝色渲染块 - 仅顶部区域 */
     .cover-blue-block {
       position: absolute;
-      bottom: 0;
+      top: 0;
       left: 0;
       width: 210mm;
-      height: 270mm;
+      height: 150mm;
       background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
       z-index: -1;
       -webkit-print-color-adjust: exact;
