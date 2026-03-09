@@ -1265,9 +1265,9 @@ export default function ChatMessage({
     .cover-vertical-text {
       writing-mode: vertical-rl;
       text-orientation: mixed;
-      font-size: 36pt;
+      font-size: 48pt;
       color: #ffffff;
-      letter-spacing: 36pt;
+      letter-spacing: 54pt;
       height: auto;
       margin: 200px auto 0;
       font-weight: bold;
@@ -1766,9 +1766,9 @@ export default function ChatMessage({
     .cover-vertical-text {
       writing-mode: vertical-rl;
       text-orientation: mixed;
-      font-size: 36px;
+      font-size: 48px;
       color: #ffffff;
-      letter-spacing: 36px;
+      letter-spacing: 54px;
       height: auto;
       margin: 200px auto 0;
       font-weight: bold;
