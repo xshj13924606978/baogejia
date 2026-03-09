@@ -56,14 +56,32 @@ export async function POST(request: NextRequest) {
     // 3. 构建对话历史
     const history = conversationId ? globalConversationMemory.getHistory(conversationId) : [];
     
-    // 4. 构建系统提示词和消息
+    // 4. 价格查询预处理（优先查询数据库）
+    let enhancedMessage = message;
+    try {
+      const priceQuery = (smartChatProcessor as any).detectPriceQuery(message);
+      if (priceQuery.isPriceQuery && priceQuery.productName) {
+        console.log('[Chat Stream API] 检测到价格查询:', priceQuery);
+        const priceResult = await (smartChatProcessor as any).handlePriceQuery(priceQuery.productName, priceQuery.model);
+        if (priceResult.contextInfo) {
+          enhancedMessage += priceResult.contextInfo;
+          console.log('[Chat Stream API] 已添加价格查询结果到上下文');
+        }
+      }
+    } catch (error) {
+      console.error('[Chat Stream API] 价格查询失败:', error);
+    }
+    
+    // 5. 定义智能处理器（用于后续解析）
     const smartProcessor = smartChatProcessor;
-    const systemPrompt = (smartProcessor as any).buildSystemPrompt(processedInput);
+    
+    // 6. 构建系统提示词和消息
+    const systemPrompt = (smartChatProcessor as any).buildSystemPrompt(processedInput);
     
     const messages = [
       { role: 'system' as const, content: systemPrompt },
       ...history.map(msg => ({ role: msg.role, content: msg.content })),
-      { role: 'user' as const, content: message }
+      { role: 'user' as const, content: enhancedMessage }
     ];
     
     // 5. 创建SSE流式响应

@@ -14,6 +14,7 @@
 
 import { callDeepSeekChat } from './deepseek-client';
 import { ProcessedInput } from './input-processor';
+import { PriceMatcher, ProductMatch, PriceMatchResult } from './price-matching';
 
 interface ConversationContext {
   conversationId?: string;
@@ -44,6 +45,110 @@ export class SmartChatProcessor {
   }
 
   /**
+   * 检测价格查询意图
+   */
+  private detectPriceQuery(userInput: string): { isPriceQuery: boolean; productName?: string; model?: string } {
+    // 价格查询关键词
+    const priceKeywords = ['多少钱', '价格', '单价', '售价', '报价', '成本', '费用'];
+    const hasPriceKeyword = priceKeywords.some(keyword => userInput.includes(keyword));
+
+    if (!hasPriceKeyword) {
+      return { isPriceQuery: false };
+    }
+
+    // 提取产品名称（简单提取，实际可以使用更复杂的NLP）
+    // 移除价格查询关键词
+    let productName = userInput;
+    priceKeywords.forEach(keyword => {
+      productName = productName.replace(keyword, '');
+    });
+
+    // 清理标点符号和多余空格
+    productName = productName.replace(/[？?！!，,。.;;、\s]+/g, ' ').trim();
+
+    if (productName.length === 0) {
+      return { isPriceQuery: false };
+    }
+
+    // 尝试提取型号（例如：10M、PW-100等）
+    const modelMatch = productName.match(/([0-9]+[A-Za-z]?|[A-Za-z]+[-_]?[0-9]+)/);
+    const model = modelMatch ? modelMatch[1] : undefined;
+
+    // 如果找到型号，从产品名称中移除
+    if (model) {
+      productName = productName.replace(model, '').trim();
+    }
+
+    return {
+      isPriceQuery: true,
+      productName: productName || userInput,
+      model
+    };
+  }
+
+  /**
+   * 处理价格查询
+   */
+  private async handlePriceQuery(
+    productName: string,
+    model?: string
+  ): Promise<{ priceData?: PriceMatchResult; contextInfo?: string }> {
+    console.log('[SmartChatProcessor] 处理价格查询:', productName, model);
+
+    try {
+      const productMatch: ProductMatch = {
+        name: productName,
+        model,
+      };
+
+      // 调用价格匹配器
+      const priceResult = await PriceMatcher.matchPrice(productMatch);
+
+      console.log('[SmartChatProcessor] 价格查询结果:', priceResult);
+
+      // 生成上下文信息
+      let contextInfo = '';
+      if (priceResult) {
+        contextInfo = `\n\n【数据库价格查询结果】\n`;
+        contextInfo += `产品名称：${priceResult.productName || productName}\n`;
+        if (model) {
+          contextInfo += `规格型号：${model}\n`;
+        }
+        contextInfo += `单价：${priceResult.price.toFixed(2)} 元\n`;
+        contextInfo += `价格来源：${this.getPriceSourceText(priceResult.source)}\n`;
+        contextInfo += `置信度：${priceResult.confidence}%\n`;
+        
+        if (priceResult.source === 'market' && priceResult.marketSource) {
+          contextInfo += `市场价来源：${priceResult.marketSource}\n`;
+          contextInfo += `注意：此价格为市场参考价，实际价格可能因供应商、数量等因素而异。`;
+        }
+      }
+
+      return {
+        priceData: priceResult,
+        contextInfo
+      };
+    } catch (error) {
+      console.error('[SmartChatProcessor] 价格查询失败:', error);
+      return {};
+    }
+  }
+
+  /**
+   * 获取价格来源文本
+   */
+  private getPriceSourceText(source: string): string {
+    const sourceMap: Record<string, string> = {
+      'database': '产品知识库（已验证）',
+      'knowledge': '历史报价/案例',
+      'market': '市场参考价',
+      'estimate': '类别估算',
+      'default': '默认兜底',
+    };
+    return sourceMap[source] || source;
+  }
+
+  /**
    * 处理用户输入（核心方法）
    */
   async process(
@@ -62,6 +167,21 @@ export class SmartChatProcessor {
     let enhancedInput = userInput;
     if (processedInput && processedInput.type !== 'text') {
       enhancedInput = this.enrichInputWithFileInfo(userInput, processedInput);
+    }
+
+    // 2.5. 检测价格查询并预处理
+    let priceContextInfo = '';
+    if (!processedInput || processedInput.type === 'text') {
+      const priceQuery = this.detectPriceQuery(userInput);
+      if (priceQuery.isPriceQuery && priceQuery.productName) {
+        console.log('[SmartChatProcessor] 检测到价格查询:', priceQuery);
+        const priceResult = await this.handlePriceQuery(priceQuery.productName, priceQuery.model);
+        if (priceResult.contextInfo) {
+          priceContextInfo = priceResult.contextInfo;
+          enhancedInput += priceContextInfo;
+          console.log('[SmartChatProcessor] 已添加价格查询结果到上下文');
+        }
+      }
     }
 
     // 3. 使用 LLM 智能理解并生成响应
@@ -171,8 +291,39 @@ export class SmartChatProcessor {
   投资估算：XX万元
   运行成本：X.X元/吨"
 
-### 3. 报价场景
-- 识别：用户说"报价"、"价格"、"多少钱"、"成本"等
+### 3. 产品价格查询场景（重要！）
+- 识别：用户询问具体产品的价格，如"XX产品多少钱？"、"普耐尔氩弧焊枪10M多少？"
+- **价格查询优先级**（必须严格遵循！）：
+  1. **产品库优先**（置信度90-100）- 优先从产品知识库数据库查询
+  2. **知识库次之**（置信度60-80）- 从历史报价、案例中查询
+  3. **市场价兜底**（置信度40-50）- 如果没有数据库记录，使用市场价
+  4. **按类别估算**（置信度30-40）- 根据产品类别估算
+  5. **默认兜底**（置信度20-30）- 最后的兜底方案
+- **响应格式**：
+  - 必须说明价格来源（产品库/知识库/市场价/估算）
+  - 必须包含产品名称、规格型号、单价
+  - 如果有多个匹配结果，列出所有结果供用户选择
+  - 如果价格来源是"市场价"，需要说明这是参考价，实际价格可能因供应商、数量等因素而异
+- **示例1：产品库匹配成功**：
+  根据产品库查询，普耐尔氩弧焊枪10M的信息如下：
+
+  | 产品名称 | 规格型号 | 单价（元） | 价格来源 | 备注 |
+  | --- | --- | --- | --- | --- |
+  | 普耐尔氩弧焊枪 | 10M | 150.00 | 产品库 | 已验证 |
+
+  注：此价格来自产品知识库数据库，置信度高。
+
+- **示例2：市场价兜底**：
+  根据市场价查询，普耐尔氩弧焊枪10M的信息如下：
+
+  | 产品名称 | 规格型号 | 单价（元） | 价格来源 | 备注 |
+  | --- | --- | --- | --- | --- |
+  | 普耐尔氩弧焊枪 | 10M | 120.00-180.00 | 市场参考价 | 3个供应商平均 |
+
+  注：此价格为市场参考价，实际价格可能因供应商、数量等因素而异。建议联系供应商获取准确报价。
+
+### 4. 报价场景
+- 识别：用户说"报价"、"价格"、"多少钱"、"成本"等（非单一产品查询）
 - 响应：
   - 如果用户已有产品清单 → 直接生成报价单
   - 如果用户没有清单 → 询问产品信息或先生成方案
@@ -181,7 +332,7 @@ export class SmartChatProcessor {
   1. 您有具体的产品清单吗？可以上传Excel或描述产品
   2. 还是需要我先为您生成技术方案和配置清单？"
 
-### 4. 技术咨询场景
+### 5. 技术咨询场景
 - 识别：用户问"怎么选"、"工艺对比"、"A/O和MBR哪个好"等
 - 响应：提供专业的技术分析、工艺对比、选型建议
 - 内容：技术参数、优缺点对比、适用场景、价格影响等
