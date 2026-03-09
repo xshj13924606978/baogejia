@@ -135,7 +135,8 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('加载商务信息失败:', error);
+      // API 路由不存在时使用默认值，不显示错误堆栈
+      console.warn('[QuoteContext] 商务信息 API 不可用，使用默认值');
     }
   };
 
@@ -150,8 +151,8 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
   const updateTerms = async (terms: TermsInfo) => {
     // 更新状态
     setQuoteData(prev => ({ ...prev, terms }));
-    
-    // 保存到数据库
+
+    // 保存到数据库（如果 API 可用）
     try {
       const response = await fetch('/api/business-info', {
         method: 'POST',
@@ -161,15 +162,16 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
           data: terms
         })
       });
-      
+
       if (response.ok) {
         const result = await response.json();
-        console.log('商务条款保存成功:', result);
+        console.log('[QuoteContext] 商务条款保存成功');
       } else {
-        console.error('商务条款保存失败:', await response.text());
+        console.warn('[QuoteContext] 商务条款保存失败，API 返回错误');
       }
     } catch (error) {
-      console.error('保存商务条款时出错:', error);
+      // API 不可用时静默失败，不影响用户体验
+      console.warn('[QuoteContext] 商务信息 API 不可用，未保存到数据库');
     }
   };
 
