@@ -1484,6 +1484,8 @@ export default function ChatMessage({
     .content {
       position: relative;
       z-index: 1;
+      padding: 12mm 10mm;
+      min-height: 297mm;
     }
     
     /* 移除首行缩进的特殊情况 */
@@ -1522,14 +1524,22 @@ export default function ChatMessage({
   
   <!-- 封面页 -->
   <div class="cover">
-    <div class="cover-title">${projectTitle}</div>
-    <div class="cover-divider"></div>
-    <div class="cover-info">
-      <p><strong>编制单位</strong>　${supplierName}</p>
-      <p><strong>编制人</strong>　${contactPerson}</p>
-      <p><strong>联系电话</strong>　${contactPhone}</p>
-      ${contactEmail !== '未填写' ? `<p><strong>电子邮箱</strong>　${contactEmail}</p>` : ''}
-      <p><strong>编制日期</strong>　${currentDate}</p>
+    <!-- 封面顶部区域 -->
+    <div class="cover-top">
+      <div class="cover-title">${projectTitle}</div>
+      <div class="cover-vertical-text">技术方案</div>
+      <div class="cover-divider"></div>
+    </div>
+    
+    <!-- 封面底部区域 -->
+    <div class="cover-bottom">
+      <div class="cover-info">
+        <p><strong>编制单位</strong>　${supplierName}</p>
+        <p><strong>编制人</strong>　${contactPerson}</p>
+        <p><strong>联系电话</strong>　${contactPhone}</p>
+        ${contactEmail !== '未填写' ? `<p><strong>电子邮箱</strong>　${contactEmail}</p>` : ''}
+        <p><strong>编制日期</strong>　${currentDate}</p>
+      </div>
     </div>
   </div>
   
@@ -1609,7 +1619,7 @@ export default function ChatMessage({
     /* 打印设置 */
     @page {
       size: A4;
-      margin: 1.2cm 1.0cm;
+      margin: 0;
     }
     
     @media print {
@@ -1680,62 +1690,79 @@ export default function ChatMessage({
       line-height: 1.5;
       color: #333;
       margin: 0;
-      padding: 12px;
+      padding: 0;
     }
     
     /* 封面样式 - 优化版 */
     .cover {
       text-align: center;
-      padding: 40px 0;
+      padding: 0;
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 100vh;
+      min-height: 297mm; /* A4高度 */
+      height: 297mm;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      position: relative;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     
-    .cover-title {
-      font-size: 36px;
-      font-weight: bold;
-      color: #ffffff;
-      margin-bottom: 8px;
-      margin-top: 40px;
-      letter-spacing: 2px;
+    /* 封面顶部区域 */
+    .cover-top {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 60px;
     }
     
-    .cover-subtitle {
-      font-size: 14px;
-      color: #cbd5e1;
+    .cover-title {
+      font-size: 42px;
+      font-weight: bold;
+      color: #ffffff;
       margin-bottom: 30px;
+      letter-spacing: 4px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    /* 竖排方案名称 */
+    .cover-vertical-text {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-size: 16px;
+      color: #cbd5e1;
+      letter-spacing: 8px;
+      height: 120px;
+      margin: 0 auto;
       font-weight: 400;
-      letter-spacing: 1px;
-      text-transform: uppercase;
     }
     
     .cover-divider {
-      width: 100px;
+      width: 150px;
       height: 2px;
       background: #3b82f6;
-      margin: 0 auto 20px;
+      margin: 20px auto 0;
+    }
+    
+    /* 封面底部区域 */
+    .cover-bottom {
+      padding: 0 80px 50px 80px;
+      text-align: left;
     }
     
     .cover-info {
       font-size: 13px;
       color: #e0e7ff;
-      margin: 0 auto;
-      max-width: 500px;
-      line-height: 2.2;
+      line-height: 2.5;
       text-align: left;
-      padding-bottom: 60px;
     }
     
     .cover-info p {
       text-indent: 0;
-      margin: 5px 0;
+      margin: 8px 0;
       color: #e0e7ff;
     }
     
@@ -1743,7 +1770,8 @@ export default function ChatMessage({
       color: #ffffff;
       font-weight: 600;
       display: inline-block;
-      min-width: 80px;
+      min-width: 90px;
+      letter-spacing: 1px;
     }
     
     /* 页眉 */
