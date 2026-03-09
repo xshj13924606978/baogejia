@@ -1199,6 +1199,27 @@ export default function ChatMessage({
     const titleMatch = parsedContent.match(/<h1[^>]*>(.+?)<\/h1>/);
     const projectTitle = titleMatch ? titleMatch[1] : '技术方案';
     
+    // 移除正文中的第一个h1标签（避免重复显示）
+    let contentWithoutFirstH1 = parsedContent.replace(/<h1[^>]*>.+?<\/h1>/, '');
+    
+    // 提取竖排文字（智能关键词提取）
+    const rawTitle = projectTitle.replace(/<[^>]*>/g, '');
+    let verticalText = '';
+    
+    // 提取关键词
+    const keywords = ['技术方案', '报价方案', '报价单'];
+    for (const keyword of keywords) {
+      if (rawTitle.includes(keyword)) {
+        verticalText = keyword;
+        break;
+      }
+    }
+    
+    // 如果没有找到关键词，默认为"技术方案"
+    if (!verticalText) {
+      verticalText = '技术方案';
+    }
+    
     // 获取供应方信息
     const supplierName = supplierInfo?.companyName || '未填写';
     const contactPerson = supplierInfo?.contactPerson || '未填写';
@@ -1241,27 +1262,25 @@ export default function ChatMessage({
       display: none;
     }
     
-    /* 封面样式 - 简洁商务 */
+    /* 封面样式 - 删除蓝色渲染块 */
     .cover {
       text-align: center;
       padding: 40pt 60pt;
       page-break-after: always;
-      background: #1e40af;
-      color: white;
+      background: white;
+      color: #333333;
       height: 270mm;
       min-height: 270mm;
       max-height: 270mm;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
     }
 
     .cover-title {
       font-size: 32pt;
       font-weight: 700;
-      color: #ffffff;
+      color: #333333;
       margin-bottom: 4pt;
       margin-top: 30pt;
       letter-spacing: 2pt;
@@ -1271,7 +1290,7 @@ export default function ChatMessage({
       writing-mode: vertical-rl;
       text-orientation: mixed;
       font-size: 48pt;
-      color: #ffffff;
+      color: #333333;
       letter-spacing: 54pt;
       height: auto;
       margin: 200px auto 0;
@@ -1282,7 +1301,7 @@ export default function ChatMessage({
     .cover-divider {
       width: 120pt;
       height: 2pt;
-      background: #3b82f6;
+      background: #333333;
       margin: 0 auto 30pt;
     }
 
@@ -1298,7 +1317,7 @@ export default function ChatMessage({
 
     .cover-info {
       font-size: 13pt;
-      color: #e0e7ff;
+      color: #333333;
       margin: 0 auto;
       max-width: 500pt;
       line-height: 1.8;
@@ -1309,12 +1328,12 @@ export default function ChatMessage({
     .cover-info p {
       text-indent: 0;
       margin: 4pt 0;
-      color: #e0e7ff;
+      color: #333333;
       font-weight: 400;
     }
 
     .cover-info strong {
-      color: #ffffff;
+      color: #333333;
       font-weight: 600;
       display: inline-block;
       min-width: 90pt;
@@ -1342,7 +1361,7 @@ export default function ChatMessage({
     
     /* 页眉 - 简洁 */
     .header {
-      border-bottom: 2px solid #1e40af;
+      border-bottom: 2px solid #333333;
       padding-bottom: 6pt;
       margin-bottom: 12pt;
       display: flex;
@@ -1353,12 +1372,12 @@ export default function ChatMessage({
     .header-title {
       font-size: 13pt;
       font-weight: 600;
-      color: #1e40af;
+      color: #333333;
     }
 
     .header-date {
       font-size: 11pt;
-      color: #64748b;
+      color: #666666;
     }
     
     /* 标题样式 - 多级编号商务风格 */
@@ -1554,7 +1573,7 @@ export default function ChatMessage({
     <!-- 封面顶部区域 -->
     <div class="cover-top">
       <div class="cover-title">${projectTitle}</div>
-      <div class="cover-vertical-text">技术方案</div>
+      <div class="cover-vertical-text">${verticalText}</div>
     </div>
     
     <!-- 封面底部区域 -->
@@ -1574,7 +1593,7 @@ export default function ChatMessage({
   
   <!-- 正文 -->
   <div class="content">
-    ${parsedContent}
+    ${contentWithoutFirstH1}
   </div>
 </body>
 </html>`;
