@@ -1553,12 +1553,15 @@ export default function ChatMessage({
 <body>
   <!-- 封面页 -->
   <div class="cover">
-    <!-- 装饰点 -->
-    <div class="cover-decor-dot">■</div>
-    
     <!-- 封面顶部区域 -->
     <div class="cover-top">
-      <div class="cover-title">${projectTitle}</div>
+      <!-- 主标题（左对齐，带装饰点） -->
+      <div class="cover-title-container">
+        <div class="cover-decor-dot">:::</div>
+        <div class="cover-title">${projectTitle}</div>
+      </div>
+      
+      <!-- 竖排方案名称（居中） -->
       <div class="cover-vertical-text">${verticalText}</div>
     </div>
     
@@ -1763,26 +1766,42 @@ export default function ChatMessage({
       box-sizing: border-box;
     }
     
-    /* 封面顶部区域 */
+    /* 封面顶部区域 - 主标题左对齐 */
     .cover-top {
       flex: 1;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: flex-start;
       justify-content: flex-start;
       margin-top: 0;
+    }
+    
+    /* 主标题容器 */
+    .cover-title-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 80px;
+    }
+    
+    /* 装饰点 */
+    .cover-decor-dot {
+      font-size: 14px;
+      font-weight: bold;
+      color: #666666;
+      margin-right: 12px;
+      letter-spacing: 2px;
     }
     
     .cover-title {
       font-size: 36px;
       font-weight: 700;
       color: #000000;
-      margin-bottom: 80px;
       letter-spacing: 2px;
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
+      text-align: left;
     }
     
-    /* 竖排方案名称 */
+    /* 竖排方案名称 - 居中 */
     .cover-vertical-text {
       writing-mode: vertical-rl;
       text-orientation: upright;
@@ -1794,17 +1813,7 @@ export default function ChatMessage({
       font-weight: 800;
       line-height: 1;
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
-    }
-    
-    /* 装饰点 */
-    .cover-decor-dot {
-      position: absolute;
-      left: 22mm;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #666666;
-      font-size: 14px;
-      font-weight: bold;
+      align-self: center;
     }
     
     /* 封面底部区域 */
