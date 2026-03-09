@@ -312,8 +312,8 @@ const parseMarkdownToHtml = (text: string): string => {
   });
   
   // 5. 去除表格对齐符号行（优化：更严格的匹配）
-  // 匹配包含 :---, :--:, --: 等对齐符号的行
-  html = html.replace(/^\|[-:\s]+\|$\n?/gm, '');
+  // 匹配包含 :---, :--:, --: 等对齐符号的行，包括各种格式变体
+  html = html.replace(/^\|?\s*:?-+:?\s*\|?$/gm, '');
   
   // 处理主标题（# 标题）
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
@@ -355,8 +355,9 @@ const parseMarkdownToHtml = (text: string): string => {
     // 处理表体 - 正确处理单元格中的换行
     const rows = bodyRows.trim().split('\n');
     const bodyHtml = rows.map(row => {
-      // 跳过空行和分隔线（包含对齐符号的行）
-      if (!row.trim() || row.trim().startsWith('|---')) return '';
+      // 跳过空行和分隔线（包含对齐符号的行）- 使用更准确的匹配
+      const trimmedRow = row.trim();
+      if (!trimmedRow || /^\|?\s*:?-+:?\s*\|?$/.test(trimmedRow)) return '';
 
       // 去除首尾的|，然后按|分割
       const rowContent = row.trim();
