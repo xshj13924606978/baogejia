@@ -1661,16 +1661,19 @@ export default function ChatMessage({
       day: 'numeric'
     });
     
-    // 提取方案标题（第一个 h1 标签）- PDF保持原始标题
+    // 提取PDF专用标题（独立于Word的逻辑）
     const titleMatch = content.match(/^#\s+(.+)$/m);
-    const mainTitle = titleMatch ? titleMatch[1].trim() : '技术方案';
-    const verticalText = ''; // PDF不显示竖排文字
+    const pdfMainTitle = titleMatch ? titleMatch[1].trim() : '技术方案';
+    const pdfVerticalText = '技术方案'; // PDF固定显示"技术方案"竖排文字
     
     // 获取供应方信息
     const supplierName = supplierInfo?.companyName || '未填写';
     const contactPerson = supplierInfo?.contactPerson || '未填写';
     const contactPhone = supplierInfo?.phone || '未填写';
     const contactEmail = supplierInfo?.email || '未填写';
+    
+    // 生成竖排文字（每个字符一行）
+    const pdfVerticalTextWithBreak = pdfVerticalText.split('').join('<br>');
     
     const printContent = `
 <!DOCTYPE html>
@@ -1679,7 +1682,7 @@ export default function ChatMessage({
   <meta charset="utf-8">
   <title>技术方案</title>
   <style>
-    /* 打印设置 */
+    /* 打印设置 - PDF专用 */
     @page {
       size: A4;
       margin: 0.8cm 0.8cm;
@@ -1756,7 +1759,7 @@ export default function ChatMessage({
       padding: 12px;
     }
     
-    /* 封面样式 - 优化版 */
+    /* 封面样式 - PDF专用 */
     .cover {
       text-align: center;
       padding: 0;
@@ -2100,8 +2103,8 @@ export default function ChatMessage({
   <div class="cover">
     <!-- 封面顶部区域 -->
     <div class="cover-top">
-      <div class="cover-title">${mainTitle}</div>
-      ${verticalText ? `<div class="cover-vertical-text">${verticalText}</div>` : ''}
+      <div class="cover-title">${pdfMainTitle}</div>
+      <div class="cover-vertical-text">${pdfVerticalTextWithBreak}</div>
     </div>
     
     <!-- 封面底部区域 -->
