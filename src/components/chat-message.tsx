@@ -1239,11 +1239,11 @@ export default function ChatMessage({
     /* 封面样式 - 简洁商务 */
     .cover {
       text-align: center;
-      padding: 50pt 60pt;
+      padding: 40pt 60pt;
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 100vh;
+      min-height: 110vh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -1272,14 +1272,14 @@ export default function ChatMessage({
       color: #e0e7ff;
       margin: 0 auto;
       max-width: 500pt;
-      line-height: 2.2;
+      line-height: 1.8;
       text-align: left;
-      padding-bottom: 50pt;
+      padding-bottom: 40pt;
     }
 
     .cover-info p {
       text-indent: 0;
-      margin: 6pt 0;
+      margin: 4pt 0;
       color: #e0e7ff;
       font-weight: 400;
     }
@@ -1719,10 +1719,10 @@ export default function ChatMessage({
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 100vh;
+      min-height: 110vh;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: flex-start;
       position: relative;
       overflow: hidden;
       -webkit-print-color-adjust: exact;
@@ -1736,7 +1736,7 @@ export default function ChatMessage({
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      padding-top: 20px;
+      padding-top: 30px;
     }
     
     .cover-title {
@@ -1755,7 +1755,7 @@ export default function ChatMessage({
       color: #ffffff;
       letter-spacing: 12px;
       height: 250px;
-      margin: 150px auto 0;
+      margin: 80px auto 0;
       font-weight: bold;
       line-height: 1.5;
     }
@@ -1764,12 +1764,12 @@ export default function ChatMessage({
       width: 100px;
       height: 2px;
       background: #3b82f6;
-      margin: 20px auto 0;
+      margin: 15px auto 0;
     }
     
     /* 封面底部区域 */
     .cover-bottom {
-      padding: 5px 80px 20px 80px;
+      padding: 5px 80px 30px 80px;
       text-align: left;
       position: absolute;
       bottom: 0;
@@ -1780,7 +1780,7 @@ export default function ChatMessage({
     .cover-info {
       font-size: 12px;
       color: #e0e7ff;
-      line-height: 1.8;
+      line-height: 1.6;
       text-align: left;
     }
     
