@@ -1202,6 +1202,9 @@ export default function ChatMessage({
     // 移除正文中的第一个h1标签（避免重复显示）
     let contentWithoutFirstH1 = parsedContent.replace(/<h1[^>]*>.+?<\/h1>/, '');
     
+    // 移除正文中可能存在的"技术方案"重复标题（h2或h3标签）
+    contentWithoutFirstH1 = contentWithoutFirstH1.replace(/<h[23][^>]*>(技术方案|报价方案|报价单)[^<]*<\/h[23]>/, '');
+    
     // 提取竖排文字（智能关键词提取）
     const rawTitle = projectTitle.replace(/<[^>]*>/g, '');
     let verticalText = '';
@@ -1555,11 +1558,8 @@ export default function ChatMessage({
   <div class="cover">
     <!-- 封面顶部区域 -->
     <div class="cover-top">
-      <!-- 主标题（左对齐，带装饰点） -->
-      <div class="cover-title-container">
-        <div class="cover-decor-dot">:::</div>
-        <div class="cover-title">${projectTitle}</div>
-      </div>
+      <!-- 主标题（左对齐） -->
+      <div class="cover-title">${projectTitle}</div>
       
       <!-- 竖排方案名称（居中） -->
       <div class="cover-vertical-text">${verticalText}</div>
@@ -1776,22 +1776,6 @@ export default function ChatMessage({
       margin-top: 0;
     }
     
-    /* 主标题容器 */
-    .cover-title-container {
-      display: flex;
-      align-items: center;
-      margin-bottom: 80px;
-    }
-    
-    /* 装饰点 */
-    .cover-decor-dot {
-      font-size: 14px;
-      font-weight: bold;
-      color: #666666;
-      margin-right: 12px;
-      letter-spacing: 2px;
-    }
-    
     .cover-title {
       font-size: 36px;
       font-weight: 700;
@@ -1799,6 +1783,7 @@ export default function ChatMessage({
       letter-spacing: 2px;
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
       text-align: left;
+      margin-bottom: 80px;
     }
     
     /* 竖排方案名称 - 居中 */
