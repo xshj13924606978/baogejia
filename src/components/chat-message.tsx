@@ -1762,7 +1762,7 @@ export default function ChatMessage({
       overflow: hidden;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
-      padding: 35mm 22mm 28mm 22mm;
+      padding: 25.4mm 31.8mm 25.4mm 31.8mm;
       box-sizing: border-box;
     }
     
@@ -1790,10 +1790,9 @@ export default function ChatMessage({
     .cover-vertical-text {
       writing-mode: vertical-rl;
       text-orientation: mixed;
-      font-size: 56px;
+      font-size: 48px;
       color: #000000;
-      letter-spacing: 12px;
-      height: 320px;
+      letter-spacing: 10px;
       margin: 0 auto;
       font-weight: 800;
       line-height: 1.5;
@@ -1804,13 +1803,13 @@ export default function ChatMessage({
     /* 封面底部区域 */
     .cover-bottom {
       position: absolute;
-      left: 22mm;
-      bottom: 28mm;
+      left: 30mm;
+      bottom: 10mm;
       text-align: left;
     }
     
     .cover-info {
-      font-size: 12px;
+      font-size: 14px;
       color: #333333;
       line-height: 1.8;
       text-align: left;
