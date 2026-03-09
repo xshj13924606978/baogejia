@@ -1243,9 +1243,9 @@ export default function ChatMessage({
       page-break-after: always;
       background: #1e40af;
       color: white;
-      height: 285mm;
-      min-height: 285mm;
-      max-height: 285mm;
+      height: 270mm;
+      min-height: 270mm;
+      max-height: 270mm;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -1279,6 +1279,16 @@ export default function ChatMessage({
       height: 2pt;
       background: #3b82f6;
       margin: 0 auto 30pt;
+    }
+
+    /* 封面底部区域 */
+    .cover-bottom {
+      padding: 5px 80px 20px 80px;
+      text-align: left;
+      position: absolute;
+      bottom: 85px;
+      left: 0;
+      right: 0;
     }
 
     .cover-info {
@@ -1732,9 +1742,9 @@ export default function ChatMessage({
       page-break-after: always;
       background: #1e40af;
       color: white;
-      height: 285mm;
-      min-height: 285mm;
-      max-height: 285mm;
+      height: 270mm;
+      min-height: 270mm;
+      max-height: 270mm;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -1787,7 +1797,7 @@ export default function ChatMessage({
       padding: 5px 80px 20px 80px;
       text-align: left;
       position: absolute;
-      bottom: 50px;
+      bottom: 85px;
       left: 0;
       right: 0;
     }
