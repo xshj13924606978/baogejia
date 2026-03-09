@@ -308,18 +308,27 @@ const parseMarkdownToHtml = (text: string): string => {
   }
 
   // 0.2 删除多余的星号，但保留Markdown格式标记
-  // 策略：删除单独出现的"*"，但保留 "**"（粗体）和成对的 "*text*"（斜体）
-  html = html
-    // 先保留粗体标记，用临时占位符替换
-    .replace(/\*\*([^*]+)\*\*/g, '<<<BOLD>>>$1<<<BOLD>>>')
-    // 先保留斜体标记，用临时占位符替换
-    .replace(/\*([^*]+)\*/g, '<<<ITALIC>>>$1<<<ITALIC>>>')
-    // 删除单独的"*"（包括前导、后导、中间的孤立星号）
-    .replace(/(?<!\w)\*(?!\w)/g, '')  // 删除孤立的星号（不在单词中间）
-    .replace(/\*([^\w*])\1*/g, '$1')  // 删除连续的星号（除了保留粗体和斜体）
-    // 恢复粗体和斜体标记
-    .replace(/<<<BOLD>>>(.+?)<<<BOLD>>>/g, '**$1**')
-    .replace(/<<<ITALIC>>>(.+?)<<<ITALIC>>>/g, '*$1*');
+  // 策略：分步骤清理，彻底删除所有不是用于格式的星号
+  
+  // 第一步：保护和恢复粗体标记
+  html = html.replace(/\*\*([^*]+)\*\*/g, (match, content) => {
+    // 使用唯一的占位符，避免与正常文本冲突
+    return `<<<BOLD_START>>>${content}<<<BOLD_END>>>`;
+  });
+  
+  // 第二步：保护和恢复斜体标记
+  html = html.replace(/\*([^*]+)\*/g, (match, content) => {
+    return `<<<ITALIC_START>>>${content}<<<ITALIC_END>>>`;
+  });
+  
+  // 第三步：删除所有剩余的星号（包括前导、后导、中间的孤立星号）
+  html = html.replace(/\*/g, '');
+  
+  // 第四步：恢复粗体标记
+  html = html.replace(/<<<BOLD_START>>>(.+?)<<<BOLD_END>>>/g, '**$1**');
+  
+  // 第五步：恢复斜体标记
+  html = html.replace(/<<<ITALIC_START>>>(.+?)<<<ITALIC_END>>>/g, '*$1*');
 
   // ========================================================================
   // 1. 修复：检测并修复不完整的内容
@@ -480,13 +489,28 @@ const parseMarkdownToHtml = (text: string): string => {
   html = html.replace(/\n{3,}/g, '\n\n'); // 多个连续换行替换为两个
   html = html.replace(/>\s+</g, '><'); // 移除标签之间的空白
   
-  // 最终清理：移除任何可能残留的对齐符号行内容
+  // 最终清理1：移除任何可能残留的对齐符号行内容
   // 移除只包含对齐符号的文本节点
   html = html.replace(/<p>\s*:?-{3,}:?\s*<\/p>/gi, '');
   html = html.replace(/<p>\s*[\s|:-]+\s*<\/p>/gi, '');
   
   // 移除表格中可能存在的对齐符号行（转换为HTML后的形式）
   html = html.replace(/<tr>\s*(<td[^>]*>[\s|:-]*<\/td>\s*)+\s*<\/tr>/gi, '');
+
+  // 最终清理2：删除所有剩余的星号（在HTML标签外）
+  // 确保不影响HTML标签结构，只删除文本内容中的星号
+  html = html
+    // 保护HTML标签（避免删除标签内的星号）
+    .replace(/(<[^>]+>)/g, (match) => {
+      // 将HTML标签中的内容进行base64编码保护
+      return '<<<HTML_TAG>>>' + Buffer.from(match).toString('base64') + '<<<HTML_TAG_END>>>';
+    })
+    // 删除所有剩余的星号
+    .replace(/\*/g, '')
+    // 恢复HTML标签
+    .replace(/<<<HTML_TAG>>>(.+?)<<<HTML_TAG_END>>>/g, (match, encoded) => {
+      return Buffer.from(encoded, 'base64').toString('utf-8');
+    });
 
   return html;
 };
