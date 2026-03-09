@@ -1682,8 +1682,8 @@ export default function ChatMessage({
     const contactPhone = supplierInfo?.phone || '未填写';
     const contactEmail = supplierInfo?.email || '未填写';
     
-    // 生成竖排文字（每个字符一行）
-    const pdfVerticalTextWithBreak = pdfVerticalText.split('').join('<br>');
+    // 竖排文字直接使用writing-mode，不需要手动添加<br>
+    const pdfVerticalTextWithBreak = pdfVerticalText;
     
     const printContent = `
 <!DOCTYPE html>
@@ -1828,13 +1828,15 @@ export default function ChatMessage({
       position: relative;
     }
     
-    /* 蓝色渲染块 - 仅顶部区域 */
+    /* 蓝色渲染块 - 全尺寸封面 */
     .cover-blue-block {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      height: 150mm;
+      bottom: 0;
+      width: 210mm;
+      height: 297mm;
       background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
       z-index: 0;
       -webkit-print-color-adjust: exact;
