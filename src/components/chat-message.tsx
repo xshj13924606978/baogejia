@@ -1663,7 +1663,17 @@ export default function ChatMessage({
     
     // 提取PDF专用标题（独立于Word的逻辑）
     const titleMatch = content.match(/^#\s+(.+)$/m);
-    const pdfMainTitle = titleMatch ? titleMatch[1].trim() : '技术方案';
+    let pdfMainTitle = titleMatch ? titleMatch[1].trim() : '技术方案';
+    
+    // 从主标题中移除"技术方案"等关键词，避免重复显示
+    const pdfKeywords = ['技术方案', '报价方案', '报价单'];
+    for (const keyword of pdfKeywords) {
+      if (pdfMainTitle.includes(keyword)) {
+        pdfMainTitle = pdfMainTitle.replace(keyword, '').trim();
+        break;
+      }
+    }
+    
     const pdfVerticalText = '技术方案'; // PDF固定显示"技术方案"竖排文字
     
     // 获取供应方信息
@@ -1800,9 +1810,9 @@ export default function ChatMessage({
       margin-bottom: 80px;
     }
     
-    /* 竖排方案名称 - 居中 */
+    /* 竖排方案名称 - 从上到下显示 */
     .cover-vertical-text {
-      writing-mode: vertical-rl;
+      writing-mode: vertical-lr;
       text-orientation: mixed;
       font-size: 48px;
       color: #000000;
@@ -1812,6 +1822,19 @@ export default function ChatMessage({
       line-height: 1.5;
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
       align-self: center;
+    }
+    
+    /* 蓝色渲染块 - 297x210mm */
+    .cover-blue-block {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 210mm;
+      height: 270mm;
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      z-index: -1;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     
     /* 封面底部区域 */
@@ -2101,6 +2124,9 @@ export default function ChatMessage({
   
   <!-- 封面页 -->
   <div class="cover">
+    <!-- 蓝色渲染块 -->
+    <div class="cover-blue-block"></div>
+    
     <!-- 封面顶部区域 -->
     <div class="cover-top">
       <div class="cover-title">${pdfMainTitle}</div>
