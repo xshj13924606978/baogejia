@@ -1553,6 +1553,9 @@ export default function ChatMessage({
 <body>
   <!-- 封面页 -->
   <div class="cover">
+    <!-- 装饰点 -->
+    <div class="cover-decor-dot">■</div>
+    
     <!-- 封面顶部区域 -->
     <div class="cover-top">
       <div class="cover-title">${projectTitle}</div>
@@ -1739,13 +1742,13 @@ export default function ChatMessage({
       padding: 12px;
     }
     
-    /* 封面样式 - 恢复版 */
+    /* 封面样式 - 优化版 */
     .cover {
       text-align: center;
       padding: 0;
       page-break-after: always;
       background: #ffffff;
-      color: #333333;
+      color: #000000;
       height: 270mm;
       min-height: 270mm;
       max-height: 270mm;
@@ -1756,6 +1759,8 @@ export default function ChatMessage({
       overflow: hidden;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+      padding: 35mm 22mm 28mm 22mm;
+      box-sizing: border-box;
     }
     
     /* 封面顶部区域 */
@@ -1765,66 +1770,71 @@ export default function ChatMessage({
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      padding-top: 20px;
+      margin-top: 0;
     }
     
     .cover-title {
       font-size: 36px;
-      font-weight: bold;
-      color: #333333;
-      margin-bottom: 4px;
+      font-weight: 700;
+      color: #000000;
+      margin-bottom: 80px;
       letter-spacing: 2px;
+      font-family: "Microsoft YaHei", "SimHei", sans-serif;
     }
     
     /* 竖排方案名称 */
     .cover-vertical-text {
       writing-mode: vertical-rl;
-      text-orientation: mixed;
-      font-size: 48px;
-      color: #333333;
-      letter-spacing: 12px;
-      height: auto;
-      margin: 200px auto 0;
-      font-weight: bold;
-      line-height: 1.5;
+      text-orientation: upright;
+      font-size: 56px;
+      color: #000000;
+      letter-spacing: 8px;
+      height: 320px;
+      margin: 0 auto;
+      font-weight: 800;
+      line-height: 1;
+      font-family: "Microsoft YaHei", "SimHei", sans-serif;
     }
     
-    .cover-divider {
-      width: 100px;
-      height: 2px;
-      background: #3b82f6;
-      margin: 15px auto 0;
+    /* 装饰点 */
+    .cover-decor-dot {
+      position: absolute;
+      left: 22mm;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666666;
+      font-size: 14px;
+      font-weight: bold;
     }
     
     /* 封面底部区域 */
     .cover-bottom {
-      padding: 5px 80px 20px 80px;
-      text-align: left;
       position: absolute;
-      bottom: 85px;
-      left: 0;
-      right: 0;
+      left: 22mm;
+      bottom: 28mm;
+      text-align: left;
     }
     
     .cover-info {
       font-size: 12px;
       color: #333333;
-      line-height: 1.6;
+      line-height: 1.8;
       text-align: left;
+      font-family: "Microsoft YaHei", "SimHei", sans-serif;
     }
     
     .cover-info p {
       text-indent: 0;
-      margin: 2px 0;
+      margin: 0;
       color: #333333;
     }
     
     .cover-info strong {
-      color: #333333;
+      color: #000000;
       font-weight: 600;
       display: inline-block;
       min-width: 80px;
-      letter-spacing: 1px;
+      margin-right: 8px;
     }
     
     /* 页眉 */
