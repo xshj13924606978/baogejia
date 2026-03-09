@@ -1326,7 +1326,7 @@ export default function ChatMessage({
       padding: 5px 80px 20px 80px;
       text-align: left;
       position: absolute;
-      bottom: 70px;
+      bottom: 50px;
       left: 0;
       right: 0;
     }
