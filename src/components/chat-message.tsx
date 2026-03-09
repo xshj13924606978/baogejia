@@ -1243,7 +1243,8 @@ export default function ChatMessage({
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 110vh;
+      min-height: 100vh;
+      max-height: 100vh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -1526,7 +1527,6 @@ export default function ChatMessage({
     <div class="cover-top">
       <div class="cover-title">${projectTitle}</div>
       <div class="cover-vertical-text">技术方案</div>
-      <div class="cover-divider"></div>
     </div>
     
     <!-- 封面底部区域 -->
@@ -1719,10 +1719,11 @@ export default function ChatMessage({
       page-break-after: always;
       background: #1e40af;
       color: white;
-      min-height: 110vh;
+      min-height: 100vh;
+      max-height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      justify-content: space-between;
       position: relative;
       overflow: hidden;
       -webkit-print-color-adjust: exact;
@@ -1736,14 +1737,14 @@ export default function ChatMessage({
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      padding-top: 30px;
+      padding-top: 20px;
     }
     
     .cover-title {
       font-size: 36px;
       font-weight: bold;
       color: #ffffff;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
       letter-spacing: 2px;
     }
     
@@ -1754,8 +1755,8 @@ export default function ChatMessage({
       font-size: 32px;
       color: #ffffff;
       letter-spacing: 12px;
-      height: 250px;
-      margin: 80px auto 0;
+      height: 200px;
+      margin: 60px auto 0;
       font-weight: bold;
       line-height: 1.5;
     }
@@ -1769,7 +1770,7 @@ export default function ChatMessage({
     
     /* 封面底部区域 */
     .cover-bottom {
-      padding: 5px 80px 30px 80px;
+      padding: 5px 80px 20px 80px;
       text-align: left;
       position: absolute;
       bottom: 0;
@@ -2059,7 +2060,6 @@ export default function ChatMessage({
     <div class="cover-top">
       <div class="cover-title">${mainTitle}</div>
       ${verticalText ? `<div class="cover-vertical-text">${verticalText}</div>` : ''}
-      <div class="cover-divider"></div>
     </div>
     
     <!-- 封面底部区域 -->
