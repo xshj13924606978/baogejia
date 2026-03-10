@@ -915,9 +915,18 @@ export default function PriceLibrary() {
                     setShowImportMenu(false);
                     handleDownloadTemplate();
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 last:rounded-b-lg"
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   📥 下载模板
+                </button>
+                <button
+                  onClick={() => {
+                    setShowImportMenu(false);
+                    window.open('/diagnostics/import', '_blank');
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 last:rounded-b-lg"
+                >
+                  🔍 导入诊断
                 </button>
               </div>
             )}
