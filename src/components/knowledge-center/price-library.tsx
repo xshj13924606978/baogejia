@@ -16,12 +16,20 @@ export default function PriceLibrary() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showFieldConfig, setShowFieldConfig] = useState(false);
+  const [showColumnConfig, setShowColumnConfig] = useState(false);
+  const [showExportFilter, setShowExportFilter] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
   const [showFieldMapping, setShowFieldMapping] = useState(false);
   const [pendingExcelData, setPendingExcelData] = useState<{ headers: string[]; data: any[] } | null>(null);
   const [fieldConfigs, setFieldConfigs] = useState<Record<string, { label: string; required: boolean }>>({});
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
+    'product_name', 'model', 'brand', 'specifications', 
+    'unit', 'price', 'supplier', 'operations'
+  ]));
+  const [exportFilterBrands, setExportFilterBrands] = useState<Set<string>>(new Set());
+  const [exportFilterKeywords, setExportFilterKeywords] = useState<string>('');
   const [newProduct, setNewProduct] = useState({
     product_name: '',
     model: '',
@@ -36,6 +44,36 @@ export default function PriceLibrary() {
     contact_phone: ''
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 可用的列配置
+  const availableColumns = [
+    { key: 'select', label: '选择', fixed: true },
+    { key: 'product_name', label: '产品名称', defaultVisible: true },
+    { key: 'model', label: '规格型号', defaultVisible: true },
+    { key: 'brand', label: '品牌', defaultVisible: true },
+    { key: 'specifications', label: '参数描述', defaultVisible: true },
+    { key: 'unit', label: '单位', defaultVisible: true },
+    { key: 'price', label: '指导价', defaultVisible: true },
+    { key: 'cost_price', label: '成本', defaultVisible: false },
+    { key: 'min_price', label: '最低售价', defaultVisible: false },
+    { key: 'supplier', label: '供应商', defaultVisible: true },
+    { key: 'contact_person', label: '联系人', defaultVisible: false },
+    { key: 'contact_phone', label: '联系电话', defaultVisible: false },
+    { key: 'operations', label: '操作', fixed: true },
+  ];
+
+  // 从 localStorage 加载列配置
+  useEffect(() => {
+    const savedColumns = localStorage.getItem('price-library-columns');
+    if (savedColumns) {
+      try {
+        const parsed = JSON.parse(savedColumns);
+        setVisibleColumns(new Set(parsed));
+      } catch (e) {
+        console.error('加载列配置失败:', e);
+      }
+    }
+  }, []);
 
   // 模拟产品数据
   const mockProducts = [
@@ -295,7 +333,7 @@ export default function PriceLibrary() {
           console.log('解析到的Excel数据:', jsonData);
 
           // 获取Excel表头
-          const headers = jsonData.length > 0 ? Object.keys(jsonData[0]) : [];
+          const headers = jsonData.length > 0 ? Object.keys(jsonData[0] as Record<string, any>) : [];
 
           // 保存数据，显示字段映射对话框
           setPendingExcelData({ headers, data: jsonData });
@@ -497,12 +535,29 @@ export default function PriceLibrary() {
   };
 
   // 导出产品为 Excel 格式
-  const handleExportExcel = (exportSelectedOnly: boolean = false) => {
+  const handleExportExcel = (exportSelectedOnly: boolean = false, filterConfig?: { brands?: Set<string>, keyword?: string }) => {
     try {
       // 确定要导出的产品数据
-      const productsToExport = exportSelectedOnly 
+      let productsToExport = exportSelectedOnly 
         ? products.filter(p => selectedProducts.has(p.id))
         : products;
+
+      // 应用类别筛选
+      if (filterConfig) {
+        if (filterConfig.brands && filterConfig.brands.size > 0) {
+          productsToExport = productsToExport.filter(p => filterConfig.brands!.has(p.brand));
+        }
+        if (filterConfig.keyword) {
+          const keyword = filterConfig.keyword.toLowerCase().trim();
+          if (keyword) {
+            productsToExport = productsToExport.filter(p =>
+              (p.product_name || '').toLowerCase().includes(keyword) ||
+              (p.model || '').toLowerCase().includes(keyword) ||
+              (p.brand || '').toLowerCase().includes(keyword)
+            );
+          }
+        }
+      }
 
       if (productsToExport.length === 0) {
         alert(exportSelectedOnly ? '请先选择要导出的产品' : '没有可导出的产品数据');
@@ -549,14 +604,17 @@ export default function PriceLibrary() {
 
       // 生成文件名
       const timestamp = new Date().toISOString().slice(0, 10);
+      const filterSuffix = (filterConfig?.brands?.size || 0) > 0 || filterConfig?.keyword 
+        ? '_筛选' : '';
       const filename = exportSelectedOnly 
-        ? `产品价格库_选中${selectedProducts.size}条_${timestamp}.xlsx`
-        : `产品价格库_全部${products.length}条_${timestamp}.xlsx`;
+        ? `产品价格库_选中${selectedProducts.size}条${filterSuffix}_${timestamp}.xlsx`
+        : `产品价格库_全部${products.length}条${filterSuffix}_${timestamp}.xlsx`;
 
       // 下载文件
       XLSX.writeFile(workbook, filename);
 
       alert(`✅ 成功导出 ${productsToExport.length} 条产品数据！`);
+      setShowExportFilter(false);
     } catch (error) {
       console.error('导出Excel失败:', error);
       alert(`❌ 导出Excel失败：${error instanceof Error ? error.message : '未知错误'}`);
@@ -564,12 +622,29 @@ export default function PriceLibrary() {
   };
 
   // 导出产品为 CSV 格式
-  const handleExportCSV = (exportSelectedOnly: boolean = false) => {
+  const handleExportCSV = (exportSelectedOnly: boolean = false, filterConfig?: { brands?: Set<string>, keyword?: string }) => {
     try {
       // 确定要导出的产品数据
-      const productsToExport = exportSelectedOnly 
+      let productsToExport = exportSelectedOnly 
         ? products.filter(p => selectedProducts.has(p.id))
         : products;
+
+      // 应用类别筛选
+      if (filterConfig) {
+        if (filterConfig.brands && filterConfig.brands.size > 0) {
+          productsToExport = productsToExport.filter(p => filterConfig.brands!.has(p.brand));
+        }
+        if (filterConfig.keyword) {
+          const keyword = filterConfig.keyword.toLowerCase().trim();
+          if (keyword) {
+            productsToExport = productsToExport.filter(p =>
+              (p.product_name || '').toLowerCase().includes(keyword) ||
+              (p.model || '').toLowerCase().includes(keyword) ||
+              (p.brand || '').toLowerCase().includes(keyword)
+            );
+          }
+        }
+      }
 
       if (productsToExport.length === 0) {
         alert(exportSelectedOnly ? '请先选择要导出的产品' : '没有可导出的产品数据');
@@ -627,9 +702,11 @@ export default function PriceLibrary() {
 
       // 生成文件名
       const timestamp = new Date().toISOString().slice(0, 10);
+      const filterSuffix = (filterConfig?.brands?.size || 0) > 0 || filterConfig?.keyword 
+        ? '_筛选' : '';
       const filename = exportSelectedOnly 
-        ? `产品价格库_选中${selectedProducts.size}条_${timestamp}.csv`
-        : `产品价格库_全部${products.length}条_${timestamp}.csv`;
+        ? `产品价格库_选中${selectedProducts.size}条${filterSuffix}_${timestamp}.csv`
+        : `产品价格库_全部${products.length}条${filterSuffix}_${timestamp}.csv`;
 
       link.setAttribute('href', url);
       link.setAttribute('download', filename);
@@ -640,10 +717,19 @@ export default function PriceLibrary() {
       URL.revokeObjectURL(url);
 
       alert(`✅ 成功导出 ${productsToExport.length} 条产品数据！`);
+      setShowExportFilter(false);
     } catch (error) {
       console.error('导出CSV失败:', error);
       alert(`❌ 导出CSV失败：${error instanceof Error ? error.message : '未知错误'}`);
     }
+  };
+
+  const handleSaveColumnConfig = (columns: string[]) => {
+    // 保存列配置到 localStorage
+    localStorage.setItem('price-library-columns', JSON.stringify(columns));
+    setVisibleColumns(new Set(columns));
+    setShowColumnConfig(false);
+    alert('✅ 列配置已保存！');
   };
 
   return (
@@ -653,7 +739,7 @@ export default function PriceLibrary() {
         <h3 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-slate-100">
           <span className="text-2xl">📊</span> 产品价格库
         </h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <input
             ref={fileInputRef}
             type="file"
@@ -691,6 +777,14 @@ export default function PriceLibrary() {
             <span>📊</span> 导出Excel
           </button>
           <button
+            onClick={() => setShowExportFilter(true)}
+            disabled={products.length === 0}
+            className="px-4 py-2 bg-orange-700 text-white rounded-lg hover:bg-orange-800 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            title="筛选后导出"
+          >
+            <span>🔍</span> 高级导出
+          </button>
+          <button
             onClick={() => handleExportCSV(false)}
             disabled={products.length === 0}
             className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -698,11 +792,19 @@ export default function PriceLibrary() {
           >
             <span>📄</span> 导出CSV
           </button>
+          <div className="h-8 w-px bg-slate-300 dark:bg-slate-600"></div>
+          <button
+            onClick={() => setShowColumnConfig(true)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm"
+            title="配置表格显示的列"
+          >
+            <span>⚙️</span> 列配置
+          </button>
           <button
             onClick={() => setShowFieldConfig(true)}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm"
           >
-            <span>⚙️</span> 字段配置
+            <span>📋</span> 字段配置
           </button>
         </div>
       </div>
@@ -1212,6 +1314,236 @@ export default function PriceLibrary() {
             onConfirm={handleConfirmMapping}
             onCancel={handleCancelMapping}
           />
+        </div>
+      )}
+
+      {/* 列配置对话框 */}
+      {showColumnConfig && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">配置表格显示列</h3>
+              <button
+                onClick={() => setShowColumnConfig(false)}
+                className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {availableColumns.map(col => (
+                  <div
+                    key={col.key}
+                    className={`flex items-center gap-2 p-3 border rounded-lg ${
+                      col.fixed 
+                        ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed'
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 cursor-pointer'
+                    } ${visibleColumns.has(col.key) ? 'border-blue-300 dark:border-blue-700' : ''}`}
+                    onClick={() => {
+                      if (!col.fixed) {
+                        const newVisible = new Set(visibleColumns);
+                        if (newVisible.has(col.key)) {
+                          newVisible.delete(col.key);
+                        } else {
+                          newVisible.add(col.key);
+                        }
+                        setVisibleColumns(newVisible);
+                      }
+                    }}
+                  >
+                    <Checkbox
+                      checked={visibleColumns.has(col.key)}
+                      disabled={col.fixed}
+                      aria-label={col.label}
+                    />
+                    <span className="text-sm text-slate-700 dark:text-slate-300">{col.label}</span>
+                    {col.fixed && <span className="text-xs text-slate-500 ml-auto">(必选)</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-between items-center p-6 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => {
+                  // 恢复默认配置
+                  const defaultColumns = availableColumns
+                    .filter(col => col.defaultVisible || col.fixed)
+                    .map(col => col.key);
+                  setVisibleColumns(new Set(defaultColumns));
+                  localStorage.setItem('price-library-columns', JSON.stringify(defaultColumns));
+                }}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors text-sm"
+              >
+                恢复默认
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowColumnConfig(false)}
+                  className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => handleSaveColumnConfig(Array.from(visibleColumns))}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 导出筛选对话框 */}
+      {showExportFilter && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">🔍 高级导出 - 按类别筛选</h3>
+              <button
+                onClick={() => setShowExportFilter(false)}
+                className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {/* 品牌筛选 */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                  按品牌筛选
+                </label>
+                <div className="flex gap-2 mb-3">
+                  <button
+                    onClick={() => {
+                      const allBrands = new Set(products.map(p => p.brand).filter(Boolean));
+                      setExportFilterBrands(allBrands);
+                    }}
+                    className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-sm"
+                  >
+                    全选
+                  </button>
+                  <button
+                    onClick={() => setExportFilterBrands(new Set())}
+                    className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-sm"
+                  >
+                    清空
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                  {Array.from(new Set(products.map(p => p.brand).filter(Boolean)))
+                    .sort((a, b) => a.localeCompare(b))
+                    .map(brand => (
+                      <button
+                        key={brand}
+                        onClick={() => {
+                          const newBrands = new Set(exportFilterBrands);
+                          if (newBrands.has(brand)) {
+                            newBrands.delete(brand);
+                          } else {
+                            newBrands.add(brand);
+                          }
+                          setExportFilterBrands(newBrands);
+                        }}
+                        className={`px-3 py-2 rounded text-sm transition-colors ${
+                          exportFilterBrands.has(brand)
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {brand}
+                      </button>
+                    ))}
+                </div>
+              </div>
+
+              {/* 关键词筛选 */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  按关键词筛选（产品名称、型号、品牌）
+                </label>
+                <input
+                  type="text"
+                  placeholder="输入关键词，如：泵、阀、管..."
+                  value={exportFilterKeywords}
+                  onChange={(e) => setExportFilterKeywords(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                />
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  输入关键词后，导出的产品将包含匹配该关键词的产品
+                </p>
+              </div>
+
+              {/* 预览筛选结果 */}
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+                <div className="text-sm text-slate-700 dark:text-slate-300">
+                  <p className="font-medium mb-2">筛选预览：</p>
+                  <div className="flex gap-4">
+                    <div>
+                      <span className="text-slate-500 dark:text-slate-400">总产品：</span>
+                      <span className="font-medium text-slate-900 dark:text-slate-100">{products.length} 个</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 dark:text-slate-400">筛选后：</span>
+                      <span className="font-medium text-blue-600 dark:text-blue-400">
+                        {products.filter(p => {
+                          const brandMatch = exportFilterBrands.size === 0 || exportFilterBrands.has(p.brand);
+                          const keywordMatch = !exportFilterKeywords.trim() || 
+                            p.product_name?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
+                            p.model?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
+                            p.brand?.toLowerCase().includes(exportFilterKeywords.toLowerCase());
+                          return brandMatch && keywordMatch;
+                        }).length} 个
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-6 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setShowExportFilter(false)}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  const filterConfig = {
+                    brands: exportFilterBrands,
+                    keyword: exportFilterKeywords
+                  };
+                  setShowExportFilter(false);
+                  // 弹出导出格式选择
+                  if (confirm(`即将导出 ${products.filter(p => {
+                    const brandMatch = exportFilterBrands.size === 0 || exportFilterBrands.has(p.brand);
+                    const keywordMatch = !exportFilterKeywords.trim() || 
+                      p.product_name?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
+                      p.model?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
+                      p.brand?.toLowerCase().includes(exportFilterKeywords.toLowerCase());
+                    return brandMatch && keywordMatch;
+                  }).length} 条产品数据\n\n选择导出格式：\n确定 = Excel\n取消 = CSV`)) {
+                    handleExportExcel(false, filterConfig);
+                  } else {
+                    handleExportCSV(false, filterConfig);
+                  }
+                }}
+                disabled={products.filter(p => {
+                  const brandMatch = exportFilterBrands.size === 0 || exportFilterBrands.has(p.brand);
+                  const keywordMatch = !exportFilterKeywords.trim() || 
+                    p.product_name?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
+                    p.model?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
+                    p.brand?.toLowerCase().includes(exportFilterKeywords.toLowerCase());
+                  return brandMatch && keywordMatch;
+                }).length === 0}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                确认导出
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
