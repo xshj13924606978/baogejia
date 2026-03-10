@@ -105,9 +105,22 @@ export class ProductExtractor {
         return null;
       }
 
+      // 标准化型号（移除单位，只保留数字或字母数字组合）
+      let model = result.model;
+      if (model) {
+        const unitPattern = /(立方|立方米|m³|m3|吨|升|L|ML|毫米|mm|厘米|cm|米|m)/i;
+        if (unitPattern.test(model)) {
+          const numberMatch = model.match(/(\d+(\.\d+)?)/);
+          if (numberMatch) {
+            model = numberMatch[1];
+            console.log('[ProductExtractor] LLM 提取的型号已标准化:', result.model, '->', model);
+          }
+        }
+      }
+
       return {
         productName: result.productName,
-        model: result.model,
+        model,
         specifications: result.specifications,
         brand: result.brand,
         confidence: result.confidence || 70,
@@ -157,9 +170,10 @@ export class ProductExtractor {
         if (matches && matches.length > 0) {
           // 提取第一个匹配的型号
           model = matches[0].trim();
-          
+
           // 如果是带单位的型号，只保留数字部分
-          if (/[立方|立方米|m³|m3|吨|升|毫米|厘米|米]/.test(model)) {
+          const unitPattern = /(立方|立方米|m³|m3|吨|升|L|ML|毫米|mm|厘米|cm|米|m)/i;
+          if (unitPattern.test(model)) {
             const numberMatch = model.match(/(\d+(\.\d+)?)/);
             if (numberMatch) {
               model = numberMatch[1];
