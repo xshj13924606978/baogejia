@@ -28,7 +28,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import MarkdownIt from 'markdown-it';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+const MarkdownIt = require('markdown-it');
 import mermaid from 'mermaid';
 
 // 初始化 mermaid
