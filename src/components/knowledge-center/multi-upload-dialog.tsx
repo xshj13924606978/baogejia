@@ -81,7 +81,7 @@ export default function MultiUploadDialog({
     }
 
     const fileName = cloudFileName.trim() || '网盘文件';
-    const description = cloudFileDescription.trim();
+    const description = cloudFileDescription.trim() || fileName; // 如果文件说明为空，使用文件名
     const extractCode = cloudExtractCode.trim();
 
     // 如果用户上传了文件且有对应回调，直接使用文件上传回调
@@ -338,10 +338,10 @@ export default function MultiUploadDialog({
                   <strong>网盘链接上传说明：</strong>
                 </p>
                 <ul className="text-xs text-purple-600 dark:text-purple-400 space-y-1">
-                  <li>• <strong>百度网盘</strong>：填写提取码后可尝试自动下载并解析文件</li>
-                  <li>• <strong>其他网盘</strong>（阿里云盘、腾讯云盘等）：请先手动下载文件后上传</li>
-                  <li>• 系统会保存链接地址，后续可一键访问</li>
-                  <li>• 可自定义文件名称以便管理</li>
+                  <li>• <strong>网盘分享链接</strong>（必填）：支持百度网盘、阿里云盘、腾讯云盘等</li>
+                  <li>• <strong>提取码</strong>（可选）：百度网盘填写后可尝试自动下载，其他网盘请先手动下载</li>
+                  <li>• <strong>文件说明</strong>（可选）：填写原始文件名便于识别，不填写则使用默认名称</li>
+                  <li>• <strong>手动上传</strong>（可选）：如果自动下载失败，可上传从网盘下载的文件</li>
                 </ul>
                 <div className="mt-3 p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
                   <p className="text-xs text-purple-800 dark:text-purple-200 font-medium mb-2">示例格式：</p>
@@ -370,24 +370,24 @@ export default function MultiUploadDialog({
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  提取码 <span className="text-red-500">*</span>
+                  提取码
                 </label>
                 <input
                   type="text"
-                  placeholder="如: tfzm"
+                  placeholder="如: tfzm（如有提取码请填写）"
                   value={cloudExtractCode}
                   onChange={(e) => setCloudExtractCode(e.target.value)}
                   disabled={uploading}
                   className="w-full px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                  💡 如果填写了提取码，系统将尝试自动下载并解析文件（仅支持百度网盘）
+                  💡 填写提取码可尝试自动下载（仅支持百度网盘），不填写则仅保存链接
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  文件说明（原始文件名）<span className="text-red-500">*</span>
+                  文件说明（原始文件名）
                 </label>
                 <input
                   type="text"
@@ -397,6 +397,9 @@ export default function MultiUploadDialog({
                   disabled={uploading}
                   className="w-full px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                  可选：填写原始文件名，便于后续查找和识别
+                </p>
               </div>
 
               <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
@@ -457,7 +460,7 @@ export default function MultiUploadDialog({
                 </Button>
                 <Button
                   onClick={handleCloudFileSubmit}
-                  disabled={uploading || !cloudDriveUrl.trim() || !cloudExtractCode.trim() || !cloudFileDescription.trim()}
+                  disabled={uploading || !cloudDriveUrl.trim()}
                 >
                   {cloudUploadedFile ? '📊 解析并导入' : '🔗 保存链接'}
                 </Button>
