@@ -500,7 +500,7 @@ export default function PriceLibrary() {
     setShowFieldMapping(false);
 
     try {
-      const response = await fetch('/api/tables/products/import-simple', {
+      const response = await fetch('/api/tables/products/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -557,7 +557,7 @@ export default function PriceLibrary() {
     }
 
     try {
-      const response = await fetch('/api/tables/products/import-simple', {
+      const response = await fetch('/api/tables/products/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

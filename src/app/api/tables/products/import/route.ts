@@ -143,10 +143,6 @@ export async function POST(request: NextRequest) {
           min_price: product.min_price || 0,  // 最低售价
           description: product.description || product.specifications || '',  // 描述
           stock: product.stock || 0,  // 库存
-          // 其他可选字段
-          keywords: null,
-          verified: false,
-          metadata: {},
         };
 
         console.log('[Import API] 构造的数据库记录:', JSON.stringify(dbProduct, null, 2));
