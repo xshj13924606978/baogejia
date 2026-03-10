@@ -31,14 +31,13 @@ export async function POST(request: NextRequest) {
     }
 
     // 先检查对话是否存在，不存在则自动创建
-    let conversation;
-    let error: any;
-    
-    ({ data: conversation, error: checkError } = await supabase
+    const { data: conversationData, error: checkError } = await supabase
       .from('conversations')
       .select('id')
       .eq('id', conversationId)
-      .single());
+      .single();
+
+    let conversation = conversationData;
 
     if (checkError || !conversation) {
       // 对话不存在，自动创建
