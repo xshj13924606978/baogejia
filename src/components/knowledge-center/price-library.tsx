@@ -41,7 +41,7 @@ export default function PriceLibrary() {
   const [pendingFilterConfig, setPendingFilterConfig] = useState<{ brands?: Set<string>, keyword?: string } | null>(null);
   const [fieldConfigs, setFieldConfigs] = useState<Record<string, { label: string; required: boolean }>>({});
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
-    'select', 'product_name', 'model', 'brand', 'specifications',
+    'select', 'product_name', 'model', 'brand', 'parameter_description',
     'unit', 'price', 'supplier', 'operations'
   ]));
   const [exportFilterBrands, setExportFilterBrands] = useState<Set<string>>(new Set());
@@ -50,7 +50,7 @@ export default function PriceLibrary() {
     product_name: '',
     model: '',
     brand: '',
-    specifications: '',
+    parameter_description: '',
     unit: '',
     cost_price: '',
     min_price: '',
@@ -67,7 +67,7 @@ export default function PriceLibrary() {
     { key: 'product_name', label: '产品名称', defaultVisible: true },
     { key: 'model', label: '规格型号', defaultVisible: true },
     { key: 'brand', label: '品牌', defaultVisible: true },
-    { key: 'specifications', label: '参数描述', defaultVisible: true },
+    { key: 'parameter_description', label: '参数描述', defaultVisible: true },
     { key: 'unit', label: '单位', defaultVisible: true },
     { key: 'price', label: '指导价', defaultVisible: true },
     { key: 'cost_price', label: '成本', defaultVisible: false },
@@ -137,14 +137,14 @@ export default function PriceLibrary() {
 
   // 模拟产品数据
   const mockProducts = [
-    { product_name: '工业提升泵', model: 'CR5-12', brand: '格兰富', specifications: '流量12m³/h，扬程30m', unit: '台', price: 3200, supplier: '格兰富中国' },
-    { product_name: '搅拌罐', model: '2.5m³', brand: '通用', specifications: '不锈钢材质，配搅拌器', unit: '台', price: 14500, supplier: '通用机械' },
-    { product_name: '板框压滤机', model: 'XMYZ100/800-U', brand: '景津', specifications: '过滤面积100m²', unit: '台', price: 88000, supplier: '景津环保' },
-    { product_name: '一体化污水泵站', model: 'WZ-100', brand: '威尔克', specifications: '处理量100m³/h', unit: '套', price: 156000, supplier: '威尔克环境' },
-    { product_name: '曝气机', model: 'QXB-3', brand: '诸城清泉', specifications: '功率3kW', unit: '台', price: 4500, supplier: '诸城清泉' },
-    { product_name: '加药装置', model: 'JY-200', brand: '绿洁', specifications: '药箱容量200L', unit: '套', price: 8800, supplier: '绿洁环保' },
-    { product_name: '气浮机', model: 'QF-20', brand: '绿洁', specifications: '处理量20m³/h', unit: '台', price: 28000, supplier: '绿洁环保' },
-    { product_name: '刮泥机', brand: '通用', model: 'XNG-10', specifications: '池径10m', unit: '台', price: 42000, supplier: '通用机械' },
+    { product_name: '工业提升泵', model: 'CR5-12', brand: '格兰富', parameter_description: '流量12m³/h，扬程30m', unit: '台', price: 3200, supplier: '格兰富中国' },
+    { product_name: '搅拌罐', model: '2.5m³', brand: '通用', parameter_description: '不锈钢材质，配搅拌器', unit: '台', price: 14500, supplier: '通用机械' },
+    { product_name: '板框压滤机', model: 'XMYZ100/800-U', brand: '景津', parameter_description: '过滤面积100m²', unit: '台', price: 88000, supplier: '景津环保' },
+    { product_name: '一体化污水泵站', model: 'WZ-100', brand: '威尔克', parameter_description: '处理量100m³/h', unit: '套', price: 156000, supplier: '威尔克环境' },
+    { product_name: '曝气机', model: 'QXB-3', brand: '诸城清泉', parameter_description: '功率3kW', unit: '台', price: 4500, supplier: '诸城清泉' },
+    { product_name: '加药装置', model: 'JY-200', brand: '绿洁', parameter_description: '药箱容量200L', unit: '套', price: 8800, supplier: '绿洁环保' },
+    { product_name: '气浮机', model: 'QF-20', brand: '绿洁', parameter_description: '处理量20m³/h', unit: '台', price: 28000, supplier: '绿洁环保' },
+    { product_name: '刮泥机', brand: '通用', model: 'XNG-10', parameter_description: '池径10m', unit: '台', price: 42000, supplier: '通用机械' },
   ];
 
   // 加载产品列表
@@ -565,7 +565,7 @@ export default function PriceLibrary() {
             '产品名称': newProduct.product_name,
             '型号': newProduct.model,
             '品牌': newProduct.brand,
-            '规格': newProduct.specifications,
+            '参数描述': newProduct.parameter_description,
             '单位': newProduct.unit,
             '价格': newProduct.price,
             '供应商': newProduct.supplier,
@@ -589,7 +589,7 @@ export default function PriceLibrary() {
           product_name: '',
           model: '',
           brand: '',
-          specifications: '',
+          parameter_description: '',
           unit: '',
           cost_price: '',
           min_price: '',
@@ -697,7 +697,7 @@ export default function PriceLibrary() {
         '产品名称': p.product_name || '',
         '规格型号': p.model || '',
         '品牌': p.brand || '',
-        '参数描述': p.specifications || '',
+        '参数描述': p.parameter_description || '',
         '供应商': p.supplier || '',
         '联系人': p.contact_person || '',
         '联系电话': p.contact_phone || '',
@@ -790,7 +790,7 @@ export default function PriceLibrary() {
         '产品名称': 'product_name',
         '规格型号': 'model',
         '品牌': 'brand',
-        '参数描述': 'specifications',
+        '参数描述': 'parameter_description',
         '供应商': 'supplier',
         '联系人': 'contact_person',
         '联系电话': 'contact_phone',
@@ -1150,12 +1150,12 @@ export default function PriceLibrary() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                参数描述 {fieldConfigs.specifications?.required && <span className="text-red-500">*</span>}
+                参数描述 {fieldConfigs.parameter_description?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
-                value={newProduct.specifications}
-                onChange={(e) => setNewProduct({ ...newProduct, specifications: e.target.value })}
+                value={newProduct.parameter_description}
+                onChange={(e) => setNewProduct({ ...newProduct, parameter_description: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                 placeholder="输入产品参数描述"
               />
@@ -1326,8 +1326,8 @@ export default function PriceLibrary() {
               </label>
               <input
                 type="text"
-                value={editingProduct.specifications || ''}
-                onChange={(e) => setEditingProduct({ ...editingProduct, specifications: e.target.value })}
+                value={editingProduct.parameter_description || ''}
+                onChange={(e) => setEditingProduct({ ...editingProduct, parameter_description: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                 placeholder="输入产品参数描述"
               />
@@ -1557,7 +1557,7 @@ export default function PriceLibrary() {
                             </td>
                           );
                         }
-                        if (col.key === 'specifications') {
+                        if (col.key === 'parameter_description') {
                           return (
                             <td key={col.key} className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-[200px] truncate">
                               {p[col.key as keyof typeof p] as string}
