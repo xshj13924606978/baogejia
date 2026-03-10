@@ -30,33 +30,34 @@ import {
 } from '@/components/ui/tooltip';
 // 暂时禁用 markdown-it 以避免模块解析问题
 // import MarkdownIt from 'markdown-it';
-// const MarkdownIt = require('markdown-it');
-// import mermaid from 'mermaid';
+// @ts-ignore - 使用 CommonJS require 避免 pnpm 符号链接问题
+const MarkdownIt = require('markdown-it');
+// @ts-ignore
+import mermaid from 'mermaid';
 
-// 初始化 mermaid（已禁用）
-// if (typeof window !== 'undefined') {
-//   mermaid.initialize({
-//     startOnLoad: false,
-//     theme: 'default',
-//     securityLevel: 'loose',
-//     flowchart: {
-//       useMaxWidth: true,
-//       htmlLabels: true,
-//       curve: 'basis'
-//     },
-//     themeVariables: {
-//       primaryColor: '#3b82f6',
-//       primaryTextColor: '#ffffff',
-//       primaryBorderColor: '#1e40af',
-//       lineColor: '#64748b',
-//       secondaryColor: '#e0f2fe',
-//       tertiaryColor: '#f8fafc'
-//     }
-//   });
-// }
+// 初始化 mermaid
+if (typeof window !== 'undefined') {
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'loose',
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      curve: 'basis'
+    },
+    themeVariables: {
+      primaryColor: '#3b82f6',
+      primaryTextColor: '#ffffff',
+      primaryBorderColor: '#1e40af',
+      lineColor: '#64748b',
+      secondaryColor: '#e0f2fe',
+      tertiaryColor: '#f8fafc'
+    }
+  });
+}
 
-// const md = new MarkdownIt({ html: true, breaks: true });
-const md: any = null; // 暂时禁用
+const md = new MarkdownIt({ html: true, breaks: true });
 
 interface Message {
   id: number;
@@ -910,10 +911,9 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
 };
 
 // ============================================================================
-// Mermaid 图表渲染组件（暂时禁用）
+// Mermaid 图表渲染组件
 // ============================================================================
 
-/*
 const MermaidDiagram = ({ code }: { code: string }) => {
   const svgContainerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -963,77 +963,112 @@ const MermaidDiagram = ({ code }: { code: string }) => {
   }
 
   return (
-    <div 
+    <div
       ref={svgContainerRef}
       className="bg-white border border-slate-200 rounded-lg p-4 overflow-x-auto my-4"
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );
 };
-*/
 
 // ============================================================================
-// 简单的Markdown渲染组件（简化版 - 暂不使用 markdown-it 和 mermaid）
+// 简单的Markdown渲染组件（使用 markdown-it + mermaid）
 // ============================================================================
 
 const SimpleMarkdown = ({ content, isStreaming }: { content: string; isStreaming?: boolean }) => {
   if (!content) return null;
 
-  // 简单的 Markdown 到 HTML 转换（仅支持基本格式）
-  const convertMarkdownToHtml = (text: string) => {
-    let html = text;
+  // 使用 markdown-it 渲染 Markdown 内容
+  let html = md.render(content);
 
-    // 代码块 ```code```
-    html = html.replace(/```(\w*)\n([\s\S]*?)\n```/g, '<pre><code class="bg-muted p-4 rounded-lg overflow-x-auto">$2</code></pre>');
+  // 自动添加章节编号（在添加样式之前）
+  html = addSectionNumbers(html);
 
-    // 行内代码 `code`
-    html = html.replace(/`([^`]+)`/g, '<code class="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">$1</code>');
+  // 后处理：增强章节分隔和视觉层次
+  // 1. 为一级标题添加底部边距和分隔线（左对齐）
+  html = html.replace(
+    /<h1([^>]*)>([\s\S]*?)<\/h1>/g,
+    '<h1 class="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-4xl mb-6 pb-4 border-b-2 border-border text-left"$1>$2</h1>'
+  );
 
-    // 标题 # ## ###
-    html = html.replace(/^#### (.+)$/gm, '<h4 class="scroll-m-20 border-l-2 border-primary/40 pl-12 py-2 my-4 text-lg font-semibold tracking-tight text-slate-600">$1</h4>');
-    html = html.replace(/^### (.+)$/gm, '<h3 class="scroll-m-20 border-l-2 border-primary/60 pl-8 py-2 my-4 text-xl font-semibold tracking-tight text-slate-700">$1</h3>');
-    html = html.replace(/^## (.+)$/gm, '<h2 class="scroll-m-20 border-l-4 border-primary pl-4 py-2 my-6 bg-muted/50 text-xl font-semibold tracking-tight">$1</h2>');
-    html = html.replace(/^# (.+)$/gm, '<h1 class="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-4xl mb-6 pb-4 border-b-2 border-border text-left">$1</h1>');
+  // 2. 为二级标题添加左边框和背景色（字号小于一级目录）
+  html = html.replace(
+    /<h2([^>]*)>([\s\S]*?)<\/h2>/g,
+    '<h2 class="scroll-m-20 border-l-4 border-primary pl-4 py-2 my-6 bg-muted/50 text-xl font-semibold tracking-tight"$1>$2</h2>'
+  );
 
-    // 粗体 **text**
-    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // 3. 为三级标题添加左边框（颜色递变）和左缩进
+  html = html.replace(
+    /<h3([^>]*)>([\s\S]*?)<\/h3>/g,
+    '<h3 class="scroll-m-20 border-l-2 border-primary/60 pl-8 py-2 my-4 text-xl font-semibold tracking-tight text-slate-700"$1>$2</h3>'
+  );
 
-    // 斜体 *text*
-    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  // 4. 为四级标题添加左边框（颜色递变）和左缩进
+  html = html.replace(
+    /<h4([^>]*)>([\s\S]*?)<\/h4>/g,
+    '<h4 class="scroll-m-20 border-l-2 border-primary/40 pl-12 py-2 my-4 text-lg font-semibold tracking-tight text-slate-600"$1>$2</h4>'
+  );
 
-    // 链接 [text](url)
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">$1</a>');
+  // 5. 为段落添加适当间距
+  html = html.replace(
+    /<p([^>]*)>/g,
+    '<p class="leading-7 my-4"$1>'
+  );
 
-    // 换行符
-    html = html.replace(/\n\n/g, '</p><p class="leading-7 my-4">');
-    html = html.replace(/\n/g, '<br />');
+  // 6. 为列表项添加适当间距
+  html = html.replace(
+    /<li([^>]*)>/g,
+    '<li class="my-2"$1>'
+  );
 
-    return html;
-  };
-
-  let html = convertMarkdownToHtml(content);
-
-  // 检查是否包含 mermaid 代码块（暂时禁用）
+  // 检查是否包含 mermaid 代码块
   const hasMermaid = /```mermaid\n([\s\S]*?)\n```/.test(content);
 
   if (hasMermaid) {
+    // 提取 mermaid 代码块
     const mermaidMatch = content.match(/```mermaid\n([\s\S]*?)\n```/);
     if (mermaidMatch) {
       const mermaidCode = mermaidMatch[1];
       const contentWithoutMermaid = content.replace(/```mermaid\n[\s\S]*?\n```/, '');
-      let htmlWithoutMermaid = convertMarkdownToHtml(contentWithoutMermaid);
+      let htmlWithoutMermaid = md.render(contentWithoutMermaid);
+
+      // 自动添加章节编号
+      htmlWithoutMermaid = addSectionNumbers(htmlWithoutMermaid);
+
+      // 应用同样的后处理
+      let processedHtml = htmlWithoutMermaid;
+      processedHtml = processedHtml.replace(
+        /<h1([^>]*)>([\s\S]*?)<\/h1>/g,
+        '<h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mb-6 pb-4 border-b-2 border-border text-left"$1>$2</h1>'
+      );
+      processedHtml = processedHtml.replace(
+        /<h2([^>]*)>([\s\S]*?)<\/h2>/g,
+        '<h2 class="scroll-m-20 border-l-4 border-primary pl-4 py-2 my-6 bg-muted/50 text-xl font-semibold tracking-tight"$1>$2</h2>'
+      );
+      processedHtml = processedHtml.replace(
+        /<h3([^>]*)>([\s\S]*?)<\/h3>/g,
+        '<h3 class="scroll-m-20 border-l-2 border-primary/60 pl-8 py-2 my-4 text-xl font-semibold tracking-tight text-slate-700"$1>$2</h3>'
+      );
+      processedHtml = processedHtml.replace(
+        /<h4([^>]*)>([\s\S]*?)<\/h4>/g,
+        '<h4 class="scroll-m-20 border-l-2 border-primary/40 pl-12 py-2 my-4 text-lg font-semibold tracking-tight text-slate-600"$1>$2</h4>'
+      );
+      processedHtml = processedHtml.replace(
+        /<p([^>]*)>/g,
+        '<p class="leading-7 my-4"$1>'
+      );
+      processedHtml = processedHtml.replace(
+        /<li([^>]*)>/g,
+        '<li class="my-2"$1>'
+      );
 
       return (
         <div className="space-y-6">
-          {/* 暂时显示 mermaid 代码块而不是渲染图表 */}
-          <div className="bg-muted p-4 rounded-lg border">
-            <p className="text-sm text-muted-foreground mb-2">流程图（暂时禁用渲染）：</p>
-            <pre className="text-sm"><code>{mermaidCode}</code></pre>
-          </div>
+          <MermaidDiagram code={mermaidCode} />
           <div className="relative">
             <div
               className="prose prose-slate max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-table:w-full"
-              dangerouslySetInnerHTML={{ __html: htmlWithoutMermaid }}
+              dangerouslySetInnerHTML={{ __html: processedHtml }}
             />
             {/* 打字机光标效果 - 仅在流式输出时显示 */}
             {isStreaming && (

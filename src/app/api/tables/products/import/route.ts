@@ -86,16 +86,20 @@ export async function POST(request: NextRequest) {
           // 使用默认映射
           product = {
             product_name: item['产品名称'] || item['product_name'] || item['name'] || '',
-            model: item['型号'] || item['model'] || '',
+            model: item['规格型号'] || item['型号'] || item['model'] || '',
             brand: item['品牌'] || item['brand'] || '',
-            specifications: item['规格'] || item['specifications'] || item['参数描述'] || item['description'] || '',
+            specifications: item['规格'] || item['specifications'] || '',
+            parameter_description: item['参数描述'] || item['parameter_description'] || '',
+            description: item['描述'] || item['description'] || '',
             supplier: item['供应商'] || item['supplier'] || '',
             contact_person: item['联系人'] || item['contact_person'] || '',
-            contact_phone: item['联系电话'] || item['contact_phone'] || item['电话'] || '',
+            contact_phone: item['联系电话'] || item['电话'] || item['contact_phone'] || '',
             unit: item['单位'] || item['unit'] || '',
             cost_price: parseFloat(item['成本'] || item['cost_price'] || '0') || 0,
             min_price: parseFloat(item['最低售价'] || item['min_price'] || '0') || 0,
             price: parseFloat(item['指导价'] || item['价格'] || item['price'] || '0') || 0,
+            stock: parseInt(item['库存'] || item['stock'] || '0') || 0,
+            category: item['分类'] || item['category'] || '',
           };
           console.log('[Import API] 默认映射结果:', product);
         }
@@ -127,10 +131,18 @@ export async function POST(request: NextRequest) {
           name: product.product_name || '',
           model: product.model || '',
           specifications: product.specifications || '',
+          parameter_description: product.parameter_description || product.specifications || '',  // 参数描述
           price: product.price || 0,
           unit: product.unit || '',
           brand: product.brand || '',
           category: item['分类'] || item['category'] || '',
+          supplier: product.supplier || '',  // 供应商
+          contact_person: product.contact_person || '',  // 联系人
+          contact_phone: product.contact_phone || '',  // 电话
+          cost_price: product.cost_price || 0,  // 成本
+          min_price: product.min_price || 0,  // 最低售价
+          description: product.description || product.specifications || '',  // 描述
+          stock: product.stock || 0,  // 库存
           // 其他可选字段
           keywords: null,
           verified: false,
