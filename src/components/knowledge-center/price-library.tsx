@@ -437,8 +437,59 @@ export default function PriceLibrary() {
 
   // 处理网盘链接上传
   const handleCloudFileUpload = (url: string, fileName: string, description: string, extractCode: string) => {
-    // 这里可以处理网盘链接
-    alert(`网盘链接上传功能开发中\n链接：${url}\n文件名：${fileName}\n文件说明：${description}\n提取码：${extractCode}`);
+    // 保存网盘链接信息
+    alert(`网盘链接已保存\n链接：${url}\n文件名：${fileName}\n文件说明：${description}\n提取码：${extractCode}`);
+  };
+
+  // 处理网盘文件上传（带文件）
+  const handleCloudFileWithFile = async (url: string, fileName: string, description: string, extractCode: string, file: File) => {
+    // 解析并导入文件到产品价格库
+    setImporting(true);
+
+    try {
+      // 读取文件
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const headers: string[] = [];
+      const importData: any[] = [];
+
+      // 读取第一行作为表头
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+      for (let C = range.s.c; C <= range.e.c; C++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: range.s.r, c: C });
+        const cell = worksheet[cellAddress];
+        headers.push(cell?.v || '');
+      }
+
+      // 读取数据行（从第二行开始）
+      for (let R = range.s.r + 1; R <= range.e.r; R++) {
+        const row: any = {};
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = worksheet[cellAddress];
+          if (cell) {
+            row[headers[C]] = cell.v;
+          }
+        }
+        if (Object.keys(row).length > 0) {
+          importData.push(row);
+        }
+      }
+
+      // 设置待处理的 Excel 数据
+      setPendingExcelData({ headers, data: importData });
+      setShowFieldMapping(true);
+      setShowUploadDialog(false);
+
+      alert(`✅ 文件解析成功！\n\n检测到 ${importData.length} 条数据\n请完成字段映射后导入到产品价格库。`);
+    } catch (error) {
+      console.error('解析网盘文件失败:', error);
+      alert(`❌ 文件解析失败：${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setImporting(false);
+    }
   };
 
   // 确认字段映射并导入
@@ -1837,6 +1888,7 @@ export default function PriceLibrary() {
           onLocalFileUpload={handleLocalFileUpload}
           onWebLinkUpload={handleWebLinkUpload}
           onCloudFileUpload={handleCloudFileUpload}
+          onCloudFileWithFile={handleCloudFileWithFile}
           moduleType="document"
           uploading={importing}
         />

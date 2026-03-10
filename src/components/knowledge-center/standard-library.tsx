@@ -148,6 +148,11 @@ export default function StandardLibrary() {
     setStandards([...standards, newStandard]);
   };
 
+  const handleCloudFileWithFile = (url: string, fileName: string, description: string, extractCode: string, file: File) => {
+    // 直接使用文件上传功能
+    handleLocalFileUpload(file);
+  };
+
   const handleRefresh = () => {
     // 刷新当前模块
     alert('刷新功能：重新加载标准库数据');
@@ -271,6 +276,7 @@ export default function StandardLibrary() {
           onLocalFileUpload={handleLocalFileUpload}
           onWebLinkUpload={handleWebLinkUpload}
           onCloudFileUpload={handleCloudFileUpload}
+          onCloudFileWithFile={handleCloudFileWithFile}
           moduleType="standard"
         />
       )}

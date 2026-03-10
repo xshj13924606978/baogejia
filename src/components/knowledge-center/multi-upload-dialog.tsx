@@ -8,6 +8,7 @@ interface MultiUploadDialogProps {
   onLocalFileUpload: (file: File) => void;
   onWebLinkUpload: (url: string, content: string) => void;
   onCloudFileUpload: (url: string, fileName: string, description: string, extractCode: string) => void;
+  onCloudFileWithFile?: (url: string, fileName: string, description: string, extractCode: string, file: File) => void;
   moduleType: 'document' | 'case' | 'standard' | 'drawing' | 'quota';
   uploading?: boolean;
 }
@@ -17,6 +18,7 @@ export default function MultiUploadDialog({
   onLocalFileUpload,
   onWebLinkUpload,
   onCloudFileUpload,
+  onCloudFileWithFile,
   moduleType,
   uploading = false
 }: MultiUploadDialogProps) {
@@ -26,6 +28,7 @@ export default function MultiUploadDialog({
   const [cloudFileName, setCloudFileName] = useState('');
   const [cloudFileDescription, setCloudFileDescription] = useState('');
   const [cloudExtractCode, setCloudExtractCode] = useState('');
+  const [cloudUploadedFile, setCloudUploadedFile] = useState<File | null>(null);
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState('');
 
@@ -80,12 +83,32 @@ export default function MultiUploadDialog({
     const fileName = cloudFileName.trim() || '网盘文件';
     const description = cloudFileDescription.trim();
     const extractCode = cloudExtractCode.trim();
-    onCloudFileUpload(cloudDriveUrl, fileName, description, extractCode);
+
+    // 如果用户上传了文件且有对应回调，使用文件上传回调
+    if (cloudUploadedFile && onCloudFileWithFile) {
+      onCloudFileWithFile(cloudDriveUrl, fileName, description, extractCode, cloudUploadedFile);
+    } else {
+      onCloudFileUpload(cloudDriveUrl, fileName, description, extractCode);
+    }
     setCloudDriveUrl('');
     setCloudFileName('');
     setCloudFileDescription('');
     setCloudExtractCode('');
+    setCloudUploadedFile(null);
     onClose();
+  };
+
+  const handleCloudFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCloudUploadedFile(file);
+      if (!cloudFileDescription.trim()) {
+        setCloudFileDescription(file.name);
+      }
+      if (!cloudFileName.trim()) {
+        setCloudFileName(file.name.replace(/\.[^/.]+$/, ''));
+      }
+    }
   };
 
   const handleLocalFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,8 +121,8 @@ export default function MultiUploadDialog({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-        <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
+      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
             📤 上传{moduleNames[moduleType]}
           </h3>
@@ -113,7 +136,7 @@ export default function MultiUploadDialog({
         </div>
 
         {/* 上传方式选择标签 */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex-shrink-0">
           <button
             onClick={() => {
               setActiveTab('local');
@@ -156,7 +179,7 @@ export default function MultiUploadDialog({
         </div>
 
         {/* 上传内容区域 */}
-        <div className="p-6">
+        <div className="p-6 flex-1 overflow-auto">
           {activeTab === 'local' && (
             <div className="space-y-4">
               <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -315,6 +338,34 @@ export default function MultiUploadDialog({
                 />
               </div>
 
+              <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">
+                  <strong>📁 上传从网盘下载的文件（推荐）</strong>
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">
+                  为了解析并导入文件内容到{moduleNames[moduleType]}，请先从网盘下载文件，然后在此处上传。
+                  系统将自动解析文件内容并进行导入。
+                </p>
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-amber-300 dark:border-amber-700 rounded-lg cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+                  <div className="flex flex-col items-center justify-center">
+                    <span className="text-4xl mb-2">📥</span>
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      <span className="font-semibold">点击上传</span>
+                    </p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      {cloudUploadedFile ? cloudUploadedFile.name : '支持 Excel、PDF 等格式'}
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    onChange={handleCloudFileChange}
+                    disabled={uploading}
+                    className="hidden"
+                    accept={moduleType === 'quota' ? '.xlsx,.xls,.csv,.txt' : '.xlsx,.xls,.pdf,.doc,.docx,.txt'}
+                  />
+                </label>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   自定义文件名称（可选）
@@ -347,7 +398,7 @@ export default function MultiUploadDialog({
                   onClick={handleCloudFileSubmit}
                   disabled={uploading || !cloudDriveUrl.trim() || !cloudExtractCode.trim() || !cloudFileDescription.trim()}
                 >
-                  保存链接
+                  {cloudUploadedFile ? '📊 解析并导入' : '🔗 保存链接'}
                 </Button>
               </div>
             </div>
