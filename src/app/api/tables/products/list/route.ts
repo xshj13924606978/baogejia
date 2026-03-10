@@ -64,8 +64,10 @@ export async function GET(request: NextRequest) {
         id: p.id,
         product_name: p.name,
         model: p.model || '',
+        specifications: p.specifications || '',
         brand: p.brand || '',
         parameter_description: p.parameter_description || '',
+        description: p.description || '',
         unit: p.unit || '台',
         cost_price: parseFloat(p.cost_price) || 0,
         min_price: parseFloat(p.min_price) || 0,
@@ -74,6 +76,8 @@ export async function GET(request: NextRequest) {
         contact_person: p.contact_person || '',
         contact_phone: p.contact_phone || '',
         category: p.category || '',
+        stock: p.stock || 0,
+        image_url: p.image_url || '',
       };
     });
 
