@@ -197,10 +197,10 @@ export class PriceMatcher {
       // 直接使用 Supabase 进行查询
       const supabase = getSupabaseClient();
 
-      // 调试：查看数据库中相关产品
+      // 调试：查看数据库中相关产品（使用CAST正确提取price值）
       const debugQuery = supabase
         .from('products')
-        .select('*')
+        .select('id, name, model, price::text as price, parameter_description, description')
         .ilike('name', `%${cleanedName}%`)
         .limit(20);
       
@@ -221,7 +221,7 @@ export class PriceMatcher {
         // 方式1：字符串精确匹配（model 作为字符串）
         const exactMatchQuery = supabase
           .from('products')
-          .select('*')
+          .select('id, name, model, price::text as price, parameter_description, description')
           .ilike('name', cleanedName)
           .eq('model', normalizedModel)
           .limit(10);
@@ -400,6 +400,7 @@ export class PriceMatcher {
 
   /**
    * 构建价格结果
+   * 修复：使用正确的price值提取逻辑
    */
   private static buildPriceResult(product: any, confidence: number): PriceMatchResult {
     // 尝试从description字段解析JSON数据，获取min_price
@@ -420,6 +421,15 @@ export class PriceMatcher {
     } catch (e) {
       // 解析失败，使用默认price
       console.log('[PriceMatcher] 解析description失败，使用默认price');
+    }
+    
+    // 确保price是数字类型
+    if (typeof finalPrice === 'string') {
+      finalPrice = parseFloat(finalPrice);
+      if (isNaN(finalPrice)) {
+        console.error('[PriceMatcher] 价格转换失败:', product.price);
+        finalPrice = 0;
+      }
     }
     
     console.log('[PriceMatcher] 匹配产品详情:', JSON.stringify({
