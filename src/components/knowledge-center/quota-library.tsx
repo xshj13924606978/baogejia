@@ -108,6 +108,11 @@ export default function QuotaLibrary() {
     alert('模板下载功能开发中');
   };
 
+  const handleRefresh = () => {
+    // 刷新当前模块
+    alert('刷新功能：重新加载定额库数据');
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -129,6 +134,13 @@ export default function QuotaLibrary() {
             className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
           >
             📥 下载模板
+          </button>
+          <button
+            onClick={handleRefresh}
+            className="px-3 py-1 bg-slate-500 text-white rounded hover:bg-slate-600"
+            title="刷新当前模块"
+          >
+            🔄 刷新
           </button>
         </div>
       </div>

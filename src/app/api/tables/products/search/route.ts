@@ -35,11 +35,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 关键词搜索（产品名称、型号、供应商）
+    // 关键词搜索（产品名称、规格型号、品牌、参数描述）
     const { data, error } = await db
       .from('products')
       .select('*')
-      .or(`name.ilike.%${keyword}%,model.ilike.%${keyword}%,supplier.ilike.%${keyword}%`);
+      .or(`name.ilike.%${keyword}%,model.ilike.%${keyword}%,supplier.ilike.%${keyword}%,specifications.ilike.%${keyword}%`);
 
     if (error) {
       console.error('搜索产品失败:', error);

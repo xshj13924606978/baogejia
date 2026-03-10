@@ -814,6 +814,15 @@ export default function PriceLibrary() {
           >
             <span>📋</span> 字段配置
           </button>
+          <button
+            onClick={loadProducts}
+            disabled={loading}
+            className="px-4 py-2 bg-slate-500 text-white rounded-lg hover:bg-slate-600 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            title="刷新当前模块"
+          >
+            <span>{loading ? '⏳' : '🔄'}</span>
+            {loading ? '刷新中...' : '刷新'}
+          </button>
         </div>
       </div>
 
@@ -1165,7 +1174,7 @@ export default function PriceLibrary() {
       <div className="flex gap-2 mb-6">
         <input
           type="text"
-          placeholder="搜索产品名称、型号、品牌..."
+          placeholder="搜索产品名称、规格型号、品牌、参数描述..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && searchProducts()}

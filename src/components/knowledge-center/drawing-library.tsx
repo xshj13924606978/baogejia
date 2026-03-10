@@ -75,6 +75,11 @@ export default function DrawingLibrary() {
     alert('上传功能开发中，支持CAD文件上传');
   };
 
+  const handleRefresh = () => {
+    // 刷新当前模块
+    alert('刷新功能：重新加载图纸库数据');
+  };
+
   return (
     <div>
       {/* 工具栏 */}
@@ -94,6 +99,13 @@ export default function DrawingLibrary() {
           </button>
           <button className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center gap-1">
             <span>📁</span> 新建文件夹
+          </button>
+          <button
+            onClick={handleRefresh}
+            className="px-3 py-1 bg-slate-500 text-white rounded hover:bg-slate-600 flex items-center gap-1"
+            title="刷新当前模块"
+          >
+            <span>🔄</span> 刷新
           </button>
         </div>
       </div>
