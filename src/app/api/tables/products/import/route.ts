@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
           brand: product.brand || item['品牌'] || item['brand'] || '',
           price: product.price || 0,
           unit: product.unit || item['单位'] || item['unit'] || '',
-          parameter_description: product.parameter_description || item['参数描述'] || item['parameter_description'] || '',
+          parameter_description: product.parameter_description || product.specifications || item['参数描述'] || item['parameter_description'] || '',
           supplier: product.supplier || item['供应商'] || item['supplier'] || '',
           contact_person: product.contact_person || item['联系人'] || item['contact_person'] || '',
           contact_phone: product.contact_phone || item['联系电话'] || item['电话'] || item['contact_phone'] || '',
