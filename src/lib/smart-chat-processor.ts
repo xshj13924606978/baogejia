@@ -16,6 +16,7 @@ import { callDeepSeekChat } from './deepseek-client';
 import { ProcessedInput } from './input-processor';
 import { PriceMatcher, ProductMatch, PriceMatchResult } from './price-matching';
 import { fileUploadProcessor } from './upload-processor';
+import { ProductExtractor, ExtractedProduct } from './product-extractor';
 
 interface ConversationContext {
   conversationId?: string;
@@ -52,66 +53,40 @@ export class SmartChatProcessor {
   }
 
   /**
-   * 检测价格查询意图
+   * 检测价格查询意图并提取产品信息
+   * 使用智能提取器，支持各种用户表达方式
    */
-  private detectPriceQuery(userInput: string): { isPriceQuery: boolean; productName?: string; model?: string } {
+  private async detectPriceQuery(userInput: string): Promise<{ 
+    isPriceQuery: boolean; 
+    productName?: string; 
+    model?: string;
+    extraction?: ExtractedProduct;
+  }> {
     // 价格查询关键词
-    const priceKeywords = ['多少钱', '价格', '单价', '售价', '报价', '成本', '费用'];
+    const priceKeywords = ['多少钱', '价格', '单价', '售价', '报价', '成本', '费用', '询问', '查询', '想知道'];
     const hasPriceKeyword = priceKeywords.some(keyword => userInput.includes(keyword));
 
     if (!hasPriceKeyword) {
       return { isPriceQuery: false };
     }
 
-    // 提取产品名称（简单提取，实际可以使用更复杂的NLP）
-    // 移除价格查询关键词
-    let productName = userInput;
-    priceKeywords.forEach(keyword => {
-      productName = productName.replace(keyword, '');
-    });
+    console.log('[SmartChatProcessor] 检测到价格查询，开始智能提取产品信息...');
 
-    // 移除常见的量词（一个、一台、一套等）
-    const unitKeywords = ['一个', '一台', '一套', '一件', '一只', '一支', '每台', '每套', '每件'];
-    unitKeywords.forEach(keyword => {
-      productName = productName.replace(keyword, '');
-    });
+    // 使用智能提取器提取产品信息
+    const extraction = await ProductExtractor.extract(userInput);
 
-    // 清理标点符号和多余空格
-    productName = productName.replace(/[？?！!，,。.;;、\s]+/g, ' ').trim();
-
-    if (productName.length === 0) {
+    if (!extraction || !ProductExtractor.validate(extraction)) {
+      console.warn('[SmartChatProcessor] 产品信息提取失败或无效');
       return { isPriceQuery: false };
     }
 
-    // 尝试提取型号（例如：10M、PW-100、KQ-150、100立方、50吨等）
-    // 改进正则表达式，支持数字后跟字母或常见中文单位
-    const modelMatch = productName.match(/\b(\d+\s*(立方|立方米|吨|升|毫升|克|千克|kg|L|ML|M|mm|cm|m|万|亿)|[A-Za-z]*[-_]?\d+[A-Za-z]*|\d+[A-Za-z]+\b)/);
-    let model = modelMatch ? modelMatch[1].trim() : undefined;
-
-    // 如果型号中包含中文单位，提取纯数字部分作为型号
-    // 例如："100立方" -> "100"
-    if (model && /[立方|立方米|吨|升|毫升|克|千克]/.test(model)) {
-      const numberMatch = model.match(/(\d+(\.\d+)?)/);
-      if (numberMatch) {
-        model = numberMatch[1]; // 只保留数字部分
-      }
-    }
-
-    // 如果找到型号，从产品名称中移除
-    if (model) {
-      productName = productName.replace(model, '').trim();
-    }
-
-    // 再次清理产品名称，移除可能残留的单位词
-    const unitWords = ['立方', '立方米', '吨', '升', '毫升', '克', '千克', '规格', '型号'];
-    unitWords.forEach(word => {
-      productName = productName.replace(new RegExp(word, 'g'), '').trim();
-    });
+    console.log('[SmartChatProcessor] 产品信息提取成功:', extraction);
 
     return {
       isPriceQuery: true,
-      productName: productName || userInput,
-      model
+      productName: extraction.productName,
+      model: extraction.model,
+      extraction
     };
   }
 
@@ -249,7 +224,7 @@ export class SmartChatProcessor {
     // 2.5. 检测价格查询并预处理
     let priceContextInfo = '';
     if (!processedInput || processedInput.type === 'text') {
-      const priceQuery = this.detectPriceQuery(userInput);
+      const priceQuery = await this.detectPriceQuery(userInput);
       if (priceQuery.isPriceQuery && priceQuery.productName) {
         console.log('[SmartChatProcessor] 检测到价格查询:', priceQuery);
         const priceResult = await this.handlePriceQuery(priceQuery.productName, priceQuery.model);
