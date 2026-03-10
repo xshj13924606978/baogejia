@@ -85,6 +85,40 @@ export class PriceMatcher {
   }
 
   /**
+   * 清理产品名称，移除规格描述，保留核心产品名称
+   */
+  private static cleanProductName(name: string): string {
+    if (!name) return name;
+
+    // 移除常见的规格描述
+    let cleaned = name;
+
+    // 1. 移除管径规格（DN数字、Φ数字、英寸规格）
+    cleaned = cleaned.replace(/\b(DN|Φ|inch|\")\s*\d+(\.\d+)?\b/gi, '');
+    
+    // 2. 移除尺寸规格（长×宽×高、长度单位）
+    cleaned = cleaned.replace(/\d+(\.\d+)?\s*[×x*]\s*\d+(\.\d+)?(\s*[×x*]\s*\d+(\.\d+)?)?/g, '');
+    cleaned = cleaned.replace(/\d+(\.\d+)?\s*(mm|cm|m|米|毫米|厘米)\b/gi, '');
+    
+    // 3. 移除材质描述（但保留材质作为产品名的一部分，如PVC管）
+    // 不移除 PVC-U、FRP 等材质标识
+    
+    // 4. 移除常见规格关键词
+    cleaned = cleaned.replace(/\b(重型|轻型|标准|加强|普通|防水|耐腐蚀|密封|C20)\b/gi, '');
+    
+    // 5. 移除括号内的内容（规格说明）
+    cleaned = cleaned.replace(/（[^）]*）/g, '');
+    cleaned = cleaned.replace(/\([^)]*\)/g, '');
+    
+    // 6. 清理多余空格和符号
+    cleaned = cleaned.trim()
+      .replace(/\s+/g, ' ')
+      .replace(/[，,、；;。]/g, '');
+
+    return cleaned;
+  }
+
+  /**
    * 从产品库匹配（最高优先级）
    */
   private static async matchFromDatabase(
@@ -92,10 +126,14 @@ export class PriceMatcher {
   ): Promise<PriceMatchResult | null> {
     try {
       console.log('[PriceMatcher] ====== 开始产品库匹配 ======');
-      console.log('[PriceMatcher] 产品名称:', product.name);
+      console.log('[PriceMatcher] 原始产品名称:', product.name);
       console.log('[PriceMatcher] 产品型号:', product.model);
 
-      // 直接使用 Supabase 进行精确查询（避免 ServerDatabaseUtils 清理产品名称）
+      // 清理产品名称，移除规格描述
+      const cleanedName = this.cleanProductName(product.name);
+      console.log('[PriceMatcher] 清理后产品名称:', cleanedName);
+
+      // 直接使用 Supabase 进行精确查询
       const supabase = getSupabaseClient();
       
       // 优先级1：名称和型号完全匹配
@@ -103,12 +141,13 @@ export class PriceMatcher {
         .from('products')
         .select('*');
 
+      // 使用清理后的产品名称进行查询
       if (product.model) {
         query = query
-          .ilike('name', `%${product.name}%`)
+          .ilike('name', `%${cleanedName}%`)
           .eq('model', product.model);
       } else {
-        query = query.ilike('name', `%${product.name}%`);
+        query = query.ilike('name', `%${cleanedName}%`);
       }
 
       console.log('[PriceMatcher] 执行精确查询...');
@@ -141,7 +180,7 @@ export class PriceMatcher {
       let fuzzyQuery = supabase
         .from('products')
         .select('*')
-        .ilike('name', `%${product.name}%`);
+        .ilike('name', `%${cleanedName}%`);
       
       if (product.model) {
         fuzzyQuery = fuzzyQuery.ilike('model', `%${product.model}%`);
@@ -196,8 +235,11 @@ export class PriceMatcher {
         .eq('status', 'approved')
         .in('type', ['quote', 'case']); // 只从报价和案例中搜索
 
-      // 添加文本搜索
-      const searchText = `${product.name} ${product.model || ''}`.trim();
+      // 使用清理后的产品名称进行搜索
+      const cleanedName = this.cleanProductName(product.name);
+      const searchText = `${cleanedName} ${product.model || ''}`.trim();
+      console.log('[PriceMatcher] 知识库搜索文本:', searchText);
+      
       if (searchText) {
         query = query.textSearch('title', searchText, {
           config: 'chinese'
@@ -389,14 +431,18 @@ export class PriceMatcher {
     let bestMatch = null;
     let bestScore = 0;
 
+    // 清理目标产品名称
+    const cleanedTargetName = this.cleanProductName(target.name);
+
     for (const product of products) {
       let score = 0;
 
-      // 名称匹配
+      // 名称匹配（使用清理后的名称）
       if (product.name) {
+        const cleanedProductName = this.cleanProductName(product.name);
         const nameSimilarity = this.calculateSimilarity(
-          target.name.toLowerCase(),
-          product.name.toLowerCase()
+          cleanedTargetName.toLowerCase(),
+          cleanedProductName.toLowerCase()
         );
         score += nameSimilarity * 60; // 名称权重60%
       }
@@ -425,6 +471,9 @@ export class PriceMatcher {
       }
     }
 
+    console.log('[PriceMatcher] 最佳匹配得分:', bestScore);
+    console.log('[PriceMatcher] 最佳匹配产品:', bestMatch?.name);
+    
     return bestMatch;
   }
 
