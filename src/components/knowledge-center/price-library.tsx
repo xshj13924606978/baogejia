@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import ImportFieldMapping from './import-field-mapping';
 import FieldConfigManager from './field-config-manager';
+import MultiUploadDialog from './multi-upload-dialog';
 
 export default function PriceLibrary() {
   const [products, setProducts] = useState<any[]>([]);
@@ -19,6 +20,10 @@ export default function PriceLibrary() {
   const [showColumnConfig, setShowColumnConfig] = useState(false);
   const [showExportFilter, setShowExportFilter] = useState(false);
   const [showExportFormatDialog, setShowExportFormatDialog] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showImportMenu, setShowImportMenu] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showConfigMenu, setShowConfigMenu] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
@@ -27,7 +32,7 @@ export default function PriceLibrary() {
   const [pendingFilterConfig, setPendingFilterConfig] = useState<{ brands?: Set<string>, keyword?: string } | null>(null);
   const [fieldConfigs, setFieldConfigs] = useState<Record<string, { label: string; required: boolean }>>({});
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
-    'product_name', 'model', 'brand', 'specifications', 
+    'select', 'product_name', 'model', 'brand', 'specifications', 
     'unit', 'price', 'supplier', 'operations'
   ]));
   const [exportFilterBrands, setExportFilterBrands] = useState<Set<string>>(new Set());
@@ -308,13 +313,10 @@ export default function PriceLibrary() {
 
   // 导入Excel
   const handleImportExcel = () => {
-    fileInputRef.current?.click();
+    setShowUploadDialog(true);
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleLocalFileUpload = (file: File) => {
     setImporting(true);
 
     try {
@@ -364,6 +366,26 @@ export default function PriceLibrary() {
       alert(`❌ 导入Excel失败：${error instanceof Error ? error.message : '未知错误'}`);
       setImporting(false);
     }
+  };
+
+  // 处理通过 file input 的文件选择（用于兼容旧功能）
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    handleLocalFileUpload(file);
+  };
+
+  // 处理网页链接上传
+  const handleWebLinkUpload = (url: string, content: string) => {
+    // 这里可以解析网页内容并提取产品信息
+    alert(`网页链接上传功能开发中\n链接：${url}\n内容：${content.substring(0, 100)}...`);
+  };
+
+  // 处理网盘链接上传
+  const handleCloudFileUpload = (url: string, fileName: string) => {
+    // 这里可以处理网盘链接
+    alert(`网盘链接上传功能开发中\n链接：${url}\n文件名：${fileName}`);
   };
 
   // 确认字段映射并导入
@@ -749,71 +771,135 @@ export default function PriceLibrary() {
             onChange={handleFileChange}
             className="hidden"
           />
-          <button
-            onClick={handleImportExcel}
-            disabled={importing}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span>{importing ? '⏳' : '📤'}</span>
-            {importing ? '导入中...' : '导入Excel'}
-          </button>
+          
+          {/* 导入按钮组 */}
+          <div className="relative">
+            <button
+              onClick={() => setShowImportMenu(!showImportMenu)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
+            >
+              <span>📤</span> 导入
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showImportMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 min-w-[160px]">
+                <button
+                  onClick={() => {
+                    setShowImportMenu(false);
+                    handleImportExcel();
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 first:rounded-t-lg"
+                >
+                  📤 导入Excel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowImportMenu(false);
+                    handleDownloadTemplate();
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 last:rounded-b-lg"
+                >
+                  📥 下载模板
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={() => setShowAddForm(true)}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm"
           >
             <span>➕</span> 手动添加
           </button>
-          <button
-            onClick={handleDownloadTemplate}
-            className="px-4 py-2 bg-slate-500 text-white rounded-lg hover:bg-slate-600 transition-colors flex items-center gap-2 text-sm"
-          >
-            <span>📥</span> 下载模板
-          </button>
-          <div className="h-8 w-px bg-slate-300 dark:bg-slate-600"></div>
-          <button
-            onClick={() => handleExportExcel(false)}
-            disabled={products.length === 0}
-            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            title="导出全部产品为 Excel 文件"
-          >
-            <span>📊</span> 导出Excel
-          </button>
-          <button
-            onClick={() => {
-              // 重置筛选条件，默认全选所有品牌
-              const allBrands = new Set(products.map(p => p.brand).filter(Boolean));
-              setExportFilterBrands(allBrands);
-              setExportFilterKeywords('');
-              setShowExportFilter(true);
-            }}
-            disabled={products.length === 0}
-            className="px-4 py-2 bg-orange-700 text-white rounded-lg hover:bg-orange-800 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            title="筛选后导出"
-          >
-            <span>🔍</span> 高级导出
-          </button>
-          <button
-            onClick={() => handleExportCSV(false)}
-            disabled={products.length === 0}
-            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            title="导出全部产品为 CSV 文件"
-          >
-            <span>📄</span> 导出CSV
-          </button>
-          <div className="h-8 w-px bg-slate-300 dark:bg-slate-600"></div>
-          <button
-            onClick={() => setShowColumnConfig(true)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm"
-            title="配置表格显示的列"
-          >
-            <span>⚙️</span> 列配置
-          </button>
-          <button
-            onClick={() => setShowFieldConfig(true)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm"
-          >
-            <span>📋</span> 字段配置
-          </button>
+
+          {/* 导出按钮组 */}
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={products.length === 0}
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span>📊</span> 导出
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showExportMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 min-w-[160px]">
+                <button
+                  onClick={() => {
+                    setShowExportMenu(false);
+                    handleExportExcel(false);
+                  }}
+                  disabled={products.length === 0}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 first:rounded-t-lg"
+                >
+                  📊 导出Excel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowExportMenu(false);
+                    const allBrands = new Set(products.map(p => p.brand).filter(Boolean));
+                    setExportFilterBrands(allBrands);
+                    setExportFilterKeywords('');
+                    setShowExportFilter(true);
+                  }}
+                  disabled={products.length === 0}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+                >
+                  🔍 高级导出
+                </button>
+                <button
+                  onClick={() => {
+                    setShowExportMenu(false);
+                    handleExportCSV(false);
+                  }}
+                  disabled={products.length === 0}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 last:rounded-b-lg"
+                >
+                  📄 导出CSV
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 配置按钮组 */}
+          <div className="relative">
+            <button
+              onClick={() => setShowConfigMenu(!showConfigMenu)}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm"
+            >
+              <span>⚙️</span> 配置
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showConfigMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 min-w-[160px]">
+                <button
+                  onClick={() => {
+                    setShowConfigMenu(false);
+                    setShowColumnConfig(true);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 first:rounded-t-lg"
+                >
+                  ⚙️ 列配置
+                </button>
+                <button
+                  onClick={() => {
+                    setShowConfigMenu(false);
+                    setShowFieldConfig(true);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 last:rounded-b-lg"
+                >
+                  📋 字段配置
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={loadProducts}
             disabled={loading}
@@ -1665,6 +1751,18 @@ export default function PriceLibrary() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 多渠道上传对话框 */}
+      {showUploadDialog && (
+        <MultiUploadDialog
+          onClose={() => setShowUploadDialog(false)}
+          onLocalFileUpload={handleLocalFileUpload}
+          onWebLinkUpload={handleWebLinkUpload}
+          onCloudFileUpload={handleCloudFileUpload}
+          moduleType="document"
+          uploading={importing}
+        />
       )}
     </div>
   );
