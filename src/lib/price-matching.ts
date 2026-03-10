@@ -216,6 +216,9 @@ export class PriceMatcher {
       // ========== 级别1：名称和型号都精确匹配 ==========
       console.log('[PriceMatcher] ========== 级别1：名称和型号精确匹配 ==========');
       if (normalizedModel && cleanedName) {
+        // 尝试多种匹配方式，以适应不同的数据类型
+        
+        // 方式1：字符串精确匹配（model 作为字符串）
         const exactMatchQuery = supabase
           .from('products')
           .select('*')
@@ -224,13 +227,54 @@ export class PriceMatcher {
           .limit(10);
         
         const { data: exactMatches } = await exactMatchQuery;
-        console.log('[PriceMatcher] 级别1查询结果数量:', exactMatches?.length || 0);
+        console.log('[PriceMatcher] 级别1-方式1（字符串精确）查询结果数量:', exactMatches?.length || 0);
         
         if (exactMatches && exactMatches.length > 0) {
           const bestMatch = this.findBestMatch(exactMatches, product);
           if (bestMatch) {
-            console.log('[PriceMatcher] ✅ 级别1匹配成功:', bestMatch.name, bestMatch.model);
+            console.log('[PriceMatcher] ✅ 级别1-方式1匹配成功:', bestMatch.name, bestMatch.model);
             return this.buildPriceResult(bestMatch, 95);
+          }
+        }
+
+        // 方式2：数字精确匹配（model 作为数字）
+        const modelNum = parseFloat(normalizedModel);
+        if (!isNaN(modelNum)) {
+          const exactMatchNumQuery = supabase
+            .from('products')
+            .select('*')
+            .ilike('name', cleanedName)
+            .eq('model', modelNum)
+            .limit(10);
+          
+          const { data: exactMatchesNum } = await exactMatchNumQuery;
+          console.log('[PriceMatcher] 级别1-方式2（数字精确）查询结果数量:', exactMatchesNum?.length || 0);
+          
+          if (exactMatchesNum && exactMatchesNum.length > 0) {
+            const bestMatch = this.findBestMatch(exactMatchesNum, product);
+            if (bestMatch) {
+              console.log('[PriceMatcher] ✅ 级别1-方式2匹配成功:', bestMatch.name, bestMatch.model);
+              return this.buildPriceResult(bestMatch, 95);
+            }
+          }
+        }
+
+        // 方式3：型号包含匹配（字符串）
+        const exactMatchFuzzyQuery = supabase
+          .from('products')
+          .select('*')
+          .ilike('name', cleanedName)
+          .ilike('model', `%${normalizedModel}%`)
+          .limit(10);
+        
+        const { data: exactMatchesFuzzy } = await exactMatchFuzzyQuery;
+        console.log('[PriceMatcher] 级别1-方式3（型号包含）查询结果数量:', exactMatchesFuzzy?.length || 0);
+        
+        if (exactMatchesFuzzy && exactMatchesFuzzy.length > 0) {
+          const bestMatch = this.findBestMatch(exactMatchesFuzzy, product);
+          if (bestMatch) {
+            console.log('[PriceMatcher] ✅ 级别1-方式3匹配成功:', bestMatch.name, bestMatch.model);
+            return this.buildPriceResult(bestMatch, 90);
           }
         }
       }
@@ -238,6 +282,7 @@ export class PriceMatcher {
       // ========== 级别2：名称包含 + 型号精确匹配 ==========
       console.log('[PriceMatcher] ========== 级别2：名称包含 + 型号精确匹配 ==========');
       if (normalizedModel && cleanedName) {
+        // 方式1：字符串精确匹配
         const nameMatchQuery = supabase
           .from('products')
           .select('*')
@@ -246,13 +291,35 @@ export class PriceMatcher {
           .limit(10);
         
         const { data: nameMatches } = await nameMatchQuery;
-        console.log('[PriceMatcher] 级别2查询结果数量:', nameMatches?.length || 0);
+        console.log('[PriceMatcher] 级别2-方式1查询结果数量:', nameMatches?.length || 0);
         
         if (nameMatches && nameMatches.length > 0) {
           const bestMatch = this.findBestMatch(nameMatches, product);
           if (bestMatch) {
-            console.log('[PriceMatcher] ✅ 级别2匹配成功:', bestMatch.name, bestMatch.model);
+            console.log('[PriceMatcher] ✅ 级别2-方式1匹配成功:', bestMatch.name, bestMatch.model);
             return this.buildPriceResult(bestMatch, 85);
+          }
+        }
+
+        // 方式2：数字精确匹配
+        const modelNum = parseFloat(normalizedModel);
+        if (!isNaN(modelNum)) {
+          const nameMatchNumQuery = supabase
+            .from('products')
+            .select('*')
+            .ilike('name', `%${cleanedName}%`)
+            .eq('model', modelNum)
+            .limit(10);
+          
+          const { data: nameMatchesNum } = await nameMatchNumQuery;
+          console.log('[PriceMatcher] 级别2-方式2查询结果数量:', nameMatchesNum?.length || 0);
+          
+          if (nameMatchesNum && nameMatchesNum.length > 0) {
+            const bestMatch = this.findBestMatch(nameMatchesNum, product);
+            if (bestMatch) {
+              console.log('[PriceMatcher] ✅ 级别2-方式2匹配成功:', bestMatch.name, bestMatch.model);
+              return this.buildPriceResult(bestMatch, 85);
+            }
           }
         }
       }
@@ -589,6 +656,9 @@ export class PriceMatcher {
 
     // 清理目标产品名称
     const cleanedTargetName = this.cleanProductName(target.name);
+    
+    // 标准化目标型号（统一转换为字符串）
+    const normalizedTargetModel = this.normalizeModel(target.model);
 
     for (const product of products) {
       let score = 0;
@@ -603,12 +673,36 @@ export class PriceMatcher {
         score += nameSimilarity * 60; // 名称权重60%
       }
 
-      // 型号匹配
-      if (target.model && product.model) {
-        if (product.model === target.model) {
+      // 型号匹配（增强：支持数字和字符串的比较）
+      if (normalizedTargetModel && product.model !== null && product.model !== undefined) {
+        // 标准化数据库中的型号
+        let normalizedProductModel = String(product.model).trim();
+        
+        // 如果数据库中的型号是数字字符串，转换为标准格式
+        const numMatch = normalizedProductModel.match(/^\d+(\.\d+)?$/);
+        if (numMatch) {
+          // 如果是纯数字字符串，标准化为数字（去除前导零）
+          const num = parseFloat(normalizedProductModel);
+          if (!isNaN(num)) {
+            normalizedProductModel = String(num);
+          }
+        }
+        
+        // 比较型号
+        if (normalizedProductModel === normalizedTargetModel) {
           score += 30; // 完全匹配型号加30分
-        } else if (product.model.includes(target.model) || target.model.includes(product.model)) {
+          console.log('[PriceMatcher] 型号完全匹配:', normalizedTargetModel, '=', normalizedProductModel);
+        } else if (normalizedProductModel.includes(normalizedTargetModel) || normalizedTargetModel.includes(normalizedProductModel)) {
           score += 15; // 部分匹配加15分
+          console.log('[PriceMatcher] 型号部分匹配:', normalizedTargetModel, '~', normalizedProductModel);
+        } else {
+          // 尝试将两者都转换为数字进行比较
+          const targetNum = parseFloat(normalizedTargetModel);
+          const productNum = parseFloat(normalizedProductModel);
+          if (!isNaN(targetNum) && !isNaN(productNum) && targetNum === productNum) {
+            score += 25; // 数字匹配加25分（略低于完全匹配）
+            console.log('[PriceMatcher] 型号数字匹配:', targetNum, '=', productNum);
+          }
         }
       }
 
