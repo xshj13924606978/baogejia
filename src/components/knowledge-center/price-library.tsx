@@ -75,7 +75,12 @@ export default function PriceLibrary() {
     if (savedColumns) {
       try {
         const parsed = JSON.parse(savedColumns);
-        setVisibleColumns(new Set(parsed));
+        // 确保所有 fixed 列都包含在配置中
+        const fixedColumns = availableColumns
+          .filter(col => col.fixed)
+          .map(col => col.key);
+        const columnsWithFixed = [...new Set([...fixedColumns, ...parsed])];
+        setVisibleColumns(new Set(columnsWithFixed));
       } catch (e) {
         console.error('加载列配置失败:', e);
       }
@@ -749,9 +754,15 @@ export default function PriceLibrary() {
   };
 
   const handleSaveColumnConfig = (columns: string[]) => {
+    // 确保所有 fixed 列都包含在配置中
+    const fixedColumns = availableColumns
+      .filter(col => col.fixed)
+      .map(col => col.key);
+    const columnsWithFixed = [...new Set([...fixedColumns, ...columns])];
+
     // 保存列配置到 localStorage
-    localStorage.setItem('price-library-columns', JSON.stringify(columns));
-    setVisibleColumns(new Set(columns));
+    localStorage.setItem('price-library-columns', JSON.stringify(columnsWithFixed));
+    setVisibleColumns(new Set(columnsWithFixed));
     setShowColumnConfig(false);
     alert('✅ 列配置已保存！');
   };
@@ -773,7 +784,10 @@ export default function PriceLibrary() {
           />
           
           {/* 导入按钮组 */}
-          <div className="relative">
+          <div 
+            className="relative"
+            onMouseLeave={() => setShowImportMenu(false)}
+          >
             <button
               onClick={() => setShowImportMenu(!showImportMenu)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
@@ -815,7 +829,10 @@ export default function PriceLibrary() {
           </button>
 
           {/* 导出按钮组 */}
-          <div className="relative">
+          <div
+            className="relative"
+            onMouseLeave={() => setShowExportMenu(false)}
+          >
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
               disabled={products.length === 0}
@@ -866,7 +883,10 @@ export default function PriceLibrary() {
           </div>
 
           {/* 配置按钮组 */}
-          <div className="relative">
+          <div
+            className="relative"
+            onMouseLeave={() => setShowConfigMenu(false)}
+          >
             <button
               onClick={() => setShowConfigMenu(!showConfigMenu)}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm"
