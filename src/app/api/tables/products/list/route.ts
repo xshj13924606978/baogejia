@@ -60,33 +60,20 @@ export async function GET(request: NextRequest) {
 
     // 转换为前端需要的格式
     const formattedProducts = (data || []).map((p: any) => {
-      // 尝试从description字段解析JSON数据
-      let extraFields = {};
-      try {
-        if (p.description && typeof p.description === 'string' && p.description.startsWith('{')) {
-          extraFields = JSON.parse(p.description);
-        }
-      } catch (e) {
-        // 如果解析失败，使用空对象
-        extraFields = {};
-      }
-
       return {
         id: p.id,
         product_name: p.name,
-        model: (p as any).model || '',
-        brand: (p as any).brand || extraFields.brand || (p as any).supplier || '',
-        specifications: (p as any).specifications || extraFields.specifications || '',
-        parameter_description: (p as any).parameter_description || '',
-        unit: (p as any).unit || extraFields.unit || '台', // 默认单位
-        cost_price: (p as any).cost_price || extraFields.cost_price || 0,
-        min_price: (p as any).min_price || extraFields.min_price || 0,
-        price: parseFloat((p as any).price) || 0,
-        supplier: (p as any).supplier || '',
-        contact_person: (p as any).contact_person || extraFields.contact_person || '',
-        contact_phone: (p as any).contact_phone || extraFields.contact_phone || '',
-        category: (p as any).category || '',
-        stock: (p as any).stock || 0,
+        model: p.model || '',
+        brand: p.brand || '',
+        parameter_description: p.parameter_description || '',
+        unit: p.unit || '台',
+        cost_price: parseFloat(p.cost_price) || 0,
+        min_price: parseFloat(p.min_price) || 0,
+        price: parseFloat(p.price) || 0,
+        supplier: p.supplier || '',
+        contact_person: p.contact_person || '',
+        contact_phone: p.contact_phone || '',
+        category: p.category || '',
       };
     });
 
