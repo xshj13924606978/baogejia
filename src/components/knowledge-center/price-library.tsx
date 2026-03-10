@@ -24,6 +24,15 @@ export default function PriceLibrary() {
   const [showImportMenu, setShowImportMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showConfigMenu, setShowConfigMenu] = useState(false);
+
+  // 下拉菜单 refs 和 timers
+  const importMenuRef = useRef<HTMLDivElement>(null);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+  const configMenuRef = useRef<HTMLDivElement>(null);
+  const importMenuTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const exportMenuTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const configMenuTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
@@ -32,7 +41,7 @@ export default function PriceLibrary() {
   const [pendingFilterConfig, setPendingFilterConfig] = useState<{ brands?: Set<string>, keyword?: string } | null>(null);
   const [fieldConfigs, setFieldConfigs] = useState<Record<string, { label: string; required: boolean }>>({});
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
-    'select', 'product_name', 'model', 'brand', 'specifications', 
+    'select', 'product_name', 'model', 'brand', 'specifications',
     'unit', 'price', 'supplier', 'operations'
   ]));
   const [exportFilterBrands, setExportFilterBrands] = useState<Set<string>>(new Set());
@@ -85,6 +94,45 @@ export default function PriceLibrary() {
         console.error('加载列配置失败:', e);
       }
     }
+  }, []);
+
+  // 下拉菜单延迟关闭处理
+  const handleMenuMouseLeave = (menuType: 'import' | 'export' | 'config') => {
+    if (menuType === 'import') {
+      importMenuTimerRef.current = setTimeout(() => {
+        setShowImportMenu(false);
+      }, 300);
+    } else if (menuType === 'export') {
+      exportMenuTimerRef.current = setTimeout(() => {
+        setShowExportMenu(false);
+      }, 300);
+    } else if (menuType === 'config') {
+      configMenuTimerRef.current = setTimeout(() => {
+        setShowConfigMenu(false);
+      }, 300);
+    }
+  };
+
+  const handleMenuMouseEnter = (menuType: 'import' | 'export' | 'config') => {
+    if (menuType === 'import' && importMenuTimerRef.current) {
+      clearTimeout(importMenuTimerRef.current);
+      importMenuTimerRef.current = null;
+    } else if (menuType === 'export' && exportMenuTimerRef.current) {
+      clearTimeout(exportMenuTimerRef.current);
+      exportMenuTimerRef.current = null;
+    } else if (menuType === 'config' && configMenuTimerRef.current) {
+      clearTimeout(configMenuTimerRef.current);
+      configMenuTimerRef.current = null;
+    }
+  };
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (importMenuTimerRef.current) clearTimeout(importMenuTimerRef.current);
+      if (exportMenuTimerRef.current) clearTimeout(exportMenuTimerRef.current);
+      if (configMenuTimerRef.current) clearTimeout(configMenuTimerRef.current);
+    };
   }, []);
 
   // 模拟产品数据
@@ -388,9 +436,9 @@ export default function PriceLibrary() {
   };
 
   // 处理网盘链接上传
-  const handleCloudFileUpload = (url: string, fileName: string) => {
+  const handleCloudFileUpload = (url: string, fileName: string, description: string, extractCode: string) => {
     // 这里可以处理网盘链接
-    alert(`网盘链接上传功能开发中\n链接：${url}\n文件名：${fileName}`);
+    alert(`网盘链接上传功能开发中\n链接：${url}\n文件名：${fileName}\n文件说明：${description}\n提取码：${extractCode}`);
   };
 
   // 确认字段映射并导入
@@ -784,9 +832,9 @@ export default function PriceLibrary() {
           />
           
           {/* 导入按钮组 */}
-          <div 
+          <div
             className="relative"
-            onMouseLeave={() => setShowImportMenu(false)}
+            onMouseLeave={() => handleMenuMouseLeave('import')}
           >
             <button
               onClick={() => setShowImportMenu(!showImportMenu)}
@@ -798,7 +846,10 @@ export default function PriceLibrary() {
               </svg>
             </button>
             {showImportMenu && (
-              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 min-w-[160px]">
+              <div
+                className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 min-w-[160px]"
+                onMouseEnter={() => handleMenuMouseEnter('import')}
+              >
                 <button
                   onClick={() => {
                     setShowImportMenu(false);
@@ -831,7 +882,7 @@ export default function PriceLibrary() {
           {/* 导出按钮组 */}
           <div
             className="relative"
-            onMouseLeave={() => setShowExportMenu(false)}
+            onMouseLeave={() => handleMenuMouseLeave('export')}
           >
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
@@ -844,7 +895,10 @@ export default function PriceLibrary() {
               </svg>
             </button>
             {showExportMenu && (
-              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 min-w-[160px]">
+              <div
+                className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 min-w-[160px]"
+                onMouseEnter={() => handleMenuMouseEnter('export')}
+              >
                 <button
                   onClick={() => {
                     setShowExportMenu(false);
@@ -885,7 +939,7 @@ export default function PriceLibrary() {
           {/* 配置按钮组 */}
           <div
             className="relative"
-            onMouseLeave={() => setShowConfigMenu(false)}
+            onMouseLeave={() => handleMenuMouseLeave('config')}
           >
             <button
               onClick={() => setShowConfigMenu(!showConfigMenu)}
@@ -897,7 +951,10 @@ export default function PriceLibrary() {
               </svg>
             </button>
             {showConfigMenu && (
-              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 min-w-[160px]">
+              <div
+                className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 min-w-[160px]"
+                onMouseEnter={() => handleMenuMouseEnter('config')}
+              >
                 <button
                   onClick={() => {
                     setShowConfigMenu(false);

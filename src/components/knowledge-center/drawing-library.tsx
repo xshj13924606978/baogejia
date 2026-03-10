@@ -110,7 +110,7 @@ export default function DrawingLibrary() {
     setDrawings([...drawings, newDrawing]);
   };
 
-  const handleCloudFileUpload = (url: string, fileName: string) => {
+  const handleCloudFileUpload = (url: string, fileName: string, description: string, extractCode: string) => {
     const newDrawing: Drawing = {
       id: String(drawings.length + 1),
       name: fileName,
@@ -119,7 +119,7 @@ export default function DrawingLibrary() {
       version: 'V1.0',
       size: '-',
       uploadDate: new Date().toISOString().split('T')[0],
-      description: '网盘分享文件',
+      description: `${description}${extractCode ? ` (提取码: ${extractCode})` : ''}`,
       source: 'clouddrive',
       sourceUrl: url
     };

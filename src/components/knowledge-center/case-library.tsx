@@ -106,7 +106,7 @@ export default function CaseLibrary() {
     setCases([...cases, newCase]);
   };
 
-  const handleCloudFileUpload = (url: string, fileName: string) => {
+  const handleCloudFileUpload = (url: string, fileName: string, description: string, extractCode: string) => {
     const newCase: Case = {
       id: String(cases.length + 1),
       name: fileName,
@@ -115,7 +115,7 @@ export default function CaseLibrary() {
       scale: '-',
       budget: '-',
       completionDate: new Date().toISOString().split('T')[0],
-      description: '网盘分享文件',
+      description: `${description}${extractCode ? ` (提取码: ${extractCode})` : ''}`,
       tags: ['网盘链接'],
       source: 'clouddrive',
       sourceUrl: url

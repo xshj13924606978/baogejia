@@ -122,7 +122,7 @@ export default function DocumentLibrary() {
     }, 1000);
   };
 
-  const handleCloudFileUpload = (url: string, fileName: string) => {
+  const handleCloudFileUpload = (url: string, fileName: string, description: string, extractCode: string) => {
     setUploading(true);
     setTimeout(() => {
       const newDoc: Document = {
@@ -133,7 +133,7 @@ export default function DocumentLibrary() {
         tags: ['网盘链接'],
         size: '-',
         uploadTime: new Date().toISOString().split('T')[0],
-        description: '网盘分享文件',
+        description: `${description}${extractCode ? ` (提取码: ${extractCode})` : ''}`,
         source: 'clouddrive',
         sourceUrl: url
       };

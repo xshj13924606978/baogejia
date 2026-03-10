@@ -132,7 +132,7 @@ export default function StandardLibrary() {
     setStandards([...standards, newStandard]);
   };
 
-  const handleCloudFileUpload = (url: string, fileName: string) => {
+  const handleCloudFileUpload = (url: string, fileName: string, description: string, extractCode: string) => {
     const newStandard: Standard = {
       id: String(standards.length + 1),
       code: '网盘-' + String(standards.length + 1),
@@ -141,7 +141,7 @@ export default function StandardLibrary() {
       industry: '自定义',
       publishDate: new Date().toISOString().split('T')[0],
       status: '现行',
-      description: '网盘分享文件',
+      description: `${description}${extractCode ? ` (提取码: ${extractCode})` : ''}`,
       source: 'clouddrive',
       sourceUrl: url
     };

@@ -7,7 +7,7 @@ interface MultiUploadDialogProps {
   onClose: () => void;
   onLocalFileUpload: (file: File) => void;
   onWebLinkUpload: (url: string, content: string) => void;
-  onCloudFileUpload: (url: string, fileName: string) => void;
+  onCloudFileUpload: (url: string, fileName: string, description: string, extractCode: string) => void;
   moduleType: 'document' | 'case' | 'standard' | 'drawing' | 'quota';
   uploading?: boolean;
 }
@@ -24,6 +24,8 @@ export default function MultiUploadDialog({
   const [webLinkUrl, setWebLinkUrl] = useState('');
   const [cloudDriveUrl, setCloudDriveUrl] = useState('');
   const [cloudFileName, setCloudFileName] = useState('');
+  const [cloudFileDescription, setCloudFileDescription] = useState('');
+  const [cloudExtractCode, setCloudExtractCode] = useState('');
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState('');
 
@@ -76,9 +78,13 @@ export default function MultiUploadDialog({
     }
 
     const fileName = cloudFileName.trim() || '网盘文件';
-    onCloudFileUpload(cloudDriveUrl, fileName);
+    const description = cloudFileDescription.trim();
+    const extractCode = cloudExtractCode.trim();
+    onCloudFileUpload(cloudDriveUrl, fileName, description, extractCode);
     setCloudDriveUrl('');
     setCloudFileName('');
+    setCloudFileDescription('');
+    setCloudExtractCode('');
     onClose();
   };
 
@@ -254,16 +260,26 @@ export default function MultiUploadDialog({
                   <li>• 支持百度网盘、阿里云盘、腾讯云盘等网盘分享链接</li>
                   <li>• 系统会保存链接地址，后续可一键访问</li>
                   <li>• 可自定义文件名称以便管理</li>
+                  <li>• 请填写完整的文件信息，包括提取码</li>
                 </ul>
+                <div className="mt-3 p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
+                  <p className="text-xs text-purple-800 dark:text-purple-200 font-medium mb-2">示例格式：</p>
+                  <p className="text-xs text-purple-700 dark:text-purple-300 font-mono whitespace-pre-wrap">
+                    文件说明: 广州金石环保设备有限公司-化粪池产品数据库.xlsx
+链接: https://pan.baidu.com/s/1nCFucqkGjuGrebVg2QTDIw?pwd=tfzm
+提取码: tfzm
+文件名: 化粪池产品价格
+                  </p>
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  网盘分享链接
+                  网盘分享链接 <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="url"
-                  placeholder="https://pan.baidu.com/s/xxxxxx"
+                  placeholder="https://pan.baidu.com/s/xxxxxx?pwd=xxxx"
                   value={cloudDriveUrl}
                   onChange={(e) => setCloudDriveUrl(e.target.value)}
                   disabled={uploading}
@@ -273,7 +289,35 @@ export default function MultiUploadDialog({
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  文件名称（可选）
+                  提取码 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="如: tfzm"
+                  value={cloudExtractCode}
+                  onChange={(e) => setCloudExtractCode(e.target.value)}
+                  disabled={uploading}
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  文件说明（原始文件名）<span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="如: 广州金石环保设备有限公司-化粪池产品数据库.xlsx"
+                  value={cloudFileDescription}
+                  onChange={(e) => setCloudFileDescription(e.target.value)}
+                  disabled={uploading}
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  自定义文件名称（可选）
                 </label>
                 <input
                   type="text"
@@ -301,7 +345,7 @@ export default function MultiUploadDialog({
                 </Button>
                 <Button
                   onClick={handleCloudFileSubmit}
-                  disabled={uploading || !cloudDriveUrl.trim()}
+                  disabled={uploading || !cloudDriveUrl.trim() || !cloudExtractCode.trim() || !cloudFileDescription.trim()}
                 >
                   保存链接
                 </Button>
