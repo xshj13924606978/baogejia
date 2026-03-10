@@ -15,6 +15,7 @@
 import { callDeepSeekChat } from './deepseek-client';
 import { ProcessedInput } from './input-processor';
 import { PriceMatcher, ProductMatch, PriceMatchResult } from './price-matching';
+import { fileUploadProcessor } from './upload-processor';
 
 interface ConversationContext {
   conversationId?: string;
@@ -34,6 +35,12 @@ interface SmartResponse {
     inputType: string;
     confidence: number;
     extractedEntities?: any;
+    uploadInfo?: {
+      uploadId?: string;
+      fileKey?: string;
+      embeddingId?: string;
+      productsUpdated?: number;
+    };
   };
 }
 
@@ -161,18 +168,66 @@ export class SmartChatProcessor {
   async process(
     userInput: string,
     processedInput?: ProcessedInput,
-    conversationId?: string
+    conversationId?: string,
+    userId?: string
   ): Promise<SmartResponse> {
     console.log('[SmartChatProcessor] ========== 开始智能处理 ==========');
     console.log('[SmartChatProcessor] 用户输入:', userInput);
     console.log('[SmartChatProcessor] 输入类型:', processedInput?.type);
+    console.log('[SmartChatProcessor] 用户ID:', userId);
 
     // 1. 获取或创建对话上下文
     const context = this.getOrCreateContext(conversationId);
 
-    // 2. 如果有文件上传，先处理文件内容
+    // 2. 如果有文件上传，先处理文件内容并持久化
     let enhancedInput = userInput;
+    let uploadInfo: {
+      uploadId?: string;
+      fileKey?: string;
+      embeddingId?: string;
+      productsUpdated?: number;
+    } = {};
+
     if (processedInput && processedInput.type !== 'text') {
+      // 持久化文件上传到对象存储、知识库和产品库
+      if (userId && processedInput.metadata.fileName) {
+        console.log('[SmartChatProcessor] 开始处理文件上传持久化...');
+        try {
+          // 创建 File 对象
+          const file = new File(
+            [processedInput.rawContent],
+            processedInput.metadata.fileName,
+            { type: processedInput.metadata.mimeType || 'application/octet-stream' }
+          );
+
+          // 处理文件上传
+          const uploadResult = await fileUploadProcessor.processUpload(
+            file,
+            processedInput.textContent,
+            {
+              userId,
+              conversationId,
+              enableKnowledgeBase: true, // 启用知识库向量化
+              enablePriceExtraction: true, // 启用产品价格提取
+            }
+          );
+
+          if (uploadResult.success) {
+            uploadInfo = {
+              uploadId: uploadResult.uploadId,
+              fileKey: uploadResult.fileKey,
+              embeddingId: uploadResult.embeddingId,
+              productsUpdated: uploadResult.productsUpdated,
+            };
+            console.log('[SmartChatProcessor] 文件上传持久化成功:', uploadInfo);
+          } else {
+            console.error('[SmartChatProcessor] 文件上传持久化失败:', uploadResult.error);
+          }
+        } catch (error) {
+          console.error('[SmartChatProcessor] 文件上传处理异常:', error);
+        }
+      }
+
       enhancedInput = this.enrichInputWithFileInfo(userInput, processedInput);
     }
 
@@ -199,7 +254,15 @@ export class SmartChatProcessor {
 
     // 5. 返回响应
     console.log('[SmartChatProcessor] ========== 智能处理完成 ==========');
-    return response;
+    return {
+      ...response,
+      metadata: {
+        inputType: response.metadata?.inputType || processedInput?.type || 'text',
+        confidence: response.metadata?.confidence || 0.9,
+        extractedEntities: response.metadata?.extractedEntities || {},
+        uploadInfo: Object.keys(uploadInfo).length > 0 ? uploadInfo : undefined,
+      },
+    };
   }
 
   /**

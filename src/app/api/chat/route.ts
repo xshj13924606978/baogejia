@@ -3919,6 +3919,7 @@ export async function POST(request: NextRequest) {
     let intent: string | null = null;
     let conversationId: string | null = null;
     let uploadedFile: File | null = null;
+    let userId: string | null = null;
     
     const contentType = request.headers.get('content-type') || '';
     
@@ -3929,6 +3930,7 @@ export async function POST(request: NextRequest) {
       uploadedFile = formData.get('file') as File | null;
       conversationId = formData.get('conversationId') as string;
       intent = formData.get('intent') as string;
+      userId = formData.get('userId') as string | null;
     } else {
       // JSON 格式
       const body = await request.json();
@@ -3936,6 +3938,7 @@ export async function POST(request: NextRequest) {
       files = body.files;
       conversationId = body.conversationId;
       intent = body.intent;
+      userId = body.userId;
     }
     
     console.log('[Chat API] 请求参数:', { 
@@ -4125,7 +4128,8 @@ export async function POST(request: NextRequest) {
       const smartResponse = await smartProcessor.process(
         message || '',
         processedInput,
-        conversationId || undefined
+        conversationId || undefined,
+        userId || undefined
       );
       
       console.log('[Chat API] 智能响应生成完成:', { 
