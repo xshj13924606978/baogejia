@@ -122,38 +122,32 @@ export async function POST(request: NextRequest) {
 
         console.log('[Import API] ✅ 字段验证通过');
 
-        // 构造数据库记录
-        const dbProduct = {
+        // 构造数据库记录（根据实际数据库表结构）
+        const dbProduct: any = {
           name: product.product_name || '',
           model: product.model || '',
           specifications: product.specifications || '',
           price: product.price || 0,
-          stock: parseInt(item['库存'] || item['stock'] || '0') || 0,
-          supplier: product.supplier || '',
+          unit: product.unit || '',
+          brand: product.brand || '',
           category: item['分类'] || item['category'] || '',
-          // 将specifications和额外字段都存储到description字段（JSON格式）
-          description: JSON.stringify({
-            specifications: product.specifications || '',
-            brand: product.brand || '',
-            contact_person: product.contact_person || '',
-            contact_phone: product.contact_phone || '',
-            unit: product.unit || '',
-            cost_price: product.cost_price || 0,
-            min_price: product.min_price || 0,
-          }),
+          // 其他可选字段
+          keywords: null,
+          verified: false,
+          metadata: {},
         };
 
         console.log('[Import API] 构造的数据库记录:', JSON.stringify(dbProduct, null, 2));
 
-        // 查重检查：根据名称、型号、供应商判断是否存在
-        console.log(`[Import API] 查重检查: name="${dbProduct.name}", model="${dbProduct.model}", supplier="${dbProduct.supplier}"`);
+        // 查重检查：根据名称和型号判断是否存在
+        console.log(`[Import API] 查重检查: name="${dbProduct.name}", model="${dbProduct.model}"`);
         
+        // 只根据 name 和 model 查重，因为数据库可能没有 supplier 字段
         const { data: existingProduct, error: checkError } = await db
           .from('products')
-          .select('id, name, model, supplier, price')
+          .select('id, name, model, price')
           .eq('name', dbProduct.name)
           .eq('model', dbProduct.model || '')
-          .eq('supplier', dbProduct.supplier || '')
           .maybeSingle();
 
         if (checkError) {
@@ -165,7 +159,7 @@ export async function POST(request: NextRequest) {
 
         // 如果已存在相同产品，跳过插入
         if (existingProduct) {
-          const duplicateMsg = `重复产品（已存在）: ${dbProduct.name} | 型号: ${dbProduct.model || '-'} | 供应商: ${dbProduct.supplier || '-'}`;
+          const duplicateMsg = `重复产品（已存在）: ${dbProduct.name} | 型号: ${dbProduct.model || '-''} | 价格: ¥${existingProduct.price}`;
           console.log(`[Import API] ⚠️ ${duplicateMsg}`);
           console.log('[Import API] 已存在产品:', JSON.stringify(existingProduct, null, 2));
           duplicateCount++;
