@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import MultiUploadDialog from './multi-upload-dialog';
 
 interface Drawing {
   id: string;
@@ -11,6 +12,8 @@ interface Drawing {
   size: string;
   uploadDate: string;
   description: string;
+  source?: 'local' | 'weblink' | 'clouddrive';
+  sourceUrl?: string;
 }
 
 export default function DrawingLibrary() {
@@ -59,6 +62,7 @@ export default function DrawingLibrary() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
 
   const drawingTypes = ['全部', 'CAD', '工艺流程图', '布置图', '安装图', '其他'];
 
@@ -72,7 +76,54 @@ export default function DrawingLibrary() {
   });
 
   const handleUpload = () => {
-    alert('上传功能开发中，支持CAD文件上传');
+    setShowUploadDialog(true);
+  };
+
+  const handleLocalFileUpload = (file: File) => {
+    const newDrawing: Drawing = {
+      id: String(drawings.length + 1),
+      name: file.name,
+      type: 'CAD',
+      project: '自定义项目',
+      version: 'V1.0',
+      size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+      uploadDate: new Date().toISOString().split('T')[0],
+      description: '通过本地文件上传的图纸',
+      source: 'local'
+    };
+    setDrawings([...drawings, newDrawing]);
+  };
+
+  const handleWebLinkUpload = (url: string, content: string) => {
+    const newDrawing: Drawing = {
+      id: String(drawings.length + 1),
+      name: content.substring(0, 50) + '...',
+      type: '工艺流程图',
+      project: '网络来源',
+      version: 'V1.0',
+      size: '-',
+      uploadDate: new Date().toISOString().split('T')[0],
+      description: content.substring(0, 200),
+      source: 'weblink',
+      sourceUrl: url
+    };
+    setDrawings([...drawings, newDrawing]);
+  };
+
+  const handleCloudFileUpload = (url: string, fileName: string) => {
+    const newDrawing: Drawing = {
+      id: String(drawings.length + 1),
+      name: fileName,
+      type: 'CAD',
+      project: '网盘分享',
+      version: 'V1.0',
+      size: '-',
+      uploadDate: new Date().toISOString().split('T')[0],
+      description: '网盘分享文件',
+      source: 'clouddrive',
+      sourceUrl: url
+    };
+    setDrawings([...drawings, newDrawing]);
   };
 
   const handleRefresh = () => {
@@ -184,6 +235,17 @@ export default function DrawingLibrary() {
       <div className="mt-4 p-3 bg-yellow-50 text-yellow-700 text-sm rounded border border-yellow-200">
         ⚠️ 当前使用模拟数据展示，上传功能开发中。
       </div>
+
+      {/* 多渠道上传对话框 */}
+      {showUploadDialog && (
+        <MultiUploadDialog
+          onClose={() => setShowUploadDialog(false)}
+          onLocalFileUpload={handleLocalFileUpload}
+          onWebLinkUpload={handleWebLinkUpload}
+          onCloudFileUpload={handleCloudFileUpload}
+          moduleType="drawing"
+        />
+      )}
     </div>
   );
 }

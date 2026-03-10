@@ -1,16 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import MultiUploadDialog from './multi-upload-dialog';
 
 interface Document {
   id: string;
   name: string;
-  type: 'pdf' | 'doc' | 'xls' | 'other';
+  type: 'pdf' | 'doc' | 'xls' | 'other' | 'weblink' | 'clouddrive';
   category: string;
   tags: string[];
   size: string;
   uploadTime: string;
   description: string;
+  source?: 'local' | 'weblink' | 'clouddrive';
+  sourceUrl?: string;
 }
 
 export default function DocumentLibrary() {
@@ -60,6 +63,7 @@ export default function DocumentLibrary() {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState('all');
   const [uploading, setUploading] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
 
   const categories = ['全部', '产品说明书', '技术文档', '操作手册', '维护指南'];
 
@@ -73,10 +77,67 @@ export default function DocumentLibrary() {
   });
 
   const handleUpload = () => {
+    setShowUploadDialog(true);
+  };
+
+  const handleLocalFileUpload = (file: File) => {
     setUploading(true);
     // 模拟上传
     setTimeout(() => {
-      alert('上传功能开发中，即将支持PDF、Word、Excel等格式');
+      const newDoc: Document = {
+        id: String(documents.length + 1),
+        name: file.name,
+        type: file.name.endsWith('.pdf') ? 'pdf' :
+              file.name.endsWith('.doc') || file.name.endsWith('.docx') ? 'doc' :
+              file.name.endsWith('.xls') || file.name.endsWith('.xlsx') ? 'xls' : 'other',
+        category: '技术文档',
+        tags: [],
+        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+        uploadTime: new Date().toISOString().split('T')[0],
+        description: '通过本地文件上传',
+        source: 'local'
+      };
+      setDocuments([...documents, newDoc]);
+      setUploading(false);
+    }, 1000);
+  };
+
+  const handleWebLinkUpload = (url: string, content: string) => {
+    setUploading(true);
+    setTimeout(() => {
+      const newDoc: Document = {
+        id: String(documents.length + 1),
+        name: content.substring(0, 50) + '...',
+        type: 'weblink',
+        category: '技术文档',
+        tags: ['网页链接'],
+        size: '-',
+        uploadTime: new Date().toISOString().split('T')[0],
+        description: content.substring(0, 200),
+        source: 'weblink',
+        sourceUrl: url
+      };
+      setDocuments([...documents, newDoc]);
+      setUploading(false);
+    }, 1000);
+  };
+
+  const handleCloudFileUpload = (url: string, fileName: string) => {
+    setUploading(true);
+    setTimeout(() => {
+      const newDoc: Document = {
+        id: String(documents.length + 1),
+        name: fileName,
+        type: 'clouddrive',
+        category: '技术文档',
+        tags: ['网盘链接'],
+        size: '-',
+        uploadTime: new Date().toISOString().split('T')[0],
+        description: '网盘分享文件',
+        source: 'clouddrive',
+        sourceUrl: url
+      };
+      setDocuments([...documents, newDoc]);
       setUploading(false);
     }, 1000);
   };
@@ -205,6 +266,18 @@ export default function DocumentLibrary() {
       <div className="mt-4 p-3 bg-yellow-50 text-yellow-700 text-sm rounded border border-yellow-200">
         ⚠️ 当前使用模拟数据展示，上传功能开发中。
       </div>
+
+      {/* 多渠道上传对话框 */}
+      {showUploadDialog && (
+        <MultiUploadDialog
+          onClose={() => setShowUploadDialog(false)}
+          onLocalFileUpload={handleLocalFileUpload}
+          onWebLinkUpload={handleWebLinkUpload}
+          onCloudFileUpload={handleCloudFileUpload}
+          moduleType="document"
+          uploading={uploading}
+        />
+      )}
     </div>
   );
 }

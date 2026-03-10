@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import MultiUploadDialog from './multi-upload-dialog';
 
 interface Standard {
   id: string;
@@ -11,6 +12,8 @@ interface Standard {
   publishDate: string;
   status: '现行' | '废止' | '修订中';
   description: string;
+  source?: 'local' | 'weblink' | 'clouddrive';
+  sourceUrl?: string;
 }
 
 export default function StandardLibrary() {
@@ -60,6 +63,7 @@ export default function StandardLibrary() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
 
   const standardTypes = ['全部', '国标', '行标', '地标', '企标'];
   const statusTypes = ['全部', '现行', '废止', '修订中'];
@@ -94,7 +98,54 @@ export default function StandardLibrary() {
   };
 
   const handleImport = () => {
-    alert('导入功能开发中，支持Excel模板导入');
+    setShowUploadDialog(true);
+  };
+
+  const handleLocalFileUpload = (file: File) => {
+    const newStandard: Standard = {
+      id: String(standards.length + 1),
+      code: '自定义-' + String(standards.length + 1),
+      name: file.name.replace(/\.[^/.]+$/, ''),
+      type: '企标',
+      industry: '自定义',
+      publishDate: new Date().toISOString().split('T')[0],
+      status: '现行',
+      description: '通过本地文件导入的规范',
+      source: 'local'
+    };
+    setStandards([...standards, newStandard]);
+  };
+
+  const handleWebLinkUpload = (url: string, content: string) => {
+    const newStandard: Standard = {
+      id: String(standards.length + 1),
+      code: '链接-' + String(standards.length + 1),
+      name: content.substring(0, 50) + '...',
+      type: '企标',
+      industry: '自定义',
+      publishDate: new Date().toISOString().split('T')[0],
+      status: '现行',
+      description: content.substring(0, 200),
+      source: 'weblink',
+      sourceUrl: url
+    };
+    setStandards([...standards, newStandard]);
+  };
+
+  const handleCloudFileUpload = (url: string, fileName: string) => {
+    const newStandard: Standard = {
+      id: String(standards.length + 1),
+      code: '网盘-' + String(standards.length + 1),
+      name: fileName,
+      type: '企标',
+      industry: '自定义',
+      publishDate: new Date().toISOString().split('T')[0],
+      status: '现行',
+      description: '网盘分享文件',
+      source: 'clouddrive',
+      sourceUrl: url
+    };
+    setStandards([...standards, newStandard]);
   };
 
   const handleRefresh = () => {
@@ -212,6 +263,17 @@ export default function StandardLibrary() {
       <div className="mt-4 p-3 bg-yellow-50 text-yellow-700 text-sm rounded border border-yellow-200">
         ⚠️ 当前使用模拟数据展示，导入功能开发中。
       </div>
+
+      {/* 多渠道上传对话框 */}
+      {showUploadDialog && (
+        <MultiUploadDialog
+          onClose={() => setShowUploadDialog(false)}
+          onLocalFileUpload={handleLocalFileUpload}
+          onWebLinkUpload={handleWebLinkUpload}
+          onCloudFileUpload={handleCloudFileUpload}
+          moduleType="standard"
+        />
+      )}
     </div>
   );
 }

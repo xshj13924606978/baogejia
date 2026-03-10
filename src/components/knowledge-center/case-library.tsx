@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import MultiUploadDialog from './multi-upload-dialog';
 
 interface Case {
   id: string;
@@ -12,6 +13,8 @@ interface Case {
   completionDate: string;
   description: string;
   tags: string[];
+  source?: 'local' | 'weblink' | 'clouddrive';
+  sourceUrl?: string;
 }
 
 export default function CaseLibrary() {
@@ -53,6 +56,7 @@ export default function CaseLibrary() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
 
   const caseTypes = ['全部', '污水处理', '供水工程', '设备安装', '工业废水'];
 
@@ -66,7 +70,57 @@ export default function CaseLibrary() {
   });
 
   const handleImport = () => {
-    alert('导入功能开发中，支持Excel模板导入');
+    setShowUploadDialog(true);
+  };
+
+  const handleLocalFileUpload = (file: File) => {
+    const newCase: Case = {
+      id: String(cases.length + 1),
+      name: file.name.replace(/\.[^/.]+$/, ''),
+      type: '设备安装',
+      industry: '环保工程',
+      scale: '-',
+      budget: '-',
+      completionDate: new Date().toISOString().split('T')[0],
+      description: '通过本地文件导入的案例',
+      tags: ['导入案例'],
+      source: 'local'
+    };
+    setCases([...cases, newCase]);
+  };
+
+  const handleWebLinkUpload = (url: string, content: string) => {
+    const newCase: Case = {
+      id: String(cases.length + 1),
+      name: content.substring(0, 50) + '...',
+      type: '设备安装',
+      industry: '环保工程',
+      scale: '-',
+      budget: '-',
+      completionDate: new Date().toISOString().split('T')[0],
+      description: content.substring(0, 200),
+      tags: ['网页链接'],
+      source: 'weblink',
+      sourceUrl: url
+    };
+    setCases([...cases, newCase]);
+  };
+
+  const handleCloudFileUpload = (url: string, fileName: string) => {
+    const newCase: Case = {
+      id: String(cases.length + 1),
+      name: fileName,
+      type: '设备安装',
+      industry: '环保工程',
+      scale: '-',
+      budget: '-',
+      completionDate: new Date().toISOString().split('T')[0],
+      description: '网盘分享文件',
+      tags: ['网盘链接'],
+      source: 'clouddrive',
+      sourceUrl: url
+    };
+    setCases([...cases, newCase]);
   };
 
   const handleRefresh = () => {
@@ -200,6 +254,17 @@ export default function CaseLibrary() {
       <div className="mt-4 p-3 bg-yellow-50 text-yellow-700 text-sm rounded border border-yellow-200">
         ⚠️ 当前使用模拟数据展示，导入功能开发中。
       </div>
+
+      {/* 多渠道上传对话框 */}
+      {showUploadDialog && (
+        <MultiUploadDialog
+          onClose={() => setShowUploadDialog(false)}
+          onLocalFileUpload={handleLocalFileUpload}
+          onWebLinkUpload={handleWebLinkUpload}
+          onCloudFileUpload={handleCloudFileUpload}
+          moduleType="case"
+        />
+      )}
     </div>
   );
 }
