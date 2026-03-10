@@ -2120,7 +2120,7 @@ class ProfessionalDialogueEngine {
         const productMatch: ProductMatch = {
           name: product.name,
           model: product.model || product.specs,
-          specifications: product.specs || product.model,
+          parameter_description: product.specs || product.model,
           quantity: product.quantity,
           unit: product.unit
         };
@@ -2566,7 +2566,7 @@ async function generateQuoteData(products: Product[]) {
     const productMatch: ProductMatch = {
       name: product.name,
       model: product.model || product.specs,
-      specifications: product.specs || product.model,
+      parameter_description: product.specs || product.model,
       quantity: product.quantity,
       unit: product.unit
     };

@@ -539,7 +539,7 @@ interface Product {
   name: string;
   model: string;
   brand: string;
-  specifications: string;
+  parameter_description: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
@@ -658,7 +658,7 @@ const COMMON_TAX_RATES = [0, 3, 6, 9, 13, 17];
 const ALL_COLUMNS: ColumnConfig[] = [
   { key: 'index', label: '序号', align: 'center', visible: true, priority: 1 },
   { key: 'name', label: '产品名称', align: 'left', visible: true, priority: 2 },
-  { key: 'specifications', label: '规格型号', align: 'left', visible: true, priority: 3 },
+  { key: 'parameter_description', label: '参数描述', align: 'left', visible: true, priority: 3 },
   { key: 'brand', label: '品牌', align: 'left', visible: true, priority: 4 },
   { key: 'unit', label: '单位', align: 'center', visible: true, priority: 5 },
   { key: 'quantity', label: '数量', align: 'center', visible: true, priority: 6 },
@@ -1294,7 +1294,7 @@ export default function QuoteTable({
     console.log('[QuoteTable] 产品信息:', {
       name: product.name,
       model: product.model,
-      specifications: product.specifications
+      parameter_description: product.parameter_description
     });
 
     setSearchingMarketPrice(productIndex);
@@ -1314,7 +1314,7 @@ export default function QuoteTable({
           {
             name: product.name,
             model: product.model || '',
-            specs: product.specifications || product.model || '',
+            specs: product.parameter_description || product.model || '',
           },
         ],
       };
@@ -1407,7 +1407,7 @@ export default function QuoteTable({
             products: [{
               name: product.name,
               model: product.model || '',
-              specs: product.specifications || product.model || '',
+              specs: product.parameter_description || product.model || '',
             }]
           }),
         });
@@ -1593,7 +1593,7 @@ export default function QuoteTable({
           products: zeroPriceProducts.map(p => ({
             name: p.name,
             model: p.model || '',
-            specs: p.specifications || p.model || '',
+            specs: p.parameter_description || p.model || '',
           }))
         }),
       });
@@ -1704,8 +1704,8 @@ export default function QuoteTable({
               row.push((safeProducts.indexOf(product) + 1).toString());
             } else if (col.key === 'name') {
               row.push(product.name || '');
-            } else if (col.key === 'specifications') {
-              row.push(product.specifications || '-');
+            } else if (col.key === 'parameter_description') {
+              row.push(product.parameter_description || '-');
             } else if (col.key === 'brand') {
               row.push(product.brand || '-');
             } else if (col.key === 'unit') {
@@ -2215,9 +2215,9 @@ export default function QuoteTable({
                         column.align === 'center' ? 'text-center' : 'text-left'
                       }`}
                       style={{ 
-                        width: column.key === 'specifications' ? '30%' : 
+                        width: column.key === 'parameter_description' ? '30%' : 
                                column.key === 'name' ? '20%' : 'auto',
-                        minWidth: column.key === 'specifications' ? '250px' : 
+                        minWidth: column.key === 'parameter_description' ? '250px' : 
                                   column.key === 'name' ? '150px' : '80px'
                       }}
                     >
@@ -2248,7 +2248,7 @@ export default function QuoteTable({
                       const actualIndex = safeProducts.findIndex(p => 
                         p && p.name === product.name && 
                         p.model === product.model && 
-                        p.specifications === product.specifications
+                        p.parameter_description === product.parameter_description
                       );
                       
                       const safeIndex = actualIndex !== -1 ? actualIndex : idx;
@@ -2310,7 +2310,7 @@ export default function QuoteTable({
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
-                                {(product.specifications?.length || 0) > 100 && (
+                                {(product.parameter_description?.length || 0) > 100 && (
                                   <button
                                     onClick={() => toggleRowExpand(safeIndex)}
                                     className="text-[#2c8c99] hover:text-[#1e6a73] ml-1 flex-shrink-0"
@@ -2326,7 +2326,7 @@ export default function QuoteTable({
                             </TableCell>
                           )}
 
-                          {selectedColumns.includes('specifications') && (
+                          {selectedColumns.includes('parameter_description') && (
                             <TableCell 
                               key={`cell-specs-${productUniqueKey}`} 
                               className="py-3 px-4"
@@ -2339,10 +2339,10 @@ export default function QuoteTable({
                             >
                               <div className="text-sm text-slate-600" style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
                                 {isExpanded
-                                  ? product.specifications
-                                  : product.specifications && product.specifications.length > 150
-                                    ? product.specifications.substring(0, 150) + '...'
-                                    : product.specifications || '-'}
+                                  ? product.parameter_description
+                                  : product.parameter_description && product.parameter_description.length > 150
+                                    ? product.parameter_description.substring(0, 150) + '...'
+                                    : product.parameter_description || '-'}
                               </div>
                             </TableCell>
                           )}

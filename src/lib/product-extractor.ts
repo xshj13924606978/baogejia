@@ -22,7 +22,7 @@ import { callDeepSeekChat } from './deepseek-client';
 export interface ExtractedProduct {
   productName: string;
   model?: string;
-  specifications?: string;
+  parameter_description?: string;
   category?: string;
   brand?: string;
   confidence: number; // 0-100
@@ -76,7 +76,7 @@ export class ProductExtractor {
 {
   "productName": "产品名称",
   "model": "型号（可选，统一转换为阿拉伯数字）",
-  "specifications": "规格（可选）",
+  "parameter_description": "参数描述（可选）",
   "brand": "品牌（可选）",
   "confidence": 95,
   "explanation": "简短说明提取逻辑"
@@ -133,7 +133,7 @@ export class ProductExtractor {
       return {
         productName: result.productName,
         model,
-        specifications: result.specifications,
+        parameter_description: result.parameter_description,
         brand: result.brand,
         confidence: result.confidence || 70,
         originalInput: userInput,
@@ -242,7 +242,7 @@ export class ProductExtractor {
       return {
         productName,
         model,
-        specifications: model,
+        parameter_description: model,
         confidence: 60, // 规则匹配置信度较低
         originalInput: userInput,
         normalizedInput: normalized

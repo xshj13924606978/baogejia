@@ -21,7 +21,7 @@ export interface IntentResult {
     quantity?: number;
     fileType?: string;
     operation?: string;
-    specifications?: string;
+    parameter_description?: string;
     brand?: string;
     [key: string]: any;
   };

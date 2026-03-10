@@ -102,7 +102,6 @@ export const products = pgTable("products", {
 	id: serial().primaryKey().notNull(),
 	name: varchar({ length: 255 }).notNull(),
 	model: varchar({ length: 255 }),
-	specifications: text(),
 	price: numeric({ precision: 10, scale:  2 }).notNull(),
 	stock: integer().default(0),
 	supplier: varchar({ length: 255 }),

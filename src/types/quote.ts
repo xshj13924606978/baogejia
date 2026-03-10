@@ -27,7 +27,7 @@ export interface Product {
   id?: string;
   name: string;
   model?: string;
-  specifications?: string;
+  parameter_description?: string;
   brand?: string;
   unit?: string;
   quantity: number;
@@ -123,7 +123,7 @@ export interface QuoteData {
 export const DEFAULT_TABLE_COLUMNS: TableColumnConfig[] = [
   { key: 'index', label: '序号', visible: true, align: 'center', width: '80px', required: true },
   { key: 'name', label: '产品名称', visible: true, align: 'left', required: true },
-  { key: 'specifications', label: '规格型号', visible: true, align: 'left' },
+  { key: 'parameter_description', label: '参数描述', visible: true, align: 'left' },
   { key: 'brand', label: '品牌', visible: true, align: 'center' },
   { key: 'unit', label: '单位', visible: true, align: 'center', width: '80px' },
   { key: 'quantity', label: '数量', visible: true, align: 'center', width: '100px', required: true },

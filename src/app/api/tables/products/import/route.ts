@@ -87,7 +87,6 @@ export async function POST(request: NextRequest) {
           product = {
             product_name: item['产品名称'] || item['product_name'] || item['name'] || '',
             model: item['规格型号'] || item['型号'] || item['model'] || '',
-            specifications: item['规格'] || item['specifications'] || '',
             brand: item['品牌'] || item['brand'] || '',
             parameter_description: item['参数描述'] || item['parameter_description'] || '',
             description: item['描述'] || item['description'] || '',
@@ -131,7 +130,6 @@ export async function POST(request: NextRequest) {
         const dbProduct: any = {
           name: product.product_name || '',
           model: product.model || '',
-          specifications: product.specifications || item['规格'] || item['specifications'] || '',
           price: product.price || 0,
           stock: product.stock || item['库存'] || item['stock'] || 0,
           supplier: product.supplier || item['供应商'] || item['supplier'] || '',

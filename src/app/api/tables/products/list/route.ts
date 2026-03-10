@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
         id: p.id,
         product_name: p.name,
         model: p.model || '',
-        specifications: p.specifications || '',
         brand: p.brand || '',
         parameter_description: p.parameter_description || '',
         description: p.description || '',

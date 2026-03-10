@@ -17,7 +17,7 @@ export interface ProductMatch {
   name: string;
   model?: string;
   category?: string;
-  specifications?: string;
+  parameter_description?: string;
   quantity?: number;
   unit?: string;
 }
@@ -566,7 +566,7 @@ export class PriceMatcher {
           products: [{
             name: product.name,
             model: product.model || '',
-            specs: product.specifications || product.model || '',
+            specs: product.parameter_description || product.model || '',
           }]
         }),
       });
@@ -707,10 +707,10 @@ export class PriceMatcher {
       }
 
       // 规格匹配
-      if (target.specifications && product.specifications) {
+      if (target.parameter_description && product.parameter_description) {
         const specSimilarity = this.calculateSimilarity(
-          target.specifications.toLowerCase(),
-          product.specifications.toLowerCase()
+          target.parameter_description.toLowerCase(),
+          product.parameter_description.toLowerCase()
         );
         score += specSimilarity * 10; // 规格权重10%
       }
@@ -764,7 +764,7 @@ export class PriceMatcher {
   static inferCategory(product: ProductMatch): string {
     const name = product.name.toLowerCase();
     const model = (product.model || '').toLowerCase();
-    const specs = (product.specifications || '').toLowerCase();
+    const specs = (product.parameter_description || '').toLowerCase();
 
     // 关键词映射到类别（扩展版）
     const categoryMap: Record<string, string[]> = {
