@@ -496,6 +496,156 @@ export default function PriceLibrary() {
     URL.revokeObjectURL(url);
   };
 
+  // 导出产品为 Excel 格式
+  const handleExportExcel = (exportSelectedOnly: boolean = false) => {
+    try {
+      // 确定要导出的产品数据
+      const productsToExport = exportSelectedOnly 
+        ? products.filter(p => selectedProducts.has(p.id))
+        : products;
+
+      if (productsToExport.length === 0) {
+        alert(exportSelectedOnly ? '请先选择要导出的产品' : '没有可导出的产品数据');
+        return;
+      }
+
+      // 转换数据格式（与导入模板字段保持一致）
+      const exportData = productsToExport.map(p => ({
+        '产品名称': p.product_name || '',
+        '规格型号': p.model || '',
+        '品牌': p.brand || '',
+        '参数描述': p.specifications || '',
+        '供应商': p.supplier || '',
+        '联系人': p.contact_person || '',
+        '联系电话': p.contact_phone || '',
+        '单位': p.unit || '',
+        '成本': p.cost_price || 0,
+        '最低售价': p.min_price || 0,
+        '指导价': p.price || 0
+      }));
+
+      // 创建工作簿和工作表
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+      // 设置列宽
+      const colWidths = [
+        { wch: 20 }, // 产品名称
+        { wch: 15 }, // 规格型号
+        { wch: 12 }, // 品牌
+        { wch: 30 }, // 参数描述
+        { wch: 20 }, // 供应商
+        { wch: 10 }, // 联系人
+        { wch: 15 }, // 联系电话
+        { wch: 8 },  // 单位
+        { wch: 10 }, // 成本
+        { wch: 10 }, // 最低售价
+        { wch: 10 }, // 指导价
+      ];
+      worksheet['!cols'] = colWidths;
+
+      // 添加工作表到工作簿
+      XLSX.utils.book_append_sheet(workbook, worksheet, '产品价格库');
+
+      // 生成文件名
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const filename = exportSelectedOnly 
+        ? `产品价格库_选中${selectedProducts.size}条_${timestamp}.xlsx`
+        : `产品价格库_全部${products.length}条_${timestamp}.xlsx`;
+
+      // 下载文件
+      XLSX.writeFile(workbook, filename);
+
+      alert(`✅ 成功导出 ${productsToExport.length} 条产品数据！`);
+    } catch (error) {
+      console.error('导出Excel失败:', error);
+      alert(`❌ 导出Excel失败：${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
+  // 导出产品为 CSV 格式
+  const handleExportCSV = (exportSelectedOnly: boolean = false) => {
+    try {
+      // 确定要导出的产品数据
+      const productsToExport = exportSelectedOnly 
+        ? products.filter(p => selectedProducts.has(p.id))
+        : products;
+
+      if (productsToExport.length === 0) {
+        alert(exportSelectedOnly ? '请先选择要导出的产品' : '没有可导出的产品数据');
+        return;
+      }
+
+      // 定义CSV列顺序和字段映射
+      const csvHeaders = [
+        '产品名称', '规格型号', '品牌', '参数描述', 
+        '供应商', '联系人', '联系电话', '单位', 
+        '成本', '最低售价', '指导价'
+      ];
+
+      const fieldMapping = {
+        '产品名称': 'product_name',
+        '规格型号': 'model',
+        '品牌': 'brand',
+        '参数描述': 'specifications',
+        '供应商': 'supplier',
+        '联系人': 'contact_person',
+        '联系电话': 'contact_phone',
+        '单位': 'unit',
+        '成本': 'cost_price',
+        '最低售价': 'min_price',
+        '指导价': 'price'
+      } as const;
+
+      // 转换数据为CSV格式
+      const rows = [csvHeaders.join(',')];
+
+      productsToExport.forEach(p => {
+        const row = csvHeaders.map(header => {
+          const fieldKey = fieldMapping[header as keyof typeof fieldMapping] as keyof typeof p;
+          let value = p[fieldKey] !== undefined && p[fieldKey] !== null 
+            ? String(p[fieldKey]) 
+            : '';
+          
+          // 处理包含逗号或引号的字段
+          if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+            value = `"${value.replace(/"/g, '""')}"`;
+          }
+          
+          return value;
+        });
+        rows.push(row.join(','));
+      });
+
+      // 生成CSV内容
+      const csvContent = '\ufeff' + rows.join('\n');
+
+      // 创建Blob并下载
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+
+      // 生成文件名
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const filename = exportSelectedOnly 
+        ? `产品价格库_选中${selectedProducts.size}条_${timestamp}.csv`
+        : `产品价格库_全部${products.length}条_${timestamp}.csv`;
+
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      alert(`✅ 成功导出 ${productsToExport.length} 条产品数据！`);
+    } catch (error) {
+      console.error('导出CSV失败:', error);
+      alert(`❌ 导出CSV失败：${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* 工具栏 */}
@@ -530,6 +680,23 @@ export default function PriceLibrary() {
             className="px-4 py-2 bg-slate-500 text-white rounded-lg hover:bg-slate-600 transition-colors flex items-center gap-2 text-sm"
           >
             <span>📥</span> 下载模板
+          </button>
+          <div className="h-8 w-px bg-slate-300 dark:bg-slate-600"></div>
+          <button
+            onClick={() => handleExportExcel(false)}
+            disabled={products.length === 0}
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            title="导出全部产品为 Excel 文件"
+          >
+            <span>📊</span> 导出Excel
+          </button>
+          <button
+            onClick={() => handleExportCSV(false)}
+            disabled={products.length === 0}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            title="导出全部产品为 CSV 文件"
+          >
+            <span>📄</span> 导出CSV
           </button>
           <button
             onClick={() => setShowFieldConfig(true)}
@@ -931,12 +1098,28 @@ export default function PriceLibrary() {
               已选择 <strong>{selectedProducts.size}</strong> 个产品
             </span>
           </div>
-          <button
-            onClick={handleBatchDelete}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 text-sm"
-          >
-            <span>🗑️</span> 批量删除
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleExportExcel(true)}
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 text-sm"
+              title="导出选中的产品为 Excel 文件"
+            >
+              <span>📊</span> 导出Excel
+            </button>
+            <button
+              onClick={() => handleExportCSV(true)}
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 text-sm"
+              title="导出选中的产品为 CSV 文件"
+            >
+              <span>📄</span> 导出CSV
+            </button>
+            <button
+              onClick={handleBatchDelete}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 text-sm"
+            >
+              <span>🗑️</span> 批量删除
+            </button>
+          </div>
         </div>
       )}
 
