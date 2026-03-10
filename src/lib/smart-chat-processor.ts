@@ -83,15 +83,30 @@ export class SmartChatProcessor {
       return { isPriceQuery: false };
     }
 
-    // 尝试提取型号（例如：10M、PW-100、KQ-150等）
-    // 改进正则表达式，更好地匹配型号
-    const modelMatch = productName.match(/\b([A-Za-z]*[-_]?\d+[A-Za-z]*|\d+[A-Za-z]+\b)/);
-    const model = modelMatch ? modelMatch[1].trim() : undefined;
+    // 尝试提取型号（例如：10M、PW-100、KQ-150、100立方、50吨等）
+    // 改进正则表达式，支持数字后跟字母或常见中文单位
+    const modelMatch = productName.match(/\b(\d+\s*(立方|立方米|吨|升|毫升|克|千克|kg|L|ML|M|mm|cm|m|万|亿)|[A-Za-z]*[-_]?\d+[A-Za-z]*|\d+[A-Za-z]+\b)/);
+    let model = modelMatch ? modelMatch[1].trim() : undefined;
+
+    // 如果型号中包含中文单位，提取纯数字部分作为型号
+    // 例如："100立方" -> "100"
+    if (model && /[立方|立方米|吨|升|毫升|克|千克]/.test(model)) {
+      const numberMatch = model.match(/(\d+(\.\d+)?)/);
+      if (numberMatch) {
+        model = numberMatch[1]; // 只保留数字部分
+      }
+    }
 
     // 如果找到型号，从产品名称中移除
     if (model) {
       productName = productName.replace(model, '').trim();
     }
+
+    // 再次清理产品名称，移除可能残留的单位词
+    const unitWords = ['立方', '立方米', '吨', '升', '毫升', '克', '千克', '规格', '型号'];
+    unitWords.forEach(word => {
+      productName = productName.replace(new RegExp(word, 'g'), '').trim();
+    });
 
     return {
       isPriceQuery: true,
