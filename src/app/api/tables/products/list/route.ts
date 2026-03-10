@@ -74,19 +74,19 @@ export async function GET(request: NextRequest) {
       return {
         id: p.id,
         product_name: p.name,
-        model: p.model || '',
-        brand: p.brand || extraFields.brand || p.supplier || '',
-        specifications: p.specifications || extraFields.specifications || '',
-        parameter_description: p.parameter_description || '',
-        unit: p.unit || extraFields.unit || '台', // 默认单位
-        cost_price: p.cost_price || extraFields.cost_price || 0,
-        min_price: p.min_price || extraFields.min_price || 0,
-        price: parseFloat(p.price) || 0,
-        supplier: p.supplier || '',
-        contact_person: p.contact_person || extraFields.contact_person || '',
-        contact_phone: p.contact_phone || extraFields.contact_phone || '',
-        category: p.category || '',
-        stock: p.stock || 0,
+        model: (p as any).model || '',
+        brand: (p as any).brand || extraFields.brand || (p as any).supplier || '',
+        specifications: (p as any).specifications || extraFields.specifications || '',
+        parameter_description: (p as any).parameter_description || '',
+        unit: (p as any).unit || extraFields.unit || '台', // 默认单位
+        cost_price: (p as any).cost_price || extraFields.cost_price || 0,
+        min_price: (p as any).min_price || extraFields.min_price || 0,
+        price: parseFloat((p as any).price) || 0,
+        supplier: (p as any).supplier || '',
+        contact_person: (p as any).contact_person || extraFields.contact_person || '',
+        contact_phone: (p as any).contact_phone || extraFields.contact_phone || '',
+        category: (p as any).category || '',
+        stock: (p as any).stock || 0,
       };
     });
 
