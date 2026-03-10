@@ -254,6 +254,10 @@ export class ProductExtractor {
   private static cleanProductName(name: string): string {
     return name
       .replace(/[型号|规格|品牌|系列|款式|款式|种类|类型]/g, '')
+      // 移除容量单位
+      .replace(/\d+(\.\d+)?\s*(立方|立方米|m³|m3)\b/gi, '')
+      // 移除长度单位（如果在型号被移除后还残留）
+      .replace(/\d+(\.\d+)?\s*(mm|mm|cm|厘米|m|米)\b/gi, '')
       .replace(/[，,。.;;、]/g, '')
       .replace(/\s+/g, ' ')
       .trim();

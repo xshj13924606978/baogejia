@@ -93,24 +93,27 @@ export class PriceMatcher {
     // 移除常见的规格描述
     let cleaned = name;
 
-    // 1. 移除管径规格（DN数字、Φ数字、英寸规格）
+    // 1. 移除容量规格（立方、立方米等）- 放在管径之前，避免误删
+    cleaned = cleaned.replace(/\d+(\.\d+)?\s*(立方|立方米|m³|方)\b/gi, '');
+    
+    // 2. 移除管径规格（DN数字、Φ数字、英寸规格）
     cleaned = cleaned.replace(/\b(DN|Φ|inch|\")\s*\d+(\.\d+)?\b/gi, '');
     
-    // 2. 移除尺寸规格（长×宽×高、长度单位）
+    // 3. 移除尺寸规格（长×宽×高、长度单位）
     cleaned = cleaned.replace(/\d+(\.\d+)?\s*[×x*]\s*\d+(\.\d+)?(\s*[×x*]\s*\d+(\.\d+)?)?/g, '');
     cleaned = cleaned.replace(/\d+(\.\d+)?\s*(mm|cm|m|米|毫米|厘米)\b/gi, '');
     
-    // 3. 移除材质描述（但保留材质作为产品名的一部分，如PVC管）
+    // 4. 移除材质描述（但保留材质作为产品名的一部分，如PVC管）
     // 不移除 PVC-U、FRP 等材质标识
     
-    // 4. 移除常见规格关键词
+    // 5. 移除常见规格关键词
     cleaned = cleaned.replace(/\b(重型|轻型|标准|加强|普通|防水|耐腐蚀|密封|C20)\b/gi, '');
     
-    // 5. 移除括号内的内容（规格说明）
+    // 6. 移除括号内的内容（规格说明）
     cleaned = cleaned.replace(/（[^）]*）/g, '');
     cleaned = cleaned.replace(/\([^)]*\)/g, '');
     
-    // 6. 清理多余空格和符号
+    // 7. 清理多余空格和符号
     cleaned = cleaned.trim()
       .replace(/\s+/g, ' ')
       .replace(/[，,、；;。]/g, '');
