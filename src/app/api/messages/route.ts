@@ -30,19 +30,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 先检查对话是否存在
-    const { data: conversation, error: checkError } = await supabase
+    // 先检查对话是否存在，不存在则自动创建
+    let conversation;
+    let error: any;
+    
+    ({ data: conversation, error: checkError } = await supabase
       .from('conversations')
       .select('id')
       .eq('id', conversationId)
-      .single();
+      .single());
 
     if (checkError || !conversation) {
-      Logger.error('[Messages] 对话不存在', { conversationId });
-      return NextResponse.json(
-        { error: '对话不存在' },
-        { status: 404 }
-      );
+      // 对话不存在，自动创建
+      Logger.info('[Messages] 对话不存在，自动创建', { conversationId });
+      
+      const now = new Date().toISOString();
+      const { data: newConv, error: createError } = await supabase
+        .from('conversations')
+        .insert({
+          id: conversationId,
+          title: '新对话',
+          last_message: content?.substring(0, 100) || '',
+          status: 'active',
+          updated_at: now,
+          created_at: now
+        })
+        .select()
+        .single();
+
+      if (createError || !newConv) {
+        Logger.error('[Messages] 创建对话失败', createError);
+        return NextResponse.json(
+          { error: '对话不存在且创建失败', details: createError?.message },
+          { status: 500 }
+        );
+      }
+      
+      conversation = newConv;
+      Logger.info('[Messages] 对话创建成功', { conversationId });
     }
 
     // 确保文件数据是数组

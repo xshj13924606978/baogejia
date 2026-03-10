@@ -2,6 +2,38 @@ import { NextRequest } from 'next/server';
 import { streamDeepSeekChat } from '@/lib/deepseek-client';
 import { InputProcessor, ProcessedInput } from '@/lib/input-processor';
 import { smartChatProcessor } from '@/lib/smart-chat-processor';
+import { createClient } from '@supabase/supabase-js';
+
+// 从数据库加载对话历史
+async function loadConversationHistory(conversationId: string) {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { data, error } = await supabase
+      .from('messages')
+      .select('role, content')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true })
+      .limit(20); // 只加载最近20条消息
+
+    if (error) {
+      console.error('[Chat Stream API] 加载对话历史失败:', error);
+      return [];
+    }
+
+    console.log('[Chat Stream API] 加载对话历史:', { conversationId, count: data?.length || 0 });
+    return (data || []).map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
+  } catch (error) {
+    console.error('[Chat Stream API] 加载对话历史异常:', error);
+    return [];
+  }
+}
 
 // 全局对话记忆（用于维持上下文）
 const globalConversationMemory = {
@@ -53,8 +85,27 @@ export async function POST(request: NextRequest) {
       content: message
     });
     
-    // 3. 构建对话历史
-    const history = conversationId ? globalConversationMemory.getHistory(conversationId) : [];
+    // 3. 构建对话历史 - 优先从数据库加载
+    let history = [];
+    if (conversationId) {
+      // 先检查全局内存中是否有历史记录
+      history = globalConversationMemory.getHistory(conversationId);
+      
+      // 如果全局内存中没有历史，尝试从数据库加载
+      if (history.length === 0) {
+        console.log('[Chat Stream API] 全局内存无历史，从数据库加载');
+        history = await loadConversationHistory(conversationId);
+        
+        // 将加载的历史同步到全局内存
+        if (history.length > 0) {
+          history.forEach(msg => {
+            globalConversationMemory.addToHistory(conversationId, msg.role, msg.content);
+          });
+        }
+      }
+      
+      console.log('[Chat Stream API] 对话历史:', { conversationId, historyCount: history.length });
+    }
     
     // 4. 价格查询预处理（优先查询数据库）
     let enhancedMessage = message;
@@ -116,7 +167,9 @@ export async function POST(request: NextRequest) {
           
           // 保存对话历史
           if (conversationId) {
+            // 先添加用户消息
             globalConversationMemory.addToHistory(conversationId, 'user', message);
+            // 再添加AI回复
             globalConversationMemory.addToHistory(conversationId, 'assistant', fullContent);
           }
           
