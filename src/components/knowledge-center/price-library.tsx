@@ -18,11 +18,13 @@ export default function PriceLibrary() {
   const [showFieldConfig, setShowFieldConfig] = useState(false);
   const [showColumnConfig, setShowColumnConfig] = useState(false);
   const [showExportFilter, setShowExportFilter] = useState(false);
+  const [showExportFormatDialog, setShowExportFormatDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
   const [showFieldMapping, setShowFieldMapping] = useState(false);
   const [pendingExcelData, setPendingExcelData] = useState<{ headers: string[]; data: any[] } | null>(null);
+  const [pendingFilterConfig, setPendingFilterConfig] = useState<{ brands?: Set<string>, keyword?: string } | null>(null);
   const [fieldConfigs, setFieldConfigs] = useState<Record<string, { label: string; required: boolean }>>({});
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
     'product_name', 'model', 'brand', 'specifications', 
@@ -777,7 +779,13 @@ export default function PriceLibrary() {
             <span>📊</span> 导出Excel
           </button>
           <button
-            onClick={() => setShowExportFilter(true)}
+            onClick={() => {
+              // 重置筛选条件，默认全选所有品牌
+              const allBrands = new Set(products.map(p => p.brand).filter(Boolean));
+              setExportFilterBrands(allBrands);
+              setExportFilterKeywords('');
+              setShowExportFilter(true);
+            }}
             disabled={products.length === 0}
             className="px-4 py-2 bg-orange-700 text-white rounded-lg hover:bg-orange-800 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             title="筛选后导出"
@@ -1231,61 +1239,93 @@ export default function PriceLibrary() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 dark:bg-slate-800">
               <tr>
-                <th className="px-4 py-3 w-12 text-center">
-                  <Checkbox
-                    checked={isAllSelected}
-                    onCheckedChange={handleSelectAll}
-                    aria-label="全选"
-                  />
-                </th>
-                <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">产品名称</th>
-                <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">规格型号</th>
-                <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">品牌</th>
-                <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">参数描述</th>
-                <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">单位</th>
-                <th className="px-4 py-3 text-right text-slate-700 dark:text-slate-300 font-medium">价格</th>
-                <th className="px-4 py-3 text-left text-slate-700 dark:text-slate-300 font-medium">供应商</th>
-                <th className="px-4 py-3 text-center text-slate-700 dark:text-slate-300 font-medium">操作</th>
+                {availableColumns
+                  .filter(col => visibleColumns.has(col.key))
+                  .map(col => (
+                    <th
+                      key={col.key}
+                      className={`px-4 py-3 ${
+                        col.key === 'select' ? 'w-12 text-center' :
+                        col.key === 'operations' ? 'text-center' :
+                        col.key === 'price' ? 'text-right' :
+                        'text-left'
+                      } text-slate-700 dark:text-slate-300 font-medium`}
+                    >
+                      {col.key === 'select' ? (
+                        <Checkbox
+                          checked={isAllSelected}
+                          onCheckedChange={handleSelectAll}
+                          aria-label="全选"
+                        />
+                      ) : (
+                        col.label
+                      )}
+                    </th>
+                  ))}
               </tr>
             </thead>
             <tbody>
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={availableColumns.length} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                     暂无数据，请导入Excel或手动添加
                   </td>
                 </tr>
               ) : (
                 products.map((p, idx) => (
                   <tr key={idx} className="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                    <td className="px-4 py-3 w-12 text-center">
-                      <Checkbox
-                        checked={selectedProducts.has(p.id)}
-                        onCheckedChange={() => handleSelectProduct(p.id)}
-                        aria-label={`选择产品 ${p.product_name}`}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-slate-900 dark:text-slate-100 font-medium">{p.product_name}</td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{p.model}</td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{p.brand}</td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-[200px] truncate">{p.specifications}</td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{p.unit}</td>
-                    <td className="px-4 py-3 text-right text-slate-900 dark:text-slate-100 font-medium">¥{p.price?.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{p.supplier}</td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => handleEditProduct(p)}
-                        className="text-blue-600 hover:text-blue-800 text-xs mr-3 transition-colors"
-                      >
-                        编辑
-                      </button>
-                      <button
-                        onClick={() => handleDeleteProduct(p.id)}
-                        className="text-red-600 hover:text-red-800 text-xs transition-colors"
-                      >
-                        删除
-                      </button>
-                    </td>
+                    {availableColumns
+                      .filter(col => visibleColumns.has(col.key))
+                      .map(col => {
+                        if (col.key === 'select') {
+                          return (
+                            <td key={col.key} className="px-4 py-3 w-12 text-center">
+                              <Checkbox
+                                checked={selectedProducts.has(p.id)}
+                                onCheckedChange={() => handleSelectProduct(p.id)}
+                                aria-label={`选择产品 ${p.product_name}`}
+                              />
+                            </td>
+                          );
+                        }
+                        if (col.key === 'operations') {
+                          return (
+                            <td key={col.key} className="px-4 py-3 text-center">
+                              <button
+                                onClick={() => handleEditProduct(p)}
+                                className="text-blue-600 hover:text-blue-800 text-xs mr-3 transition-colors"
+                              >
+                                编辑
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProduct(p.id)}
+                                className="text-red-600 hover:text-red-800 text-xs transition-colors"
+                              >
+                                删除
+                              </button>
+                            </td>
+                          );
+                        }
+                        if (col.key === 'price') {
+                          return (
+                            <td key={col.key} className="px-4 py-3 text-right text-slate-900 dark:text-slate-100 font-medium">
+                              ¥{(p[col.key as keyof typeof p] as number)?.toFixed(2) || '-'}
+                            </td>
+                          );
+                        }
+                        if (col.key === 'specifications') {
+                          return (
+                            <td key={col.key} className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-[200px] truncate">
+                              {p[col.key as keyof typeof p] as string}
+                            </td>
+                          );
+                        }
+                        return (
+                          <td key={col.key} className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                            {p[col.key as keyof typeof p] as string || '-'}
+                          </td>
+                        );
+                      })}
                   </tr>
                 ))
               )}
@@ -1515,20 +1555,9 @@ export default function PriceLibrary() {
                     brands: exportFilterBrands,
                     keyword: exportFilterKeywords
                   };
+                  setPendingFilterConfig(filterConfig);
                   setShowExportFilter(false);
-                  // 弹出导出格式选择
-                  if (confirm(`即将导出 ${products.filter(p => {
-                    const brandMatch = exportFilterBrands.size === 0 || exportFilterBrands.has(p.brand);
-                    const keywordMatch = !exportFilterKeywords.trim() || 
-                      p.product_name?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
-                      p.model?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
-                      p.brand?.toLowerCase().includes(exportFilterKeywords.toLowerCase());
-                    return brandMatch && keywordMatch;
-                  }).length} 条产品数据\n\n选择导出格式：\n确定 = Excel\n取消 = CSV`)) {
-                    handleExportExcel(false, filterConfig);
-                  } else {
-                    handleExportCSV(false, filterConfig);
-                  }
+                  setShowExportFormatDialog(true);
                 }}
                 disabled={products.filter(p => {
                   const brandMatch = exportFilterBrands.size === 0 || exportFilterBrands.has(p.brand);
@@ -1540,7 +1569,89 @@ export default function PriceLibrary() {
                 }).length === 0}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                确认导出
+                下一步：选择格式
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 导出格式选择对话框 */}
+      {showExportFormatDialog && pendingFilterConfig && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">📊 选择导出格式</h3>
+              <button
+                onClick={() => {
+                  setShowExportFormatDialog(false);
+                  setPendingFilterConfig(null);
+                }}
+                className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg mb-6">
+                <div className="text-sm text-slate-700 dark:text-slate-300">
+                  <p className="font-medium mb-2">即将导出：</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {products.filter(p => {
+                      const brandMatch = !pendingFilterConfig.brands || pendingFilterConfig.brands.size === 0 || pendingFilterConfig.brands.has(p.brand);
+                      const keywordMatch = !pendingFilterConfig.keyword || !pendingFilterConfig.keyword.trim() || 
+                        p.product_name?.toLowerCase().includes(pendingFilterConfig.keyword.toLowerCase()) ||
+                        p.model?.toLowerCase().includes(pendingFilterConfig.keyword.toLowerCase()) ||
+                        p.brand?.toLowerCase().includes(pendingFilterConfig.keyword.toLowerCase());
+                      return brandMatch && keywordMatch;
+                    }).length}
+                  </p>
+                  <p className="text-slate-500 dark:text-slate-400">条产品数据</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                请选择导出格式：
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    handleExportExcel(false, pendingFilterConfig);
+                    setShowExportFormatDialog(false);
+                    setPendingFilterConfig(null);
+                  }}
+                  className="flex flex-col items-center gap-3 p-6 bg-green-50 dark:bg-green-950/20 border-2 border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-950/30 transition-colors"
+                >
+                  <span className="text-4xl">📊</span>
+                  <div className="text-center">
+                    <div className="font-bold text-green-700 dark:text-green-300">Excel</div>
+                    <div className="text-xs text-green-600 dark:text-green-400 mt-1">.xlsx 格式</div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleExportCSV(false, pendingFilterConfig);
+                    setShowExportFormatDialog(false);
+                    setPendingFilterConfig(null);
+                  }}
+                  className="flex flex-col items-center gap-3 p-6 bg-teal-50 dark:bg-teal-950/20 border-2 border-teal-200 dark:border-teal-800 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-950/30 transition-colors"
+                >
+                  <span className="text-4xl">📄</span>
+                  <div className="text-center">
+                    <div className="font-bold text-teal-700 dark:text-teal-300">CSV</div>
+                    <div className="text-xs text-teal-600 dark:text-teal-400 mt-1">.csv 格式</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-6 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => {
+                  setShowExportFormatDialog(false);
+                  setPendingFilterConfig(null);
+                }}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+              >
+                取消
               </button>
             </div>
           </div>
