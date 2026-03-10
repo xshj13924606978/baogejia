@@ -135,6 +135,22 @@ export class PriceMatcher {
 
       // 直接使用 Supabase 进行精确查询
       const supabase = getSupabaseClient();
+
+      // 先查看数据库中所有包含"化粪池"的产品，用于调试
+      const debugQuery = supabase
+        .from('products')
+        .select('*')
+        .ilike('name', '%化粪池%')
+        .limit(20);
+      
+      const { data: debugProducts, error: debugError } = await debugQuery;
+      if (!debugError && debugProducts) {
+        console.log('[PriceMatcher] 数据库中包含"化粪池"的产品:', debugProducts.map(p => ({
+          name: p.name,
+          model: p.model,
+          price: p.price
+        })));
+      }
       
       // 优先级1：名称和型号完全匹配
       let query = supabase
@@ -160,12 +176,41 @@ export class PriceMatcher {
         // 找到最佳匹配
         const bestMatch = this.findBestMatch(exactMatches, product);
         
-        console.log('[PriceMatcher] 最佳匹配:', JSON.stringify(bestMatch));
+        console.log('[PriceMatcher] 精确查询最佳匹配:', JSON.stringify(bestMatch));
         
         if (bestMatch) {
-          console.log('[PriceMatcher] ✅ 产品库匹配成功，价格:', bestMatch.price);
-          return {
+          // 尝试从description字段解析JSON数据，获取min_price
+          let finalPrice = bestMatch.price;
+          let costPrice = null;
+          let minPrice = null;
+          
+          try {
+            if (bestMatch.description && typeof bestMatch.description === 'string' && bestMatch.description.startsWith('{')) {
+              const extraFields = JSON.parse(bestMatch.description);
+              minPrice = extraFields.min_price;
+              costPrice = extraFields.cost_price;
+              // 优先返回最低售价
+              if (minPrice && minPrice > 0) {
+                finalPrice = minPrice;
+              }
+            }
+          } catch (e) {
+            // 解析失败，使用默认price
+            console.log('[PriceMatcher] 解析description失败，使用默认price');
+          }
+          
+          console.log('[PriceMatcher] ✅ 产品库匹配成功');
+          console.log('[PriceMatcher] 匹配产品详情:', JSON.stringify({
+            name: bestMatch.name,
+            model: bestMatch.model,
             price: bestMatch.price,
+            min_price: minPrice,
+            cost_price: costPrice,
+            final_price: finalPrice
+          }));
+          
+          return {
+            price: finalPrice,
             source: 'database',
             confidence: 95,
             productName: bestMatch.name,
@@ -196,9 +241,38 @@ export class PriceMatcher {
         console.log('[PriceMatcher] 模糊搜索最佳匹配:', JSON.stringify(bestMatch));
         
         if (bestMatch) {
-          console.log('[PriceMatcher] ✅ 模糊匹配成功，价格:', bestMatch.price);
-          return {
+          // 尝试从description字段解析JSON数据，获取min_price
+          let finalPrice = bestMatch.price;
+          let costPrice = null;
+          let minPrice = null;
+          
+          try {
+            if (bestMatch.description && typeof bestMatch.description === 'string' && bestMatch.description.startsWith('{')) {
+              const extraFields = JSON.parse(bestMatch.description);
+              minPrice = extraFields.min_price;
+              costPrice = extraFields.cost_price;
+              // 优先返回最低售价
+              if (minPrice && minPrice > 0) {
+                finalPrice = minPrice;
+              }
+            }
+          } catch (e) {
+            // 解析失败，使用默认price
+            console.log('[PriceMatcher] 解析description失败，使用默认price');
+          }
+          
+          console.log('[PriceMatcher] ✅ 模糊匹配成功');
+          console.log('[PriceMatcher] 匹配产品详情:', JSON.stringify({
+            name: bestMatch.name,
+            model: bestMatch.model,
             price: bestMatch.price,
+            min_price: minPrice,
+            cost_price: costPrice,
+            final_price: finalPrice
+          }));
+          
+          return {
+            price: finalPrice,
             source: 'database',
             confidence: 75,
             productName: bestMatch.name,
