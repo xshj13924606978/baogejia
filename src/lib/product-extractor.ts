@@ -281,11 +281,13 @@ export class ProductExtractor {
 
   /**
    * 标准化输入文本
+   * 注意：不要替换数字中的小数点
    */
   private static normalizeInput(input: string): string {
     return input
       .toLowerCase()
-      .replace(/[？?！!，,。.;;、\s]+/g, ' ')
+      // 替换标点符号，但保留数字中的小数点
+      .replace(/[？?！!，,。;;、\s]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
