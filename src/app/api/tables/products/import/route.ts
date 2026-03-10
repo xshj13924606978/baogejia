@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
 
         // 如果已存在相同产品，跳过插入
         if (existingProduct) {
-          const duplicateMsg = `重复产品（已存在）: ${dbProduct.name} | 型号: ${dbProduct.model || '-''} | 价格: ¥${existingProduct.price}`;
+          const duplicateMsg = `重复产品（已存在）: ${dbProduct.name} | 型号: ${dbProduct.model || '-'} | 价格: ¥${existingProduct.price}`;
           console.log(`[Import API] ⚠️ ${duplicateMsg}`);
           console.log('[Import API] 已存在产品:', JSON.stringify(existingProduct, null, 2));
           duplicateCount++;
