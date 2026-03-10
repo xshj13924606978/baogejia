@@ -950,15 +950,27 @@ export default function PriceLibrary() {
                 className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10 min-w-[160px]"
                 onMouseEnter={() => handleMenuMouseEnter('export')}
               >
+                {selectedProducts.size > 0 && (
+                  <button
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      handleExportExcel(true);
+                    }}
+                    disabled={products.length === 0}
+                    className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 first:rounded-t-lg bg-blue-50 dark:bg-blue-900/20"
+                  >
+                    ✅ 导出选中项 ({selectedProducts.size})
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setShowExportMenu(false);
                     handleExportExcel(false);
                   }}
                   disabled={products.length === 0}
-                  className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 first:rounded-t-lg"
+                  className={`w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 ${selectedProducts.size === 0 ? 'first:rounded-t-lg' : ''}`}
                 >
-                  📊 导出Excel
+                  📊 导出全部Excel
                 </button>
                 <button
                   onClick={() => {
@@ -981,7 +993,7 @@ export default function PriceLibrary() {
                   disabled={products.length === 0}
                   className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 last:rounded-b-lg"
                 >
-                  📄 导出CSV
+                  📄 导出全部CSV
                 </button>
               </div>
             )}
