@@ -74,7 +74,7 @@ export default function MultiUploadDialog({
     }
   };
 
-  const handleCloudFileSubmit = () => {
+  const handleCloudFileSubmit = async () => {
     if (!cloudDriveUrl.trim()) {
       setParseError('请输入有效的网盘文件链接');
       return;
@@ -84,18 +84,76 @@ export default function MultiUploadDialog({
     const description = cloudFileDescription.trim();
     const extractCode = cloudExtractCode.trim();
 
-    // 如果用户上传了文件且有对应回调，使用文件上传回调
+    // 如果用户上传了文件且有对应回调，直接使用文件上传回调
     if (cloudUploadedFile && onCloudFileWithFile) {
       onCloudFileWithFile(cloudDriveUrl, fileName, description, extractCode, cloudUploadedFile);
-    } else {
-      onCloudFileUpload(cloudDriveUrl, fileName, description, extractCode);
+      setCloudDriveUrl('');
+      setCloudFileName('');
+      setCloudFileDescription('');
+      setCloudExtractCode('');
+      setCloudUploadedFile(null);
+      onClose();
+      return;
     }
-    setCloudDriveUrl('');
-    setCloudFileName('');
-    setCloudFileDescription('');
-    setCloudExtractCode('');
-    setCloudUploadedFile(null);
-    onClose();
+
+    // 如果没有上传文件但有网盘链接和提取码，尝试自动下载
+    if (cloudDriveUrl && extractCode && onCloudFileWithFile) {
+      setParsing(true);
+      setParseError('');
+
+      try {
+        // 调用后端 API 解析并下载网盘文件
+        const res = await fetch('/api/knowledge/parse-cloud-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: cloudDriveUrl, extractCode, moduleType })
+        });
+
+        const data = await res.json();
+
+        if (data.success && data.data) {
+          // 将 base64 数据转换为 File 对象
+          const byteCharacters = atob(data.data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const file = new File([byteArray], data.fileName || fileName, { type: data.fileType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+          // 调用文件上传回调
+          onCloudFileWithFile(cloudDriveUrl, fileName, description, extractCode, file);
+          
+          setCloudDriveUrl('');
+          setCloudFileName('');
+          setCloudFileDescription('');
+          setCloudExtractCode('');
+          setCloudUploadedFile(null);
+          onClose();
+        } else {
+          // 自动下载失败，提示用户手动上传
+          if (data.requiresManualDownload) {
+            setParseError(data.error || '无法自动下载文件，请手动下载文件后上传');
+          } else {
+            setParseError(data.error || '解析网盘链接失败');
+          }
+        }
+      } catch (error) {
+        setParseError('网络错误，无法自动下载文件。请手动下载文件后上传。');
+        console.error('Cloud link parsing error:', error);
+      } finally {
+        setParsing(false);
+      }
+    } else {
+      // 只保存链接信息
+      onCloudFileUpload(cloudDriveUrl, fileName, description, extractCode);
+      setCloudDriveUrl('');
+      setCloudFileName('');
+      setCloudFileDescription('');
+      setCloudExtractCode('');
+      setCloudUploadedFile(null);
+      onClose();
+    }
   };
 
   const handleCloudFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -280,10 +338,10 @@ export default function MultiUploadDialog({
                   <strong>网盘链接上传说明：</strong>
                 </p>
                 <ul className="text-xs text-purple-600 dark:text-purple-400 space-y-1">
-                  <li>• 支持百度网盘、阿里云盘、腾讯云盘等网盘分享链接</li>
+                  <li>• <strong>百度网盘</strong>：填写提取码后可尝试自动下载并解析文件</li>
+                  <li>• <strong>其他网盘</strong>（阿里云盘、腾讯云盘等）：请先手动下载文件后上传</li>
                   <li>• 系统会保存链接地址，后续可一键访问</li>
                   <li>• 可自定义文件名称以便管理</li>
-                  <li>• 请填写完整的文件信息，包括提取码</li>
                 </ul>
                 <div className="mt-3 p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
                   <p className="text-xs text-purple-800 dark:text-purple-200 font-medium mb-2">示例格式：</p>
@@ -322,6 +380,9 @@ export default function MultiUploadDialog({
                   disabled={uploading}
                   className="w-full px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                  💡 如果填写了提取码，系统将尝试自动下载并解析文件（仅支持百度网盘）
+                </p>
               </div>
 
               <div>
@@ -340,11 +401,11 @@ export default function MultiUploadDialog({
 
               <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
                 <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">
-                  <strong>📁 上传从网盘下载的文件（推荐）</strong>
+                  <strong>📁 上传从网盘下载的文件（可选）</strong>
                 </p>
                 <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">
-                  为了解析并导入文件内容到{moduleNames[moduleType]}，请先从网盘下载文件，然后在此处上传。
-                  系统将自动解析文件内容并进行导入。
+                  {moduleType === 'quota' && '如果百度网盘自动下载失败，请手动下载文件后在此上传。系统将自动解析 Excel 内容并进行字段映射。'}
+                  {moduleType !== 'quota' && '如果百度网盘自动下载失败，请手动下载文件后在此上传。系统将自动解析文件内容并导入。'}
                 </p>
                 <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-amber-300 dark:border-amber-700 rounded-lg cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
                   <div className="flex flex-col items-center justify-center">
