@@ -199,6 +199,203 @@ export class PriceMatcher {
   }
 
   /**
+   * 提取参数描述关键词（多维度匹配关键）
+   * 从参数描述中提取技术规格关键词
+   *
+   * 策略：
+   * 1. 提取关键规格（容量、尺寸、材质等）
+   * 2. 提取技术参数（功率、电压、转速等）
+   * 3. 提取材质关键词
+   * 4. 保留数字和单位组合
+   */
+  private static extractSpecKeywords(paramDescription: string): string[] {
+    if (!paramDescription) return [];
+
+    const keywords: string[] = [];
+
+    // 1. 提取数字+单位组合（如 1m³、DN100、200W 等）
+    const numUnitMatches = paramDescription.match(/\d+(\.\d+)?\s*(m³|m3|立方|立方米|mm|cm|m|米|毫米|厘米|DN|W|KW|V|KV|A|rpm|L|升|吨|方|公斤|kg|kgf|bar|MPa|帕)/gi);
+    if (numUnitMatches) {
+      numUnitMatches.forEach(match => {
+        keywords.push(match.toUpperCase());
+      });
+    }
+
+    // 2. 提取材质关键词（PVC、不锈钢、碳钢等）
+    const materialMatches = paramDescription.match(/(不锈钢|碳钢|PVC|PE|PP|ABS|PVC-U|UPVC|FRP|玻璃钢|铸铁|铝合金|铜|聚乙烯|聚丙烯)/gi);
+    if (materialMatches) {
+      materialMatches.forEach(match => {
+        const upperMatch = match.toUpperCase();
+        if (!keywords.includes(upperMatch)) {
+          keywords.push(upperMatch);
+        }
+      });
+    }
+
+    // 3. 提取关键参数词
+    const paramMatches = paramDescription.match(/(功率|电压|电流|转速|流量|扬程|压力|温度|容量|规格|型号|材质|尺寸|重量|效率)/g);
+    if (paramMatches) {
+      paramMatches.forEach(match => {
+        if (!keywords.includes(match)) {
+          keywords.push(match);
+        }
+      });
+    }
+
+    // 4. 提取较大的纯数字（可能表示容量、尺寸等）
+    const numMatches = paramDescription.match(/\b\d{3,}\b/g);
+    if (numMatches) {
+      numMatches.forEach(num => {
+        if (!keywords.includes(num)) {
+          keywords.push(num);
+        }
+      });
+    }
+
+    console.log('[PriceMatcher] 提取的参数关键词:', keywords);
+    return keywords;
+  }
+
+  /**
+   * 多维度相似度计算（核心算法）
+   * 从产品名称、规格型号、参数描述三个维度计算综合相似度
+   *
+   * 权重分配：
+   * - 产品名称：40%（核心识别）
+   * - 规格型号：35%（关键区分）
+   * - 参数描述：25%（技术匹配）
+   */
+  private static calculateMultiDimensionalSimilarity(target: ProductMatch, product: any): number {
+    let totalScore = 0;
+    let totalWeight = 0;
+
+    // 维度1：产品名称相似度（权重40%）
+    const nameScore = this.calculateNameSimilarity(target.name, product.name);
+    totalScore += nameScore * 40;
+    totalWeight += 40;
+
+    // 维度2：规格型号相似度（权重35%）
+    const modelScore = this.calculateModelSimilarity(target.model, product.model);
+    totalScore += modelScore * 35;
+    totalWeight += 35;
+
+    // 维度3：参数描述相似度（权重25%）
+    const specScore = this.calculateSpecSimilarity(
+      target.parameter_description || '',
+      product.parameter_description || ''
+    );
+    totalScore += specScore * 25;
+    totalWeight += 25;
+
+    // 计算综合得分
+    const finalScore = totalWeight > 0 ? totalScore / totalWeight : 0;
+
+    console.log('[PriceMatcher] 多维度相似度计算:', {
+      名称: nameScore.toFixed(2),
+      型号: modelScore.toFixed(2),
+      参数: specScore.toFixed(2),
+      综合: finalScore.toFixed(2)
+    });
+
+    return finalScore;
+  }
+
+  /**
+   * 计算产品名称相似度
+   */
+  private static calculateNameSimilarity(targetName: string, productName: string): number {
+    if (!targetName || !productName) return 0;
+
+    // 清理名称
+    const cleanedTarget = this.cleanProductName(targetName);
+    const cleanedProduct = this.cleanProductName(productName);
+
+    // 完全相同
+    if (cleanedTarget.toLowerCase() === cleanedProduct.toLowerCase()) {
+      return 1.0;
+    }
+
+    // 包含关系
+    if (cleanedTarget.toLowerCase().includes(cleanedProduct.toLowerCase()) ||
+        cleanedProduct.toLowerCase().includes(cleanedTarget.toLowerCase())) {
+      return 0.9;
+    }
+
+    // 计算相似度
+    return this.calculateSimilarity(cleanedTarget.toLowerCase(), cleanedProduct.toLowerCase());
+  }
+
+  /**
+   * 计算规格型号相似度
+   */
+  private static calculateModelSimilarity(targetModel: string, productModel: string | number): number {
+    if (!targetModel) return 0;
+    if (!productModel && productModel !== 0) return 0;
+
+    // 标准化型号
+    const normalizedTarget = this.normalizeModel(targetModel);
+    const normalizedProduct = this.normalizeModel(String(productModel));
+
+    if (!normalizedTarget || !normalizedProduct) return 0;
+
+    // 完全相同
+    if (normalizedTarget.toLowerCase() === normalizedProduct.toLowerCase()) {
+      return 1.0;
+    }
+
+    // 数字比较
+    const targetNum = parseFloat(normalizedTarget);
+    const productNum = parseFloat(normalizedProduct);
+    if (!isNaN(targetNum) && !isNaN(productNum) && targetNum === productNum) {
+      return 0.95;
+    }
+
+    // 包含关系（谨慎使用，避免错误匹配）
+    if (normalizedTarget.length > 2 && normalizedProduct.length > 2) {
+      if (normalizedTarget.toLowerCase().includes(normalizedProduct.toLowerCase()) ||
+          normalizedProduct.toLowerCase().includes(normalizedTarget.toLowerCase())) {
+        return 0.6;
+      }
+    }
+
+    return 0;
+  }
+
+  /**
+   * 计算参数描述相似度
+   */
+  private static calculateSpecSimilarity(targetSpec: string, productSpec: string): number {
+    if (!targetSpec || !productSpec) return 0;
+
+    // 提取关键词
+    const targetKeywords = this.extractSpecKeywords(targetSpec);
+    const productKeywords = this.extractSpecKeywords(productSpec);
+
+    if (targetKeywords.length === 0 || productKeywords.length === 0) {
+      // 如果没有提取到关键词，使用普通相似度计算
+      return this.calculateSimilarity(targetSpec.toLowerCase(), productSpec.toLowerCase()) * 0.5;
+    }
+
+    // 计算关键词匹配度
+    let matchCount = 0;
+    targetKeywords.forEach(keyword => {
+      if (productKeywords.some(pk => pk.toLowerCase() === keyword.toLowerCase())) {
+        matchCount++;
+      }
+    });
+
+    const matchRatio = matchCount / targetKeywords.length;
+
+    // 完全匹配所有关键词
+    if (matchRatio === 1.0) {
+      return 1.0;
+    }
+
+    // 部分匹配
+    return matchRatio;
+  }
+
+  /**
    * 关键词宽泛匹配（万能匹配核心）
    * 只要产品名称包含任意一个关键词，就认为匹配
    */
@@ -444,6 +641,50 @@ export class PriceMatcher {
             return this.buildPriceResult(bestMatch, 90);
           }
         }
+
+        // 方式4：名称+型号+参数描述匹配（新增多维度匹配）
+        if (product.parameter_description) {
+          const exactMatchSpecQuery = supabase
+            .from('products')
+            .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+            .ilike('name', cleanedName)
+            .ilike('model', `%${normalizedModel}%`)
+            .ilike('parameter_description', `%${product.parameter_description}%`)
+            .limit(10);
+
+          const { data: exactMatchesSpec } = await exactMatchSpecQuery;
+          console.log('[PriceMatcher] 级别1-方式4（名称+型号+参数）查询结果数量:', exactMatchesSpec?.length || 0);
+
+          if (exactMatchesSpec && exactMatchesSpec.length > 0) {
+            const bestMatch = this.findBestMatch(exactMatchesSpec, product);
+            if (bestMatch) {
+              console.log('[PriceMatcher] ✅ 级别1-方式4匹配成功:', bestMatch.name, bestMatch.model);
+              return this.buildPriceResult(bestMatch, 95);
+            }
+          }
+        }
+      }
+
+      // ========== 级别1.5：名称+参数描述匹配（中间级别）==========
+      console.log('[PriceMatcher] ========== 级别1.5：名称+参数描述匹配 ==========');
+      if (cleanedName && product.parameter_description) {
+        const nameSpecQuery = supabase
+          .from('products')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+          .ilike('name', `%${cleanedName}%`)
+          .ilike('parameter_description', `%${product.parameter_description}%`)
+          .limit(10);
+
+        const { data: nameSpecMatches } = await nameSpecQuery;
+        console.log('[PriceMatcher] 级别1.5查询结果数量:', nameSpecMatches?.length || 0);
+
+        if (nameSpecMatches && nameSpecMatches.length > 0) {
+          const bestMatch = this.findBestMatch(nameSpecMatches, product);
+          if (bestMatch) {
+            console.log('[PriceMatcher] ✅ 级别1.5匹配成功:', bestMatch.name, bestMatch.model);
+            return this.buildPriceResult(bestMatch, 88);
+          }
+        }
       }
 
       // ========== 级别2：名称包含 + 型号精确匹配 ==========
@@ -489,6 +730,28 @@ export class PriceMatcher {
             }
           }
         }
+
+        // 方式3：名称+型号+参数描述匹配（增强版）
+        if (product.parameter_description) {
+          const nameModelSpecQuery = supabase
+            .from('products')
+            .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+            .ilike('name', `%${cleanedName}%`)
+            .eq('model', normalizedModel)
+            .ilike('parameter_description', `%${product.parameter_description}%`)
+            .limit(10);
+
+          const { data: nameModelSpecMatches } = await nameModelSpecQuery;
+          console.log('[PriceMatcher] 级别2-方式3查询结果数量:', nameModelSpecMatches?.length || 0);
+
+          if (nameModelSpecMatches && nameModelSpecMatches.length > 0) {
+            const bestMatch = this.findBestMatch(nameModelSpecMatches, product);
+            if (bestMatch) {
+              console.log('[PriceMatcher] ✅ 级别2-方式3匹配成功:', bestMatch.name, bestMatch.model);
+              return this.buildPriceResult(bestMatch, 87);
+            }
+          }
+        }
       }
 
       // ========== 级别3：名称包含 + 型号包含（模糊匹配）==========
@@ -511,6 +774,28 @@ export class PriceMatcher {
             return this.buildPriceResult(bestMatch, 75);
           }
         }
+
+        // 方式2：名称+型号+参数描述模糊匹配
+        if (product.parameter_description) {
+          const fuzzySpecQuery = supabase
+            .from('products')
+            .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+            .ilike('name', `%${cleanedName}%`)
+            .ilike('model', `%${normalizedModel}%`)
+            .ilike('parameter_description', `%${product.parameter_description}%`)
+            .limit(10);
+
+          const { data: fuzzySpecMatches } = await fuzzySpecQuery;
+          console.log('[PriceMatcher] 级别3-方式2查询结果数量:', fuzzySpecMatches?.length || 0);
+
+          if (fuzzySpecMatches && fuzzySpecMatches.length > 0) {
+            const bestMatch = this.findBestMatch(fuzzySpecMatches, product);
+            if (bestMatch) {
+              console.log('[PriceMatcher] ✅ 级别3-方式2匹配成功:', bestMatch.name, bestMatch.model);
+              return this.buildPriceResult(bestMatch, 77);
+            }
+          }
+        }
       }
 
       // ========== 级别3.5：关键词宽泛匹配（万能匹配核心）==========
@@ -521,6 +806,32 @@ export class PriceMatcher {
         if (keywordResult) {
           console.log('[PriceMatcher] ✅ 级别3.5关键词匹配成功');
           return keywordResult;
+        }
+      }
+
+      // ========== 级别3.6：参数描述关键词匹配（新增）==========
+      console.log('[PriceMatcher] ========== 级别3.6：参数描述关键词匹配 ==========');
+      if (product.parameter_description) {
+        const specKeywords = this.extractSpecKeywords(product.parameter_description);
+        if (specKeywords.length > 0) {
+          for (const keyword of specKeywords) {
+            const specKeywordQuery = supabase
+              .from('products')
+              .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+              .ilike('parameter_description', `%${keyword}%`)
+              .limit(10);
+
+            const { data: specKeywordMatches } = await specKeywordQuery;
+            console.log(`[PriceMatcher] 参数关键词"${keyword}"匹配数量:`, specKeywordMatches?.length || 0);
+
+            if (specKeywordMatches && specKeywordMatches.length > 0) {
+              const bestMatch = this.findBestMatch(specKeywordMatches, product);
+              if (bestMatch) {
+                console.log('[PriceMatcher] ✅ 级别3.6参数关键词匹配成功:', bestMatch.name, bestMatch.model);
+                return this.buildPriceResult(bestMatch, 63);
+              }
+            }
+          }
         }
       }
 
@@ -541,13 +852,12 @@ export class PriceMatcher {
         console.log('[PriceMatcher] 级别4查询结果数量（使用"' + searchName + '"）:', nameOnlyMatches?.length || 0);
 
         if (nameOnlyMatches && nameOnlyMatches.length > 0) {
-          // 如果有多个匹配，尝试找到最接近的（考虑型号）
-          let bestMatch = nameOnlyMatches[0];
-          if (normalizedModel) {
-            bestMatch = this.findBestMatch(nameOnlyMatches, product);
+          // 如果有多个匹配，尝试找到最接近的（考虑型号和参数）
+          const bestMatch = this.findBestMatch(nameOnlyMatches, product);
+          if (bestMatch) {
+            console.log('[PriceMatcher] ✅ 级别4匹配成功:', bestMatch.name, bestMatch.model);
+            return this.buildPriceResult(bestMatch, 60);
           }
-          console.log('[PriceMatcher] ✅ 级别4匹配成功:', bestMatch.name, bestMatch.model);
-          return this.buildPriceResult(bestMatch, 60);
         }
       }
 
@@ -567,6 +877,25 @@ export class PriceMatcher {
           const bestMatch = this.findBestMatch(modelOnlyMatches, product);
           console.log('[PriceMatcher] ✅ 级别5匹配成功:', bestMatch.name, bestMatch.model);
           return this.buildPriceResult(bestMatch, 40);
+        }
+      }
+
+      // ========== 级别6：仅参数描述匹配（最后回退）==========
+      console.log('[PriceMatcher] ========== 级别6：仅参数描述匹配 ==========');
+      if (product.parameter_description) {
+        const specOnlyQuery = supabase
+          .from('products')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+          .ilike('parameter_description', `%${product.parameter_description}%`)
+          .limit(10);
+
+        const { data: specOnlyMatches } = await specOnlyQuery;
+        console.log('[PriceMatcher] 级别6查询结果数量:', specOnlyMatches?.length || 0);
+
+        if (specOnlyMatches && specOnlyMatches.length > 0) {
+          const bestMatch = this.findBestMatch(specOnlyMatches, product);
+          console.log('[PriceMatcher] ✅ 级别6匹配成功:', bestMatch.name, bestMatch.model);
+          return this.buildPriceResult(bestMatch, 35);
         }
       }
       
@@ -978,82 +1307,63 @@ export class PriceMatcher {
   }
 
   /**
-   * 查找最佳匹配产品
+   * 查找最佳匹配产品（多维度匹配优化版）
+   * 从产品名称、规格型号、参数描述三个维度进行综合评分
+   *
+   * 权重分配：
+   * - 产品名称：40%
+   * - 规格型号：35%
+   * - 参数描述：25%
    */
   private static findBestMatch(products: any[], target: ProductMatch): any | null {
     if (!products || products.length === 0) return null;
 
     let bestMatch = null;
     let bestScore = 0;
+    let bestDetails: any = {};
 
-    // 清理目标产品名称
-    const cleanedTargetName = this.cleanProductName(target.name);
-    
-    // 标准化目标型号（统一转换为字符串）
-    const normalizedTargetModel = this.normalizeModel(target.model);
+    console.log('[PriceMatcher] ========== 开始多维度匹配 ==========');
+    console.log('[PriceMatcher] 目标产品:', {
+      名称: target.name,
+      型号: target.model,
+      参数: target.parameter_description
+    });
 
     for (const product of products) {
-      let score = 0;
+      console.log('[PriceMatcher] 评估候选产品:', {
+        名称: product.name,
+        型号: product.model,
+        参数: product.parameter_description
+      });
 
-      // 名称匹配（使用清理后的名称）
-      if (product.name) {
-        const cleanedProductName = this.cleanProductName(product.name);
-        const nameSimilarity = this.calculateSimilarity(
-          cleanedTargetName.toLowerCase(),
-          cleanedProductName.toLowerCase()
-        );
-        score += nameSimilarity * 60; // 名称权重60%
-      }
+      // 使用多维度相似度算法
+      const similarity = this.calculateMultiDimensionalSimilarity(target, product);
 
-      // 型号匹配（增强：支持数字和字符串的比较）
-      if (normalizedTargetModel && product.model !== null && product.model !== undefined) {
-        // 标准化数据库中的型号
-        let normalizedProductModel = String(product.model).trim();
-
-        // 如果数据库中的型号是数字字符串，转换为标准格式
-        const numMatch = normalizedProductModel.match(/^\d+(\.\d+)?$/);
-        if (numMatch) {
-          // 如果是纯数字字符串，标准化为数字（去除前导零）
-          const num = parseFloat(normalizedProductModel);
-          if (!isNaN(num)) {
-            normalizedProductModel = String(num);
-          }
-        }
-
-        // 比较型号（只支持完全匹配，不使用includes避免错误匹配）
-        if (normalizedProductModel === normalizedTargetModel) {
-          score += 40; // 完全匹配型号加40分（提高权重）
-          console.log('[PriceMatcher] 型号完全匹配:', normalizedTargetModel, '=', normalizedProductModel);
-        } else {
-          // 尝试将两者都转换为数字进行比较
-          const targetNum = parseFloat(normalizedTargetModel);
-          const productNum = parseFloat(normalizedProductModel);
-          if (!isNaN(targetNum) && !isNaN(productNum) && targetNum === productNum) {
-            score += 35; // 数字匹配加35分（略低于完全匹配）
-            console.log('[PriceMatcher] 型号数字匹配:', targetNum, '=', productNum);
-          }
-        }
-      }
-
-      // 规格匹配
-      if (target.parameter_description && product.parameter_description) {
-        const specSimilarity = this.calculateSimilarity(
-          target.parameter_description.toLowerCase(),
-          product.parameter_description.toLowerCase()
-        );
-        score += specSimilarity * 10; // 规格权重10%
-      }
-
-      if (score > bestScore) {
-        bestScore = score;
+      if (similarity > bestScore) {
+        bestScore = similarity;
         bestMatch = product;
+        bestDetails = {
+          名称相似度: this.calculateNameSimilarity(target.name, product.name).toFixed(2),
+          型号相似度: this.calculateModelSimilarity(target.model, product.model).toFixed(2),
+          参数相似度: this.calculateSpecSimilarity(
+            target.parameter_description || '',
+            product.parameter_description || ''
+          ).toFixed(2),
+          综合得分: similarity.toFixed(2)
+        };
       }
     }
 
-    console.log('[PriceMatcher] 最佳匹配得分:', bestScore);
-    console.log('[PriceMatcher] 最佳匹配产品:', bestMatch?.name);
+    console.log('[PriceMatcher] 最佳匹配详情:', bestDetails);
+    console.log('[PriceMatcher] 最佳匹配产品:', bestMatch?.name, bestMatch?.model);
     
-    return bestMatch;
+    // 只有得分超过阈值才返回最佳匹配
+    if (bestScore >= 0.3) {
+      return bestMatch;
+    }
+
+    console.log('[PriceMatcher] 所有候选产品得分都低于阈值(0.3)，返回第一个结果');
+    return products[0];
   }
 
   /**
