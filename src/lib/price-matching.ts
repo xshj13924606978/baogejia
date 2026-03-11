@@ -206,7 +206,7 @@ export class PriceMatcher {
       // 调试：查看数据库中相关产品（使用CAST正确提取price值）
       const debugQuery = supabase
         .from('products')
-        .select('id, name, model, price::text as price, parameter_description, description')
+        .select('id, name, model, price::text as price, parameter_description, brand, description')
         .ilike('name', `%${cleanedName}%`)
         .limit(20);
       
@@ -227,7 +227,7 @@ export class PriceMatcher {
         // 方式1：字符串精确匹配（model 作为字符串）
         const exactMatchQuery = supabase
           .from('products')
-          .select('id, name, model, price::text as price, parameter_description, description')
+          .select('id, name, model, price::text as price, parameter_description, brand, description')
           .ilike('name', cleanedName)
           .eq('model', normalizedModel)
           .limit(10);

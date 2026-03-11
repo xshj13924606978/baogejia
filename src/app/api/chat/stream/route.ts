@@ -109,11 +109,26 @@ export async function POST(request: NextRequest) {
     
     // 4. 价格查询预处理（优先查询数据库）
     let enhancedMessage = message;
+    let databaseInfo: any = null; // 保存数据库信息
     try {
       const priceQuery = (smartChatProcessor as any).detectPriceQuery(message);
       if (priceQuery.isPriceQuery && priceQuery.productName) {
         console.log('[Chat Stream API] 检测到价格查询:', priceQuery);
         const priceResult = await (smartChatProcessor as any).handlePriceQuery(priceQuery.productName, priceQuery.model);
+        if (priceResult.priceData) {
+          // 保存数据库信息
+          databaseInfo = {
+            productName: priceResult.priceData.productName,
+            model: priceResult.priceData.model,
+            price: priceResult.priceData.price,
+            brand: priceResult.priceData.brand,
+            parameterDescription: priceResult.priceData.parameterDescription,
+            costPrice: priceResult.priceData.costPrice,
+            minPrice: priceResult.priceData.minPrice,
+            description: priceResult.priceData.description
+          };
+          console.log('[Chat Stream API] 已保存数据库信息:', databaseInfo);
+        }
         if (priceResult.contextInfo) {
           enhancedMessage += priceResult.contextInfo;
           console.log('[Chat Stream API] 已添加价格查询结果到上下文');
@@ -169,8 +184,16 @@ export async function POST(request: NextRequest) {
           if (conversationId) {
             // 先添加用户消息
             globalConversationMemory.addToHistory(conversationId, 'user', message);
+
+            // 将数据库信息添加到AI回复的末尾（隐藏格式，用户不可见，但LLM可以读取）
+            let assistantMessage = fullContent;
+            if (databaseInfo) {
+              assistantMessage += `\n\n<!-- DATABASE_INFO: ${JSON.stringify(databaseInfo)} -->`;
+              console.log('[Chat Stream API] 已将数据库信息添加到AI回复中');
+            }
+
             // 再添加AI回复
-            globalConversationMemory.addToHistory(conversationId, 'assistant', fullContent);
+            globalConversationMemory.addToHistory(conversationId, 'assistant', assistantMessage);
           }
           
           // 解析完整响应
