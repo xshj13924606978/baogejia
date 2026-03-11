@@ -125,13 +125,14 @@ export async function POST(request: NextRequest) {
             parameterDescription: priceResult.priceData.parameterDescription,
             costPrice: priceResult.priceData.costPrice,
             minPrice: priceResult.priceData.minPrice,
-            description: priceResult.priceData.description
+            description: priceResult.priceData.description,
+            currency: priceResult.priceData.currency
           };
           console.log('[Chat Stream API] 已保存数据库信息:', databaseInfo);
         }
         if (priceResult.contextInfo) {
           enhancedMessage += priceResult.contextInfo;
-          console.log('[Chat Stream API] 已添加价格查询结果到上下文');
+          console.log('[Chat Stream API] 已添加价格查询结果到上下文:', priceResult.contextInfo);
         }
       }
     } catch (error) {

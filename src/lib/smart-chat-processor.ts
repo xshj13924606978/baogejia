@@ -135,11 +135,16 @@ export class SmartChatProcessor {
         if (priceResult.minPrice) {
           contextInfo += `最低售价：${priceResult.minPrice.toFixed(2)} 元\n`;
         }
+        if (priceResult.currency) {
+          contextInfo += `货币单位：${priceResult.currency}\n`;
+        }
 
         if (priceResult.source === 'market' && priceResult.marketSource) {
           contextInfo += `市场价来源：${priceResult.marketSource}\n`;
           contextInfo += `注意：此价格为市场参考价，实际价格可能因供应商、数量等因素而异。`;
         }
+
+        console.log('[SmartChatProcessor] 生成的上下文信息:', contextInfo);
       }
 
       return {

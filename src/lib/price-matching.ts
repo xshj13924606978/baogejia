@@ -419,17 +419,45 @@ export class PriceMatcher {
     let minPrice: number | null = null;
 
     // 直接使用display_price字段（NUMERIC类型）
-    if (product.display_price) {
+    if (product.display_price !== null && product.display_price !== undefined) {
+      console.log('[PriceMatcher] display_price原始值:', product.display_price, '类型:', typeof product.display_price);
+
       if (typeof product.display_price === 'number') {
         finalPrice = product.display_price;
-        console.log('[PriceMatcher] 使用display_price:', finalPrice);
+        console.log('[PriceMatcher] 使用display_price（数字类型）:', finalPrice);
       } else if (typeof product.display_price === 'string') {
-        const priceNum = parseFloat(product.display_price);
-        if (!isNaN(priceNum)) {
-          finalPrice = priceNum;
-          console.log('[PriceMatcher] 从display_price字符串提取:', finalPrice);
+        // 检查是否是NUMRANGE格式字符串：{490900 -2 false finite true}
+        if (product.display_price.startsWith('{')) {
+          // NUMRANGE格式，提取第一个数字并除以100
+          const matches = product.display_price.match(/\{([0-9.]+)/);
+          if (matches && matches[1]) {
+            const rawValue = parseFloat(matches[1]);
+            // 数据库存储的值是实际价格的100倍，需要除以100
+            finalPrice = rawValue / 100;
+            console.log('[PriceMatcher] 从NUMRANGE字符串提取:', rawValue, '除以100后:', finalPrice);
+          } else {
+            console.error('[PriceMatcher] 无法解析NUMRANGE格式:', product.display_price);
+          }
         } else {
-          console.error('[PriceMatcher] 无法解析display_price:', product.display_price);
+          // 普通数字字符串
+          const priceNum = parseFloat(product.display_price);
+          if (!isNaN(priceNum)) {
+            finalPrice = priceNum;
+            console.log('[PriceMatcher] 从display_price字符串提取:', finalPrice);
+          } else {
+            console.error('[PriceMatcher] 无法解析display_price字符串:', product.display_price);
+          }
+        }
+      } else if (typeof product.display_price === 'object') {
+        console.log('[PriceMatcher] display_price是对象类型:', JSON.stringify(product.display_price));
+        // 尝试转换为字符串再处理
+        const priceStr = String(product.display_price);
+        if (priceStr.startsWith('{')) {
+          const matches = priceStr.match(/\{([0-9.]+)/);
+          if (matches && matches[1]) {
+            finalPrice = parseFloat(matches[1]) / 100;
+            console.log('[PriceMatcher] 从对象转换的NUMRANGE提取:', finalPrice);
+          }
         }
       } else {
         console.error('[PriceMatcher] display_price类型无效:', typeof product.display_price);
