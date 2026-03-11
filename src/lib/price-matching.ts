@@ -248,7 +248,7 @@ export class PriceMatcher {
         if (!isNaN(modelNum)) {
           const exactMatchNumQuery = supabase
             .from('products')
-            .select('*')
+            .select('id, name, model, lower(price) as price, parameter_description, brand, description')
             .ilike('name', cleanedName)
             .eq('model', modelNum)
             .limit(10);
@@ -268,7 +268,7 @@ export class PriceMatcher {
         // 方式3：型号包含匹配（字符串）
         const exactMatchFuzzyQuery = supabase
           .from('products')
-          .select('*')
+          .select('id, name, model, lower(price) as price, parameter_description, brand, description')
           .ilike('name', cleanedName)
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
@@ -291,7 +291,7 @@ export class PriceMatcher {
         // 方式1：字符串精确匹配
         const nameMatchQuery = supabase
           .from('products')
-          .select('*')
+          .select('id, name, model, lower(price) as price, parameter_description, brand, description')
           .ilike('name', `%${cleanedName}%`)
           .eq('model', normalizedModel)
           .limit(10);
@@ -312,7 +312,7 @@ export class PriceMatcher {
         if (!isNaN(modelNum)) {
           const nameMatchNumQuery = supabase
             .from('products')
-            .select('*')
+            .select('id, name, model, lower(price) as price, parameter_description, brand, description')
             .ilike('name', `%${cleanedName}%`)
             .eq('model', modelNum)
             .limit(10);
@@ -335,7 +335,7 @@ export class PriceMatcher {
       if (normalizedModel && cleanedName) {
         const fuzzyMatchQuery = supabase
           .from('products')
-          .select('*')
+          .select('id, name, model, lower(price) as price, parameter_description, brand, description')
           .ilike('name', `%${cleanedName}%`)
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
@@ -357,7 +357,7 @@ export class PriceMatcher {
       if (cleanedName) {
         const nameOnlyQuery = supabase
           .from('products')
-          .select('*')
+          .select('id, name, model, lower(price) as price, parameter_description, brand, description')
           .ilike('name', `%${cleanedName}%`)
           .limit(10);
         
@@ -380,7 +380,7 @@ export class PriceMatcher {
       if (normalizedModel) {
         const modelOnlyQuery = supabase
           .from('products')
-          .select('*')
+          .select('id, name, model, lower(price) as price, parameter_description, brand, description')
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
         
@@ -407,36 +407,33 @@ export class PriceMatcher {
   /**
    * 构建价格结果
    * 修复：正确处理PostgreSQL的NUMRANGE类型price字段
+   *
+   * 注意：数据库中price是NUMRANGE类型，格式如 {54500 -2 false finite true}
+   * 但是直接查询时，Supabase会返回CAST后的值，如 545.00
+   * 不应该手动解析NUMRANGE字符串，而应该直接使用CAST后的值
    */
   private static buildPriceResult(product: any, confidence: number): PriceMatchResult {
     let finalPrice: number = 0;
     let costPrice: number | null = null;
     let minPrice: number | null = null;
 
-    // 处理PostgreSQL的NUMRANGE类型price字段
-    // NUMRANGE格式示例：{54500 -2 false finite true}
-    // 表示下限54500，无上限
+    // 处理price字段（可能是NUMRANGE类型或已CAST的数字）
     if (product.price) {
-      const priceStr = String(product.price);
-
-      // 检测是否是NUMRANGE格式（包含花括号）
-      if (priceStr.startsWith('{') && priceStr.includes('}')) {
-        // 解析NUMRANGE格式，提取下限值
-        // 格式：{lower_bound upper_bound lower_inclusive upper_inclusive lower_finite upper_finite}
-        const rangeMatch = priceStr.match(/^\{([^,]+)\s+/);
-        if (rangeMatch && rangeMatch[1]) {
-          const lowerBound = parseFloat(rangeMatch[1]);
-          if (!isNaN(lowerBound)) {
-            finalPrice = lowerBound;
-            console.log('[PriceMatcher] 从NUMRANGE提取下限价格:', finalPrice);
-          }
-        }
-      } else if (typeof product.price === 'number') {
-        // 直接是数字类型
+      // 如果是数字类型，直接使用
+      if (typeof product.price === 'number') {
         finalPrice = product.price;
-      } else if (!isNaN(parseFloat(priceStr))) {
-        // 可以转换为数字的字符串
-        finalPrice = parseFloat(priceStr);
+        console.log('[PriceMatcher] 价格是数字类型:', finalPrice);
+      } else if (typeof product.price === 'string') {
+        // 如果是字符串，尝试转换为数字
+        const priceNum = parseFloat(product.price);
+        if (!isNaN(priceNum)) {
+          finalPrice = priceNum;
+          console.log('[PriceMatcher] 从字符串提取价格:', finalPrice);
+        } else {
+          // 如果字符串包含花括号（NUMRANGE格式），说明查询时没有CAST
+          // 这种情况下应该使用lower(price)来获取正确值
+          console.error('[PriceMatcher] 检测到NUMRANGE字符串，应该使用lower(price)查询:', product.price);
+        }
       } else {
         console.error('[PriceMatcher] 无法解析price字段:', product.price);
       }
