@@ -93,7 +93,7 @@ export class PriceMatcher {
 
   /**
    * 清理产品名称，移除规格描述，保留核心产品名称
-   * 
+   *
    * 支持的清理规则（按优先级）：
    * 1. 容量规格（立方、立方米、m³等）
    * 2. 管径规格（DN、Φ等）
@@ -110,30 +110,191 @@ export class PriceMatcher {
     // 支持：2立方、2立方米、2m³、2m3、2方、两立方、二立方等
     cleaned = cleaned.replace(/\d+(\.\d+)?\s*(立方|立方米|m³|m3|方)\b/gi, '');
     cleaned = cleaned.replace(/[一两二三四五六七八九十百千万亿]+\s*立方(米)?\b/g, '');
-    
+
     // 2. 移除管径规格（DN数字、Φ数字、英寸规格）
     cleaned = cleaned.replace(/\b(DN|Φ|inch|\")\s*\d+(\.\d+)?\b/gi, '');
-    
+
     // 3. 移除尺寸规格（长×宽×高、长度单位）
     cleaned = cleaned.replace(/\d+(\.\d+)?\s*[×x*]\s*\d+(\.\d+)?(\s*[×x*]\s*\d+(\.\d+)?)?/g, '');
     cleaned = cleaned.replace(/\d+(\.\d+)?\s*(mm|cm|m|米|毫米|厘米)\b/gi, '');
-    
+
     // 4. 移除材质描述（但保留材质作为产品名的一部分，如PVC管）
     // 不移除 PVC-U、FRP 等材质标识
-    
+
     // 5. 移除常见规格关键词
     cleaned = cleaned.replace(/\b(重型|轻型|标准|加强|普通|防水|耐腐蚀|密封|C20|座|台|套|件|个|只|支)\b/gi, '');
-    
+
     // 6. 移除括号内的内容（规格说明）
     cleaned = cleaned.replace(/（[^）]*）/g, '');
     cleaned = cleaned.replace(/\([^)]*\)/g, '');
-    
+
     // 7. 清理多余空格和符号
     cleaned = cleaned.trim()
       .replace(/\s+/g, ' ')
       .replace(/[，,、；;。]/g, '');
 
     return cleaned;
+  }
+
+  /**
+   * 提取产品关键词（万能匹配关键）
+   * 从产品名称中提取核心关键词，用于宽泛匹配
+   *
+   * 策略：
+   * 1. 提取所有中文词（2个字以上）
+   * 2. 提取英文单词（3个字母以上）
+   * 3. 保留品牌名、产品类型名
+   * 4. 过滤常见无意义词
+   */
+  private static extractKeywords(name: string): string[] {
+    if (!name) return [];
+
+    const keywords: string[] = [];
+
+    // 1. 提取中文词（2个字以上的有意义词汇）
+    // 匹配连续的中文字符
+    const chineseMatches = name.match(/[\u4e00-\u9fa5]{2,}/g);
+    if (chineseMatches) {
+      // 过滤掉常见无意义词
+      const stopWords = new Set([
+        '设备', '机器', '装置', '系统', '配件', '组件', '部件',
+        '产品', '商品', '物品', '用品', '工具', '器材',
+        '有限公司', '厂家', '生产', '制造', '销售', '批发', '零售',
+        '价格', '报价', '多少钱', '哪里有', '哪里买',
+        '请问', '咨询', '了解', '需要', '想要', '购买'
+      ]);
+
+      chineseMatches.forEach(word => {
+        if (!stopWords.has(word) && word.length >= 2) {
+          keywords.push(word);
+        }
+      });
+    }
+
+    // 2. 提取英文单词和缩写（如 FC, PVC, PE, LED 等）
+    const englishMatches = name.match(/[A-Za-z]{2,}/g);
+    if (englishMatches) {
+      englishMatches.forEach(word => {
+        // 保留所有英文缩写和品牌名
+        const upperWord = word.toUpperCase();
+        if (!keywords.includes(upperWord)) {
+          keywords.push(upperWord);
+        }
+      });
+    }
+
+    // 3. 提取数字（可能表示型号或规格）
+    const numberMatches = name.match(/\d+/g);
+    if (numberMatches) {
+      numberMatches.forEach(num => {
+        // 保留较大的数字（可能是型号）
+        if (parseInt(num) >= 10 && !keywords.includes(num)) {
+          keywords.push(num);
+        }
+      });
+    }
+
+    console.log('[PriceMatcher] 提取的关键词:', keywords);
+    return keywords;
+  }
+
+  /**
+   * 关键词宽泛匹配（万能匹配核心）
+   * 只要产品名称包含任意一个关键词，就认为匹配
+   */
+  private static async matchByKeywords(
+    product: ProductMatch,
+    keywords: string[]
+  ): Promise<PriceMatchResult | null> {
+    if (!keywords || keywords.length === 0) {
+      return null;
+    }
+
+    const supabase = getSupabaseClient();
+    const allMatches: any[] = [];
+
+    console.log('[PriceMatcher] ========== 级别3.5：关键词宽泛匹配 ==========');
+
+    // 为每个关键词执行匹配
+    for (const keyword of keywords) {
+      const query = supabase
+        .from('products')
+        .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+        .ilike('name', `%${keyword}%`)
+        .limit(10);
+
+      const { data: matches, error } = await query;
+      if (!error && matches && matches.length > 0) {
+        console.log(`[PriceMatcher] 关键词 "${keyword}" 匹配到 ${matches.length} 个产品`);
+        allMatches.push(...matches);
+      }
+    }
+
+    // 去重
+    const uniqueMatches = this.deduplicateProducts(allMatches);
+    console.log('[PriceMatcher] 关键词匹配去重后结果数量:', uniqueMatches.length);
+
+    if (uniqueMatches.length > 0) {
+      // 如果有型号，优先选择型号匹配的
+      let bestMatch = uniqueMatches[0];
+      if (product.model) {
+        bestMatch = this.findBestMatch(uniqueMatches, product);
+      } else {
+        // 否则选择关键词匹配最多的
+        bestMatch = this.findBestKeywordMatch(uniqueMatches, keywords);
+      }
+
+      console.log('[PriceMatcher] ✅ 级别3.5关键词匹配成功:', bestMatch.name, bestMatch.model);
+      return this.buildPriceResult(bestMatch, 65);
+    }
+
+    return null;
+  }
+
+  /**
+   * 产品去重（基于ID）
+   */
+  private static deduplicateProducts(products: any[]): any[] {
+    const seen = new Set();
+    return products.filter(p => {
+      if (seen.has(p.id)) {
+        return false;
+      }
+      seen.add(p.id);
+      return true;
+    });
+  }
+
+  /**
+   * 根据关键词匹配度选择最佳产品
+   */
+  private static findBestKeywordMatch(products: any[], keywords: string[]): any {
+    if (products.length === 0) return null;
+
+    let bestProduct = products[0];
+    let bestScore = 0;
+
+    products.forEach(product => {
+      let score = 0;
+      const productName = product.name || '';
+
+      // 计算关键词匹配数量
+      keywords.forEach(keyword => {
+        if (productName.toLowerCase().includes(keyword.toLowerCase())) {
+          score += 10;
+        }
+      });
+
+      // 长度匹配（名称越短越精确）
+      score -= productName.length * 0.1;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestProduct = product;
+      }
+    });
+
+    return bestProduct;
   }
 
   /**
@@ -339,10 +500,10 @@ export class PriceMatcher {
           .ilike('name', `%${cleanedName}%`)
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
-        
+
         const { data: fuzzyMatches } = await fuzzyMatchQuery;
         console.log('[PriceMatcher] 级别3查询结果数量:', fuzzyMatches?.length || 0);
-        
+
         if (fuzzyMatches && fuzzyMatches.length > 0) {
           const bestMatch = this.findBestMatch(fuzzyMatches, product);
           if (bestMatch) {
@@ -352,18 +513,33 @@ export class PriceMatcher {
         }
       }
 
-      // ========== 级别4：仅名称匹配（忽略型号）==========
-      console.log('[PriceMatcher] ========== 级别4：仅名称匹配 ==========');
-      if (cleanedName) {
+      // ========== 级别3.5：关键词宽泛匹配（万能匹配核心）==========
+      console.log('[PriceMatcher] ========== 级别3.5：关键词宽泛匹配 ==========');
+      const keywords = this.extractKeywords(product.name);
+      if (keywords.length > 0) {
+        const keywordResult = await this.matchByKeywords(product, keywords);
+        if (keywordResult) {
+          console.log('[PriceMatcher] ✅ 级别3.5关键词匹配成功');
+          return keywordResult;
+        }
+      }
+
+      // ========== 级别4：仅名称匹配（忽略型号，宽泛匹配）==========
+      console.log('[PriceMatcher] ========== 级别4：仅名称匹配（宽泛）==========');
+
+      // 如果清理后的名称为空或太短，尝试使用原始名称
+      const searchName = (!cleanedName || cleanedName.length < 2) ? product.name : cleanedName;
+
+      if (searchName) {
         const nameOnlyQuery = supabase
           .from('products')
           .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
-          .ilike('name', `%${cleanedName}%`)
-          .limit(10);
-        
+          .ilike('name', `%${searchName}%`)
+          .limit(20); // 增加返回数量，提高匹配概率
+
         const { data: nameOnlyMatches } = await nameOnlyQuery;
-        console.log('[PriceMatcher] 级别4查询结果数量:', nameOnlyMatches?.length || 0);
-        
+        console.log('[PriceMatcher] 级别4查询结果数量（使用"' + searchName + '"）:', nameOnlyMatches?.length || 0);
+
         if (nameOnlyMatches && nameOnlyMatches.length > 0) {
           // 如果有多个匹配，尝试找到最接近的（考虑型号）
           let bestMatch = nameOnlyMatches[0];
@@ -557,7 +733,7 @@ export class PriceMatcher {
   }
 
   /**
-   * 从知识库匹配（历史报价、案例）
+   * 从知识库匹配（历史报价、案例）- 万能匹配优化
    */
   private static async matchFromKnowledge(
     product: ProductMatch,
@@ -566,41 +742,77 @@ export class PriceMatcher {
     try {
       const supabase = getSupabaseClient();
 
-      // 构建搜索查询
-      let query = supabase
-        .from('knowledge_entries')
-        .select('*')
-        .eq('status', 'approved')
-        .in('type', ['quote', 'case']); // 只从报价和案例中搜索
+      console.log('[PriceMatcher] ====== 开始知识库匹配 ======');
 
-      // 使用清理后的产品名称进行搜索
-      const cleanedName = this.cleanProductName(product.name);
-      const searchText = `${cleanedName} ${product.model || ''}`.trim();
-      console.log('[PriceMatcher] 知识库搜索文本:', searchText);
-      
-      if (searchText) {
-        query = query.textSearch('title', searchText, {
-          config: 'chinese'
-        });
-      }
+      // 提取关键词，用于宽泛匹配
+      const keywords = this.extractKeywords(product.name);
+      console.log('[PriceMatcher] 知识库匹配提取的关键词:', keywords);
 
-      const { data: entries, error } = await query
-        .order('created_at', { ascending: false })
-        .limit(10);
+      const allEntries: any[] = [];
 
-      if (error) {
-        // 只在第一次遇到此错误时输出，避免重复
-        if (this.shouldLogError('knowledge-query', error)) {
-          console.log('[PriceMatcher] 知识库查询失败:', error);
+      // 策略1：使用产品名称进行模糊匹配
+      if (product.name) {
+        const nameQuery = supabase
+          .from('knowledge_entries')
+          .select('*')
+          .eq('status', 'approved')
+          .in('type', ['quote', 'case'])
+          .ilike('title', `%${product.name}%`)
+          .limit(10);
+
+        const { data: nameEntries, error: nameError } = await nameQuery;
+        if (!nameError && nameEntries) {
+          console.log('[PriceMatcher] 知识库名称匹配数量:', nameEntries.length);
+          allEntries.push(...nameEntries);
         }
-        return null;
       }
 
-      if (entries && entries.length > 0) {
+      // 策略2：使用关键词进行匹配
+      if (keywords.length > 0) {
+        for (const keyword of keywords) {
+          const keywordQuery = supabase
+            .from('knowledge_entries')
+            .select('*')
+            .eq('status', 'approved')
+            .in('type', ['quote', 'case'])
+            .ilike('title', `%${keyword}%`)
+            .limit(10);
+
+          const { data: keywordEntries, error: keywordError } = await keywordQuery;
+          if (!keywordError && keywordEntries) {
+            console.log(`[PriceMatcher] 知识库关键词"${keyword}"匹配数量:`, keywordEntries.length);
+            allEntries.push(...keywordEntries);
+          }
+        }
+      }
+
+      // 策略3：使用型号进行匹配
+      if (product.model) {
+        const modelQuery = supabase
+          .from('knowledge_entries')
+          .select('*')
+          .eq('status', 'approved')
+          .in('type', ['quote', 'case'])
+          .ilike('title', `%${product.model}%`)
+          .limit(10);
+
+        const { data: modelEntries, error: modelError } = await modelQuery;
+        if (!modelError && modelEntries) {
+          console.log('[PriceMatcher] 知识库型号匹配数量:', modelEntries.length);
+          allEntries.push(...modelEntries);
+        }
+      }
+
+      // 去重
+      const uniqueEntries = this.deduplicateProducts(allEntries);
+      console.log('[PriceMatcher] 知识库去重后匹配数量:', uniqueEntries.length);
+
+      if (uniqueEntries.length > 0) {
         // 尝试从metadata中提取价格
-        for (const entry of entries) {
+        for (const entry of uniqueEntries) {
           // 检查是否有直接价格
           if (entry.metadata?.price) {
+            console.log('[PriceMatcher] ✅ 知识库匹配成功（直接价格）:', entry.title);
             return {
               price: entry.metadata.price,
               source: 'knowledge',
@@ -610,9 +822,10 @@ export class PriceMatcher {
               sourceUrl: entry.file_url
             };
           }
-          
+
           // 检查是否有估算价格
           if (entry.metadata?.estimatedPrice) {
+            console.log('[PriceMatcher] ✅ 知识库匹配成功（估算价格）:', entry.title);
             return {
               price: entry.metadata.estimatedPrice,
               source: 'knowledge',
@@ -622,9 +835,10 @@ export class PriceMatcher {
               sourceUrl: entry.file_url
             };
           }
-          
+
           // 检查是否有市场价格
           if (entry.metadata?.marketPrice) {
+            console.log('[PriceMatcher] ✅ 知识库匹配成功（市场价格）:', entry.title);
             return {
               price: entry.metadata.marketPrice,
               source: 'knowledge',
@@ -637,17 +851,20 @@ export class PriceMatcher {
         }
 
         // 如果没有直接的价格，使用第一个匹配项的均价（如果有）
-        if (entries[0].metadata?.averagePrice) {
+        if (uniqueEntries[0].metadata?.averagePrice) {
+          console.log('[PriceMatcher] ✅ 知识库匹配成功（均价）:', uniqueEntries[0].title);
           return {
-            price: entries[0].metadata.averagePrice,
+            price: uniqueEntries[0].metadata.averagePrice,
             source: 'knowledge',
             confidence: 60,
-            productName: entries[0].title,
-            sourceId: entries[0].id,
-            sourceUrl: entries[0].file_url
+            productName: uniqueEntries[0].title,
+            sourceId: uniqueEntries[0].id,
+            sourceUrl: uniqueEntries[0].file_url
           };
         }
       }
+
+      console.log('[PriceMatcher] 知识库未找到匹配');
     } catch (error) {
       // 只在第一次遇到此错误时输出，避免重复
       if (this.shouldLogError('knowledge-match', error)) {
