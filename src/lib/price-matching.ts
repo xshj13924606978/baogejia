@@ -408,9 +408,10 @@ export class PriceMatcher {
    * 构建价格结果
    * 修复：正确处理PostgreSQL的NUMRANGE类型price字段
    *
-   * 注意：数据库中price是NUMRANGE类型，格式如 {54500 -2 false finite true}
-   * 但是直接查询时，Supabase会返回CAST后的值，如 545.00
-   * 不应该手动解析NUMRANGE字符串，而应该直接使用CAST后的值
+   * 注意：
+   * 1. 数据库中price是NUMRANGE类型，格式如 {54500 -2 false finite true}
+   * 2. 数据库存储的值是实际价格的100倍（可能以"分"为单位存储）
+   * 3. 例如：1m³化粪池数据库值为54500，实际价格为545元（54500/100）
    */
   private static buildPriceResult(product: any, confidence: number): PriceMatchResult {
     let finalPrice: number = 0;
@@ -419,20 +420,27 @@ export class PriceMatcher {
 
     // 处理price字段（可能是NUMRANGE类型或已CAST的数字）
     if (product.price) {
-      // 如果是数字类型，直接使用
+      // 如果是数字类型
       if (typeof product.price === 'number') {
-        finalPrice = product.price;
-        console.log('[PriceMatcher] 价格是数字类型:', finalPrice);
+        // 数据库存储的值是实际价格的100倍，需要除以100
+        finalPrice = product.price / 100;
+        console.log('[PriceMatcher] 价格是数字类型，除以100:', finalPrice);
       } else if (typeof product.price === 'string') {
         // 如果是字符串，尝试转换为数字
         const priceNum = parseFloat(product.price);
         if (!isNaN(priceNum)) {
-          finalPrice = priceNum;
-          console.log('[PriceMatcher] 从字符串提取价格:', finalPrice);
+          // 数据库存储的值是实际价格的100倍，需要除以100
+          finalPrice = priceNum / 100;
+          console.log('[PriceMatcher] 从字符串提取价格，除以100:', finalPrice);
+        } else if (product.price.startsWith('{')) {
+          // 如果是NUMRANGE格式字符串，需要提取第一个数字并除以100
+          const numMatch = product.price.match(/\{(\d+)/);
+          if (numMatch) {
+            finalPrice = parseInt(numMatch[1], 10) / 100;
+            console.log('[PriceMatcher] 从NUMRANGE字符串提取价格，除以100:', finalPrice);
+          }
         } else {
-          // 如果字符串包含花括号（NUMRANGE格式），说明查询时没有CAST
-          // 这种情况下应该使用lower(price)来获取正确值
-          console.error('[PriceMatcher] 检测到NUMRANGE字符串，应该使用lower(price)查询:', product.price);
+          console.error('[PriceMatcher] 无法解析price字段:', product.price);
         }
       } else {
         console.error('[PriceMatcher] 无法解析price字段:', product.price);
