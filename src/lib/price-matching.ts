@@ -5,6 +5,7 @@ export interface PriceMatchResult {
   price: number;
   source: 'database' | 'knowledge' | 'estimate' | 'default' | 'market';
   confidence: number; // 0-100
+  confidenceLevel?: '极高' | '高' | '中' | '低' | '极低'; // 新增：置信度等级
   productName?: string;
   model?: string;
   sourceId?: string;
@@ -18,9 +19,17 @@ export interface PriceMatchResult {
   minPrice?: number; // 最低售价
   description?: string; // 完整描述
   currency?: string; // 货币单位（CNY、USD等）
+  category?: string; // 产品分类
   // 新增：模糊查询标记
   needsConfirmation?: boolean; // 是否需要用户确认产品类别
   possibleCategories?: string[]; // 可能的产品类别列表
+  matchedBy?: string; // 新增：匹配方式（如 '精确匹配'、'名称+型号+参数'、'参数关键词'等）
+  alternatives?: Array<{ // 新增：备选产品
+    price: number;
+    productName: string;
+    model: string;
+    confidence: number;
+  }>;
 }
 
 export interface ProductMatch {
@@ -35,7 +44,22 @@ export interface ProductMatch {
 export class PriceMatcher {
   // 跟踪已输出的错误，避免重复输出
   private static loggedErrors: Set<string> = new Set();
-  
+
+  // 中文数字映射表
+  private static chineseNumberMap: Record<string, string> = {
+    '零': '0', '一': '1', '二': '2', '三': '3', '四': '4',
+    '五': '5', '六': '6', '七': '7', '八': '8', '九': '9',
+    '十': '10', '百': '100', '千': '1000', '万': '10000'
+  };
+
+  // 单位映射表
+  private static unitMap: Record<string, string> = {
+    '立方': 'm³', '立方米': 'm³', '方': 'm³',
+    '升': 'L', '公升': 'L',
+    '米': 'm', '公尺': 'm', '毫米': 'mm', '厘米': 'cm',
+    '千瓦': 'kW', '瓦': 'W', '马力': 'HP'
+  };
+
   private static shouldLogError(prefix: string, error: any): boolean {
     const errorKey = `${prefix}-${error.code}-${error.message}`;
     if (this.loggedErrors.has(errorKey)) {
@@ -43,6 +67,126 @@ export class PriceMatcher {
     }
     this.loggedErrors.add(errorKey);
     return true;
+  }
+
+  /**
+   * 输入预处理
+   * 标准化输入文本，转换中文数字，识别单位
+   */
+  private static preprocessInput(input: string): {
+    original: string;
+    normalized: string;
+    units: string[];
+    numbers: number[];
+  } {
+    if (!input) return { original: '', normalized: '', units: [], numbers: [] };
+
+    let normalized = input.toLowerCase();
+
+    // 1. 转换中文数字
+    const chineseNumbers = Object.keys(this.chineseNumberMap);
+    chineseNumbers.forEach(cn => {
+      normalized = normalized.replace(new RegExp(cn, 'g'), this.chineseNumberMap[cn]);
+    });
+
+    // 2. 标准化单位
+    const units = Object.keys(this.unitMap);
+    units.forEach(unit => {
+      normalized = normalized.replace(new RegExp(unit, 'g'), this.unitMap[unit]);
+    });
+
+    // 3. 去掉空格和"的"
+    normalized = normalized.replace(/[\s的]/g, '');
+
+    // 4. 提取所有数字
+    const numbers: number[] = [];
+    const numberMatches = normalized.match(/\d+(\.\d+)?/g);
+    if (numberMatches) {
+      numbers.push(...numberMatches.map(n => parseFloat(n)));
+    }
+
+    // 5. 提取单位
+    const detectedUnits: string[] = [];
+    Object.values(this.unitMap).forEach(unit => {
+      if (normalized.includes(unit.toLowerCase())) {
+        if (!detectedUnits.includes(unit)) {
+          detectedUnits.push(unit);
+        }
+      }
+    });
+
+    return {
+      original: input,
+      normalized,
+      units: detectedUnits,
+      numbers
+    };
+  }
+
+  /**
+   * 数字匹配惩罚/奖励机制
+   * 根据数字匹配情况调整得分
+   */
+  private static adjustScoreByNumberMatch(
+    product: any,
+    query: ProductMatch,
+    baseScore: number
+  ): number {
+    // 提取查询中的数字
+    const queryText = `${query.model || ''} ${query.parameter_description || ''}`;
+    const queryNumbers: number[] = [];
+    const queryNumMatches = queryText.match(/\d+(\.\d+)?/g);
+    if (queryNumMatches) {
+      queryNumbers.push(...queryNumMatches.map(n => parseFloat(n)));
+    }
+
+    if (queryNumbers.length === 0) {
+      return baseScore; // 没有数字，不调整
+    }
+
+    // 提取产品中的数字
+    const productText = `${product.model || ''} ${product.parameter_description || ''}`;
+    const productNumbers: number[] = [];
+    const productNumMatches = productText.match(/\d+(\.\d+)?/g);
+    if (productNumMatches) {
+      productNumbers.push(...productNumMatches.map(n => parseFloat(n)));
+    }
+
+    if (productNumbers.length === 0) {
+      return baseScore * 0.5; // 产品无数字，惩罚50%
+    }
+
+    // 检查数字匹配情况
+    let matchedCount = 0;
+    queryNumbers.forEach(qn => {
+      const isMatched = productNumbers.some(pn => Math.abs(pn - qn) < 0.01);
+      if (isMatched) matchedCount++;
+    });
+
+    const matchRatio = matchedCount / queryNumbers.length;
+
+    if (matchRatio === 1.0) {
+      console.log('[PriceMatcher] 数字完全匹配，奖励20%');
+      return baseScore * 1.2; // 完全匹配，奖励20%
+    } else if (matchRatio >= 0.5) {
+      console.log('[PriceMatcher] 数字部分匹配，保持原得分');
+      return baseScore; // 部分匹配，保持原得分
+    } else {
+      console.log('[PriceMatcher] 数字不匹配，惩罚30%');
+      return baseScore * 0.7; // 不匹配，惩罚30%
+    }
+  }
+
+  /**
+   * 获取置信度等级
+   */
+  private static getConfidenceLevel(confidence: number): '极高' | '高' | '中' | '低' | '极低' {
+    const score = confidence / 100; // 转换为0-1范围
+    if (score >= 0.9) return '极高';
+    if (score >= 0.7) return '高';
+    if (score >= 0.5) return '中';
+    if (score >= 0.3) return '低';
+    return '极低';
   }
 
   /**
@@ -532,6 +676,8 @@ export class PriceMatcher {
    * - 产品名称：40%（核心识别）
    * - 规格型号：35%（关键区分）
    * - 参数描述：25%（技术匹配）
+   *
+   * 优化：集成数字匹配惩罚/奖励机制
    */
   private static calculateMultiDimensionalSimilarity(target: ProductMatch, product: any): number {
     let totalScore = 0;
@@ -555,14 +701,18 @@ export class PriceMatcher {
     totalScore += specScore * 25;
     totalWeight += 25;
 
-    // 计算综合得分
-    const finalScore = totalWeight > 0 ? totalScore / totalWeight : 0;
+    // 计算基础综合得分
+    const baseScore = totalWeight > 0 ? totalScore / totalWeight : 0;
+
+    // 应用数字匹配惩罚/奖励机制
+    const finalScore = this.adjustScoreByNumberMatch(product, target, baseScore);
 
     console.log('[PriceMatcher] 多维度相似度计算:', {
       名称: nameScore.toFixed(2),
       型号: modelScore.toFixed(2),
       参数: specScore.toFixed(2),
-      综合: finalScore.toFixed(2)
+      基础得分: baseScore.toFixed(2),
+      调整后得分: finalScore.toFixed(2)
     });
 
     return finalScore;
@@ -764,16 +914,23 @@ export class PriceMatcher {
 
   /**
    * 标准化型号，将各种型号表达统一为标准格式
-   * 
+   *
    * 支持的标准化规则：
-   * 1. 移除容量单位（保留数字）
-   * 2. 移除长度单位（保留数字）
-   * 3. 统一格式（去除空格，但保留连字符等特殊字符用于精确匹配）
+   * 1. 转换中文数字（如"六缸" -> "6缸"）
+   * 2. 移除容量单位（保留数字）
+   * 3. 移除长度单位（保留数字）
+   * 4. 统一格式（去除空格，但保留连字符等特殊字符用于精确匹配）
    */
   private static normalizeModel(model: string | undefined): string | undefined {
     if (!model) return undefined;
 
     let normalized = model;
+
+    // 新增：转换中文数字
+    const chineseNumbers = Object.keys(this.chineseNumberMap);
+    chineseNumbers.forEach(cn => {
+      normalized = normalized.replace(new RegExp(cn, 'g'), this.chineseNumberMap[cn]);
+    });
 
     // 移除容量单位，只保留数字和特殊字符
     const unitPattern = /(立方|立方米|m³|m3|方|吨|升|L|ML)/i;
@@ -865,7 +1022,7 @@ export class PriceMatcher {
           const bestMatch = this.findBestMatch(exactMatches, product);
           if (bestMatch) {
             console.log('[PriceMatcher] ✅ 级别1-方式1匹配成功:', bestMatch.name, bestMatch.model);
-            return this.buildPriceResult(bestMatch, 95);
+            return this.buildPriceResult(bestMatch, 95, '精确匹配（名称+型号）');
           }
         }
 
@@ -886,7 +1043,7 @@ export class PriceMatcher {
             const bestMatch = this.findBestMatch(exactMatchesNum, product);
             if (bestMatch) {
               console.log('[PriceMatcher] ✅ 级别1-方式2匹配成功:', bestMatch.name, bestMatch.model);
-              return this.buildPriceResult(bestMatch, 95);
+              return this.buildPriceResult(bestMatch, 95, '精确匹配（名称+型号）');
             }
           }
         }
@@ -906,7 +1063,7 @@ export class PriceMatcher {
           const bestMatch = this.findBestMatch(exactMatchesFuzzy, product);
           if (bestMatch) {
             console.log('[PriceMatcher] ✅ 级别1-方式3匹配成功:', bestMatch.name, bestMatch.model);
-            return this.buildPriceResult(bestMatch, 90);
+            return this.buildPriceResult(bestMatch, 90, '名称+型号包含匹配');
           }
         }
 
@@ -950,7 +1107,7 @@ export class PriceMatcher {
           const bestMatch = this.findBestMatch(nameSpecMatches, product);
           if (bestMatch) {
             console.log('[PriceMatcher] ✅ 级别1.5匹配成功:', bestMatch.name, bestMatch.model);
-            return this.buildPriceResult(bestMatch, 88);
+            return this.buildPriceResult(bestMatch, 88, '名称+参数描述匹配');
           }
         }
       }
@@ -973,7 +1130,7 @@ export class PriceMatcher {
           const bestMatch = this.findBestMatch(nameMatches, product);
           if (bestMatch) {
             console.log('[PriceMatcher] ✅ 级别2-方式1匹配成功:', bestMatch.name, bestMatch.model);
-            return this.buildPriceResult(bestMatch, 85);
+            return this.buildPriceResult(bestMatch, 85, '名称包含+型号精确');
           }
         }
 
@@ -994,7 +1151,7 @@ export class PriceMatcher {
             const bestMatch = this.findBestMatch(nameMatchesNum, product);
             if (bestMatch) {
               console.log('[PriceMatcher] ✅ 级别2-方式2匹配成功:', bestMatch.name, bestMatch.model);
-              return this.buildPriceResult(bestMatch, 85);
+              return this.buildPriceResult(bestMatch, 85, '名称包含+型号精确');
             }
           }
         }
@@ -1039,7 +1196,7 @@ export class PriceMatcher {
           const bestMatch = this.findBestMatch(fuzzyMatches, product);
           if (bestMatch) {
             console.log('[PriceMatcher] ✅ 级别3匹配成功:', bestMatch.name, bestMatch.model);
-            return this.buildPriceResult(bestMatch, 75);
+            return this.buildPriceResult(bestMatch, 75, '名称+型号模糊匹配');
           }
         }
 
@@ -1096,7 +1253,7 @@ export class PriceMatcher {
               const bestMatch = this.findBestMatch(specKeywordMatches, product);
               if (bestMatch) {
                 console.log('[PriceMatcher] ✅ 级别3.6参数关键词匹配成功:', bestMatch.name, bestMatch.model);
-                return this.buildPriceResult(bestMatch, 63);
+                return this.buildPriceResult(bestMatch, 63, '参数关键词匹配');
               }
             }
           }
@@ -1124,7 +1281,7 @@ export class PriceMatcher {
           const bestMatch = this.findBestMatch(nameOnlyMatches, product);
           if (bestMatch) {
             console.log('[PriceMatcher] ✅ 级别4匹配成功:', bestMatch.name, bestMatch.model);
-            return this.buildPriceResult(bestMatch, 60);
+            return this.buildPriceResult(bestMatch, 60, '仅名称匹配');
           }
         }
       }
@@ -1144,7 +1301,7 @@ export class PriceMatcher {
         if (modelOnlyMatches && modelOnlyMatches.length > 0) {
           const bestMatch = this.findBestMatch(modelOnlyMatches, product);
           console.log('[PriceMatcher] ✅ 级别5匹配成功:', bestMatch.name, bestMatch.model);
-          return this.buildPriceResult(bestMatch, 40);
+          return this.buildPriceResult(bestMatch, 40, '仅型号匹配');
         }
       }
 
@@ -1163,7 +1320,7 @@ export class PriceMatcher {
         if (specOnlyMatches && specOnlyMatches.length > 0) {
           const bestMatch = this.findBestMatch(specOnlyMatches, product);
           console.log('[PriceMatcher] ✅ 级别6匹配成功:', bestMatch.name, bestMatch.model);
-          return this.buildPriceResult(bestMatch, 35);
+          return this.buildPriceResult(bestMatch, 35, '仅参数描述匹配');
         }
       }
       
@@ -1184,8 +1341,14 @@ export class PriceMatcher {
    * - display_price: 实际价格值，直接使用，无需转换
    * - currency: 货币单位（CNY、USD等）
    * - 存储什么就是什么，上传什么就是什么
+   *
+   * 新增：置信度等级和匹配方式
    */
-  private static buildPriceResult(product: any, confidence: number): PriceMatchResult {
+  private static buildPriceResult(
+    product: any,
+    confidence: number,
+    matchedBy?: string
+  ): PriceMatchResult {
     let finalPrice: number = 0;
     let costPrice: number | null = null;
     let minPrice: number | null = null;
@@ -1316,6 +1479,7 @@ export class PriceMatcher {
       price: finalPrice,
       source: 'database',
       confidence,
+      confidenceLevel: this.getConfidenceLevel(confidence),
       productName: product.name,
       model: product.model,
       sourceId: product.id,
@@ -1325,7 +1489,10 @@ export class PriceMatcher {
       costPrice: costPrice ?? undefined,
       minPrice: minPrice ?? undefined,
       description: product.description,
-      currency: product.currency // 货币单位
+      currency: product.currency, // 货币单位
+      category: product.category,
+      // 新增字段
+      matchedBy: matchedBy || '多维度匹配'
     };
   }
 
