@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     let enhancedMessage = message;
     let databaseInfo: any = null; // 保存数据库信息
     try {
-      const priceQuery = (smartChatProcessor as any).detectPriceQuery(message);
+      const priceQuery = await (smartChatProcessor as any).detectPriceQuery(message);
       if (priceQuery.isPriceQuery && priceQuery.productName) {
         console.log('[Chat Stream API] 检测到价格查询:', priceQuery);
         const priceResult = await (smartChatProcessor as any).handlePriceQuery(priceQuery.productName, priceQuery.model);

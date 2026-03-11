@@ -216,7 +216,7 @@ export class PriceMatcher {
         console.log('[PriceMatcher] 数据库中包含"' + cleanedName + '"的产品:', debugProducts.map(p => ({
           name: p.name,
           model: p.model,
-          price: p.price
+          display_price: p.display_price
         })));
       }
       
