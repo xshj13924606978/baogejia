@@ -142,14 +142,14 @@ export class PriceMatcher {
    * 支持的标准化规则：
    * 1. 移除容量单位（保留数字）
    * 2. 移除长度单位（保留数字）
-   * 3. 统一格式（去除空格、特殊字符）
+   * 3. 统一格式（去除空格，但保留连字符等特殊字符用于精确匹配）
    */
   private static normalizeModel(model: string | undefined): string | undefined {
     if (!model) return undefined;
 
     let normalized = model;
 
-    // 移除容量单位，只保留数字
+    // 移除容量单位，只保留数字和特殊字符
     const unitPattern = /(立方|立方米|m³|m3|方|吨|升|L|ML)/i;
     if (unitPattern.test(normalized)) {
       const numberMatch = normalized.match(/(\d+(\.\d+)?)/);
@@ -158,7 +158,7 @@ export class PriceMatcher {
       }
     }
 
-    // 移除长度单位，只保留数字
+    // 移除长度单位，只保留数字和特殊字符
     const lengthPattern = /(mm|厘米|cm|m|米)/i;
     if (lengthPattern.test(normalized)) {
       const numberMatch = normalized.match(/(\d+(\.\d+)?)/);
@@ -167,10 +167,9 @@ export class PriceMatcher {
       }
     }
 
-    // 清理多余空格和特殊字符
+    // 清理多余空格，但保留连字符和字母
     normalized = normalized.trim()
-      .replace(/\s+/g, '')
-      .replace(/[()-]/g, '');
+      .replace(/\s+/g, '');
 
     return normalized || undefined;
   }
@@ -207,7 +206,7 @@ export class PriceMatcher {
       // 调试：查看数据库中相关产品
       const debugQuery = supabase
         .from('products')
-        .select('id, name, model, display_price, currency, parameter_description, brand, description')
+        .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
         .ilike('name', `%${cleanedName}%`)
         .limit(20);
       
@@ -228,7 +227,7 @@ export class PriceMatcher {
         // 方式1：字符串精确匹配（model 作为字符串）
         const exactMatchQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
           .ilike('name', cleanedName)
           .eq('model', normalizedModel)
           .limit(10);
@@ -249,7 +248,7 @@ export class PriceMatcher {
         if (!isNaN(modelNum)) {
           const exactMatchNumQuery = supabase
             .from('products')
-            .select('id, name, model, display_price, currency, parameter_description, brand, description')
+            .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
             .ilike('name', cleanedName)
             .eq('model', modelNum)
             .limit(10);
@@ -269,7 +268,7 @@ export class PriceMatcher {
         // 方式3：型号包含匹配（字符串）
         const exactMatchFuzzyQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
           .ilike('name', cleanedName)
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
@@ -292,7 +291,7 @@ export class PriceMatcher {
         // 方式1：字符串精确匹配
         const nameMatchQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
           .ilike('name', `%${cleanedName}%`)
           .eq('model', normalizedModel)
           .limit(10);
@@ -313,7 +312,7 @@ export class PriceMatcher {
         if (!isNaN(modelNum)) {
           const nameMatchNumQuery = supabase
             .from('products')
-            .select('id, name, model, display_price, currency, parameter_description, brand, description')
+            .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
             .ilike('name', `%${cleanedName}%`)
             .eq('model', modelNum)
             .limit(10);
@@ -336,7 +335,7 @@ export class PriceMatcher {
       if (normalizedModel && cleanedName) {
         const fuzzyMatchQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
           .ilike('name', `%${cleanedName}%`)
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
@@ -358,7 +357,7 @@ export class PriceMatcher {
       if (cleanedName) {
         const nameOnlyQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
           .ilike('name', `%${cleanedName}%`)
           .limit(10);
         
@@ -381,7 +380,7 @@ export class PriceMatcher {
       if (normalizedModel) {
         const modelOnlyQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
         
@@ -417,6 +416,16 @@ export class PriceMatcher {
     let finalPrice: number = 0;
     let costPrice: number | null = null;
     let minPrice: number | null = null;
+
+    // 调试：输出所有字段
+    console.log('[PriceMatcher] buildPriceResult 输入产品:', JSON.stringify({
+      id: product.id,
+      name: product.name,
+      model: product.model,
+      display_price: product.display_price,
+      price: product.price,
+      currency: product.currency
+    }));
 
     // 直接使用display_price字段（NUMERIC类型）
     if (product.display_price !== null && product.display_price !== undefined) {
@@ -462,6 +471,34 @@ export class PriceMatcher {
       } else {
         console.error('[PriceMatcher] display_price类型无效:', typeof product.display_price);
       }
+    } else if (product.price !== null && product.price !== undefined) {
+      // 回退策略：当display_price为空时，从旧的price字段（NUMRANGE格式）提取
+      console.log('[PriceMatcher] display_price为空，尝试从price字段提取:', product.price, '类型:', typeof product.price);
+
+      const priceStr = String(product.price);
+      if (priceStr.startsWith('{')) {
+        // NUMRANGE格式，提取第一个数字并除以100
+        const matches = priceStr.match(/\{([0-9.]+)/);
+        if (matches && matches[1]) {
+          const rawValue = parseFloat(matches[1]);
+          // 数据库存储的值是实际价格的100倍，需要除以100
+          finalPrice = rawValue / 100;
+          console.log('[PriceMatcher] 从旧price字段提取NUMRANGE:', rawValue, '除以100后:', finalPrice);
+        } else {
+          console.error('[PriceMatcher] 无法解析旧price字段的NUMRANGE格式:', product.price);
+        }
+      } else {
+        // 尝试直接解析为数字
+        const priceNum = parseFloat(priceStr);
+        if (!isNaN(priceNum)) {
+          finalPrice = priceNum;
+          console.log('[PriceMatcher] 从旧price字段直接提取:', finalPrice);
+        } else {
+          console.error('[PriceMatcher] 无法解析旧price字段:', product.price);
+        }
+      }
+    } else {
+      console.warn('[PriceMatcher] display_price和price字段都为空');
     }
 
     // 尝试从description字段解析JSON数据，获取min_price和cost_price
