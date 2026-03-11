@@ -207,7 +207,7 @@ export class PriceMatcher {
       // 调试：查看数据库中相关产品
       const debugQuery = supabase
         .from('products')
-        .select('id, name, model, unit_price, currency, parameter_description, brand, description')
+        .select('id, name, model, display_price, currency, parameter_description, brand, description')
         .ilike('name', `%${cleanedName}%`)
         .limit(20);
       
@@ -228,7 +228,7 @@ export class PriceMatcher {
         // 方式1：字符串精确匹配（model 作为字符串）
         const exactMatchQuery = supabase
           .from('products')
-          .select('id, name, model, unit_price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, currency, parameter_description, brand, description')
           .ilike('name', cleanedName)
           .eq('model', normalizedModel)
           .limit(10);
@@ -249,7 +249,7 @@ export class PriceMatcher {
         if (!isNaN(modelNum)) {
           const exactMatchNumQuery = supabase
             .from('products')
-            .select('id, name, model, unit_price, currency, parameter_description, brand, description')
+            .select('id, name, model, display_price, currency, parameter_description, brand, description')
             .ilike('name', cleanedName)
             .eq('model', modelNum)
             .limit(10);
@@ -269,7 +269,7 @@ export class PriceMatcher {
         // 方式3：型号包含匹配（字符串）
         const exactMatchFuzzyQuery = supabase
           .from('products')
-          .select('id, name, model, unit_price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, currency, parameter_description, brand, description')
           .ilike('name', cleanedName)
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
@@ -292,7 +292,7 @@ export class PriceMatcher {
         // 方式1：字符串精确匹配
         const nameMatchQuery = supabase
           .from('products')
-          .select('id, name, model, unit_price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, currency, parameter_description, brand, description')
           .ilike('name', `%${cleanedName}%`)
           .eq('model', normalizedModel)
           .limit(10);
@@ -313,7 +313,7 @@ export class PriceMatcher {
         if (!isNaN(modelNum)) {
           const nameMatchNumQuery = supabase
             .from('products')
-            .select('id, name, model, unit_price, currency, parameter_description, brand, description')
+            .select('id, name, model, display_price, currency, parameter_description, brand, description')
             .ilike('name', `%${cleanedName}%`)
             .eq('model', modelNum)
             .limit(10);
@@ -336,7 +336,7 @@ export class PriceMatcher {
       if (normalizedModel && cleanedName) {
         const fuzzyMatchQuery = supabase
           .from('products')
-          .select('id, name, model, unit_price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, currency, parameter_description, brand, description')
           .ilike('name', `%${cleanedName}%`)
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
@@ -358,7 +358,7 @@ export class PriceMatcher {
       if (cleanedName) {
         const nameOnlyQuery = supabase
           .from('products')
-          .select('id, name, model, unit_price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, currency, parameter_description, brand, description')
           .ilike('name', `%${cleanedName}%`)
           .limit(10);
         
@@ -381,7 +381,7 @@ export class PriceMatcher {
       if (normalizedModel) {
         const modelOnlyQuery = supabase
           .from('products')
-          .select('id, name, model, unit_price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, currency, parameter_description, brand, description')
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
         
@@ -408,8 +408,8 @@ export class PriceMatcher {
   /**
    * 构建价格结果
    *
-   * 新设计：使用unit_price字段（NUMERIC类型）
-   * - unit_price: 实际价格值，直接使用，无需转换
+   * 新设计：使用display_price字段（NUMERIC类型）
+   * - display_price: 实际价格值，直接使用，无需转换
    * - currency: 货币单位（CNY、USD等）
    * - 存储什么就是什么，上传什么就是什么
    */
@@ -418,21 +418,21 @@ export class PriceMatcher {
     let costPrice: number | null = null;
     let minPrice: number | null = null;
 
-    // 直接使用unit_price字段（NUMERIC类型）
-    if (product.unit_price) {
-      if (typeof product.unit_price === 'number') {
-        finalPrice = product.unit_price;
-        console.log('[PriceMatcher] 使用unit_price:', finalPrice);
-      } else if (typeof product.unit_price === 'string') {
-        const priceNum = parseFloat(product.unit_price);
+    // 直接使用display_price字段（NUMERIC类型）
+    if (product.display_price) {
+      if (typeof product.display_price === 'number') {
+        finalPrice = product.display_price;
+        console.log('[PriceMatcher] 使用display_price:', finalPrice);
+      } else if (typeof product.display_price === 'string') {
+        const priceNum = parseFloat(product.display_price);
         if (!isNaN(priceNum)) {
           finalPrice = priceNum;
-          console.log('[PriceMatcher] 从unit_price字符串提取:', finalPrice);
+          console.log('[PriceMatcher] 从display_price字符串提取:', finalPrice);
         } else {
-          console.error('[PriceMatcher] 无法解析unit_price:', product.unit_price);
+          console.error('[PriceMatcher] 无法解析display_price:', product.display_price);
         }
       } else {
-        console.error('[PriceMatcher] unit_price类型无效:', typeof product.unit_price);
+        console.error('[PriceMatcher] display_price类型无效:', typeof product.display_price);
       }
     }
 
@@ -453,19 +453,19 @@ export class PriceMatcher {
         }
       }
     } catch (e) {
-      // 解析失败，继续使用unit_price的值
+      // 解析失败，继续使用display_price的值
     }
 
     // 最终验证价格
     if (finalPrice <= 0 || !isFinite(finalPrice)) {
-      console.error('[PriceMatcher] 最终价格无效:', finalPrice, '原始unit_price:', product.unit_price);
+      console.error('[PriceMatcher] 最终价格无效:', finalPrice, '原始display_price:', product.display_price);
       finalPrice = 0;
     }
 
     console.log('[PriceMatcher] 匹配产品详情:', JSON.stringify({
       name: product.name,
       model: product.model,
-      unit_price: product.unit_price,
+      display_price: product.display_price,
       currency: product.currency,
       final_price: finalPrice,
       min_price: minPrice,
