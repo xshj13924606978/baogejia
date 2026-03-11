@@ -11,6 +11,12 @@ export interface PriceMatchResult {
   sourceUrl?: string;
   marketPrice?: number; // 市场价兜底
   marketSource?: string; // 市场价来源
+  // 新增：完整数据库字段
+  brand?: string; // 品牌
+  parameterDescription?: string; // 参数描述
+  costPrice?: number; // 成本价
+  minPrice?: number; // 最低售价
+  description?: string; // 完整描述
 }
 
 export interface ProductMatch {
@@ -407,7 +413,7 @@ export class PriceMatcher {
     let finalPrice = product.price;
     let costPrice = null;
     let minPrice = null;
-    
+
     try {
       if (product.description && typeof product.description === 'string' && product.description.startsWith('{')) {
         const extraFields = JSON.parse(product.description);
@@ -422,7 +428,7 @@ export class PriceMatcher {
       // 解析失败，使用默认price
       console.log('[PriceMatcher] 解析description失败，使用默认price');
     }
-    
+
     // 确保price是数字类型
     if (typeof finalPrice === 'string') {
       finalPrice = parseFloat(finalPrice);
@@ -431,23 +437,31 @@ export class PriceMatcher {
         finalPrice = 0;
       }
     }
-    
+
     console.log('[PriceMatcher] 匹配产品详情:', JSON.stringify({
       name: product.name,
       model: product.model,
       price: product.price,
       min_price: minPrice,
       cost_price: costPrice,
-      final_price: finalPrice
+      final_price: finalPrice,
+      brand: product.brand,
+      parameter_description: product.parameter_description
     }));
-    
+
     return {
       price: finalPrice,
       source: 'database',
       confidence,
       productName: product.name,
       model: product.model,
-      sourceId: product.id
+      sourceId: product.id,
+      // 返回完整的数据库字段
+      brand: product.brand,
+      parameterDescription: product.parameter_description,
+      costPrice: costPrice,
+      minPrice: minPrice,
+      description: product.description
     };
   }
 
