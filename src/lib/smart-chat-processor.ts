@@ -95,14 +95,16 @@ export class SmartChatProcessor {
    */
   private async handlePriceQuery(
     productName: string,
-    model?: string
+    model?: string,
+    parameterDescription?: string
   ): Promise<{ priceData?: PriceMatchResult; contextInfo?: string }> {
-    console.log('[SmartChatProcessor] 处理价格查询:', productName, model);
+    console.log('[SmartChatProcessor] 处理价格查询:', productName, model, parameterDescription);
 
     try {
       const productMatch: ProductMatch = {
         name: productName,
         model,
+        parameter_description: parameterDescription,
       };
 
       // 调用价格匹配器
@@ -246,7 +248,11 @@ export class SmartChatProcessor {
       const priceQuery = await this.detectPriceQuery(userInput);
       if (priceQuery.isPriceQuery && priceQuery.productName) {
         console.log('[SmartChatProcessor] 检测到价格查询:', priceQuery);
-        const priceResult = await this.handlePriceQuery(priceQuery.productName, priceQuery.model);
+        const priceResult = await this.handlePriceQuery(
+          priceQuery.productName,
+          priceQuery.model,
+          priceQuery.extraction?.parameter_description
+        );
         if (priceResult.contextInfo) {
           priceContextInfo = priceResult.contextInfo;
           enhancedInput += priceContextInfo;
