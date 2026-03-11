@@ -24,6 +24,13 @@ export interface PriceMatchResult {
   needsConfirmation?: boolean; // 是否需要用户确认产品类别
   possibleCategories?: string[]; // 可能的产品类别列表
   matchedBy?: string; // 新增：匹配方式（如 '精确匹配'、'名称+型号+参数'、'参数关键词'等）
+  matchLevel?: number; // 新增：1-6匹配级别
+  matchDetails?: { // 新增：匹配详情
+    nameScore: number;
+    modelScore: number;
+    paramScore: number;
+    numberAdjustment: number;
+  };
   alternatives?: Array<{ // 新增：备选产品
     price: number;
     productName: string;
@@ -70,8 +77,26 @@ export class PriceMatcher {
   }
 
   /**
-   * 输入预处理
-   * 标准化输入文本，转换中文数字，识别单位
+   * 提取单位
+   */
+  private static extractUnits(input: string): string[] {
+    const unitPattern = /(个|台|套|m³|L|kW|吨|千克|米|厘米)/g;
+    return input.match(unitPattern) || [];
+  }
+
+  /**
+   * 提取数字
+   */
+  private static extractNumbers(input: string): number[] {
+    const numberPattern = /\d+(\.\d+)?/g;
+    return (input.match(numberPattern) || []).map(Number);
+  }
+
+  /**
+   * 输入预处理（按照用户要求实现）
+   * - 中文数字转换（一→1，两→2）
+   * - 单位标准化（立方→m³，升→L）
+   * - 数字提取
    */
   private static preprocessInput(input: string): {
     original: string;
@@ -81,100 +106,98 @@ export class PriceMatcher {
   } {
     if (!input) return { original: '', normalized: '', units: [], numbers: [] };
 
-    let normalized = input.toLowerCase();
+    let normalized = input.toLowerCase()
+      .replace(/[的\s]/g, '');  // 去掉"的"和空格
 
-    // 1. 转换中文数字
-    const chineseNumbers = Object.keys(this.chineseNumberMap);
+    // 中文数字转换（支持"两"）
+    const chineseNumberMap: Record<string, string> = {
+      '一': '1', '二': '2', '两': '2', '三': '3', '四': '4',
+      '五': '5', '六': '6', '七': '7', '八': '8', '九': '9', '十': '10'
+    };
+
+    const chineseNumbers = Object.keys(chineseNumberMap);
     chineseNumbers.forEach(cn => {
-      normalized = normalized.replace(new RegExp(cn, 'g'), this.chineseNumberMap[cn]);
+      normalized = normalized.replace(new RegExp(cn, 'g'), chineseNumberMap[cn]);
     });
 
-    // 2. 标准化单位
-    const units = Object.keys(this.unitMap);
-    units.forEach(unit => {
-      normalized = normalized.replace(new RegExp(unit, 'g'), this.unitMap[unit]);
-    });
+    // 单位标准化
+    normalized = normalized.replace(/立方|立方米/g, 'm³');
+    normalized = normalized.replace(/升/g, 'L');
+    normalized = normalized.replace(/千瓦/g, 'kW');
 
-    // 3. 去掉空格和"的"
-    normalized = normalized.replace(/[\s的]/g, '');
+    // 识别单位
+    const units = this.extractUnits(input);
 
-    // 4. 提取所有数字
-    const numbers: number[] = [];
-    const numberMatches = normalized.match(/\d+(\.\d+)?/g);
-    if (numberMatches) {
-      numbers.push(...numberMatches.map(n => parseFloat(n)));
-    }
-
-    // 5. 提取单位
-    const detectedUnits: string[] = [];
-    Object.values(this.unitMap).forEach(unit => {
-      if (normalized.includes(unit.toLowerCase())) {
-        if (!detectedUnits.includes(unit)) {
-          detectedUnits.push(unit);
-        }
-      }
-    });
+    // 识别数字
+    const numbers = this.extractNumbers(input);
 
     return {
       original: input,
       normalized,
-      units: detectedUnits,
+      units,
       numbers
     };
   }
 
   /**
-   * 数字匹配惩罚/奖励机制
-   * 根据数字匹配情况调整得分
+   * 数字匹配调整（按照用户要求实现）
+   * - 完全匹配（数字相同且顺序一致）：奖励20%
+   * - 数字存在但顺序不同：奖励10%
+   * - 部分匹配：惩罚15%
+   * - 完全不匹配：惩罚30%
    */
   private static adjustScoreByNumberMatch(
     product: any,
     query: ProductMatch,
     baseScore: number
   ): number {
-    // 提取查询中的数字
-    const queryText = `${query.model || ''} ${query.parameter_description || ''}`;
+    // 提取产品中的数字
+    const productNumbers = this.extractNumbers(
+      (product.model || '') + ' ' + (product.parameter_description || '')
+    );
+
+    // 从预处理结果中获取查询数字
     const queryNumbers: number[] = [];
+    const queryText = `${query.model || ''} ${query.parameter_description || ''}`;
     const queryNumMatches = queryText.match(/\d+(\.\d+)?/g);
     if (queryNumMatches) {
       queryNumbers.push(...queryNumMatches.map(n => parseFloat(n)));
     }
 
-    if (queryNumbers.length === 0) {
-      return baseScore; // 没有数字，不调整
+    if (queryNumbers.length === 0) return baseScore;
+
+    // 数字完全匹配且顺序一致
+    const exactMatch = queryNumbers.every((qn: number, i: number) =>
+      productNumbers[i] !== undefined && Math.abs(productNumbers[i] - qn) < 0.01
+    );
+
+    if (exactMatch) {
+      console.log('[PriceMatcher] 数字完全匹配且顺序一致，奖励20%');
+      return baseScore * 1.2; // 奖励20%
     }
 
-    // 提取产品中的数字
-    const productText = `${product.model || ''} ${product.parameter_description || ''}`;
-    const productNumbers: number[] = [];
-    const productNumMatches = productText.match(/\d+(\.\d+)?/g);
-    if (productNumMatches) {
-      productNumbers.push(...productNumMatches.map(n => parseFloat(n)));
+    // 数字存在但顺序不同
+    const allPresent = queryNumbers.every((qn: number) =>
+      productNumbers.some((pn: number) => Math.abs(pn - qn) < 0.01)
+    );
+
+    if (allPresent) {
+      console.log('[PriceMatcher] 数字存在但顺序不同，奖励10%');
+      return baseScore * 1.1; // 奖励10%
     }
 
-    if (productNumbers.length === 0) {
-      return baseScore * 0.5; // 产品无数字，惩罚50%
+    // 部分匹配
+    const somePresent = queryNumbers.some((qn: number) =>
+      productNumbers.some((pn: number) => Math.abs(pn - qn) < 0.01)
+    );
+
+    if (!somePresent) {
+      console.log('[PriceMatcher] 数字完全不匹配，惩罚30%');
+      return baseScore * 0.7; // 完全不匹配，惩罚30%
     }
 
-    // 检查数字匹配情况
-    let matchedCount = 0;
-    queryNumbers.forEach(qn => {
-      const isMatched = productNumbers.some(pn => Math.abs(pn - qn) < 0.01);
-      if (isMatched) matchedCount++;
-    });
-
-    const matchRatio = matchedCount / queryNumbers.length;
-
-    if (matchRatio === 1.0) {
-      console.log('[PriceMatcher] 数字完全匹配，奖励20%');
-      return baseScore * 1.2; // 完全匹配，奖励20%
-    } else if (matchRatio >= 0.5) {
-      console.log('[PriceMatcher] 数字部分匹配，保持原得分');
-      return baseScore; // 部分匹配，保持原得分
-    } else {
-      console.log('[PriceMatcher] 数字不匹配，惩罚30%');
-      return baseScore * 0.7; // 不匹配，惩罚30%
-    }
+    console.log('[PriceMatcher] 数字部分匹配，惩罚15%');
+    return baseScore * 0.85; // 部分匹配，惩罚15%
   }
 
   /**
@@ -187,6 +210,40 @@ export class PriceMatcher {
     if (score >= 0.5) return '中';
     if (score >= 0.3) return '低';
     return '极低';
+  }
+
+  /**
+   * 获取匹配方式说明
+   */
+  private static getMatchedByDescription(level: number): string {
+    const descriptions: Record<number, string> = {
+      1: '精确匹配（名称+型号+参数）',
+      1.2: '名称+型号+参数模糊匹配',
+      1.5: '名称+参数描述匹配',
+      2: '名称+型号精确匹配',
+      2.5: '名称+型号模糊匹配',
+      3: '名称模糊+型号模糊',
+      3.5: '名称+参数关键词匹配',
+      3.6: '参数关键词匹配',
+      4: '仅名称匹配',
+      5: '仅型号匹配',
+      6: '仅参数描述匹配'
+    };
+    return descriptions[level] || '未知匹配方式';
+  }
+
+  /**
+   * 获取置信度颜色（用于前端）
+   */
+  private static getConfidenceColor(level: string): string {
+    const colors: Record<string, string> = {
+      '极高': 'green',
+      '高': 'light-green',
+      '中': 'yellow',
+      '低': 'orange',
+      '极低': 'red'
+    };
+    return colors[level] || 'gray';
   }
 
   /**
@@ -1347,7 +1404,13 @@ export class PriceMatcher {
   private static buildPriceResult(
     product: any,
     confidence: number,
-    matchedBy?: string
+    matchedBy?: string,
+    matchDetails?: {
+      nameScore: number;
+      modelScore: number;
+      paramScore: number;
+      numberAdjustment: number;
+    }
   ): PriceMatchResult {
     let finalPrice: number = 0;
     let costPrice: number | null = null;
@@ -1492,7 +1555,8 @@ export class PriceMatcher {
       currency: product.currency, // 货币单位
       category: product.category,
       // 新增字段
-      matchedBy: matchedBy || '多维度匹配'
+      matchedBy: matchedBy || '多维度匹配',
+      matchDetails: matchDetails || undefined
     };
   }
 
