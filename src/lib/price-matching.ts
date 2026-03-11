@@ -41,11 +41,16 @@ export interface PriceMatchResult {
 
 export interface ProductMatch {
   name: string;
+  productName?: string;  // 新增：与name兼容
   model?: string;
   category?: string;
   parameter_description?: string;
+  params?: string;  // 新增：与parameter_description兼容
+  brand?: string;  // 新增
   quantity?: number;
   unit?: string;
+  numbers?: number[];  // 新增
+  units?: string[];  // 新增
 }
 
 export class PriceMatcher {
@@ -726,53 +731,54 @@ export class PriceMatcher {
   }
 
   /**
-   * 多维度相似度计算（核心算法）
-   * 从产品名称、规格型号、参数描述三个维度计算综合相似度
-   *
+   * 多维度相似度计算（优化版）
    * 权重分配：
-   * - 产品名称：40%（核心识别）
-   * - 规格型号：35%（关键区分）
-   * - 参数描述：25%（技术匹配）
-   *
-   * 优化：集成数字匹配惩罚/奖励机制
+   * - 产品名称: 35%
+   * - 规格型号: 30%
+   * - 参数描述: 20%
+   * - 产品分类: 10% (如果匹配)
+   * - 品牌: 5% (如果匹配)
    */
   private static calculateMultiDimensionalSimilarity(target: ProductMatch, product: any): number {
-    let totalScore = 0;
-    let totalWeight = 0;
+    let score = 0;
 
-    // 维度1：产品名称相似度（权重40%）
-    const nameScore = this.calculateNameSimilarity(target.name || '', product.name || '');
-    totalScore += nameScore * 40;
-    totalWeight += 40;
+    // 1. 名称相似度 (35%)
+    const nameScore = this.calculateNameSimilarity(target.name || target.productName || '', product.name || '');
+    score += nameScore * 0.35;
 
-    // 维度2：规格型号相似度（权重35%）
+    // 2. 型号相似度 (30%)
     const modelScore = this.calculateModelSimilarity(target.model || '', product.model || '');
-    totalScore += modelScore * 35;
-    totalWeight += 35;
+    score += modelScore * 0.30;
 
-    // 维度3：参数描述相似度（权重25%）
+    // 3. 参数描述相似度 (20%)
+    const targetParams = target.params || target.parameter_description || '';
     const specScore = this.calculateSpecSimilarity(
-      target.parameter_description || '',
+      targetParams,
       product.parameter_description || ''
     );
-    totalScore += specScore * 25;
-    totalWeight += 25;
+    score += specScore * 0.20;
 
-    // 计算基础综合得分
-    const baseScore = totalWeight > 0 ? totalScore / totalWeight : 0;
+    // 4. 分类匹配加分 (10%)
+    const targetCategory = target.category || product.category;
+    if (targetCategory && product.category) {
+      // 完全匹配得满分，部分匹配得一半
+      const categoryMatch = product.category === targetCategory ? 1.0 : 0.5;
+      score += categoryMatch * 0.10;
+    }
+
+    // 5. 品牌匹配加分 (5%)
+    const targetBrand = target.brand || product.brand;
+    if (targetBrand && product.brand) {
+      // 完全匹配得满分，部分匹配得一半
+      const brandMatch = product.brand === targetBrand ? 1.0 : 0.5;
+      score += brandMatch * 0.05;
+    }
 
     // 应用数字匹配惩罚/奖励机制
-    const finalScore = this.adjustScoreByNumberMatch(product, target, baseScore);
+    const finalScore = this.adjustScoreByNumberMatch(product, target, score);
 
-    console.log('[PriceMatcher] 多维度相似度计算:', {
-      名称: nameScore.toFixed(2),
-      型号: modelScore.toFixed(2),
-      参数: specScore.toFixed(2),
-      基础得分: baseScore.toFixed(2),
-      调整后得分: finalScore.toFixed(2)
-    });
-
-    return finalScore;
+    // 确保分数不超过1
+    return Math.min(finalScore, 1);
   }
 
   /**
@@ -891,7 +897,7 @@ export class PriceMatcher {
     for (const keyword of keywords) {
       const query = supabase
         .from('products')
-        .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+        .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
         .ilike('name', `%${keyword}%`)
         .limit(10);
 
@@ -1046,7 +1052,7 @@ export class PriceMatcher {
       // 调试：查看数据库中相关产品
       const debugQuery = supabase
         .from('products')
-        .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+        .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
         .ilike('name', `%${cleanedName}%`)
         .limit(20);
       
@@ -1067,7 +1073,7 @@ export class PriceMatcher {
         // 方式1：字符串精确匹配（model 作为字符串）
         const exactMatchQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
           .ilike('name', cleanedName)
           .eq('model', normalizedModel)
           .limit(10);
@@ -1088,7 +1094,7 @@ export class PriceMatcher {
         if (!isNaN(modelNum)) {
           const exactMatchNumQuery = supabase
             .from('products')
-            .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+            .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
             .ilike('name', cleanedName)
             .eq('model', modelNum)
             .limit(10);
@@ -1108,7 +1114,7 @@ export class PriceMatcher {
         // 方式3：型号包含匹配（字符串）
         const exactMatchFuzzyQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
           .ilike('name', cleanedName)
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
@@ -1128,7 +1134,7 @@ export class PriceMatcher {
         if (product.parameter_description) {
           const exactMatchSpecQuery = supabase
             .from('products')
-            .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+            .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
             .ilike('name', cleanedName)
             .ilike('model', `%${normalizedModel}%`)
             .ilike('parameter_description', `%${product.parameter_description}%`)
@@ -1152,7 +1158,7 @@ export class PriceMatcher {
       if (cleanedName && product.parameter_description) {
         const nameSpecQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
           .ilike('name', `%${cleanedName}%`)
           .ilike('parameter_description', `%${product.parameter_description}%`)
           .limit(10);
@@ -1175,7 +1181,7 @@ export class PriceMatcher {
         // 方式1：字符串精确匹配
         const nameMatchQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
           .ilike('name', `%${cleanedName}%`)
           .eq('model', normalizedModel)
           .limit(10);
@@ -1196,7 +1202,7 @@ export class PriceMatcher {
         if (!isNaN(modelNum)) {
           const nameMatchNumQuery = supabase
             .from('products')
-            .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+            .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
             .ilike('name', `%${cleanedName}%`)
             .eq('model', modelNum)
             .limit(10);
@@ -1217,7 +1223,7 @@ export class PriceMatcher {
         if (product.parameter_description) {
           const nameModelSpecQuery = supabase
             .from('products')
-            .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+            .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
             .ilike('name', `%${cleanedName}%`)
             .eq('model', normalizedModel)
             .ilike('parameter_description', `%${product.parameter_description}%`)
@@ -1241,7 +1247,7 @@ export class PriceMatcher {
       if (normalizedModel && cleanedName) {
         const fuzzyMatchQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
           .ilike('name', `%${cleanedName}%`)
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
@@ -1261,7 +1267,7 @@ export class PriceMatcher {
         if (product.parameter_description) {
           const fuzzySpecQuery = supabase
             .from('products')
-            .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+            .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
             .ilike('name', `%${cleanedName}%`)
             .ilike('model', `%${normalizedModel}%`)
             .ilike('parameter_description', `%${product.parameter_description}%`)
@@ -1299,7 +1305,7 @@ export class PriceMatcher {
           for (const keyword of specKeywords) {
             const specKeywordQuery = supabase
               .from('products')
-              .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+              .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
               .ilike('parameter_description', `%${keyword}%`)
               .limit(10);
 
@@ -1326,7 +1332,7 @@ export class PriceMatcher {
       if (searchName) {
         const nameOnlyQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
           .ilike('name', `%${searchName}%`)
           .limit(20); // 增加返回数量，提高匹配概率
 
@@ -1348,7 +1354,7 @@ export class PriceMatcher {
       if (normalizedModel) {
         const modelOnlyQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
           .ilike('model', `%${normalizedModel}%`)
           .limit(10);
         
@@ -1367,7 +1373,7 @@ export class PriceMatcher {
       if (product.parameter_description) {
         const specOnlyQuery = supabase
           .from('products')
-          .select('id, name, model, display_price, price, currency, parameter_description, brand, description')
+          .select('id, name, model, display_price, price, currency, parameter_description, brand, category, description')
           .ilike('parameter_description', `%${product.parameter_description}%`)
           .limit(10);
 
