@@ -406,45 +406,75 @@ export class PriceMatcher {
 
   /**
    * 构建价格结果
-   * 修复：使用正确的price值提取逻辑
+   * 修复：正确处理PostgreSQL的NUMRANGE类型price字段
    */
   private static buildPriceResult(product: any, confidence: number): PriceMatchResult {
-    // 尝试从description字段解析JSON数据，获取min_price
-    let finalPrice = product.price;
-    let costPrice = null;
-    let minPrice = null;
+    let finalPrice: number = 0;
+    let costPrice: number | null = null;
+    let minPrice: number | null = null;
 
+    // 处理PostgreSQL的NUMRANGE类型price字段
+    // NUMRANGE格式示例：{54500 -2 false finite true}
+    // 表示下限54500，无上限
+    if (product.price) {
+      const priceStr = String(product.price);
+
+      // 检测是否是NUMRANGE格式（包含花括号）
+      if (priceStr.startsWith('{') && priceStr.includes('}')) {
+        // 解析NUMRANGE格式，提取下限值
+        // 格式：{lower_bound upper_bound lower_inclusive upper_inclusive lower_finite upper_finite}
+        const rangeMatch = priceStr.match(/^\{([^,]+)\s+/);
+        if (rangeMatch && rangeMatch[1]) {
+          const lowerBound = parseFloat(rangeMatch[1]);
+          if (!isNaN(lowerBound)) {
+            finalPrice = lowerBound;
+            console.log('[PriceMatcher] 从NUMRANGE提取下限价格:', finalPrice);
+          }
+        }
+      } else if (typeof product.price === 'number') {
+        // 直接是数字类型
+        finalPrice = product.price;
+      } else if (!isNaN(parseFloat(priceStr))) {
+        // 可以转换为数字的字符串
+        finalPrice = parseFloat(priceStr);
+      } else {
+        console.error('[PriceMatcher] 无法解析price字段:', product.price);
+      }
+    }
+
+    // 尝试从description字段解析JSON数据，获取min_price和cost_price
     try {
       if (product.description && typeof product.description === 'string' && product.description.startsWith('{')) {
         const extraFields = JSON.parse(product.description);
-        minPrice = extraFields.min_price;
-        costPrice = extraFields.cost_price;
-        // 优先返回最低售价
+        if (extraFields.min_price) {
+          minPrice = extraFields.min_price;
+        }
+        if (extraFields.cost_price) {
+          costPrice = extraFields.cost_price;
+        }
+        // 优先使用min_price（最低售价）
         if (minPrice && minPrice > 0) {
           finalPrice = minPrice;
+          console.log('[PriceMatcher] 使用description中的min_price:', finalPrice);
         }
       }
     } catch (e) {
-      // 解析失败，使用默认price
-      console.log('[PriceMatcher] 解析description失败，使用默认price');
+      // 解析失败，继续使用从price字段提取的值
     }
 
-    // 确保price是数字类型
-    if (typeof finalPrice === 'string') {
-      finalPrice = parseFloat(finalPrice);
-      if (isNaN(finalPrice)) {
-        console.error('[PriceMatcher] 价格转换失败:', product.price);
-        finalPrice = 0;
-      }
+    // 最终验证价格
+    if (finalPrice <= 0 || !isFinite(finalPrice)) {
+      console.error('[PriceMatcher] 最终价格无效:', finalPrice, '原始price:', product.price);
+      finalPrice = 0;
     }
 
     console.log('[PriceMatcher] 匹配产品详情:', JSON.stringify({
       name: product.name,
       model: product.model,
-      price: product.price,
+      original_price: product.price,
+      final_price: finalPrice,
       min_price: minPrice,
       cost_price: costPrice,
-      final_price: finalPrice,
       brand: product.brand,
       parameter_description: product.parameter_description
     }));
@@ -459,8 +489,8 @@ export class PriceMatcher {
       // 返回完整的数据库字段
       brand: product.brand,
       parameterDescription: product.parameter_description,
-      costPrice: costPrice,
-      minPrice: minPrice,
+      costPrice: costPrice ?? undefined,
+      minPrice: minPrice ?? undefined,
       description: product.description
     };
   }
