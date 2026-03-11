@@ -755,7 +755,7 @@ export class PriceMatcher {
       if (normalizedTargetModel && product.model !== null && product.model !== undefined) {
         // 标准化数据库中的型号
         let normalizedProductModel = String(product.model).trim();
-        
+
         // 如果数据库中的型号是数字字符串，转换为标准格式
         const numMatch = normalizedProductModel.match(/^\d+(\.\d+)?$/);
         if (numMatch) {
@@ -765,20 +765,17 @@ export class PriceMatcher {
             normalizedProductModel = String(num);
           }
         }
-        
-        // 比较型号
+
+        // 比较型号（只支持完全匹配，不使用includes避免错误匹配）
         if (normalizedProductModel === normalizedTargetModel) {
-          score += 30; // 完全匹配型号加30分
+          score += 40; // 完全匹配型号加40分（提高权重）
           console.log('[PriceMatcher] 型号完全匹配:', normalizedTargetModel, '=', normalizedProductModel);
-        } else if (normalizedProductModel.includes(normalizedTargetModel) || normalizedTargetModel.includes(normalizedProductModel)) {
-          score += 15; // 部分匹配加15分
-          console.log('[PriceMatcher] 型号部分匹配:', normalizedTargetModel, '~', normalizedProductModel);
         } else {
           // 尝试将两者都转换为数字进行比较
           const targetNum = parseFloat(normalizedTargetModel);
           const productNum = parseFloat(normalizedProductModel);
           if (!isNaN(targetNum) && !isNaN(productNum) && targetNum === productNum) {
-            score += 25; // 数字匹配加25分（略低于完全匹配）
+            score += 35; // 数字匹配加35分（略低于完全匹配）
             console.log('[PriceMatcher] 型号数字匹配:', targetNum, '=', productNum);
           }
         }
