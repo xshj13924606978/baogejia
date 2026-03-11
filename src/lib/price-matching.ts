@@ -18,6 +18,9 @@ export interface PriceMatchResult {
   minPrice?: number; // 最低售价
   description?: string; // 完整描述
   currency?: string; // 货币单位（CNY、USD等）
+  // 新增：模糊查询标记
+  needsConfirmation?: boolean; // 是否需要用户确认产品类别
+  possibleCategories?: string[]; // 可能的产品类别列表
 }
 
 export interface ProductMatch {
@@ -43,6 +46,197 @@ export class PriceMatcher {
   }
 
   /**
+   * 检测产品类别是否明确
+   * 当用户只提供参数（如"功率：300KW，柴油机型号：六缸"）而没有明确产品类别时，
+   * 需要先询问用户确认具体需求
+   * 
+   * @param product 产品信息
+   * @returns true 表示类别明确，false 表示需要确认
+   */
+  static isProductCategoryClear(product: ProductMatch): boolean {
+    console.log('[PriceMatcher] ========== 检测产品类别是否明确 ==========');
+    console.log('[PriceMatcher] 产品名称:', product.name);
+    console.log('[PriceMatcher] 产品型号:', product.model);
+
+    // 第一步：检测是否是反馈/确认文本
+    const feedbackPatterns = [
+      /当["'].+时你要/, /确认/, /确定/, /这样才是/, /这样才算/,
+      /请问你/, /你是否/, /你需要/, /你要不要/,
+      /咨询/, /了解/, /想要/, /需要/, /购买/,
+      /没有明确指定/, /到底是想/, /时你要我/,
+      /应该/, /应该先/, /是否应该/,
+      /人性化/, /智能/, /合理/
+    ];
+
+    for (const pattern of feedbackPatterns) {
+      if (pattern.test(product.name)) {
+        console.log('[PriceMatcher] ⚠️ 检测到反馈或确认文本，产品类别不明确');
+        return false;
+      }
+    }
+
+    // 第二步：检测是否是纯参数描述（如"功率：300KW，柴油机型号：六缸"）
+    // 检查是否包含冒号（参数描述的特征）
+    const hasColon = product.name.includes(':') || product.name.includes('：');
+    
+    // 参数关键词
+    const paramKeywords = ['功率', '电压', '电流', '转速', '流量', '扬程', '压力', 
+                          '温度', '容量', '规格', '型号', '材质', '尺寸', '重量',
+                          'kw', 'w', 'v', 'a', 'rpm', 'mpa', 'bar'];
+    
+    const hasParamKeywords = paramKeywords.some(keyword => 
+      product.name.toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    // 查询意图关键词（表示用户明确想查询产品）
+    const queryIntentKeywords = [
+      '我要', '我要买', '我想买', '想买', '要买',
+      '查询', '问一下', '请问', '咨询', 
+      '价格', '多少钱', '报价', '多少钱', 
+      '有没有', '有没有卖', '有吗'
+    ];
+
+    const hasQueryIntent = queryIntentKeywords.some(keyword => 
+      product.name.toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    // 如果包含冒号和参数关键词，但没有明确的查询意图，可能是参数描述
+    if (hasColon && hasParamKeywords && !hasQueryIntent) {
+      console.log('[PriceMatcher] ⚠️ 检测到参数描述特征（冒号+参数关键词），但无明确查询意图');
+      
+      // 检查是否以产品名称开头（如"化粪池：功率：300KW"）
+      const productTypes = [
+        '发电机组', '发电机', '发动机', '柴油机', '汽油机',
+        '水泵', '油泵', '水泵组', '化粪池', '搅拌罐', '搅拌机',
+        '反应釜', '混合机', '搅拌器', '换热器', '冷却器',
+        '管', '阀门', '泵', '电机', '压缩机', '风机',
+        '输送机', '提升机', '破碎机', '筛分机', '过滤器',
+        '分离器', '干燥机', '烘干机', '粉碎机', '磨粉机',
+        '成型机', '包装机', '封口机', '贴标机', '喷码机'
+      ];
+
+      // 检查第一个冒号前面是否有产品类型词
+      const firstColonIndex = Math.max(product.name.indexOf(':'), product.name.indexOf('：'));
+      if (firstColonIndex > 0) {
+        const beforeColon = product.name.substring(0, firstColonIndex);
+        const hasProductTypeBeforeColon = productTypes.some(type => 
+          beforeColon.includes(type)
+        );
+        
+        if (hasProductTypeBeforeColon) {
+          console.log('[PriceMatcher] ✅ 冒号前有明确的产品类型词，类别明确');
+          return true;
+        }
+      }
+      
+      console.log('[PriceMatcher] ⚠️ 参数描述中未检测到明确的产品类型词，需要确认');
+      return false;
+    }
+
+    // 第三步：检查产品名称长度和结构
+    const cleanedName = this.cleanProductName(product.name);
+    
+    // 如果产品名称太长（>30字）且包含冒号、引号等标点，可能是多行描述或复制粘贴
+    const isLongText = product.name.length > 30 && 
+      (product.name.includes(':') || product.name.includes('：') || 
+       product.name.includes('"') || product.name.includes("'"));
+    
+    if (isLongText) {
+      console.log('[PriceMatcher] ⚠️ 产品名称过长且包含标点，可能是描述文本');
+      
+      // 检查是否包含明确的产品类型词
+      const productTypes = [
+        '发电机组', '发电机', '发动机', '柴油机', '汽油机',
+        '水泵', '油泵', '水泵组', '化粪池', '搅拌罐', '搅拌机',
+        '反应釜', '混合机', '搅拌器', '换热器', '冷却器',
+        '管', '阀门', '泵', '电机', '压缩机', '风机'
+      ];
+
+      const hasProductType = productTypes.some(type => 
+        product.name.toLowerCase().includes(type.toLowerCase())
+      );
+
+      // 如果没有明确的产品类型词，返回 false
+      if (!hasProductType) {
+        console.log('[PriceMatcher] ⚠️ 未检测到明确的产品类型词');
+        return false;
+      }
+      
+      // 即使有产品类型词，但如果它在引号里或描述性语句中，也可能是示例文本
+      if (product.name.includes("'") || product.name.includes('"')) {
+        console.log('[PriceMatcher] ⚠️ 产品类型词可能在引号中，可能是示例文本');
+        return false;
+      }
+    }
+
+    // 第四步：检查是否只有参数描述而没有产品名称（无冒号的情况）
+    // 如果清理后的名称很短（<=6个字）且包含参数关键词，说明可能只是参数描述
+    if (cleanedName.length <= 6 && hasParamKeywords && !hasQueryIntent) {
+      console.log('[PriceMatcher] ⚠️ 产品名称过短且包含参数关键词，可能是参数描述');
+      return false;
+    }
+
+    // 第五步：正常的产品名称检测
+    // 如果产品名称包含明确的产品类型词，则认为类别明确
+    const productTypes = [
+      '发电机组', '发电机', '发动机', '柴油机', '汽油机',
+      '水泵', '油泵', '水泵组', '化粪池', '搅拌罐', '搅拌机',
+      '反应釜', '混合机', '搅拌器', '换热器', '冷却器',
+      '管', '阀门', '泵', '电机', '压缩机', '风机',
+      '输送机', '提升机', '破碎机', '筛分机', '过滤器',
+      '分离器', '干燥机', '烘干机', '粉碎机', '磨粉机',
+      '成型机', '包装机', '封口机', '贴标机', '喷码机'
+    ];
+
+    const hasProductType = productTypes.some(type => 
+      product.name.toLowerCase().includes(type.toLowerCase())
+    );
+
+    if (hasProductType) {
+      console.log('[PriceMatcher] ✅ 产品类别明确，包含产品类型词');
+      return true;
+    }
+
+    console.log('[PriceMatcher] ⚠️ 产品类别不明确，未检测到产品类型词');
+    return false;
+  }
+
+  /**
+   * 获取可能的产品类别列表
+   * 基于参数描述推断可能的产品类别
+   */
+  static getPossibleCategories(product: ProductMatch): string[] {
+    const categories: string[] = [];
+
+    const fullText = `${product.name} ${product.model || ''} ${product.parameter_description || ''}`.toLowerCase();
+
+    // 根据参数关键词推断可能的类别
+    if (fullText.includes('功率') && (fullText.includes('kw') || fullText.includes('瓦'))) {
+      if (fullText.includes('发电机') || fullText.includes('柴油')) {
+        categories.push('柴油发电机组');
+        categories.push('柴油发动机');
+      }
+    }
+
+    if (fullText.includes('流量') || fullText.includes('扬程') || fullText.includes('水泵')) {
+      categories.push('水泵');
+      categories.push('水泵组');
+    }
+
+    if (fullText.includes('化粪池') || fullText.includes('立方') || fullText.includes('方')) {
+      categories.push('化粪池');
+      categories.push('储水罐');
+    }
+
+    if (fullText.includes('搅拌') || fullText.includes('混合')) {
+      categories.push('搅拌罐');
+      categories.push('搅拌机');
+    }
+
+    return categories;
+  }
+
+  /**
    * 多级价格匹配（优化版）
    * 1. 产品库优先（置信度 90-100）- 最高优先级
    * 2. 知识库次之（置信度 60-80）
@@ -56,6 +250,23 @@ export class PriceMatcher {
   ): Promise<PriceMatchResult> {
     console.log('[PriceMatcher] ========== 开始价格匹配 ==========');
     console.log('[PriceMatcher] 产品信息:', product);
+
+    // 检测产品类别是否明确
+    if (!this.isProductCategoryClear(product)) {
+      console.log('[PriceMatcher] ⚠️ 产品类别不明确，需要用户确认');
+      
+      const possibleCategories = this.getPossibleCategories(product);
+      console.log('[PriceMatcher] 可能的产品类别:', possibleCategories);
+
+      return {
+        price: 0,
+        source: 'default',
+        confidence: 20,
+        productName: product.name,
+        needsConfirmation: true,
+        possibleCategories: possibleCategories
+      };
+    }
 
     // 第1级：产品库匹配（最高优先级）
     const dbResult = await this.matchFromDatabase(product);
@@ -149,19 +360,46 @@ export class PriceMatcher {
   private static extractKeywords(name: string): string[] {
     if (!name) return [];
 
+    // 先检查是否是反馈文本或确认文本
+    const feedbackPatterns = [
+      /当[""].+时你要/, /确认/, /确定/, /这样才是/, /这样才算/,
+      /请问你/, /你是否/, /你需要/, /你要不要/,
+      /咨询/, /了解/, /想要/, /需要/, /购买/,
+      /没有明确指定/, /到底是想/
+    ];
+
+    for (const pattern of feedbackPatterns) {
+      if (pattern.test(name)) {
+        console.log('[PriceMatcher] 检测到反馈或确认文本，不提取关键词');
+        return [];
+      }
+    }
+
     const keywords: string[] = [];
 
     // 1. 提取中文词（2个字以上的有意义词汇）
     // 匹配连续的中文字符
     const chineseMatches = name.match(/[\u4e00-\u9fa5]{2,}/g);
     if (chineseMatches) {
-      // 过滤掉常见无意义词
+      // 过滤掉常见无意义词（扩展版）
       const stopWords = new Set([
+        // 产品相关
         '设备', '机器', '装置', '系统', '配件', '组件', '部件',
         '产品', '商品', '物品', '用品', '工具', '器材',
+        // 商业相关
         '有限公司', '厂家', '生产', '制造', '销售', '批发', '零售',
+        // 价格相关
         '价格', '报价', '多少钱', '哪里有', '哪里买',
-        '请问', '咨询', '了解', '需要', '想要', '购买'
+        // 询问相关
+        '请问', '咨询', '了解', '需要', '想要', '购买',
+        // 确认相关
+        '确认', '确定', '这样才是', '这样才算', '是否',
+        // 反馈相关
+        '没有明确指定', '到底是想', '时你要我',
+        // 动词
+        '进行', '确定', '咨询', '需要', '想要', '了解', '可以',
+        // 形容词
+        '明确', '明确指定', '比较', '比较人性化'
       ]);
 
       chineseMatches.forEach(word => {
@@ -194,8 +432,19 @@ export class PriceMatcher {
       });
     }
 
-    console.log('[PriceMatcher] 提取的关键词:', keywords);
-    return keywords;
+    // 过滤掉过长或无意义的关键词
+    const validKeywords = keywords.filter(keyword => {
+      // 关键词长度不能超过15个字
+      if (keyword.length > 15) return false;
+      
+      // 不能全是常见字符
+      if (/^[确定咨询需要想要了解可以是否明确比较]+$/.test(keyword)) return false;
+      
+      return true;
+    });
+
+    console.log('[PriceMatcher] 提取的关键词:', validKeywords);
+    return validKeywords;
   }
 
   /**
@@ -270,12 +519,12 @@ export class PriceMatcher {
     let totalWeight = 0;
 
     // 维度1：产品名称相似度（权重40%）
-    const nameScore = this.calculateNameSimilarity(target.name, product.name);
+    const nameScore = this.calculateNameSimilarity(target.name || '', product.name || '');
     totalScore += nameScore * 40;
     totalWeight += 40;
 
     // 维度2：规格型号相似度（权重35%）
-    const modelScore = this.calculateModelSimilarity(target.model, product.model);
+    const modelScore = this.calculateModelSimilarity(target.model || '', product.model || '');
     totalScore += modelScore * 35;
     totalWeight += 35;
 
@@ -1343,8 +1592,8 @@ export class PriceMatcher {
         bestScore = similarity;
         bestMatch = product;
         bestDetails = {
-          名称相似度: this.calculateNameSimilarity(target.name, product.name).toFixed(2),
-          型号相似度: this.calculateModelSimilarity(target.model, product.model).toFixed(2),
+          名称相似度: this.calculateNameSimilarity(target.name || '', product.name || '').toFixed(2),
+          型号相似度: this.calculateModelSimilarity(target.model || '', product.model || '').toFixed(2),
           参数相似度: this.calculateSpecSimilarity(
             target.parameter_description || '',
             product.parameter_description || ''
