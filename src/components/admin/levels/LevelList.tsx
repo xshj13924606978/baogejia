@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -17,7 +18,7 @@ import {
 } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Edit, History, Upload } from 'lucide-react';
+import { Edit, History, Upload, ChevronDown, ChevronRight, LayoutGrid } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { LevelEditor } from './LevelEditor';
 
@@ -52,6 +53,38 @@ export const LevelList: React.FC = () => {
   const [batchUpdateField, setBatchUpdateField] = useState<string>('');
   const [batchUpdateValue, setBatchUpdateValue] = useState<string>('');
   const { toast } = useToast();
+
+  // 树状展开状态
+  const [expandedLevels, setExpandedLevels] = useState<Set<number>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Record<number, Set<string>>>({});
+  
+  // 勾选状态
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const [itemValues, setItemValues] = useState<Record<string, string>>({});
+
+  // 配置项定义
+  const configCategories = {
+    quotas: {
+      name: '配额设置',
+      icon: LayoutGrid,
+      items: [
+        { field: 'daily_quota', label: '每日查询配额', type: 'number' },
+        { field: 'max_files', label: '最大文件数量', type: 'number' },
+        { field: 'max_chat_messages', label: '最大聊天消息数', type: 'number' },
+      ]
+    },
+    fieldPermissions: {
+      name: '字段权限',
+      icon: Edit,
+      items: [
+        { field: 'can_view_cost_price', label: '查看成本价', type: 'boolean' },
+        { field: 'can_view_min_price', label: '查看最低售价', type: 'boolean' },
+        { field: 'can_view_manufacturer', label: '查看厂家信息', type: 'boolean' },
+        { field: 'can_view_contact', label: '查看联系人', type: 'boolean' },
+        { field: 'can_view_phone', label: '查看联系电话', type: 'boolean' },
+      ]
+    }
+  };
 
   useEffect(() => {
     fetchLevels();
@@ -149,81 +182,79 @@ export const LevelList: React.FC = () => {
   };
 
   const handleBatchUpdate = async () => {
-    if (!selectedLevelForBatch || !batchUpdateField || !batchUpdateValue || !batchUpdateReason) {
+    if (checkedItems.size === 0 || !batchUpdateReason) {
       toast({
         variant: 'destructive',
-        title: '请完整填写批量更新信息',
+        title: '请至少勾选一个配置项并填写修改原因',
       });
       return;
+    }
+
+    // 检查所有勾选项是否都有值
+    for (const itemKey of checkedItems) {
+      if (!itemValues[itemKey]) {
+        toast({
+          variant: 'destructive',
+          title: '请为所有勾选的配置项设置新值',
+        });
+        return;
+      }
     }
 
     try {
       setBatchUpdating(true);
 
-      // 构建更新对象
-      let updateData: any = {};
+      // 按等级分组更新
+      const updatesByLevel: Record<number, any> = {};
 
-      switch (batchUpdateField) {
-        case 'daily_quota':
-        case 'max_files':
-        case 'max_chat_messages':
-          updateData = {
-            level: selectedLevelForBatch,
+      for (const itemKey of checkedItems) {
+        const [levelStr, field] = itemKey.split('-');
+        const level = parseInt(levelStr);
+
+        if (!updatesByLevel[level]) {
+          updatesByLevel[level] = {
+            level,
             changes: {
-              quotas: {
-                [batchUpdateField]: parseInt(batchUpdateValue)
-              }
+              quotas: {},
+              fieldPermissions: {}
             }
           };
-          break;
-        case 'can_view_cost_price':
-        case 'can_view_min_price':
-        case 'can_view_manufacturer':
-        case 'can_view_contact':
-        case 'can_view_phone':
-          updateData = {
-            level: selectedLevelForBatch,
-            changes: {
-              fieldPermissions: {
-                [batchUpdateField]: batchUpdateValue === 'true'
-              }
-            }
-          };
-          break;
-        default:
-          toast({
-            variant: 'destructive',
-            title: '不支持的更新字段',
-          });
-          return;
+        }
+
+        // 判断字段类型
+        if (['daily_quota', 'max_files', 'max_chat_messages'].includes(field)) {
+          updatesByLevel[level].changes.quotas[field] = parseInt(itemValues[itemKey]);
+        } else if (field.startsWith('can_view_')) {
+          updatesByLevel[level].changes.fieldPermissions[field] = itemValues[itemKey] === 'true';
+        }
       }
+
+      // 构建更新数组
+      const updates = Object.values(updatesByLevel).map((update: any) => ({
+        ...update,
+        reason: batchUpdateReason
+      }));
 
       const res = await fetch('/api/admin/levels/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          updates: [
-            {
-              ...updateData,
-              reason: batchUpdateReason
-            }
-          ]
-        })
+        body: JSON.stringify({ updates })
       });
 
       const data = await res.json();
 
       if (data.success) {
         toast({
-          title: '批量更新成功',
+          title: `批量更新成功，共更新 ${updates.length} 个等级`,
         });
         setBatchUpdateOpen(false);
         fetchLevels();
         // 重置表单
         setBatchUpdateReason('');
-        setSelectedLevelForBatch(null);
-        setBatchUpdateField('');
-        setBatchUpdateValue('');
+        setCheckedItems(new Set());
+        setItemValues({});
+        setExpandedLevels(new Set());
+        setExpandedCategories({});
       } else {
         toast({
           variant: 'destructive',
@@ -239,6 +270,61 @@ export const LevelList: React.FC = () => {
     } finally {
       setBatchUpdating(false);
     }
+  };
+
+  // 切换等级展开状态
+  const toggleLevelExpand = (level: number) => {
+    const newExpanded = new Set(expandedLevels);
+    if (newExpanded.has(level)) {
+      newExpanded.delete(level);
+    } else {
+      newExpanded.add(level);
+    }
+    setExpandedLevels(newExpanded);
+  };
+
+  // 切换类别展开状态
+  const toggleCategoryExpand = (level: number, category: string) => {
+    const levelCategories = expandedCategories[level] || new Set();
+    const newCategories = new Set(levelCategories);
+    if (newCategories.has(category)) {
+      newCategories.delete(category);
+    } else {
+      newCategories.add(category);
+    }
+    setExpandedCategories({
+      ...expandedCategories,
+      [level]: newCategories
+    });
+  };
+
+  // 切换勾选状态
+  const toggleCheck = (itemKey: string) => {
+    const newChecked = new Set(checkedItems);
+    if (newChecked.has(itemKey)) {
+      newChecked.delete(itemKey);
+      // 清除对应的值
+      const newValues = { ...itemValues };
+      delete newValues[itemKey];
+      setItemValues(newValues);
+    } else {
+      newChecked.add(itemKey);
+      // 设置默认值
+      const [levelStr, field] = itemKey.split('-');
+      const category = Object.keys(configCategories).find(cat =>
+        configCategories[cat as keyof typeof configCategories].items.some(item => item.field === field)
+      );
+      const itemConfig = Object.values(configCategories).flatMap(cat => cat.items).find(item => item.field === field);
+      if (itemConfig?.type === 'boolean') {
+        setItemValues({ ...itemValues, [itemKey]: 'true' });
+      }
+    }
+    setCheckedItems(newChecked);
+  };
+
+  // 更新项目值
+  const updateItemValue = (itemKey: string, value: string) => {
+    setItemValues({ ...itemValues, [itemKey]: value });
   };
 
   return (
@@ -372,64 +458,149 @@ export const LevelList: React.FC = () => {
       </Dialog>
 
       <Dialog open={batchUpdateOpen} onOpenChange={setBatchUpdateOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>批量更新等级配置</DialogTitle>
             <DialogDescription>
-              快速更新指定等级的单个配置项
+              勾选需要修改的配置项，设置新值后批量提交
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>选择等级 *</Label>
-              <Select value={selectedLevelForBatch?.toString()} onValueChange={(value) => setSelectedLevelForBatch(parseInt(value))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="请选择等级" />
-                </SelectTrigger>
-                <SelectContent>
-                  {levels.map((level) => (
-                    <SelectItem key={level.level} value={level.level.toString()}>
-                      Lv.{level.level} - {level.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* 等级树状结构 */}
+            <div className="border rounded-md">
+              {levels.map((level) => {
+                const isExpanded = expandedLevels.has(level.level);
+                const levelCategories = expandedCategories[level.level] || new Set();
+
+                return (
+                  <div key={level.level} className="border-b last:border-b-0">
+                    {/* 等级头部 */}
+                    <div
+                      className="flex items-center justify-between p-3 bg-muted/50 hover:bg-muted cursor-pointer"
+                      onClick={() => toggleLevelExpand(level.level)}
+                    >
+                      <div className="flex items-center gap-2">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <Badge className={getLevelColor(level.level)}>
+                          Lv.{level.level}
+                        </Badge>
+                        <span className="font-medium">{level.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          (所需积分: {level.requiredPoints})
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        已勾选 {Array.from(checkedItems).filter(item => item.startsWith(`${level.level}-`)).length} 项
+                      </span>
+                    </div>
+
+                    {/* 配置类别 */}
+                    {isExpanded && (
+                      <div className="pl-4 bg-background">
+                        {Object.entries(configCategories).map(([categoryKey, category]) => {
+                          const CategoryIcon = category.icon;
+                          const isCategoryExpanded = levelCategories.has(categoryKey);
+
+                          return (
+                            <div key={categoryKey} className="border-b last:border-b-0">
+                              {/* 类别头部 */}
+                              <div
+                                className="flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer"
+                                onClick={() => toggleCategoryExpand(level.level, categoryKey)}
+                              >
+                                {isCategoryExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <CategoryIcon className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium text-sm">{category.name}</span>
+                              </div>
+
+                              {/* 配置项 */}
+                              {isCategoryExpanded && (
+                                <div className="pl-6 pb-2 space-y-2">
+                                  {category.items.map((item) => {
+                                    const itemKey = `${level.level}-${item.field}`;
+                                    const isChecked = checkedItems.has(itemKey);
+                                    const currentValue = itemValues[itemKey];
+
+                                    return (
+                                      <div
+                                        key={item.field}
+                                        className="flex items-center gap-3 p-2 rounded-md border bg-card hover:bg-muted/50"
+                                      >
+                                        <Checkbox
+                                          id={itemKey}
+                                          checked={isChecked}
+                                          onCheckedChange={() => toggleCheck(itemKey)}
+                                        />
+                                        <Label
+                                          htmlFor={itemKey}
+                                          className="flex-1 cursor-pointer text-sm"
+                                        >
+                                          {item.label}
+                                        </Label>
+                                        {isChecked && (
+                                          <div className="flex items-center gap-2">
+                                            {item.type === 'boolean' ? (
+                                              <Select
+                                                value={currentValue}
+                                                onValueChange={(value) => updateItemValue(itemKey, value)}
+                                              >
+                                                <SelectTrigger className="w-32 h-8 text-xs">
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="true">开启</SelectItem>
+                                                  <SelectItem value="false">关闭</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            ) : (
+                                              <Input
+                                                type="number"
+                                                min="0"
+                                                value={currentValue}
+                                                onChange={(e) => updateItemValue(itemKey, e.target.value)}
+                                                placeholder="输入数值"
+                                                className="w-32 h-8 text-xs"
+                                              />
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
-            <div className="space-y-2">
-              <Label>更新字段 *</Label>
-              <Select value={batchUpdateField} onValueChange={setBatchUpdateField}>
-                <SelectTrigger>
-                  <SelectValue placeholder="请选择要更新的字段" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daily_quota">每日查询配额</SelectItem>
-                  <SelectItem value="max_files">最大文件数量</SelectItem>
-                  <SelectItem value="max_chat_messages">最大聊天消息数</SelectItem>
-                  <SelectItem value="can_view_cost_price">查看成本价</SelectItem>
-                  <SelectItem value="can_view_min_price">查看最低售价</SelectItem>
-                  <SelectItem value="can_view_manufacturer">查看厂家信息</SelectItem>
-                  <SelectItem value="can_view_contact">查看联系人</SelectItem>
-                  <SelectItem value="can_view_phone">查看联系电话</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* 统计信息 */}
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md text-sm">
+              <span className="text-muted-foreground">
+                已勾选 <span className="font-bold text-foreground">{checkedItems.size}</span> 个配置项，
+                涉及 <span className="font-bold text-foreground">
+                  {new Set(Array.from(checkedItems).map(item => item.split('-')[0])).size}
+                </span> 个等级
+              </span>
             </div>
 
+            {/* 修改原因 */}
             <div className="space-y-2">
-              <Label>新值 *</Label>
-              <Input
-                value={batchUpdateValue}
-                onChange={(e) => setBatchUpdateValue(e.target.value)}
-                placeholder={
-                  batchUpdateField.includes('can_view')
-                    ? 'true 或 false'
-                    : '请输入数字值'
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>修改原因 *</Label>
+              <Label>修改原因 <span className="text-destructive">*</span></Label>
               <Textarea
                 value={batchUpdateReason}
                 onChange={(e) => setBatchUpdateReason(e.target.value)}
@@ -439,15 +610,15 @@ export const LevelList: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={() => setBatchUpdateOpen(false)}>
               取消
             </Button>
-            <Button onClick={handleBatchUpdate} disabled={batchUpdating}>
+            <Button onClick={handleBatchUpdate} disabled={batchUpdating || checkedItems.size === 0}>
               {batchUpdating && (
                 <Upload className="mr-2 h-4 w-4 animate-spin" />
               )}
-              确认更新
+              确认批量更新
             </Button>
           </div>
         </DialogContent>
