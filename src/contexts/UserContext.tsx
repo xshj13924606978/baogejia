@@ -20,6 +20,8 @@ interface User {
   // 用户等级相关
   level?: number;        // 用户等级
   currentPoints?: number; // 当前积分
+  tokenBalance?: number;  // Token余额
+  levelExpiryDate?: string; // 等级有效期
   levelConfig?: {        // 等级配置
     name: string;
     requiredPoints: number;
@@ -1048,9 +1050,51 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     setLoading(true);
     try {
+      // 从localStorage获取用户信息
       const dbUser = findUserById(user.id);
       if (dbUser) {
         const { password: _, ...userWithoutPassword } = dbUser;
+        
+        // 尝试从API获取用户余额和等级信息
+        try {
+          const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+          if (token) {
+            // 获取用户等级信息
+            const levelResponse = await fetch('/api/user/level', {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (levelResponse.ok) {
+              const levelData = await levelResponse.json();
+              if (levelData.success && levelData.data) {
+                userWithoutPassword.level = levelData.data.level;
+                userWithoutPassword.currentPoints = levelData.data.currentPoints;
+                userWithoutPassword.levelConfig = levelData.data.levelConfig;
+              }
+            }
+            
+            // 获取用户余额信息
+            const balanceResponse = await fetch('/api/user/billing/balance', {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (balanceResponse.ok) {
+              const balanceData = await balanceResponse.json();
+              if (balanceData.success && balanceData.data && balanceData.data.balance) {
+                userWithoutPassword.currentPoints = balanceData.data.balance.pointsBalance;
+                userWithoutPassword.tokenBalance = balanceData.data.balance.tokenBalance;
+              }
+            }
+          }
+        } catch (apiError) {
+          console.error('[UserContext] 获取API数据失败:', apiError);
+          // API调用失败不影响基本功能，继续使用localStorage数据
+        }
+        
         setUser(userWithoutPassword);
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
       }

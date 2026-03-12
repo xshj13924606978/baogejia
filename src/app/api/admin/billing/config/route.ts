@@ -1,0 +1,130 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { tokenBillingService } from '@/lib/token-billing-service';
+import { getCurrentUser } from '@/lib/auth-utils';
+
+/**
+ * 计费配置管理API（管理员）
+ * 
+ * 功能：
+ * - GET: 获取当前计费配置
+ * - POST: 更新计费配置
+ */
+
+/**
+ * 获取当前计费配置
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // 获取当前用户
+    const currentUser = await getCurrentUser(request);
+    if (!currentUser || !currentUser.id) {
+      return NextResponse.json(
+        { error: '未登录或用户信息无效' },
+        { status: 401 }
+      );
+    }
+
+    // 检查管理员权限
+    if (currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+      return NextResponse.json(
+        { error: '需要管理员权限' },
+        { status: 403 }
+      );
+    }
+
+    console.log('[BillingConfig API] 获取计费配置');
+
+    // 获取计费配置
+    const config = await tokenBillingService.getBillingConfig();
+
+    if (!config) {
+      return NextResponse.json(
+        { error: '获取计费配置失败' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: config
+    });
+  } catch (error) {
+    console.error('[BillingConfig API] 获取计费配置异常:', error);
+    return NextResponse.json(
+      { error: '服务器错误' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * 更新计费配置
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // 获取当前用户
+    const currentUser = await getCurrentUser(request);
+    if (!currentUser || !currentUser.id) {
+      return NextResponse.json(
+        { error: '未登录' },
+        { status: 401 }
+      );
+    }
+
+    // 检查管理员权限
+    if (currentUser.role !== 'super_admin') {
+      return NextResponse.json(
+        { error: '需要超级管理员权限' },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const {
+      configName,
+      yuanToTokens,
+      yuanToPoints,
+      pointsToTokens,
+      level1InputRate,
+      level1OutputRate,
+      level2InputRate,
+      level2OutputRate,
+      level3InputRate,
+      level3OutputRate,
+      level4InputRate,
+      level4OutputRate,
+      level5InputRate,
+      level5OutputRate
+    } = body;
+
+    // 验证必填字段
+    if (!yuanToTokens || !yuanToPoints || !pointsToTokens) {
+      return NextResponse.json(
+        { error: '缺少必要参数' },
+        { status: 400 }
+      );
+    }
+
+    console.log('[BillingConfig API] 更新计费配置:', {
+      configName,
+      yuanToTokens,
+      yuanToPoints,
+      pointsToTokens
+    });
+
+    // TODO: 实现更新配置的逻辑
+    // 当前tokenBillingService.getBillingConfig()只是读取，没有更新方法
+    // 需要在服务层添加updateBillingConfig方法
+
+    return NextResponse.json({
+      success: true,
+      message: '配置更新成功（需要实现更新逻辑）'
+    });
+  } catch (error) {
+    console.error('[BillingConfig API] 更新计费配置异常:', error);
+    return NextResponse.json(
+      { error: '服务器错误' },
+      { status: 500 }
+    );
+  }
+}

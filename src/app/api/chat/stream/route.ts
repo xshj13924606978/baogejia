@@ -3,6 +3,8 @@ import { streamDeepSeekChat } from '@/lib/deepseek-client';
 import { InputProcessor, ProcessedInput } from '@/lib/input-processor';
 import { smartChatProcessor } from '@/lib/smart-chat-processor';
 import { createClient } from '@supabase/supabase-js';
+import { getCurrentUser } from '@/lib/auth-utils';
+import { tokenBillingService } from '@/lib/token-billing-service';
 
 // 从数据库加载对话历史
 async function loadConversationHistory(conversationId: string) {
@@ -61,6 +63,18 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[Chat Stream API] ========== 新流式请求 ==========');
     
+    // 0. 获取当前用户（用于计费）
+    let userId: number | null = null;
+    try {
+      const currentUser = await getCurrentUser(request);
+      if (currentUser && currentUser.id) {
+        userId = parseInt(currentUser.id);
+        console.log('[Chat Stream API] 用户ID:', userId);
+      }
+    } catch (error) {
+      console.error('[Chat Stream API] 获取用户信息失败:', error);
+    }
+    
     // 1. 解析请求
     const body = await request.json();
     const { message, conversationId } = body;
@@ -76,6 +90,35 @@ export async function POST(request: NextRequest) {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
+    }
+
+    // 1.5. 积分检查（如果有用户）
+    if (userId) {
+      try {
+        // 估算输入Token
+        const estimatedInputTokens = tokenBillingService.countTokens(message);
+        // 估算总Token（输入+预估输出）
+        const estimatedTotalTokens = estimatedInputTokens + 500; // 预估输出500 token
+        const requiredPoints = await tokenBillingService.calculatePointsConsumption(userId, estimatedTotalTokens);
+        
+        const hasEnough = await tokenBillingService.checkPointsBalance(userId, requiredPoints);
+        if (!hasEnough) {
+          const balance = await tokenBillingService.getUserBalance(userId);
+          console.log('[Chat Stream API] 积分不足:', { userId, required: requiredPoints, balance: balance?.pointsBalance });
+          return new Response(JSON.stringify({ 
+            error: '积分不足',
+            message: '您的积分不足，请充值后继续使用',
+            required: requiredPoints,
+            balance: balance?.pointsBalance
+          }), {
+            status: 402, // 402 Payment Required
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      } catch (error) {
+        console.error('[Chat Stream API] 积分检查失败:', error);
+        // 积分检查失败时不阻断服务，允许继续
+      }
     }
 
     // 2. 处理输入
@@ -195,6 +238,31 @@ export async function POST(request: NextRequest) {
             if (databaseInfo) {
               assistantMessage += `\n\n<!-- DATABASE_INFO: ${JSON.stringify(databaseInfo)} -->`;
               console.log('[Chat Stream API] 已将数据库信息添加到AI回复中');
+            }
+
+            // 扣除积分（如果有用户）
+            if (userId) {
+              try {
+                const consumption = await tokenBillingService.calculateTokenConsumption(
+                  message,
+                  assistantMessage.replace(/<!-- DATABASE_INFO:.*?-->/g, ''), // 移除隐藏信息再计算
+                  userId
+                );
+                const deductSuccess = await tokenBillingService.deductPoints(
+                  userId,
+                  consumption.pointsConsumed,
+                  conversationId,
+                  `msg_${Date.now()}`,
+                  'chat'
+                );
+                if (deductSuccess) {
+                  console.log('[Chat Stream API] 扣除积分成功:', consumption);
+                } else {
+                  console.error('[Chat Stream API] 扣除积分失败');
+                }
+              } catch (error) {
+                console.error('[Chat Stream API] 扣除积分异常:', error);
+              }
             }
 
             // 再添加AI回复
