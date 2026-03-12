@@ -209,6 +209,36 @@ export function withPermissionCheck<T extends (req: NextRequest, user: any) => P
 }
 
 /**
+ * 创建支持动态路由参数的权限检查包装器
+ * 用于 Next.js App Router 的动态路由（如 [id]）
+ */
+export function withPermissionCheckWithParams<T extends (
+  req: NextRequest,
+  params: any,
+  user: any
+) => Promise<NextResponse>>(
+  options: PermissionCheckOptions,
+  handler: T
+): ((request: NextRequest, { params }: { params: Promise<any> }) => Promise<NextResponse>) {
+  return async (request: NextRequest, { params }: { params: Promise<any> }) => {
+    const result = await checkPermission(request, options);
+
+    if (!result.allowed) {
+      return NextResponse.json(
+        {
+          error: result.reason || '权限不足',
+          missingPermissions: result.missingPermissions,
+          status: result.status
+        },
+        { status: result.status || 403 }
+      );
+    }
+
+    return handler(request, await params, result.user);
+  };
+}
+
+/**
  * 简化版的权限包装器（常用权限）
  */
 export const withUserView = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(

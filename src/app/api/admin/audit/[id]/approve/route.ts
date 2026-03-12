@@ -7,7 +7,10 @@ export const POST = withPermissionCheck(
   async (request: NextRequest, user: any) => {
 
   try {
-    const { id: auditIdStr } = await params;
+    // 从 URL 中提取 id
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const auditIdStr = pathParts[pathParts.length - 1];
     const auditId = parseInt(auditIdStr);
     const { points = 0 } = await request.json();
 

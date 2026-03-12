@@ -52,9 +52,11 @@ export const GET = withPermissionCheck(
       );
     }
 
-    // 获取参数
-    const { level } = await params;
-    const levelNum = parseInt(level);
+    // 从 URL 中提取 level 参数
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const levelStr = pathParts[pathParts.length - 1];
+    const levelNum = parseInt(levelStr);
 
     console.log('[AdminLevelDetail API] 获取等级配置:', levelNum);
 
@@ -118,9 +120,11 @@ export const PUT = withPermissionCheck(
       );
     }
 
-    // 获取参数
-    const { level } = await params;
-    const levelNum = parseInt(level);
+    // 从 URL 中提取 level 参数
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const levelStr = pathParts[pathParts.length - 1];
+    const levelNum = parseInt(levelStr);
 
     // 获取请求体
     const body = await request.json();

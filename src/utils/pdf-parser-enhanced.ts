@@ -23,7 +23,7 @@ interface ParseResult {
   products: Product[];
   globalRemarks: string[];
   rawContent?: string;
-  parseLevel: 'local' | 'ai' | 'fallback' | 'ocr';
+  parseLevel: 'local' | 'ai' | 'fallback' | 'ocr' | 'error';
   confidence: number;
   metadata?: {
     fileType: string;
@@ -235,14 +235,14 @@ ${extractedText.substring(0, 3000)}
     try {
       const response = await this.llmClient.invoke(
         [{ role: 'user', content: prompt }],
-        { temperature: 0.3, max_tokens: 4000 }
+        { temperature: 0.3 }
       );
 
       const jsonMatch = response.content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const data = JSON.parse(jsonMatch[0]);
         const products = this.normalizeProducts(data.products || []);
-        
+
         return {
           products,
           globalRemarks: data.remarks || [],

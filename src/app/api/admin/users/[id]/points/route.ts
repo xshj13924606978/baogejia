@@ -7,7 +7,10 @@ export const POST = withPermissionCheck(
   async (request: NextRequest, user: any) => {
 
   try {
-    const { id: userIdStr } = await params;
+    // 从 URL 中提取 id
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const userIdStr = pathParts[pathParts.length - 1];
     const userId = parseInt(userIdStr);
     const { points } = await request.json();
 
@@ -20,8 +23,8 @@ export const POST = withPermissionCheck(
     // 模拟积分分配
     console.log(`给用户 ${userId} 分配 ${points} 积分`);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       newPoints: 1000 + points,
       pointsChange: points
     });

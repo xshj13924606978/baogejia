@@ -62,9 +62,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  console.log('[DisplayRules] PUT 更新规则配置:', params.id);
+  const { id } = await params;
+  console.log('[DisplayRules] PUT 更新规则配置:', id);
 
   try {
     const body = await request.json();
@@ -126,9 +127,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  console.log('[DisplayRules] DELETE 删除规则:', params.id);
+  const { id } = await params;
+  console.log('[DisplayRules] DELETE 删除规则:', id);
 
   try {
     const { error } = await supabase

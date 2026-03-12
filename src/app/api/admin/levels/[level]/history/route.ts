@@ -47,9 +47,11 @@ export const GET = withPermissionCheck(
       );
     }
 
-    // 获取参数
-    const { level } = await params;
-    const levelNum = parseInt(level);
+    // 从 URL 中提取 level 参数
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const levelStr = pathParts[pathParts.length - 1];
+    const levelNum = parseInt(levelStr);
 
     console.log('[AdminLevelHistory API] 获取等级权限修改历史:', levelNum);
 

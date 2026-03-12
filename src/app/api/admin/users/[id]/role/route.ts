@@ -7,12 +7,15 @@ export const POST = withPermissionCheck(
   async (request: NextRequest, user: any) => {
 
   try {
-    const { id: userIdStr } = await params;
+    // 从 URL 中提取 id
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const userIdStr = pathParts[pathParts.length - 1];
     const userId = parseInt(userIdStr);
     const { role } = await request.json();
 
     const validRoles = ['user', 'vip', 'manufacturer', 'super_admin', 'pending'];
-    
+
     if (!validRoles.includes(role)) {
       return NextResponse.json(
         { error: '无效的角色' }, { status: 400 }

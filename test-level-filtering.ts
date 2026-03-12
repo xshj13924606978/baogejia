@@ -8,7 +8,7 @@ async function testLevelBasedFiltering() {
   const supabase = getSupabaseClient();
 
   // 测试用户ID
-  const testUserId = 2;
+  const testUserId = '2';
   const productId = 106;
 
   try {
@@ -60,7 +60,7 @@ async function testLevelBasedFiltering() {
     console.log('过滤后的结果:');
     console.log({
       price: result2.price,
-      cost_price: result2.cost_price,
+      cost_price: result2.costPrice,
       min_price: result2.minPrice,
       manufacturer: (result2 as any).manufacturer,
       contact: (result2 as any).contact,
@@ -96,7 +96,7 @@ async function testLevelBasedFiltering() {
     console.log('过滤后的结果:');
     console.log({
       price: result4.price,
-      cost_price: result4.cost_price,
+      cost_price: result4.costPrice,
       min_price: result4.minPrice,
       manufacturer: (result4 as any).manufacturer,
       contact: (result4 as any).contact,
