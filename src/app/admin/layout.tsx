@@ -67,14 +67,21 @@ export default function AdminLayout({
       if (!user) {
         console.log('[AdminLayout] 未登录，跳转到登录页');
         router.push('/login');
-      } else if (user.role !== 'admin') {
-        console.log('[AdminLayout] 非管理员用户，拒绝访问');
-        toast({
-          title: '权限不足',
-          description: '您没有访问管理后台的权限',
-          variant: 'destructive'
-        });
-        router.push('/');
+      } else {
+        // 检查是否具有管理员权限（admin 或 super_admin）
+        const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+        
+        if (!isAdmin) {
+          console.log('[AdminLayout] 非管理员用户，拒绝访问，当前角色:', user.role);
+          toast({
+            title: '权限不足',
+            description: `您当前角色为 ${user.role || '普通用户'}，没有访问管理后台的权限`,
+            variant: 'destructive'
+          });
+          router.push('/');
+        } else {
+          console.log('[AdminLayout] 管理员用户验证通过，角色:', user.role);
+        }
       }
     }
   }, [user, loading, router, toast]);

@@ -607,10 +607,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
       
       if (!response.ok) {
+        console.log('[passwordLogin] 登录失败:', data.error);
         return { success: false, error: data.error || '登录失败' };
       }
       
       if (!data.success) {
+        console.log('[passwordLogin] 登录返回失败:', data.error);
         return { success: false, error: data.error || '登录失败' };
       }
       
@@ -623,6 +625,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       
       // 保存用户信息
       const userData = data.user;
+      console.log('[passwordLogin] 保存用户信息到 localStorage:', userData.id, userData.email, userData.role);
       setUser(userData);
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
       localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
@@ -1128,14 +1131,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const localUser = localStorage.getItem(STORAGE_KEYS.USER);
         if (localUser) {
           const parsedUser = JSON.parse(localUser);
-          const dbUser = findUserById(parsedUser.id);
-          if (dbUser) {
-            const { password: _, ...userWithoutPassword } = dbUser;
-            setUser(userWithoutPassword);
-            console.log('[UserContext] 从localStorage加载用户:', userWithoutPassword.email || userWithoutPassword.phone);
-          } else {
-            localStorage.removeItem(STORAGE_KEYS.USER);
-          }
+          console.log('[UserContext] 从localStorage加载用户:', parsedUser.id, parsedUser.email, parsedUser.role);
+          
+          // 直接使用 localStorage 中保存的用户信息，不再依赖本地数据库
+          // 这样可以避免本地数据库与实际数据库不一致的问题
+          setUser(parsedUser);
+        } else {
+          console.log('[UserContext] localStorage中无用户信息');
         }
       } catch (error) {
         console.error("[UserContext] 加载用户失败:", error);

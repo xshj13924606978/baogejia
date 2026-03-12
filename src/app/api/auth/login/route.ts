@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
     // 返回用户信息（不包含密码）
     const { password: _, ...userWithoutPassword } = user;
 
+    console.log('【登录成功】用户ID:', user.id, '用户名:', user.username, '邮箱:', user.email, '角色:', user.role, '等级:', levelData?.level || 1);
+
     return NextResponse.json({
       success: true,
       user: {
