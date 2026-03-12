@@ -572,10 +572,12 @@ export class UserLevelService {
       const updateData: any = {};
 
       if (changes.fieldPermissions) {
+        // 将嵌套的 fieldPermissions 对象展开为扁平字段
         Object.assign(updateData, changes.fieldPermissions);
       }
 
       if (changes.quotas) {
+        // 将嵌套的 quotas 对象展开为扁平字段
         Object.assign(updateData, changes.quotas);
       }
 
