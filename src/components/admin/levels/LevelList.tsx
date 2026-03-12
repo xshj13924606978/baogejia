@@ -94,22 +94,59 @@ export const LevelList: React.FC = () => {
     }
   };
 
-  // 模块名称映射
+  // 模块名称映射 - 完整版
   const moduleNameMap: Record<string, string> = {
+    // 用户相关
     'user.view': '用户查看',
     'user.manage': '用户管理',
+    'user.edit': '用户编辑',
+    'user.delete': '用户删除',
+    
+    // 产品相关
     'product.search': '产品搜索',
     'product.detail': '产品详情',
+    'product.view': '产品查看',
+    'product.edit': '产品编辑',
+    'product.delete': '产品删除',
+    'product.export': '产品导出',
+    
+    // 报价相关
     'quote.create': '报价创建',
+    'quote.view': '报价查看',
+    'quote.edit': '报价编辑',
+    'quote.delete': '报价删除',
     'quote.export': '报价导出',
     'quote_generation': '报价生成',
     'quote_export': '报价导出',
+    
+    // 文档相关
     'excel.export': 'Excel导出',
-    'api.access': 'API调用',
+    'pdf.export': 'PDF导出',
+    
+    // 成本相关
     'cost_price.view': '成本价查看',
+    'cost_price.edit': '成本价编辑',
+    
+    // 厂家相关
     'manufacturer.view': '厂家信息查看',
+    'manufacturer.edit': '厂家信息编辑',
+    'manufacturer.manage': '厂家管理',
+    
+    // 联系人相关
     'contact.view': '联系人查看',
-    'phone.view': '联系电话查看'
+    'contact.edit': '联系人编辑',
+    
+    // 电话相关
+    'phone.view': '联系电话查看',
+    'phone.edit': '联系电话编辑',
+    
+    // 系统相关
+    'api.access': 'API调用',
+    'api.manage': 'API管理',
+    'admin_panel': '管理面板',
+    'brand_recommend': '品牌推荐',
+    'cost_analysis': '成本分析',
+    '*': '全部权限'
   };
 
   // 角色名称映射
@@ -696,7 +733,7 @@ export const LevelList: React.FC = () => {
                         <>
                           {record.modulePermissions.slice(0, 3).map((code) => (
                             <Badge key={code} variant="outline" className="bg-purple-50">
-                              {code}
+                              {moduleNameMap[code] || code}
                             </Badge>
                           ))}
                           {record.modulePermissions.length > 3 && (

@@ -73,75 +73,95 @@ export async function GET(request: NextRequest) {
           name: '免费用户',
           role: 'free',
           required_points: 0,
-          daily_quota: 10,
-          max_files: 5,
-          max_chat_messages: 20,
-          can_view_cost_price: false,
-          can_view_min_price: false,
-          can_view_manufacturer: false,
-          can_view_contact: false,
-          can_view_phone: false,
-          module_permissions: ['user.view', 'product.search']
+          quotas: {
+            daily_quota: 10,
+            max_files: 5,
+            max_chat_messages: 20
+          },
+          fieldPermissions: {
+            can_view_cost_price: false,
+            can_view_min_price: false,
+            can_view_manufacturer: false,
+            can_view_contact: false,
+            can_view_phone: false
+          },
+          modulePermissions: ['user.view', 'product.search']
         },
         {
           level: 2,
           name: '普通会员',
           role: 'premium',
           required_points: 100,
-          daily_quota: 50,
-          max_files: 20,
-          max_chat_messages: 100,
-          can_view_cost_price: false,
-          can_view_min_price: true,
-          can_view_manufacturer: false,
-          can_view_contact: false,
-          can_view_phone: false,
-          module_permissions: ['user.view', 'product.search', 'product.detail']
+          quotas: {
+            daily_quota: 50,
+            max_files: 20,
+            max_chat_messages: 100
+          },
+          fieldPermissions: {
+            can_view_cost_price: false,
+            can_view_min_price: true,
+            can_view_manufacturer: false,
+            can_view_contact: false,
+            can_view_phone: false
+          },
+          modulePermissions: ['user.view', 'product.search', 'product.detail']
         },
         {
           level: 3,
           name: 'VIP会员',
           role: 'vip',
           required_points: 500,
-          daily_quota: 200,
-          max_files: 50,
-          max_chat_messages: 500,
-          can_view_cost_price: true,
-          can_view_min_price: true,
-          can_view_manufacturer: true,
-          can_view_contact: false,
-          can_view_phone: false,
-          module_permissions: ['user.view', 'product.search', 'product.detail', 'quote.create']
+          quotas: {
+            daily_quota: 200,
+            max_files: 50,
+            max_chat_messages: 500
+          },
+          fieldPermissions: {
+            can_view_cost_price: true,
+            can_view_min_price: true,
+            can_view_manufacturer: true,
+            can_view_contact: false,
+            can_view_phone: false
+          },
+          modulePermissions: ['user.view', 'product.search', 'product.detail', 'quote.create']
         },
         {
           level: 4,
           name: '企业会员',
           role: 'enterprise_admin',
           required_points: 1000,
-          daily_quota: 1000,
-          max_files: 200,
-          max_chat_messages: 2000,
-          can_view_cost_price: true,
-          can_view_min_price: true,
-          can_view_manufacturer: true,
-          can_view_contact: true,
-          can_view_phone: true,
-          module_permissions: ['user.view', 'product.search', 'product.detail', 'quote.create', 'excel.export']
+          quotas: {
+            daily_quota: 1000,
+            max_files: 200,
+            max_chat_messages: 2000
+          },
+          fieldPermissions: {
+            can_view_cost_price: true,
+            can_view_min_price: true,
+            can_view_manufacturer: true,
+            can_view_contact: true,
+            can_view_phone: true
+          },
+          modulePermissions: ['user.view', 'product.search', 'product.detail', 'quote.create', 'excel.export']
         },
         {
           level: 5,
           name: '超级会员',
           role: 'super_admin',
           required_points: 5000,
-          daily_quota: 9999,
-          max_files: 9999,
-          max_chat_messages: 9999,
-          can_view_cost_price: true,
-          can_view_min_price: true,
-          can_view_manufacturer: true,
-          can_view_contact: true,
-          can_view_phone: true,
-          module_permissions: ['*']
+          quotas: {
+            daily_quota: 9999,
+            max_files: 9999,
+            max_chat_messages: 9999
+          },
+          fieldPermissions: {
+            can_view_cost_price: true,
+            can_view_min_price: true,
+            can_view_manufacturer: true,
+            can_view_contact: true,
+            can_view_phone: true
+          },
+          modulePermissions: ['*']
         }
       ];
       return NextResponse.json(hardcodedDefaults);
