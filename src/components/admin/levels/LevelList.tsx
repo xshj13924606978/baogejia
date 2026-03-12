@@ -444,7 +444,22 @@ export const LevelList: React.FC = () => {
     }
   };
 
-  // 重置批量更新表单
+  // 打开批量更新弹窗
+  const openBatchUpdateModal = () => {
+    // 自动展开所有等级的配置项
+    const allLevels = new Set(levels.map(l => l.level));
+    setExpandedLevels(allLevels);
+    
+    // 自动展开所有类别的配置项
+    const allCategories: Record<number, Set<string>> = {};
+    levels.forEach(level => {
+      allCategories[level.level] = new Set(Object.keys(configCategories));
+    });
+    setExpandedCategories(allCategories);
+    
+    // 打开弹窗
+    setBatchUpdateOpen(true);
+  };
   const resetBatchForm = () => {
     setBatchUpdateReason('');
     setCheckedItems(new Set());
@@ -652,6 +667,19 @@ export const LevelList: React.FC = () => {
 
             // 刷新列表
             await fetchLevels();
+            
+            // 添加验证日志
+            setTimeout(() => {
+              console.log('[LevelList] 恢复后当前等级列表:', levels);
+              if (levels.length > 0) {
+                const firstLevel = levels[0].level;
+                const updatedLevel = levels.find(l => l.level === firstLevel);
+                if (updatedLevel) {
+                  console.log('[LevelList] 等级', firstLevel, '的字段权限:', updatedLevel.fieldPermissions);
+                  console.log('[LevelList] 等级', firstLevel, '的配额设置:', updatedLevel.quotas);
+                }
+              }
+            }, 500);
             
             // 只在弹窗打开时重置表单
             if (batchUpdateOpen) {
@@ -868,7 +896,7 @@ export const LevelList: React.FC = () => {
     <Card className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">等级权限配置</h2>
-        <Button onClick={() => setBatchUpdateOpen(true)}>
+        <Button onClick={openBatchUpdateModal}>
           <Upload className="mr-2 h-4 w-4" />
           批量更新
         </Button>
@@ -901,26 +929,33 @@ export const LevelList: React.FC = () => {
                   <TableCell className="whitespace-nowrap">{record.requiredPoints}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex flex-wrap gap-1">
-                      {record.fieldPermissions.can_view_cost_price && (
-                        <Badge variant="secondary">成本价</Badge>
+                      {record.fieldPermissions && (
+                        <>
+                          {record.fieldPermissions.can_view_cost_price && (
+                            <Badge variant="secondary">成本价</Badge>
+                          )}
+                          {record.fieldPermissions.can_view_min_price && (
+                            <Badge variant="secondary">最低价</Badge>
+                          )}
+                          {record.fieldPermissions.can_view_manufacturer && (
+                            <Badge variant="outline">厂家</Badge>
+                          )}
+                          {record.fieldPermissions.can_view_contact && (
+                            <Badge variant="outline">联系人</Badge>
+                          )}
+                          {record.fieldPermissions.can_view_phone && (
+                            <Badge variant="outline">电话</Badge>
+                          )}
+                          {!record.fieldPermissions.can_view_cost_price &&
+                           !record.fieldPermissions.can_view_min_price &&
+                           !record.fieldPermissions.can_view_manufacturer &&
+                           !record.fieldPermissions.can_view_contact &&
+                           !record.fieldPermissions.can_view_phone && (
+                            <span className="text-muted-foreground text-sm">无权限</span>
+                          )}
+                        </>
                       )}
-                      {record.fieldPermissions.can_view_min_price && (
-                        <Badge variant="secondary">最低价</Badge>
-                      )}
-                      {record.fieldPermissions.can_view_manufacturer && (
-                        <Badge variant="outline">厂家</Badge>
-                      )}
-                      {record.fieldPermissions.can_view_contact && (
-                        <Badge variant="outline">联系人</Badge>
-                      )}
-                      {record.fieldPermissions.can_view_phone && (
-                        <Badge variant="outline">电话</Badge>
-                      )}
-                      {!record.fieldPermissions.can_view_cost_price &&
-                       !record.fieldPermissions.can_view_min_price &&
-                       !record.fieldPermissions.can_view_manufacturer &&
-                       !record.fieldPermissions.can_view_contact &&
-                       !record.fieldPermissions.can_view_phone && (
+                      {!record.fieldPermissions && (
                         <span className="text-muted-foreground text-sm">无权限</span>
                       )}
                     </div>
