@@ -185,13 +185,13 @@ export function OnlineUsersList({
       {displayUsers.map((user) => (
         <div
           key={user.userId}
-          onClick={() => onItemClick?.(user.userId)}
+          onClick={() => onItemClick?.(typeof user.userId === 'number' ? user.userId : Number(user.userId))}
           className={cn(
             'flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors',
             onItemClick && 'cursor-pointer'
           )}
         >
-          <OnlineIndicator userId={user.userId} size="sm" />
+          <OnlineIndicator userId={typeof user.userId === 'number' ? user.userId : Number(user.userId)} size="sm" />
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium truncate">
               {user.username || `用户${user.userId}`}

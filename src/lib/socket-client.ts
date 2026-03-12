@@ -1,6 +1,13 @@
 import { io, Socket } from 'socket.io-client';
 
 // 类型定义
+interface OnlineUser {
+  userId: string | number;
+  username?: string;
+  status?: 'online' | 'busy' | 'away' | 'offline';
+  avatar?: string;
+}
+
 interface Message {
   id?: number;
   tempId?: string;
@@ -305,7 +312,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 export function useSocket(userId?: string) {
   const [isConnected, setIsConnected] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [onlineCount, setOnlineCount] = useState(0);
   const socketRef = useRef(socketClient);
 
@@ -328,18 +335,29 @@ export function useSocket(userId?: string) {
 
     // 设置在线用户监听
     const unsubscribeUsersOnline = client.on('users:online', (data) => {
-      setOnlineUsers(data.userIds);
+      // 将字符串数组转换为对象数组
+      const users = data.userIds.map((id: string) => ({
+        userId: id,
+        status: 'online' as const,
+      }));
+      setOnlineUsers(users);
       setOnlineCount(data.count);
     });
 
     const unsubscribeUserOnline = client.on('user:online', (data) => {
       setOnlineCount(data.onlineCount);
-      setOnlineUsers(prev => [...new Set([...prev, data.userId])]);
+      setOnlineUsers(prev => {
+        // 检查是否已存在
+        if (prev.find(u => u.userId === data.userId)) {
+          return prev;
+        }
+        return [...prev, { userId: data.userId, status: 'online' }];
+      });
     });
 
     const unsubscribeUserOffline = client.on('user:offline', (data) => {
       setOnlineCount(data.onlineCount);
-      setOnlineUsers(prev => prev.filter(id => id !== data.userId));
+      setOnlineUsers(prev => prev.filter(user => user.userId !== data.userId));
     });
 
     // 清理函数

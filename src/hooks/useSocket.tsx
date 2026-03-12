@@ -4,10 +4,18 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import io, { Socket } from "socket.io-client";
 import { useUser } from "@/contexts/UserContext";
 
-export function useSocket() {
+// 类型定义
+interface OnlineUser {
+  userId: string | number;
+  username?: string;
+  status?: 'online' | 'busy' | 'away' | 'offline';
+  avatar?: string;
+}
+
+export function useSocket(options?: { userId?: number }) {
   const [isConnected, setIsConnected] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [onlineCount, setOnlineCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   
@@ -70,18 +78,29 @@ export function useSocket() {
 
       // 用户状态事件
       socket.on("users:online", (data) => {
-        setOnlineUsers(data.userIds);
+        // 将字符串数组转换为对象数组
+        const users = data.userIds.map((id: string) => ({
+          userId: id,
+          status: 'online' as const,
+        }));
+        setOnlineUsers(users);
         setOnlineCount(data.count);
       });
 
       socket.on("user:online", (data) => {
         setOnlineCount(data.onlineCount);
-        setOnlineUsers(prev => [...new Set([...prev, data.userId])]);
+        setOnlineUsers(prev => {
+          // 检查是否已存在
+          if (prev.find(u => u.userId === data.userId)) {
+            return prev;
+          }
+          return [...prev, { userId: data.userId, status: 'online' }];
+        });
       });
 
       socket.on("user:offline", (data) => {
         setOnlineCount(data.onlineCount);
-        setOnlineUsers(prev => prev.filter(id => id !== data.userId));
+        setOnlineUsers(prev => prev.filter(user => user.userId !== data.userId));
       });
 
       // 错误处理
@@ -136,6 +155,15 @@ export function useSocket() {
     socketRef.current?.off(event, callback);
   }, []);
 
+  // 更新用户状态
+  const updateUserStatus = useCallback((status: 'online' | 'busy' | 'away') => {
+    if (!socketRef.current?.connected) {
+      console.warn("[useSocket] 无法更新状态: 未连接");
+      return;
+    }
+    socketRef.current.emit("user:status", { status });
+  }, []);
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -145,5 +173,6 @@ export function useSocket() {
     emit,
     on,
     off,
+    updateUserStatus,
   };
 }

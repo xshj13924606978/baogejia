@@ -419,9 +419,9 @@ const parseMarkdownToHtml = (text: string): string => {
   const tableRegex = /\|(.+)\|\n((?:\|.+\|\n?)+)/g;
   html = html.replace(tableRegex, (match, headerRow, bodyRows) => {
     // 处理表头 - 获取表头列数
-    const headers = headerRow.split('|').filter(h => h.trim());
+    const headers = headerRow.split('|').filter((h: string) => h.trim());
     const numColumns = headers.length;
-    const headerHtml = headers.map(h => {
+    const headerHtml = headers.map((h: string) => {
       let headerText = h.trim();
       // 将Markdown中的<br>转换为HTML的<br/>
       headerText = headerText.replace(/<br>/gi, '<br/>');
@@ -432,7 +432,7 @@ const parseMarkdownToHtml = (text: string): string => {
 
     // 处理表体 - 正确处理单元格中的换行
     const rows = bodyRows.trim().split('\n');
-    const bodyHtml = rows.map(row => {
+    const bodyHtml = rows.map((row: string) => {
       const trimmedRow = row.trim();
       
       // 过滤掉对齐符号行（如 |:---|:---| 或 | :--- | :---: | ---: |）
@@ -441,8 +441,8 @@ const parseMarkdownToHtml = (text: string): string => {
       // 去除首尾的|，然后按|分割
       const rowContent = row.trim();
       const cells = rowContent.split('|')
-        .map(c => c.trim())
-        .filter((c, idx) => idx > 0 && idx <= numColumns); // 保留正确数量的列
+        .map((c: string) => c.trim())
+        .filter((c: string, idx: number) => idx > 0 && idx <= numColumns); // 保留正确数量的列
 
       // 如果列数不对，尝试合并
       if (cells.length > numColumns) {
@@ -460,7 +460,7 @@ const parseMarkdownToHtml = (text: string): string => {
       }
 
       // 处理每个单元格的内容
-      const processedCells = cells.map((c, idx) => {
+      const processedCells = cells.map((c: string, idx: number) => {
         let cellText = c.trim();
         // 保留单元格中的<br>标签，并确保使用<br/>
         cellText = cellText.replace(/<br>/gi, '<br/>');
@@ -471,8 +471,8 @@ const parseMarkdownToHtml = (text: string): string => {
         return `<td style="width: ${colWidth}%; word-wrap: break-word; word-break: break-all;">${cellText}</td>`;
       });
 
-      return `<tr>${processedCells.map(c => c).join('')}</tr>`;
-    }).filter(row => row).join('');
+      return `<tr>${processedCells.map((c: string) => c).join('')}</tr>`;
+    }).filter((row: string) => row).join('');
 
     return `<table style="width: 100%; table-layout: fixed; border-collapse: collapse;"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
   });
