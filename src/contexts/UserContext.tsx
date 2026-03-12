@@ -584,25 +584,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: '请输入正确的邮箱或手机号' };
       }
       
-      // 查找用户（同时匹配邮箱和手机号）
-      const user = findUserInDB(account);
+      // 调用后端登录API
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: account, password }),
+      });
       
-      if (!user) {
-        return { success: false, error: '用户不存在，请先注册' };
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return { success: false, error: data.error || '登录失败' };
       }
       
-      // 检查用户是否有密码
-      if (!user.password) {
-        return {
-          success: false,
-          error: '该账号未设置密码，请使用验证码登录',
-          requiresTwoFactor: true
-        };
-      }
-      
-      // 验证密码
-      if (user.password !== password) {
-        return { success: false, error: '密码错误' };
+      if (!data.success) {
+        return { success: false, error: data.error || '登录失败' };
       }
       
       // 保存最后登录的账号
@@ -612,14 +610,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(STORAGE_KEYS.LAST_PHONE, account);
       }
       
-      const { password: _, ...userWithoutPassword } = user;
-      setUser(userWithoutPassword);
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
+      // 保存用户信息
+      const userData = data.user;
+      setUser(userData);
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
       localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
       
-      return { success: true, user: userWithoutPassword };
+      return { success: true, user: userData };
     } catch (err) {
-      return { success: false, error: '登录失败' };
+      console.error('[passwordLogin] Error:', err);
+      return { success: false, error: '登录失败，请检查网络连接' };
     } finally {
       setLoading(false);
     }
