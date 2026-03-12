@@ -61,12 +61,23 @@ export default function AdminLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, loading, logout } = useUser();
 
-  // 如果用户未登录，跳转到登录页
+  // 检查用户权限：必须已登录且为管理员
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    if (!loading) {
+      if (!user) {
+        console.log('[AdminLayout] 未登录，跳转到登录页');
+        router.push('/login');
+      } else if (user.role !== 'admin') {
+        console.log('[AdminLayout] 非管理员用户，拒绝访问');
+        toast({
+          title: '权限不足',
+          description: '您没有访问管理后台的权限',
+          variant: 'destructive'
+        });
+        router.push('/');
+      }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, toast]);
 
   // 导航菜单项
   const navItems: NavItem[] = [

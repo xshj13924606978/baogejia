@@ -256,6 +256,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           emailVerified: true,
           phoneVerified: true,
           createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'admin-user',
+          email: 'admin@example.com',
+          phone: '13900139000',
+          password: 'admin123',
+          name: '系统管理员',
+          role: 'admin',
+          emailVerified: true,
+          phoneVerified: true,
+          createdAt: new Date().toISOString(),
         }
       ];
       localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(defaultUsers));
