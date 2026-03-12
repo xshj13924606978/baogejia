@@ -2082,7 +2082,7 @@ export class PriceMatcher {
       const product = products[i];
       console.log(`[PriceMatcher] 匹配第 ${i + 1}/${products.length} 个产品:`, product.name);
       
-      const result = await this.matchPrice(product, userId);
+      const result = await this.matchPrice(product, userId, true);
       results.push(result);
     }
 
