@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getSupabaseClient } from "@/storage/database/supabase-client";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -12,14 +13,15 @@ export async function getCurrentUser(request: NextRequest) {
   try {
     // 从 cookie 中获取会话
     const cookie = request.cookies.get("sb-access-token")?.value;
+    let email = null;
     
     if (!cookie) {
       // 开发环境：如果没有 cookie，返回测试用户
       if (process.env.NODE_ENV === 'development') {
         console.log("[Auth] 开发环境使用测试用户");
         return { 
-          id: TEST_USER_ID, 
-          email: "test@example.com" 
+          id: 6,  // 使用实际的业务用户ID
+          email: "admin2@test.com" 
         };
       }
       
@@ -27,8 +29,7 @@ export async function getCurrentUser(request: NextRequest) {
       const authHeader = request.headers.get("authorization");
       if (authHeader?.startsWith("Bearer ")) {
         const token = authHeader.substring(7);
-        // 验证 token...
-        return { id: TEST_USER_ID, email: "admin@example.com" };
+        return { id: 6, email: "admin2@test.com" };
       }
       return null;
     }
@@ -40,10 +41,25 @@ export async function getCurrentUser(request: NextRequest) {
       return null;
     }
 
+    email = user.email;
+
+    // 根据email查询业务用户表，获取正确的整数ID
+    const dbClient = getSupabaseClient();
+    const { data: businessUser } = await dbClient
+      .from('users')
+      .select('id, email')
+      .eq('email', email)
+      .single();
+
+    if (!businessUser) {
+      console.error("[Auth] 未找到业务用户:", email);
+      return null;
+    }
+
     return {
-      id: user.id,
-      email: user.email,
-      name: user.user_metadata?.name || user.email,
+      id: businessUser.id,  // 返回业务用户表的整数ID
+      email: businessUser.email,
+      name: user.user_metadata?.name || businessUser.email,
     };
   } catch (error) {
     console.error("[Auth] 获取用户失败:", error);

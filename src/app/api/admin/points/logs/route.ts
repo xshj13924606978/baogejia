@@ -54,20 +54,10 @@ export async function GET(request: NextRequest) {
 
     console.log('[PointsLogs API] 获取积分流水记录', { start, end });
 
-    // 构建查询
+    // 构建查询（不使用关联查询，因为point_logs表没有外键）
     let query = supabase
       .from('point_logs')
-      .select(`
-        id,
-        user_id,
-        points,
-        type,
-        description,
-        created_at,
-        users:user_id (
-          username
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     // 添加日期筛选
@@ -90,11 +80,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // 获取所有相关的用户信息
+    const userIds = [...new Set(logs.map((log: any) => log.user_id))];
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, username')
+      .in('id', userIds);
+
+    const userMap = new Map(users?.map((u: any) => [u.id, u.username]) || []);
+
     // 格式化返回数据
     const formattedLogs = logs.map((log: any) => ({
       id: log.id,
       userId: log.user_id,
-      username: log.users?.username || '未知用户',
+      username: userMap.get(log.user_id) || '未知用户',
       points: log.points,
       type: log.type,
       description: log.description,
