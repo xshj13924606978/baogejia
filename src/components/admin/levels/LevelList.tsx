@@ -287,7 +287,21 @@ export const LevelList: React.FC = () => {
       // 格式化历史记录数据
       const formattedHistory = data.history.map((item: any) => {
         const date = item.created_at || item.createdAt;
-        const timeStr = date ? new Date(date).toLocaleString('zh-CN') : '未知时间';
+        
+        // 格式化时间为更清晰的格式：YYYY年MM月DD日 HH:mm:ss
+        let timeStr = '未知时间';
+        if (date) {
+          const dateObj = new Date(date);
+          // 使用本地时区，格式化为：2024年1月15日 14:30:25
+          const year = dateObj.getFullYear();
+          const month = dateObj.getMonth() + 1;
+          const day = dateObj.getDate();
+          const hours = dateObj.getHours().toString().padStart(2, '0');
+          const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+          const seconds = dateObj.getSeconds().toString().padStart(2, '0');
+          timeStr = `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
+        }
+        
         const admin = item.admin_name || item.adminName || item.admin?.username || item.admin?.email || '系统';
         const reason = item.reason || '无说明';
         const changes = item.changes;
