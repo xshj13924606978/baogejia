@@ -102,6 +102,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^20.19.33",
+    "@types/node-cache": "^4.2.5",
     "@types/pdfkit": "^0.17.5",
     "@types/pg": "^8.16.0",
     "@types/react": "^19.2.14",

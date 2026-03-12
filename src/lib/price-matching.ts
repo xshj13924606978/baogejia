@@ -1,5 +1,6 @@
 import { ServerDatabaseUtils } from './server-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { brandRankingService, RankedBrand } from './brand-ranking-service';
 
 export interface PriceMatchResult {
   price: number;
@@ -468,13 +469,18 @@ export class PriceMatcher {
    * 3. 市场价兜底（置信度 40-50）- 新增兜底
    * 4. 按类别估算（置信度 30-40）
    * 5. 默认兜底（置信度 20-30）
+   * 
+   * @param product 产品信息
+   * @param userId 用户ID（可选）
+   * @param enableBrandRanking 是否启用品牌排序（默认false，不影响原有逻辑）
    */
   static async matchPrice(
     product: ProductMatch,
-    userId?: string
+    userId?: string,
+    enableBrandRanking: boolean = false
   ): Promise<PriceMatchResult> {
     console.log('[PriceMatcher] ========== 开始价格匹配 ==========');
-    console.log('[PriceMatcher] 产品信息:', product);
+    console.log('[PriceMatcher] 产品信息:', product, enableBrandRanking);
 
     // 检测产品类别是否明确
     if (!this.isProductCategoryClear(product)) {
@@ -494,7 +500,7 @@ export class PriceMatcher {
     }
 
     // 第1级：产品库匹配（最高优先级）
-    const dbResult = await this.matchFromDatabase(product);
+    const dbResult = await this.matchFromDatabase(product, enableBrandRanking);
     if (dbResult) {
       console.log('[PriceMatcher] ✅ 产品库匹配成功:', dbResult);
       return dbResult;
@@ -916,7 +922,7 @@ export class PriceMatcher {
       // 如果有型号，优先选择型号匹配的
       let bestMatch = uniqueMatches[0];
       if (product.model) {
-        bestMatch = this.findBestMatch(uniqueMatches, product);
+        bestMatch = await this.findBestMatch(uniqueMatches, product);
       } else {
         // 否则选择关键词匹配最多的
         bestMatch = this.findBestKeywordMatch(uniqueMatches, keywords);
@@ -1031,7 +1037,8 @@ export class PriceMatcher {
    * 级别5：仅型号匹配（如果有型号，作为最后回退）
    */
   private static async matchFromDatabase(
-    product: ProductMatch
+    product: ProductMatch,
+    enableBrandRanking: boolean = false
   ): Promise<PriceMatchResult | null> {
     try {
       console.log('[PriceMatcher] ====== 开始产品库匹配 ======');
@@ -1082,7 +1089,7 @@ export class PriceMatcher {
         console.log('[PriceMatcher] 级别1-方式1（字符串精确）查询结果数量:', exactMatches?.length || 0);
         
         if (exactMatches && exactMatches.length > 0) {
-          const bestMatch = this.findBestMatch(exactMatches, product);
+          const bestMatch = await this.findBestMatchWithRanking(exactMatches, product, enableBrandRanking);
           if (bestMatch) {
             console.log('[PriceMatcher] ✅ 级别1-方式1匹配成功:', bestMatch.name, bestMatch.model);
             return this.buildPriceResult(bestMatch, 95, '精确匹配（名称+型号）');
@@ -1103,7 +1110,7 @@ export class PriceMatcher {
           console.log('[PriceMatcher] 级别1-方式2（数字精确）查询结果数量:', exactMatchesNum?.length || 0);
           
           if (exactMatchesNum && exactMatchesNum.length > 0) {
-            const bestMatch = this.findBestMatch(exactMatchesNum, product);
+            const bestMatch = await this.findBestMatchWithRanking(exactMatchesNum, product, enableBrandRanking);
             if (bestMatch) {
               console.log('[PriceMatcher] ✅ 级别1-方式2匹配成功:', bestMatch.name, bestMatch.model);
               return this.buildPriceResult(bestMatch, 95, '精确匹配（名称+型号）');
@@ -1123,7 +1130,7 @@ export class PriceMatcher {
         console.log('[PriceMatcher] 级别1-方式3（型号包含）查询结果数量:', exactMatchesFuzzy?.length || 0);
         
         if (exactMatchesFuzzy && exactMatchesFuzzy.length > 0) {
-          const bestMatch = this.findBestMatch(exactMatchesFuzzy, product);
+          const bestMatch = await this.findBestMatchWithRanking(exactMatchesFuzzy, product, enableBrandRanking);
           if (bestMatch) {
             console.log('[PriceMatcher] ✅ 级别1-方式3匹配成功:', bestMatch.name, bestMatch.model);
             return this.buildPriceResult(bestMatch, 90, '名称+型号包含匹配');
@@ -1144,7 +1151,7 @@ export class PriceMatcher {
           console.log('[PriceMatcher] 级别1-方式4（名称+型号+参数）查询结果数量:', exactMatchesSpec?.length || 0);
 
           if (exactMatchesSpec && exactMatchesSpec.length > 0) {
-            const bestMatch = this.findBestMatch(exactMatchesSpec, product);
+            const bestMatch = await this.findBestMatchWithRanking(exactMatchesSpec, product, enableBrandRanking);
             if (bestMatch) {
               console.log('[PriceMatcher] ✅ 级别1-方式4匹配成功:', bestMatch.name, bestMatch.model);
               return this.buildPriceResult(bestMatch, 95);
@@ -1167,7 +1174,7 @@ export class PriceMatcher {
         console.log('[PriceMatcher] 级别1.5查询结果数量:', nameSpecMatches?.length || 0);
 
         if (nameSpecMatches && nameSpecMatches.length > 0) {
-          const bestMatch = this.findBestMatch(nameSpecMatches, product);
+          const bestMatch = await this.findBestMatchWithRanking(nameSpecMatches, product, enableBrandRanking);
           if (bestMatch) {
             console.log('[PriceMatcher] ✅ 级别1.5匹配成功:', bestMatch.name, bestMatch.model);
             return this.buildPriceResult(bestMatch, 88, '名称+参数描述匹配');
@@ -1190,7 +1197,7 @@ export class PriceMatcher {
         console.log('[PriceMatcher] 级别2-方式1查询结果数量:', nameMatches?.length || 0);
         
         if (nameMatches && nameMatches.length > 0) {
-          const bestMatch = this.findBestMatch(nameMatches, product);
+          const bestMatch = await this.findBestMatchWithRanking(nameMatches, product, enableBrandRanking);
           if (bestMatch) {
             console.log('[PriceMatcher] ✅ 级别2-方式1匹配成功:', bestMatch.name, bestMatch.model);
             return this.buildPriceResult(bestMatch, 85, '名称包含+型号精确');
@@ -1211,7 +1218,7 @@ export class PriceMatcher {
           console.log('[PriceMatcher] 级别2-方式2查询结果数量:', nameMatchesNum?.length || 0);
           
           if (nameMatchesNum && nameMatchesNum.length > 0) {
-            const bestMatch = this.findBestMatch(nameMatchesNum, product);
+            const bestMatch = await this.findBestMatchWithRanking(nameMatchesNum, product, enableBrandRanking);
             if (bestMatch) {
               console.log('[PriceMatcher] ✅ 级别2-方式2匹配成功:', bestMatch.name, bestMatch.model);
               return this.buildPriceResult(bestMatch, 85, '名称包含+型号精确');
@@ -1233,7 +1240,7 @@ export class PriceMatcher {
           console.log('[PriceMatcher] 级别2-方式3查询结果数量:', nameModelSpecMatches?.length || 0);
 
           if (nameModelSpecMatches && nameModelSpecMatches.length > 0) {
-            const bestMatch = this.findBestMatch(nameModelSpecMatches, product);
+            const bestMatch = await this.findBestMatchWithRanking(nameModelSpecMatches, product, enableBrandRanking);
             if (bestMatch) {
               console.log('[PriceMatcher] ✅ 级别2-方式3匹配成功:', bestMatch.name, bestMatch.model);
               return this.buildPriceResult(bestMatch, 87);
@@ -1256,7 +1263,7 @@ export class PriceMatcher {
         console.log('[PriceMatcher] 级别3查询结果数量:', fuzzyMatches?.length || 0);
 
         if (fuzzyMatches && fuzzyMatches.length > 0) {
-          const bestMatch = this.findBestMatch(fuzzyMatches, product);
+          const bestMatch = await this.findBestMatchWithRanking(fuzzyMatches, product, enableBrandRanking);
           if (bestMatch) {
             console.log('[PriceMatcher] ✅ 级别3匹配成功:', bestMatch.name, bestMatch.model);
             return this.buildPriceResult(bestMatch, 75, '名称+型号模糊匹配');
@@ -1277,7 +1284,7 @@ export class PriceMatcher {
           console.log('[PriceMatcher] 级别3-方式2查询结果数量:', fuzzySpecMatches?.length || 0);
 
           if (fuzzySpecMatches && fuzzySpecMatches.length > 0) {
-            const bestMatch = this.findBestMatch(fuzzySpecMatches, product);
+            const bestMatch = await this.findBestMatchWithRanking(fuzzySpecMatches, product, enableBrandRanking);
             if (bestMatch) {
               console.log('[PriceMatcher] ✅ 级别3-方式2匹配成功:', bestMatch.name, bestMatch.model);
               return this.buildPriceResult(bestMatch, 77);
@@ -1313,7 +1320,7 @@ export class PriceMatcher {
             console.log(`[PriceMatcher] 参数关键词"${keyword}"匹配数量:`, specKeywordMatches?.length || 0);
 
             if (specKeywordMatches && specKeywordMatches.length > 0) {
-              const bestMatch = this.findBestMatch(specKeywordMatches, product);
+              const bestMatch = await this.findBestMatchWithRanking(specKeywordMatches, product, enableBrandRanking);
               if (bestMatch) {
                 console.log('[PriceMatcher] ✅ 级别3.6参数关键词匹配成功:', bestMatch.name, bestMatch.model);
                 return this.buildPriceResult(bestMatch, 63, '参数关键词匹配');
@@ -1341,7 +1348,7 @@ export class PriceMatcher {
 
         if (nameOnlyMatches && nameOnlyMatches.length > 0) {
           // 如果有多个匹配，尝试找到最接近的（考虑型号和参数）
-          const bestMatch = this.findBestMatch(nameOnlyMatches, product);
+          const bestMatch = await this.findBestMatchWithRanking(nameOnlyMatches, product, enableBrandRanking);
           if (bestMatch) {
             console.log('[PriceMatcher] ✅ 级别4匹配成功:', bestMatch.name, bestMatch.model);
             return this.buildPriceResult(bestMatch, 60, '仅名称匹配');
@@ -1362,7 +1369,7 @@ export class PriceMatcher {
         console.log('[PriceMatcher] 级别5查询结果数量:', modelOnlyMatches?.length || 0);
         
         if (modelOnlyMatches && modelOnlyMatches.length > 0) {
-          const bestMatch = this.findBestMatch(modelOnlyMatches, product);
+          const bestMatch = await this.findBestMatchWithRanking(modelOnlyMatches, product, enableBrandRanking);
           console.log('[PriceMatcher] ✅ 级别5匹配成功:', bestMatch.name, bestMatch.model);
           return this.buildPriceResult(bestMatch, 40, '仅型号匹配');
         }
@@ -1381,7 +1388,7 @@ export class PriceMatcher {
         console.log('[PriceMatcher] 级别6查询结果数量:', specOnlyMatches?.length || 0);
 
         if (specOnlyMatches && specOnlyMatches.length > 0) {
-          const bestMatch = this.findBestMatch(specOnlyMatches, product);
+          const bestMatch = await this.findBestMatchWithRanking(specOnlyMatches, product, enableBrandRanking);
           console.log('[PriceMatcher] ✅ 级别6匹配成功:', bestMatch.name, bestMatch.model);
           return this.buildPriceResult(bestMatch, 35, '仅参数描述匹配');
         }
@@ -1869,6 +1876,107 @@ export class PriceMatcher {
 
     console.log('[PriceMatcher] 所有候选产品得分都低于阈值(0.3)，返回第一个结果');
     return products[0];
+  }
+
+  /**
+   * 查找最佳匹配（带品牌排序）
+   * 
+   * 这是findBestMatch的包装方法，增加了品牌排序功能
+   * 
+   * @param products 匹配的产品列表
+   * @param target 目标产品
+   * @param enableBrandRanking 是否启用品牌排序
+   * @returns 最佳匹配产品
+   */
+  private static async findBestMatchWithRanking(
+    products: any[],
+    target: ProductMatch,
+    enableBrandRanking: boolean
+  ): Promise<any | null> {
+    if (!products || products.length === 0) return null;
+
+    // 如果启用品牌排序，先对产品列表进行排序
+    let sortedProducts = products;
+    if (enableBrandRanking) {
+      sortedProducts = await this.applyBrandRanking(products, enableBrandRanking);
+    }
+
+    // 然后使用原有的findBestMatch逻辑
+    return this.findBestMatch(sortedProducts, target);
+  }
+
+  /**
+   * 应用品牌排序（新增功能，不影响原有逻辑）
+   * 
+   * 功能：
+   * 1. 根据品牌付费等级对匹配结果进行排序
+   * 2. 付费品牌优先展示
+   * 3. 同等级内按付费金额排序
+   * 
+   * @param products 匹配的产品列表
+   * @param enableBrandRanking 是否启用品牌排序
+   * @returns 排序后的产品列表
+   */
+  private static async applyBrandRanking(
+    products: any[],
+    enableBrandRanking: boolean
+  ): Promise<any[]> {
+    // 如果未启用品牌排序或产品列表为空，直接返回原列表
+    if (!enableBrandRanking || !products || products.length === 0) {
+      return products;
+    }
+
+    console.log('[PriceMatcher] ========== 应用品牌排序 ==========');
+
+    try {
+      // 获取推荐品牌列表
+      const recommendedBrands = await brandRankingService.getRecommendedBrands('price-match-cache');
+      
+      if (!recommendedBrands || recommendedBrands.length === 0) {
+        console.log('[PriceMatcher] 未获取到推荐品牌，保持原有排序');
+        return products;
+      }
+
+      // 创建品牌到付费等级的映射
+      const brandLevelMap = new Map<string, { level: number; score: number; position: number }>();
+      recommendedBrands.forEach((brand, index) => {
+        brandLevelMap.set(brand.brand_name, {
+          level: brand.payment_level,
+          score: brand.ranking_score,
+          position: index
+        });
+      });
+
+      // 对产品列表进行排序
+      const sortedProducts = [...products].sort((a, b) => {
+        const brandA = a.brand || '';
+        const brandB = b.brand || '';
+        
+        const levelA = brandLevelMap.get(brandA);
+        const levelB = brandLevelMap.get(brandB);
+        
+        // 如果两个品牌都不在推荐列表中，保持原有顺序
+        if (!levelA && !levelB) return 0;
+        
+        // 如果品牌A在推荐列表中，品牌B不在，A优先
+        if (levelA && !levelB) return -1;
+        
+        // 如果品牌B在推荐列表中，品牌A不在，B优先
+        if (!levelA && levelB) return 1;
+        
+        // 两个品牌都在推荐列表中，按推荐顺序排序
+        return levelA!.position - levelB!.position;
+      });
+
+      console.log('[PriceMatcher] 品牌排序完成，排序后的品牌顺序:',
+        sortedProducts.map(p => p.brand || '无品牌')
+      );
+
+      return sortedProducts;
+    } catch (error) {
+      console.error('[PriceMatcher] 品牌排序失败，保持原有排序:', error);
+      return products;
+    }
   }
 
   /**
