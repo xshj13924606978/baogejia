@@ -414,14 +414,12 @@ export const LevelList: React.FC = () => {
           title: `批量更新成功，共更新 ${updates.length} 个等级`,
         });
         
-        // 先关闭弹窗，避免闪跳
+        // 关闭弹窗
         setBatchUpdateOpen(false);
         
-        // 延迟刷新列表和重置表单，给用户更好的体验
-        setTimeout(() => {
-          fetchLevels();
-          resetBatchForm();
-        }, 100);
+        // 刷新列表和重置表单
+        fetchLevels();
+        resetBatchForm();
       } else {
         toast({
           variant: 'destructive',
