@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
           reason: `应用${template.name}`
         };
       })
-      .filter((item): item is { level: number; changes: unknown; reason: string } => item !== null);
+      .filter(Boolean) as Array<{ level: number; changes: unknown; reason: string }>;
 
     if (updates.length === 0) {
       return NextResponse.json(
