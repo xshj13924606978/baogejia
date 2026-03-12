@@ -166,7 +166,7 @@ export const GET = withPermissionCheck(
         amount: data.amount,
         count: data.count
       }))
-      .sort((a, b) => a.date.localeCompare(b.date);
+      .sort((a, b) => a.date.localeCompare(b.date));
 
     // 找出最高和最低收入日
     if (stats.dailyRevenue.length > 0) {
@@ -197,14 +197,14 @@ export const GET = withPermissionCheck(
         amount: data.amount,
         count: data.count
       }))
-      .sort((a, b) => a.month.localeCompare(b.month);
+      .sort((a, b) => a.month.localeCompare(b.month));
 
     // 计算增长率（对比最近两个月）
     if (stats.monthlyRevenue.length >= 2) {
       const lastMonth = stats.monthlyRevenue[stats.monthlyRevenue.length - 1];
       const prevMonth = stats.monthlyRevenue[stats.monthlyRevenue.length - 2];
       if (prevMonth.amount > 0) {
-        stats.summary.growthRate = Number(((lastMonth.amount - prevMonth.amount) / prevMonth.amount * 100).toFixed(2);
+        stats.summary.growthRate = Number(((lastMonth.amount - prevMonth.amount) / prevMonth.amount * 100).toFixed(2));
       }
     }
 

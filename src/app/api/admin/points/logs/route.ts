@@ -69,7 +69,7 @@ export const GET = withPermissionCheck(
     if (end) {
       const endDate = new Date(end);
       endDate.setDate(endDate.getDate() + 1);
-      query = query.lt('created_at', endDate.toISOString();
+      query = query.lt('created_at', endDate.toISOString());
     }
 
     const { data: logs, error } = await query.limit(100);
@@ -99,7 +99,7 @@ export const GET = withPermissionCheck(
       type: log.type,
       description: log.description,
       createdAt: new Date(log.created_at).toLocaleString('zh-CN'),
-    });
+    }));
 
     return NextResponse.json({
       success: true,

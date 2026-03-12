@@ -111,7 +111,7 @@ export const GET = withPermissionCheck(
       date,
       value: data.points,
       tokenUsage: data.tokens
-    });
+    }));
 
     // 处理权限拒绝统计
     denyStats?.forEach(log => {

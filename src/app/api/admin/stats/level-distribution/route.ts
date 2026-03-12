@@ -120,7 +120,7 @@ export const GET = withPermissionCheck(
         return { level, count, percentage, cumulativePercentage };
       });
 
-    distribution.summary.averageLevel = Number((totalLevelSum / totalUsers).toFixed(2);
+    distribution.summary.averageLevel = Number((totalLevelSum / totalUsers).toFixed(2));
     distribution.summary.mostCommonLevel = mostCommonLevel;
 
     // 计算等级转化率
@@ -144,7 +144,7 @@ export const GET = withPermissionCheck(
         const level = u.level;
         const upgradeDate = new Date(u.level_up_at);
         const createdDate = new Date(u.created_at);
-        const daysDiff = Math.floor((upgradeDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+        const daysDiff = Math.floor((upgradeDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
 
         if (!upgradeTimeMap.has(level)) {
           upgradeTimeMap.set(level, []);
@@ -181,7 +181,7 @@ export const GET = withPermissionCheck(
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
       if (!monthlyMap.has(monthKey)) {
-        monthlyMap.set(monthKey, new Map();
+        monthlyMap.set(monthKey, new Map());
       }
 
       const monthData = monthlyMap.get(monthKey)!;

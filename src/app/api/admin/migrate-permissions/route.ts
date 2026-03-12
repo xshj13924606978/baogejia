@@ -55,7 +55,7 @@ export const POST = withPermissionCheck(
     const statements = sql
       .split(';')
       .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--') && !s.startsWith('/*')));
+      .filter(s => s.length > 0 && !s.startsWith('--') && !s.startsWith('/*'));
 
     console.log(`[Migration] 共 ${statements.length} 条 SQL 语句`);
 

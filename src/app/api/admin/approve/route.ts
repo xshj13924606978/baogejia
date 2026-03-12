@@ -3,10 +3,7 @@ import { withPermissionCheck } from '@/lib/permission-check';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { hasPermission, UserRole } from '@/lib/auth/roles';
 
-
-export const POST = withPermissionCheck(
-  { requiresAuth: true, permissions: ['admin.audit.approve'] },
-  async (request: NextRequest, user: any) => {
+export async function POST(request: NextRequest) {
 
   try {
     const { entryId, approve, type, reason } = await request.json();
@@ -133,11 +130,7 @@ export const POST = withPermissionCheck(
   }
 
 // 获取待审核列表
-  });
-
-export const GET = withPermissionCheck(
-  { requiresAuth: true, permissions: ['admin.access'] },
-  async (request: NextRequest, user: any) => {
+  }
 
   try {
     const supabase = getSupabaseClient();
@@ -244,139 +237,6 @@ export const GET = withPermissionCheck(
       { error: '获取失败' }, { status: 500 }
       );
   }
-});
-
-import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { hasPermission, UserRole } from '@/lib/auth/roles';
-
-export async function POST(request: NextRequest) {
-  try {
-    const { entryId, approve, type, reason } = await request.json();
-    const supabase = getSupabaseClient();
-
-    console.log('[Admin Approve] ========== 开始审核 ==========');
-    console.log('[Admin Approve] 参数:', { entryId, approve, type, reason });
-
-    // 验证必要参数
-    if (!entryId) {
-      return NextResponse.json(
-        { error: '缺少条目ID' }, { status: 400 }
-      );
-    }
-
-    if (!type) {
-      return NextResponse.json(
-        { error: '缺少类型' }, { status: 400 }
-      );
-    }
-
-    // 获取当前用户（从cookie或header）
-    // 实际项目中应该从session获取
-    const userStr = request.cookies.get('user')?.value;
-    if (!userStr) {
-      return NextResponse.json(
-        { error: '未登录' }, { status: 401 }
-      );
-    }
-
-    const user = JSON.parse(userStr);
-    const userRole = user.role as UserRole;
-
-    // 权限检查
-    if (!hasPermission(userRole, 'canApproveKnowledge')) {
-      return NextResponse.json(
-        { error: '没有审核权限' }, { status: 403 }
-      );
-    }
-
-    const now = new Date().toISOString();
-
-    // 根据类型处理不同表的审核
-    if (type === 'knowledge') {
-      const { error } = await supabase
-        .from('knowledge_entries')
-        .update({
-          status: approve ? 'approved' : 'rejected',
-          reviewed_by: user.id || user.userId,
-          reviewed_at: now,
-          metadata: approve ? {} : { rejectReason: reason }
-        })
-        .eq('id', entryId);
-
-      if (error) {
-        console.error('[Admin Approve] 知识库审核失败:', error);
-        return NextResponse.json(
-          { error: '审核失败', details: error.message }, { status: 500 }
-      );
-      }
-
-      console.log(`[Admin Approve] 知识库条目 ${entryId} ${approve ? '通过' : '拒绝'}`);
-    }
-
-    if (type === 'product') {
-      const { error } = await supabase
-        .from('products')
-        .update({
-          verified: approve,
-          metadata: approve ? {} : { rejectReason: reason }
-        })
-        .eq('id', entryId);
-
-      if (error) {
-        console.error('[Admin Approve] 产品审核失败:', error);
-        return NextResponse.json(
-          { error: '审核失败', details: error.message }, { status: 500 }
-      );
-      }
-
-      console.log(`[Admin Approve] 产品 ${entryId} ${approve ? '通过' : '拒绝'}`);
-    }
-
-    if (type === 'user') {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          status: approve ? 'active' : 'rejected',
-          reviewed_at: now,
-          reviewed_by: user.id || user.userId
-        })
-        .eq('id', entryId);
-
-      if (error) {
-        console.error('[Admin Approve] 用户审核失败:', error);
-        return NextResponse.json(
-          { error: '审核失败', details: error.message }, { status: 500 }
-      );
-      }
-
-      console.log(`[Admin Approve] 用户 ${entryId} ${approve ? '通过' : '拒绝'}`);
-    }
-
-    console.log('[Admin Approve] ========== 审核完成 ==========');
-
-    return NextResponse.json({
-      success: true,
-      message: approve ? '已通过' : '已拒绝',
-      data: {
-        entryId,
-        status: approve ? 'approved' : 'rejected',
-        reviewedAt: now
-      }
-    });
-
-  } catch (error) {
-    console.error('[Admin Approve] 审核失败:', error);
-    return NextResponse.json(
-      { 
-        error: '审核失败', 
-        message: error instanceof Error ? error.message : '未知错误' 
-      }, { status: 500 }
-      );
-  }
-}
-
-// 获取待审核列表
 export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseClient();
@@ -483,6 +343,4 @@ export async function GET(request: NextRequest) {
       { error: '获取失败' }, { status: 500 }
       );
   }
-});
-
-
+}
