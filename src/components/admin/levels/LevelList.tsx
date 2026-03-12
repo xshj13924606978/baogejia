@@ -564,10 +564,83 @@ export const LevelList: React.FC = () => {
         setBatchUpdateReason('恢复系统默认配置');
 
         toast({
-          title: '已恢复默认配置',
-          description: '已从系统加载默认配置到表单，请点击"保存修改"按钮生效',
-          duration: 5000,
+          title: '正在恢复默认配置',
+          description: '正在保存配置...',
+          duration: 3000,
         });
+
+        // 直接执行批量更新
+        try {
+          const updatesByLevel: Record<number, any> = {};
+
+          levels.forEach((level) => {
+            updatesByLevel[level.level] = {
+              level: level.level,
+              changes: {
+                quotas: {
+                  daily_quota: parseInt(newValues[`${level.level}-daily_quota`]),
+                  max_files: parseInt(newValues[`${level.level}-max_files`]),
+                  max_chat_messages: parseInt(newValues[`${level.level}-max_chat_messages`]),
+                },
+                fieldPermissions: {
+                  can_view_cost_price: newValues[`${level.level}-can_view_cost_price`] === 'true',
+                  can_view_min_price: newValues[`${level.level}-can_view_min_price`] === 'true',
+                  can_view_manufacturer: newValues[`${level.level}-can_view_manufacturer`] === 'true',
+                  can_view_contact: newValues[`${level.level}-can_view_contact`] === 'true',
+                  can_view_phone: newValues[`${level.level}-can_view_phone`] === 'true',
+                }
+              }
+            };
+          });
+
+          const updates = Object.values(updatesByLevel).map((update: any) => ({
+            ...update,
+            reason: '恢复系统默认配置'
+          }));
+
+          console.log('[LevelList] 恢复默认配置数据:', updates);
+
+          const res = await fetch('/api/admin/levels/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ updates })
+          });
+
+          if (!res.ok) {
+            const errorText = await res.text();
+            console.error('[LevelList] 恢复默认配置API错误:', errorText);
+            throw new Error(errorText);
+          }
+
+          const data = await res.json();
+          console.log('[LevelList] 恢复默认配置结果:', data);
+
+          if (data.success) {
+            toast({
+              title: '已成功恢复默认配置',
+              description: `共更新 ${updates.length} 个等级`,
+              duration: 3000,
+            });
+
+            // 刷新列表
+            fetchLevels();
+            resetBatchForm();
+          } else {
+            toast({
+              variant: 'destructive',
+              title: '恢复默认配置失败',
+              description: data.error || '未知错误'
+            });
+          }
+        } catch (error) {
+          console.error('[LevelList] 恢复默认配置失败:', error);
+          toast({
+            variant: 'destructive',
+            title: '恢复默认配置失败',
+            description: error instanceof Error ? error.message : '未知错误'
+          });
+        }
       } else {
         console.warn('[LevelList] API返回无默认配置，使用硬编码默认值');
         // API 返回空数据，使用硬编码默认值
@@ -581,7 +654,7 @@ export const LevelList: React.FC = () => {
   };
 
   // 使用硬编码默认值（fallback）- 每个等级有不同的默认配置
-  const useHardcodedDefaults = () => {
+  const useHardcodedDefaults = async () => {
     console.log('[LevelList] 使用硬编码默认值');
     const newValues: Record<string, string> = {};
     const newChecked = new Set<string>();
@@ -677,10 +750,83 @@ export const LevelList: React.FC = () => {
     setBatchUpdateReason('恢复系统默认配置');
 
     toast({
-      title: '已恢复默认配置',
-      description: '已从系统加载默认配置到表单，请点击"保存修改"按钮生效',
-      duration: 5000,
+      title: '正在恢复默认配置',
+      description: '正在保存配置...',
+      duration: 3000,
     });
+
+    // 直接执行批量更新
+    try {
+      const updatesByLevel: Record<number, any> = {};
+
+      levels.forEach((level) => {
+        updatesByLevel[level.level] = {
+          level: level.level,
+          changes: {
+            quotas: {
+              daily_quota: parseInt(newValues[`${level.level}-daily_quota`]),
+              max_files: parseInt(newValues[`${level.level}-max_files`]),
+              max_chat_messages: parseInt(newValues[`${level.level}-max_chat_messages`]),
+            },
+            fieldPermissions: {
+              can_view_cost_price: newValues[`${level.level}-can_view_cost_price`] === 'true',
+              can_view_min_price: newValues[`${level.level}-can_view_min_price`] === 'true',
+              can_view_manufacturer: newValues[`${level.level}-can_view_manufacturer`] === 'true',
+              can_view_contact: newValues[`${level.level}-can_view_contact`] === 'true',
+              can_view_phone: newValues[`${level.level}-can_view_phone`] === 'true',
+            }
+          }
+        };
+      });
+
+      const updates = Object.values(updatesByLevel).map((update: any) => ({
+        ...update,
+        reason: '恢复系统默认配置'
+      }));
+
+      console.log('[LevelList] 恢复默认配置数据:', updates);
+
+      const res = await fetch('/api/admin/levels/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ updates })
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[LevelList] 恢复默认配置API错误:', errorText);
+        throw new Error(errorText);
+      }
+
+      const data = await res.json();
+      console.log('[LevelList] 恢复默认配置结果:', data);
+
+      if (data.success) {
+        toast({
+          title: '已成功恢复默认配置',
+          description: `共更新 ${updates.length} 个等级`,
+          duration: 3000,
+        });
+
+        // 刷新列表
+        fetchLevels();
+        resetBatchForm();
+      } else {
+        toast({
+          variant: 'destructive',
+          title: '恢复默认配置失败',
+          description: data.error || '未知错误'
+        });
+      }
+    } catch (error) {
+      console.error('[LevelList] 恢复默认配置失败:', error);
+      toast({
+        variant: 'destructive',
+        title: '恢复默认配置失败',
+        description: error instanceof Error ? error.message : '未知错误'
+      });
+    }
   };
 
   return (
