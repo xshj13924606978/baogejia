@@ -102,6 +102,7 @@ export const LevelList: React.FC = () => {
     'user.edit': '用户编辑',
     'user.delete': '用户删除',
     'user.create': '用户新建',
+    'user.search': '用户搜索',
     
     // 产品相关
     'product.search': '产品搜索',
@@ -417,9 +418,13 @@ export const LevelList: React.FC = () => {
         // 关闭弹窗
         setBatchUpdateOpen(false);
         
-        // 刷新列表和重置表单
-        fetchLevels();
-        resetBatchForm();
+        // 刷新列表
+        await fetchLevels();
+        
+        // 重置表单（延迟执行，避免影响弹窗关闭动画）
+        setTimeout(() => {
+          resetBatchForm();
+        }, 300);
       } else {
         toast({
           variant: 'destructive',
@@ -538,13 +543,13 @@ export const LevelList: React.FC = () => {
 
           console.log(`[LevelList] 等级 ${level.level} 默认配置:`, levelConfig);
 
-          // 配额默认值
+          // 配额默认值（优先使用嵌套结构，否则使用扁平结构）
           newValues[`${level.level}-daily_quota`] = String(levelConfig.quotas?.daily_quota || levelConfig.daily_quota || 10);
           newValues[`${level.level}-max_files`] = String(levelConfig.quotas?.max_files || levelConfig.max_files || 5);
           newValues[`${level.level}-max_chat_messages`] = String(levelConfig.quotas?.max_chat_messages || levelConfig.max_chat_messages || 20);
 
-          // 字段权限默认值
-          const fieldPerms = levelConfig.field_permissions || levelConfig.fieldPermissions || {};
+          // 字段权限默认值（优先使用嵌套结构，否则使用扁平结构）
+          const fieldPerms = levelConfig.fieldPermissions || levelConfig.field_permissions || levelConfig;
           newValues[`${level.level}-can_view_cost_price`] = String(fieldPerms.can_view_cost_price ?? false);
           newValues[`${level.level}-can_view_min_price`] = String(fieldPerms.can_view_min_price ?? false);
           newValues[`${level.level}-can_view_manufacturer`] = String(fieldPerms.can_view_manufacturer ?? false);
@@ -624,8 +629,12 @@ export const LevelList: React.FC = () => {
             });
 
             // 刷新列表
-            fetchLevels();
-            resetBatchForm();
+            await fetchLevels();
+            
+            // 只在弹窗打开时重置表单
+            if (batchUpdateOpen) {
+              resetBatchForm();
+            }
           } else {
             toast({
               variant: 'destructive',
@@ -810,8 +819,12 @@ export const LevelList: React.FC = () => {
         });
 
         // 刷新列表
-        fetchLevels();
-        resetBatchForm();
+        await fetchLevels();
+        
+        // 只在弹窗打开时重置表单
+        if (batchUpdateOpen) {
+          resetBatchForm();
+        }
       } else {
         toast({
           variant: 'destructive',
