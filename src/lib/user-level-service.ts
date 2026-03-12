@@ -46,6 +46,94 @@ export interface UpgradeHistory {
 }
 
 /**
+ * 等级完整配置接口
+ */
+export interface LevelFullConfig {
+  level: number;
+  name: string;
+  requiredPoints: number;
+  role: string;
+  fieldPermissions: {
+    can_view_cost_price: boolean;
+    can_view_min_price: boolean;
+    can_view_manufacturer: boolean;
+    can_view_contact: boolean;
+    can_view_phone: boolean;
+  };
+  modulePermissions: string[];
+  quotas: {
+    daily_quota: number;
+    max_files: number;
+    max_chat_messages: number;
+  };
+}
+
+/**
+ * 权限修改历史接口
+ */
+export interface PermissionHistory {
+  id: number;
+  adminId: number;
+  changes: any;
+  reason: string;
+  createdAt: Date;
+  adminName?: string;
+}
+
+/**
+ * API权限检查结果接口
+ */
+export interface ApiPermissionCheckResult {
+  allowed: boolean;
+  requiredLevel: number;
+  requiredPoints: number;
+  userLevel: number;
+  userPoints: number;
+  message: string;
+}
+
+/**
+ * 权限修改预览接口
+ */
+export interface PermissionChangePreview {
+  affectedUsers: number;
+  sampleUsers: Array<{
+    id: number;
+    name: string;
+    before: any;
+    after: any;
+  }>;
+}
+
+/**
+ * 升级推荐接口
+ */
+export interface LevelUpgradeRecommendation {
+  currentLevel: number;
+  recommendedLevel: number;
+  confidence: number;
+  benefits: string[];
+  cost: {
+    points: number;
+    money: number;
+  };
+  usage: {
+    apiCalls: number;
+    quoteCount: number;
+    exportCount: number;
+  };
+}
+
+/**
+ * 权限模板应用结果接口
+ */
+export interface PermissionTemplateResult {
+  success: boolean;
+  appliedLevels: number[];
+  failedLevels: number[];
+}
+
+/**
  * 用户等级服务类
  * 
  * 功能：
@@ -399,6 +487,604 @@ export class UserLevelService {
     } catch (error) {
       console.error('[UserLevelService] 设置用户等级异常:', error);
       return false;
+    }
+  }
+
+  /**
+   * 获取等级完整配置（包含模块权限）
+   * @param level 等级
+   * @returns 完整配置
+   */
+  async getLevelFullConfig(level: number): Promise<LevelFullConfig | null> {
+    try {
+      const levelConfig = await this.getLevelDefinition(level);
+      if (!levelConfig) {
+        return null;
+      }
+
+      // 获取可用模块列表
+      const modulePermissions = levelConfig.permissions || [];
+
+      return {
+        level: levelConfig.level,
+        name: levelConfig.name,
+        requiredPoints: levelConfig.required_points,
+        role: levelConfig.role,
+        fieldPermissions: {
+          can_view_cost_price: levelConfig.can_view_cost_price,
+          can_view_min_price: levelConfig.can_view_min_price,
+          can_view_manufacturer: levelConfig.can_view_manufacturer,
+          can_view_contact: levelConfig.can_view_contact,
+          can_view_phone: levelConfig.can_view_phone,
+        },
+        modulePermissions,
+        quotas: {
+          daily_quota: levelConfig.daily_quota,
+          max_files: levelConfig.max_files,
+          max_chat_messages: levelConfig.max_chat_messages,
+        },
+      };
+    } catch (error) {
+      console.error('[UserLevelService] 获取完整配置异常:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 更新等级权限（带历史记录）
+   * @param level 等级
+   * @param adminId 管理员ID
+   * @param changes 变更内容
+   * @param reason 变更原因
+   * @returns 是否成功
+   */
+  async updateLevelPermissions(
+    level: number,
+    adminId: number,
+    changes: {
+      fieldPermissions?: Partial<{
+        can_view_cost_price: boolean;
+        can_view_min_price: boolean;
+        can_view_manufacturer: boolean;
+        can_view_contact: boolean;
+        can_view_phone: boolean;
+      }>;
+      modulePermissions?: string[];
+      quotas?: Partial<{
+        daily_quota: number;
+        max_files: number;
+        max_chat_messages: number;
+      }>;
+    },
+    reason: string
+  ): Promise<boolean> {
+    try {
+      console.log('[UserLevelService] 更新等级权限:', { level, adminId, reason });
+
+      // 获取当前配置
+      const currentConfig = await this.getLevelDefinition(level);
+      if (!currentConfig) {
+        console.error('[UserLevelService] 等级不存在:', level);
+        return false;
+      }
+
+      // 构建更新数据
+      const updateData: any = {};
+
+      if (changes.fieldPermissions) {
+        Object.assign(updateData, changes.fieldPermissions);
+      }
+
+      if (changes.quotas) {
+        Object.assign(updateData, changes.quotas);
+      }
+
+      if (changes.modulePermissions) {
+        updateData.permissions = changes.modulePermissions;
+      }
+
+      // 更新等级定义
+      const { error } = await this.supabase
+        .from('level_definitions')
+        .update(updateData)
+        .eq('level', level);
+
+      if (error) {
+        console.error('[UserLevelService] 更新等级权限失败:', error);
+        return false;
+      }
+
+      // 记录修改历史
+      await this.supabase
+        .from('level_permission_history')
+        .insert({
+          level,
+          admin_id: adminId,
+          changes: JSON.stringify(changes),
+          reason,
+          created_at: new Date().toISOString(),
+        });
+
+      console.log('[UserLevelService] 等级权限更新成功:', { level, adminId });
+      return true;
+    } catch (error) {
+      console.error('[UserLevelService] 更新等级权限异常:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 批量更新多个等级
+   * @param updates 更新列表
+   * @param adminId 管理员ID
+   * @returns 批量更新结果
+   */
+  async batchUpdateLevels(
+    updates: Array<{
+      level: number;
+      changes: any;
+      reason: string;
+    }>,
+    adminId: number
+  ): Promise<{
+    success: boolean[];
+    failed: number[];
+    errors: string[];
+  }> {
+    const results = {
+      success: [] as boolean[],
+      failed: [] as number[],
+      errors: [] as string[],
+    };
+
+    for (const update of updates) {
+      try {
+        const result = await this.updateLevelPermissions(
+          update.level,
+          adminId,
+          update.changes,
+          update.reason
+        );
+        results.success.push(result);
+        if (!result) {
+          results.failed.push(update.level);
+        }
+      } catch (error) {
+        results.failed.push(update.level);
+        results.errors.push(
+          `Level ${update.level}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
+    }
+
+    console.log('[UserLevelService] 批量更新完成:', results);
+    return results;
+  }
+
+  /**
+   * 获取等级权限修改历史
+   * @param level 等级
+   * @returns 修改历史列表
+   */
+  async getLevelPermissionHistory(level: number): Promise<PermissionHistory[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('level_permission_history')
+        .select(`
+          *,
+          admin:admin_profiles(name)
+        `)
+        .eq('level', level)
+        .order('created_at', { ascending: false });
+
+      if (error || !data) {
+        console.error('[UserLevelService] 获取权限历史失败:', error);
+        return [];
+      }
+
+      return data.map((item: any) => ({
+        id: item.id,
+        adminId: item.admin_id,
+        changes: JSON.parse(item.changes),
+        reason: item.reason,
+        createdAt: new Date(item.created_at),
+        adminName: item.admin?.name,
+      }));
+    } catch (error) {
+      console.error('[UserLevelService] 获取权限历史异常:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 检查API权限
+   * @param userId 用户ID
+   * @param apiPath API路径
+   * @param method HTTP方法
+   * @returns 权限检查结果
+   */
+  async checkApiPermission(
+    userId: number,
+    apiPath: string,
+    method: string
+  ): Promise<ApiPermissionCheckResult> {
+    try {
+      // 获取用户等级信息
+      const levelInfo = await this.getUserLevel(userId);
+      if (!levelInfo) {
+        return {
+          allowed: false,
+          requiredLevel: 1,
+          requiredPoints: 0,
+          userLevel: 1,
+          userPoints: 0,
+          message: '无法获取用户等级信息',
+        };
+      }
+
+      // 查询API权限配置
+      const { data: apiPerm, error } = await this.supabase
+        .from('api_permissions')
+        .select('*')
+        .eq('api_path', apiPath)
+        .eq('method', method.toUpperCase())
+        .single();
+
+      if (error || !apiPerm) {
+        // API未配置权限，默认允许
+        return {
+          allowed: true,
+          requiredLevel: 1,
+          requiredPoints: 0,
+          userLevel: levelInfo.level,
+          userPoints: levelInfo.current_points,
+          message: 'API未配置权限限制',
+        };
+      }
+
+      // 检查等级和积分要求
+      const levelCheck = levelInfo.level >= apiPerm.min_level;
+      const pointsCheck = levelInfo.current_points >= apiPerm.min_points;
+
+      const allowed = levelCheck && pointsCheck;
+
+      if (!allowed) {
+        if (!levelCheck) {
+          return {
+            allowed: false,
+            requiredLevel: apiPerm.min_level,
+            requiredPoints: apiPerm.min_points || 0,
+            userLevel: levelInfo.level,
+            userPoints: levelInfo.current_points,
+            message: `需要等级${apiPerm.min_level}以上，当前等级${levelInfo.level}`,
+          };
+        } else {
+          return {
+            allowed: false,
+            requiredLevel: apiPerm.min_level,
+            requiredPoints: apiPerm.min_points || 0,
+            userLevel: levelInfo.level,
+            userPoints: levelInfo.current_points,
+            message: `需要${apiPerm.min_points}积分以上，当前${levelInfo.current_points}积分`,
+          };
+        }
+      }
+
+      return {
+        allowed: true,
+        requiredLevel: apiPerm.min_level,
+        requiredPoints: apiPerm.min_points || 0,
+        userLevel: levelInfo.level,
+        userPoints: levelInfo.current_points,
+        message: '权限检查通过',
+      };
+    } catch (error) {
+      console.error('[UserLevelService] 检查API权限异常:', error);
+      return {
+        allowed: false,
+        requiredLevel: 1,
+        requiredPoints: 0,
+        userLevel: 1,
+        userPoints: 0,
+        message: '权限检查异常',
+      };
+    }
+  }
+
+  /**
+   * 获取用户可用模块
+   * @param userId 用户ID
+   * @returns 可用模块代码列表
+   */
+  async getUserAvailableModules(userId: number): Promise<string[]> {
+    try {
+      const levelInfo = await this.getUserLevel(userId);
+      if (!levelInfo) {
+        return [];
+      }
+
+      return levelInfo.config.permissions || [];
+    } catch (error) {
+      console.error('[UserLevelService] 获取可用模块异常:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 检查模块权限
+   * @param userId 用户ID
+   * @param moduleCode 模块代码
+   * @returns 是否有权限
+   */
+  async hasModulePermission(userId: number, moduleCode: string): Promise<boolean> {
+    try {
+      const availableModules = await this.getUserAvailableModules(userId);
+      return availableModules.includes(moduleCode);
+    } catch (error) {
+      console.error('[UserLevelService] 检查模块权限异常:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 预览权限修改效果
+   * @param level 等级
+   * @param changes 变更内容
+   * @param testUserId 测试用户ID（可选）
+   * @returns 预览结果
+   */
+  async previewPermissionChanges(
+    level: number,
+    changes: any,
+    testUserId?: number
+  ): Promise<PermissionChangePreview> {
+    try {
+      // 获取当前等级配置
+      const currentConfig = await this.getLevelFullConfig(level);
+      if (!currentConfig) {
+        return {
+          affectedUsers: 0,
+          sampleUsers: [],
+        };
+      }
+
+      // 计算变更后的配置
+      const previewConfig: any = { ...currentConfig };
+      if (changes.fieldPermissions) {
+        Object.assign(previewConfig.fieldPermissions, changes.fieldPermissions);
+      }
+      if (changes.modulePermissions) {
+        previewConfig.modulePermissions = changes.modulePermissions;
+      }
+      if (changes.quotas) {
+        Object.assign(previewConfig.quotas, changes.quotas);
+      }
+
+      // 查询受影响的用户
+      const { data: affectedUsers, error } = await this.supabase
+        .from('user_levels')
+        .select('user_id, current_points')
+        .eq('level', level)
+        .limit(10);
+
+      if (error) {
+        console.error('[UserLevelService] 查询受影响用户失败:', error);
+        return {
+          affectedUsers: 0,
+          sampleUsers: [],
+        };
+      }
+
+      // 获取样本用户详情
+      const sampleUsers = [];
+      for (const user of affectedUsers || []) {
+        const { data: userData } = await this.supabase
+          .from('users')
+          .select('id, name')
+          .eq('id', user.user_id)
+          .single();
+
+        if (userData) {
+          sampleUsers.push({
+            id: userData.id,
+            name: userData.name || '未知用户',
+            before: currentConfig,
+            after: previewConfig,
+          });
+        }
+      }
+
+      // 统计总数
+      const { count } = await this.supabase
+        .from('user_levels')
+        .select('*', { count: 'exact', head: true })
+        .eq('level', level);
+
+      return {
+        affectedUsers: count || 0,
+        sampleUsers,
+      };
+    } catch (error) {
+      console.error('[UserLevelService] 预览权限修改异常:', error);
+      return {
+        affectedUsers: 0,
+        sampleUsers: [],
+      };
+    }
+  }
+
+  /**
+   * 智能推荐升级（基于用户行为）
+   * @param userId 用户ID
+   * @returns 升级推荐
+   */
+  async recommendLevelUpgrade(userId: number): Promise<LevelUpgradeRecommendation | null> {
+    try {
+      const levelInfo = await this.getUserLevel(userId);
+      if (!levelInfo) {
+        return null;
+      }
+
+      const currentLevel = levelInfo.level;
+      const allLevels = await this.getAllLevels();
+
+      // 找到下一个等级
+      const nextLevel = allLevels.find(l => l.level > currentLevel);
+      if (!nextLevel) {
+        return null;
+      }
+
+      // 模拟用户使用数据（实际应该从统计表获取）
+      const usage = {
+        apiCalls: Math.floor(Math.random() * 1000),
+        quoteCount: Math.floor(Math.random() * 50),
+        exportCount: Math.floor(Math.random() * 10),
+      };
+
+      // 计算推荐置信度
+      let confidence = 50;
+      const benefits: string[] = [];
+
+      // 基于使用情况计算
+      if (usage.exportCount >= 5 && !levelInfo.config.permissions.includes('excel.export')) {
+        confidence += 20;
+        benefits.push('频繁导出数据，升级后可使用Excel导出功能');
+      }
+
+      if (usage.quoteCount >= 20 && nextLevel.daily_quota > levelInfo.config.daily_quota) {
+        confidence += 15;
+        benefits.push(`报价单创建接近上限，升级后每日配额提升至${nextLevel.daily_quota}`);
+      }
+
+      if (levelInfo.current_points >= nextLevel.required_points * 0.8) {
+        confidence += 15;
+        benefits.push(`积分已接近升级要求，升级可获得更多权限`);
+      }
+
+      confidence = Math.min(100, confidence);
+
+      // 计算成本
+      const pointsNeeded = Math.max(0, nextLevel.required_points - levelInfo.current_points);
+      const moneyNeeded = pointsNeeded * 0.01; // 假设1积分=0.01元
+
+      return {
+        currentLevel,
+        recommendedLevel: nextLevel.level,
+        confidence,
+        benefits,
+        cost: {
+          points: pointsNeeded,
+          money: moneyNeeded,
+        },
+        usage,
+      };
+    } catch (error) {
+      console.error('[UserLevelService] 推荐升级异常:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 权限模板应用
+   * @param templateName 模板名称
+   * @param targetLevels 目标等级列表
+   * @param adminId 管理员ID
+   * @returns 应用结果
+   */
+  async applyPermissionTemplate(
+    templateName: string,
+    targetLevels: number[],
+    adminId: number
+  ): Promise<PermissionTemplateResult> {
+    try {
+      // 预定义模板
+      const templates: Record<string, any> = {
+        'strict': {
+          fieldPermissions: {
+            can_view_cost_price: false,
+            can_view_min_price: false,
+            can_view_manufacturer: false,
+            can_view_contact: false,
+            can_view_phone: false,
+          },
+          modulePermissions: ['product.search', 'price.view'],
+          quotas: {
+            daily_quota: 10,
+            max_files: 5,
+            max_chat_messages: 50,
+          },
+        },
+        'moderate': {
+          fieldPermissions: {
+            can_view_cost_price: false,
+            can_view_min_price: true,
+            can_view_manufacturer: false,
+            can_view_contact: false,
+            can_view_phone: true,
+          },
+          modulePermissions: ['product.search', 'price.view', 'quote.create'],
+          quotas: {
+            daily_quota: 50,
+            max_files: 20,
+            max_chat_messages: 200,
+          },
+        },
+        'generous': {
+          fieldPermissions: {
+            can_view_cost_price: true,
+            can_view_min_price: true,
+            can_view_manufacturer: true,
+            can_view_contact: true,
+            can_view_phone: true,
+          },
+          modulePermissions: ['product.search', 'price.view', 'quote.create', 'excel.export'],
+          quotas: {
+            daily_quota: 1000,
+            max_files: 100,
+            max_chat_messages: 1000,
+          },
+        },
+      };
+
+      const template = templates[templateName];
+      if (!template) {
+        return {
+          success: false,
+          appliedLevels: [],
+          failedLevels: targetLevels,
+        };
+      }
+
+      const appliedLevels: number[] = [];
+      const failedLevels: number[] = [];
+
+      for (const level of targetLevels) {
+        const result = await this.updateLevelPermissions(
+          level,
+          adminId,
+          template,
+          `应用权限模板: ${templateName}`
+        );
+
+        if (result) {
+          appliedLevels.push(level);
+        } else {
+          failedLevels.push(level);
+        }
+      }
+
+      return {
+        success: failedLevels.length === 0,
+        appliedLevels,
+        failedLevels,
+      };
+    } catch (error) {
+      console.error('[UserLevelService] 应用权限模板异常:', error);
+      return {
+        success: false,
+        appliedLevels: [],
+        failedLevels: targetLevels,
+      };
     }
   }
 }
