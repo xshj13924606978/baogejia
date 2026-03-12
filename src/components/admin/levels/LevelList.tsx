@@ -565,24 +565,34 @@ export const LevelList: React.FC = () => {
           newValues[`${level.level}-max_files`] = String(quotas.max_files ?? 5);
           newValues[`${level.level}-max_chat_messages`] = String(quotas.max_chat_messages ?? 20);
 
-          // 字段权限默认值 - 关键修复点：明确检查每个字段
+          // 字段权限默认值 - 关键修复点：同时支持嵌套和扁平结构
           const fieldPerms = levelConfig.fieldPermissions || levelConfig.field_permissions || {};
           
-          // 使用明确的检查，避免从 flat levelConfig 中读取到 undefined
+          // 先尝试从嵌套对象读取，如果不存在则从扁平结构读取
           newValues[`${level.level}-can_view_cost_price`] = String(
-            fieldPerms.can_view_cost_price !== undefined ? fieldPerms.can_view_cost_price : false
+            fieldPerms.can_view_cost_price !== undefined 
+              ? fieldPerms.can_view_cost_price 
+              : (levelConfig.can_view_cost_price !== undefined ? levelConfig.can_view_cost_price : false)
           );
           newValues[`${level.level}-can_view_min_price`] = String(
-            fieldPerms.can_view_min_price !== undefined ? fieldPerms.can_view_min_price : false
+            fieldPerms.can_view_min_price !== undefined 
+              ? fieldPerms.can_view_min_price 
+              : (levelConfig.can_view_min_price !== undefined ? levelConfig.can_view_min_price : false)
           );
           newValues[`${level.level}-can_view_manufacturer`] = String(
-            fieldPerms.can_view_manufacturer !== undefined ? fieldPerms.can_view_manufacturer : false
+            fieldPerms.can_view_manufacturer !== undefined 
+              ? fieldPerms.can_view_manufacturer 
+              : (levelConfig.can_view_manufacturer !== undefined ? levelConfig.can_view_manufacturer : false)
           );
           newValues[`${level.level}-can_view_contact`] = String(
-            fieldPerms.can_view_contact !== undefined ? fieldPerms.can_view_contact : false
+            fieldPerms.can_view_contact !== undefined 
+              ? fieldPerms.can_view_contact 
+              : (levelConfig.can_view_contact !== undefined ? levelConfig.can_view_contact : false)
           );
           newValues[`${level.level}-can_view_phone`] = String(
-            fieldPerms.can_view_phone !== undefined ? fieldPerms.can_view_phone : false
+            fieldPerms.can_view_phone !== undefined 
+              ? fieldPerms.can_view_phone 
+              : (levelConfig.can_view_phone !== undefined ? levelConfig.can_view_phone : false)
           );
 
           console.log(`[LevelList] 等级 ${level.level} 字段权限配置:`, {
