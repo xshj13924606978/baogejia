@@ -105,6 +105,18 @@ export const LevelList: React.FC = () => {
     'phone.view': '联系电话查看'
   };
 
+  // 角色名称映射
+  const roleNameMap: Record<string, string> = {
+    'super_admin': '超级管理员',
+    'admin': '管理员',
+    'enterprise_admin': '企业管理员',
+    'manufacturer': '厂家',
+    'vip': 'VIP用户',
+    'premium': '付费用户',
+    'free': '免费用户',
+    'pending': '待审核'
+  };
+
   useEffect(() => {
     fetchLevels();
   }, []);
@@ -699,7 +711,7 @@ export const LevelList: React.FC = () => {
                     <span className="text-muted-foreground">所需积分：</span>
                     <span>{levelData.requiredPoints}</span>
                     <span className="text-muted-foreground">角色：</span>
-                    <span>{levelData.role}</span>
+                    <span>{roleNameMap[levelData.role] || levelData.role}</span>
                   </div>
                 </div>
 
