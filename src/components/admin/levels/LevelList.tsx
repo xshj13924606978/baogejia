@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Edit, History, Upload, ChevronDown, ChevronRight, LayoutGrid } from 'lucide-react';
+import { Edit, History, Upload, ChevronDown, ChevronRight, LayoutGrid, Eye } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { LevelEditor } from './LevelEditor';
 
@@ -150,29 +150,80 @@ export const LevelList: React.FC = () => {
 
       if (data.success && data.history && data.history.length > 0) {
         const historyText = data.history
-          .map((h: any) => `时间: ${new Date(h.createdAt).toLocaleString()} | 管理员: ${h.adminName || '未知'} | 原因: ${h.reason}`)
+          .map((h: any) => `时间: ${new Date(h.createdAt).toLocaleString('zh-CN')} | 管理员: ${h.adminName || '未知'} | 原因: ${h.reason}`)
           .join('\n');
 
         toast({
-          title: `等级 ${level} 修改历史`,
+          title: `等级 ${level} 修改历史 (${data.history.length} 条)`,
           description: (
-            <div className="whitespace-pre-wrap text-sm max-h-64 overflow-y-auto">
+            <div className="whitespace-pre-wrap text-sm max-h-64 overflow-y-auto bg-muted/50 p-3 rounded-md">
               {historyText}
             </div>
           ),
+          duration: 10000,
+        });
+      } else if (data.success && (!data.history || data.history.length === 0)) {
+        toast({
+          title: `等级 ${level}`,
+          description: '暂无修改历史记录',
+          duration: 3000,
         });
       } else {
         toast({
-          title: `等级 ${level}`,
-          description: '暂无修改历史',
+          variant: 'destructive',
+          title: '获取历史失败',
+          description: data.error || '服务器返回错误',
+          duration: 5000,
         });
       }
     } catch (error) {
+      console.error('获取历史失败:', error);
       toast({
         variant: 'destructive',
         title: '获取历史失败',
+        description: '网络请求失败，请稍后重试',
+        duration: 5000,
       });
     }
+  };
+
+  // 预览效果
+  const showPreview = (level: number) => {
+    const levelData = levels.find(l => l.level === level);
+    if (!levelData) return;
+
+    const permissionsText = Object.entries(levelData.fieldPermissions)
+      .filter(([_, value]) => value)
+      .map(([key, _]) => {
+        const labels: Record<string, string> = {
+          can_view_cost_price: '查看成本价',
+          can_view_min_price: '查看最低售价',
+          can_view_manufacturer: '查看厂家信息',
+          can_view_contact: '查看联系人',
+          can_view_phone: '查看联系电话',
+        };
+        return labels[key] || key;
+      })
+      .join('、') || '无';
+
+    const quotaText = `每日查询配额: ${levelData.quotas.daily_quota} | 最大文件数: ${levelData.quotas.max_files} | 最大聊天消息数: ${levelData.quotas.max_chat_messages}`;
+
+    const moduleText = levelData.modulePermissions.length > 0
+      ? levelData.modulePermissions.join('、')
+      : '无';
+
+    toast({
+      title: `等级 Lv.${level} (${levelData.name}) 权限预览`,
+      description: (
+        <div className="text-sm space-y-2 bg-muted/50 p-3 rounded-md">
+          <div><strong>所需积分:</strong> {levelData.requiredPoints}</div>
+          <div><strong>配额设置:</strong> {quotaText}</div>
+          <div><strong>字段权限:</strong> {permissionsText}</div>
+          <div><strong>模块权限:</strong> {moduleText}</div>
+        </div>
+      ),
+      duration: 8000,
+    });
   };
 
   const getLevelColor = (level: number) => {
@@ -327,6 +378,42 @@ export const LevelList: React.FC = () => {
     setItemValues({ ...itemValues, [itemKey]: value });
   };
 
+  // 恢复默认配置
+  const restoreDefaults = () => {
+    const newValues: Record<string, string> = {};
+    const newChecked = new Set<string>();
+
+    levels.forEach((level) => {
+      // 配额默认值
+      newValues[`${level.level}-daily_quota`] = '10';
+      newValues[`${level.level}-max_files`] = '5';
+      newValues[`${level.level}-max_chat_messages`] = '20';
+
+      // 字段权限默认值（全部关闭）
+      newValues[`${level.level}-can_view_cost_price`] = 'false';
+      newValues[`${level.level}-can_view_min_price`] = 'false';
+      newValues[`${level.level}-can_view_manufacturer`] = 'false';
+      newValues[`${level.level}-can_view_contact`] = 'false';
+      newValues[`${level.level}-can_view_phone`] = 'false';
+
+      // 添加到勾选列表
+      Object.keys(configCategories).forEach((categoryKey) => {
+        configCategories[categoryKey as keyof typeof configCategories].items.forEach((item) => {
+          newChecked.add(`${level.level}-${item.field}`);
+        });
+      });
+    });
+
+    setItemValues(newValues);
+    setCheckedItems(newChecked);
+    setBatchUpdateReason('恢复系统默认配置');
+
+    toast({
+      title: '已恢复默认配置',
+      description: '所有配置项已重置为系统默认值',
+    });
+  };
+
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -426,6 +513,14 @@ export const LevelList: React.FC = () => {
                         <History className="h-4 w-4 mr-1" />
                         历史
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => showPreview(record.level)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        预览
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -446,6 +541,9 @@ export const LevelList: React.FC = () => {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>编辑等级 Lv.{editingLevel} 权限</DialogTitle>
+            <DialogDescription>
+              修改等级的配额设置、字段权限和模块权限
+            </DialogDescription>
           </DialogHeader>
           {editingLevel && (
             <LevelEditor
@@ -550,7 +648,7 @@ export const LevelList: React.FC = () => {
                                           <div className="flex items-center gap-2">
                                             {item.type === 'boolean' ? (
                                               <Select
-                                                value={currentValue}
+                                                value={currentValue || 'true'}
                                                 onValueChange={(value) => updateItemValue(itemKey, value)}
                                               >
                                                 <SelectTrigger className="w-32 h-8 text-xs">
@@ -565,7 +663,7 @@ export const LevelList: React.FC = () => {
                                               <Input
                                                 type="number"
                                                 min="0"
-                                                value={currentValue}
+                                                value={currentValue || ''}
                                                 onChange={(e) => updateItemValue(itemKey, e.target.value)}
                                                 placeholder="输入数值"
                                                 className="w-32 h-8 text-xs"
@@ -610,16 +708,25 @@ export const LevelList: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setBatchUpdateOpen(false)}>
-              取消
+          <div className="flex justify-between items-center pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={restoreDefaults}
+              className="text-destructive hover:text-destructive"
+            >
+              恢复默认配置
             </Button>
-            <Button onClick={handleBatchUpdate} disabled={batchUpdating || checkedItems.size === 0}>
-              {batchUpdating && (
-                <Upload className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              确认批量更新
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setBatchUpdateOpen(false)}>
+                取消
+              </Button>
+              <Button onClick={handleBatchUpdate} disabled={batchUpdating || checkedItems.size === 0}>
+                {batchUpdating && (
+                  <Upload className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                确认批量更新
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
