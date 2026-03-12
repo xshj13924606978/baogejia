@@ -189,10 +189,10 @@ export async function checkPermission(
 export function withPermissionCheck<T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   options: PermissionCheckOptions,
   handler: T
-): T {
-  return (async (request: NextRequest) => {
+): ((request: NextRequest) => Promise<NextResponse>) {
+  return async (request: NextRequest) => {
     const result = await checkPermission(request, options);
-    
+
     if (!result.allowed) {
       return NextResponse.json(
         {
@@ -203,9 +203,9 @@ export function withPermissionCheck<T extends (req: NextRequest, user: any) => P
         { status: result.status || 403 }
       );
     }
-    
+
     return handler(request, result.user);
-  }) as T;
+  };
 }
 
 /**
@@ -213,68 +213,94 @@ export function withPermissionCheck<T extends (req: NextRequest, user: any) => P
  */
 export const withUserView = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ permissions: 'user.view' }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'user.view' }, handler);
+};
 
 export const withUserCreate = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ permissions: 'user.create' }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'user.create' }, handler);
+};
 
 export const withUserEdit = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ permissions: 'user.edit' }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'user.edit' }, handler);
+};
 
 export const withUserDelete = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ permissions: 'user.delete' }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'user.delete' }, handler);
+};
 
 export const withProductView = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ permissions: 'product.view' }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'product.view' }, handler);
+};
 
 export const withProductEdit = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ permissions: 'product.edit' }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'product.edit' }, handler);
+};
 
 export const withProductExport = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ permissions: 'product.export' }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'product.export' }, handler);
+};
 
 export const withQuoteCreate = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ permissions: 'quote.create' }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'quote.create' }, handler);
+};
 
 export const withQuoteView = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ permissions: 'quote.view' }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'quote.view' }, handler);
+};
 
 export const withQuoteEdit = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ permissions: 'quote.edit' }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'quote.edit' }, handler);
+};
 
 export const withQuoteExport = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ permissions: 'quote.export' }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'quote.export' }, handler);
+};
 
 export const withAdmin = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ roles: ['super_admin', 'admin'] }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ roles: ['super_admin', 'admin'] }, handler);
+};
 
 export const withSuperAdmin = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   handler: T
-) => withPermissionCheck({ roles: ['super_admin'] }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ roles: ['super_admin'] }, handler);
+};
 
 export const withLevel = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   level: number,
   handler: T
 ): ((request: NextRequest) => Promise<NextResponse>) => {
-  return withPermissionCheck({ minLevel: level }, handler) as any;
+  return withPermissionCheck({ minLevel: level }, handler);
 };
 
 export const withPoints = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   points: number,
   handler: T
 ): ((request: NextRequest) => Promise<NextResponse>) => {
-  return withPermissionCheck({ minPoints: points }, handler) as any;
+  return withPermissionCheck({ minPoints: points }, handler);
 };
 
 /**
@@ -283,7 +309,8 @@ export const withPoints = <T extends (req: NextRequest, user: any) => Promise<Ne
 export const withAnyPermission = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   permissions: string[],
   handler: T
-) => withPermissionCheck({ permissions, requireAll: false }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) =>
+  withPermissionCheck({ permissions, requireAll: false }, handler);
 
 /**
  * 多权限检查（AND关系）
@@ -291,4 +318,5 @@ export const withAnyPermission = <T extends (req: NextRequest, user: any) => Pro
 export const withAllPermissions = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
   permissions: string[],
   handler: T
-) => withPermissionCheck({ permissions, requireAll: true }, handler);
+): ((request: NextRequest) => Promise<NextResponse>) =>
+  withPermissionCheck({ permissions, requireAll: true }, handler);

@@ -11,9 +11,9 @@ export default function FixedSwitcher() {
 
   // 获取文件摘要
   const getFileSummary = () => {
-    const excelCount = files.filter((f) => f.type?.includes('sheet') || f.productCount > 0).length;
-    const docCount = files.filter((f) => f.type?.includes('pdf') || f.type?.includes('image')).length;
-    const totalProducts = files.reduce((sum, f) => sum + (f.productCount || 0), 0);
+    const excelCount = files.filter((f: any) => f.type?.includes('sheet') || f.productCount > 0).length;
+    const docCount = files.filter((f: any) => f.type?.includes('pdf') || f.type?.includes('image')).length;
+    const totalProducts = files.reduce((sum: number, f: any) => sum + (f.productCount || 0), 0);
     return { excelCount, docCount, totalProducts };
   };
 

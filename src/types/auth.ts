@@ -61,7 +61,7 @@ export interface LoginCredentials {
   
   // 手机登录
   phone?: string;
-  code?: string;
+  phoneCode?: string;  // 手机验证码
   
   // 邮箱登录
   email?: string;
@@ -69,7 +69,7 @@ export interface LoginCredentials {
   
   // 第三方登录
   provider?: string;
-  code?: string;
+  authCode?: string;  // 第三方授权码
   redirectUri?: string;
   
   // 企业登录
@@ -83,19 +83,19 @@ export interface RegisterData {
   
   // 手机注册
   phone?: string;
-  code?: string;
-  name?: string;
+  phoneCode?: string;  // 手机验证码
   
   // 邮箱注册
   email?: string;
   password?: string;
-  name?: string;
   
   // 第三方注册
   provider?: string;
   providerId?: string;
-  name?: string;
   avatar?: string;
+  
+  // 通用用户名（用于手机注册、邮箱注册、第三方注册）
+  name?: string;
   
   // 企业注册
   enterpriseInfo?: EnterpriseInfo;

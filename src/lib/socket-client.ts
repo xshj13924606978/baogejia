@@ -38,6 +38,10 @@ interface SocketEvents {
   'user:joined': (data: { userId: string; socketId: string; conversationId: number | string }) => void;
   'user:left': (data: { userId: string; socketId: string; conversationId: number | string }) => void;
   
+  // 对话房间事件
+  'join:conversation': (conversationId: number | string) => void;
+  'leave:conversation': (conversationId: number | string) => void;
+  
   // 消息事件
   'message:send': (data: { conversationId: number | string; message: Message; tempId?: string }) => void;
   'message:sent': (data: Message & { tempId?: string }) => void;
@@ -281,7 +285,12 @@ class SocketClient {
   // 标记消息已读
   markMessageRead(messageId: string, conversationId: number | string) {
     if (!this.userId) return false;
-    return this.emit('message:read', { messageId, conversationId });
+    return this.emit('message:read', {
+      messageId,
+      userId: this.userId,
+      conversationId,
+      readAt: new Date().toISOString()
+    });
   }
 
   // 开始输入
