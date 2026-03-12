@@ -507,24 +507,89 @@ export const LevelList: React.FC = () => {
     }
   };
 
-  // 使用硬编码默认值（fallback）
+  // 使用硬编码默认值（fallback）- 每个等级有不同的默认配置
   const useHardcodedDefaults = () => {
     console.log('[LevelList] 使用硬编码默认值');
     const newValues: Record<string, string> = {};
     const newChecked = new Set<string>();
 
-    levels.forEach((level) => {
-      // 配额默认值
-      newValues[`${level.level}-daily_quota`] = '10';
-      newValues[`${level.level}-max_files`] = '5';
-      newValues[`${level.level}-max_chat_messages`] = '20';
+    // 定义每个等级的硬编码默认配置
+    const hardcodedLevelConfigs: Record<number, {
+      daily_quota: number;
+      max_files: number;
+      max_chat_messages: number;
+      can_view_cost_price: boolean;
+      can_view_min_price: boolean;
+      can_view_manufacturer: boolean;
+      can_view_contact: boolean;
+      can_view_phone: boolean;
+    }> = {
+      1: {
+        daily_quota: 10,
+        max_files: 5,
+        max_chat_messages: 20,
+        can_view_cost_price: false,
+        can_view_min_price: false,
+        can_view_manufacturer: false,
+        can_view_contact: false,
+        can_view_phone: false,
+      },
+      2: {
+        daily_quota: 50,
+        max_files: 20,
+        max_chat_messages: 100,
+        can_view_cost_price: false,
+        can_view_min_price: true,
+        can_view_manufacturer: false,
+        can_view_contact: false,
+        can_view_phone: false,
+      },
+      3: {
+        daily_quota: 200,
+        max_files: 50,
+        max_chat_messages: 500,
+        can_view_cost_price: true,
+        can_view_min_price: true,
+        can_view_manufacturer: true,
+        can_view_contact: false,
+        can_view_phone: false,
+      },
+      4: {
+        daily_quota: 1000,
+        max_files: 200,
+        max_chat_messages: 2000,
+        can_view_cost_price: true,
+        can_view_min_price: true,
+        can_view_manufacturer: true,
+        can_view_contact: true,
+        can_view_phone: true,
+      },
+      5: {
+        daily_quota: 9999,
+        max_files: 9999,
+        max_chat_messages: 9999,
+        can_view_cost_price: true,
+        can_view_min_price: true,
+        can_view_manufacturer: true,
+        can_view_contact: true,
+        can_view_phone: true,
+      },
+    };
 
-      // 字段权限默认值（全部关闭）
-      newValues[`${level.level}-can_view_cost_price`] = 'false';
-      newValues[`${level.level}-can_view_min_price`] = 'false';
-      newValues[`${level.level}-can_view_manufacturer`] = 'false';
-      newValues[`${level.level}-can_view_contact`] = 'false';
-      newValues[`${level.level}-can_view_phone`] = 'false';
+    levels.forEach((level) => {
+      const config = hardcodedLevelConfigs[level.level] || hardcodedLevelConfigs[1];
+
+      // 配额默认值
+      newValues[`${level.level}-daily_quota`] = String(config.daily_quota);
+      newValues[`${level.level}-max_files`] = String(config.max_files);
+      newValues[`${level.level}-max_chat_messages`] = String(config.max_chat_messages);
+
+      // 字段权限默认值
+      newValues[`${level.level}-can_view_cost_price`] = String(config.can_view_cost_price);
+      newValues[`${level.level}-can_view_min_price`] = String(config.can_view_min_price);
+      newValues[`${level.level}-can_view_manufacturer`] = String(config.can_view_manufacturer);
+      newValues[`${level.level}-can_view_contact`] = String(config.can_view_contact);
+      newValues[`${level.level}-can_view_phone`] = String(config.can_view_phone);
 
       // 添加到勾选列表
       Object.keys(configCategories).forEach((categoryKey) => {
