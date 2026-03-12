@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 
-export async function GET() {
+
+export const GET = withPermissionCheck(
+  { requiresAuth: true, permissions: ['user.view'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     // 模拟用户数据
     const mockUsers = [
@@ -59,4 +64,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});

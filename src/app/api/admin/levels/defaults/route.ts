@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { getCurrentUser } from '@/lib/auth-utils';
 
@@ -9,7 +10,11 @@ import { getCurrentUser } from '@/lib/auth-utils';
  * 权限：仅超级管理员和管理员
  */
 
-export async function GET(request: NextRequest) {
+
+export const GET = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.points.defaults'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
@@ -19,7 +24,7 @@ export async function GET(request: NextRequest) {
       console.log('[Defaults API] 用户未登录');
       return NextResponse.json(
         { error: '未登录' },
-        { status: 401 }
+        { status: 401 });
       );
     }
 
@@ -78,4 +83,3 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}

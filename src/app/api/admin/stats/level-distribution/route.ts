@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
@@ -9,13 +10,17 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
  * - GET: 获取用户等级分布、等级转化趋势、等级升级时间统计
  * 权限：仅超级管理员
  */
-export async function GET(request: NextRequest) {
+
+export const GET = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.stats.view'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
-    }
+    });
 
     // 查询用户角色
     const supabase = getSupabaseClient();
@@ -200,4 +205,3 @@ export async function GET(request: NextRequest) {
     console.error('[LevelDistribution API] 获取等级分布失败:', error);
     return NextResponse.json({ error: '获取失败' }, { status: 500 });
   }
-}

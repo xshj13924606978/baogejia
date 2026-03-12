@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 import { tokenBillingService } from '@/lib/token-billing-service';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
@@ -14,14 +15,18 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 /**
  * 获取当前计费配置
  */
-export async function GET(request: NextRequest) {
+
+export const GET = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.billing.view'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
         { error: '未登录或用户信息无效' },
-        { status: 401 }
+        { status: 401 });
       );
     }
 
@@ -72,12 +77,15 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
 
 /**
  * 更新计费配置
  */
-export async function POST(request: NextRequest) {
+
+export const POST = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.access'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
@@ -180,4 +188,3 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}

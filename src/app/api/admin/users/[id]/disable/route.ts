@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+
+export const POST = withPermissionCheck(
+  { requiresAuth: true, permissions: ['user.disable'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     const { id: userIdStr } = await params;
     const userId = parseInt(userIdStr);
@@ -19,7 +21,6 @@ export async function POST(
     console.error('更新用户状态失败:', error);
     return NextResponse.json(
       { error: '更新用户状态失败' },
-      { status: 500 }
+      { status: 500 });
     );
   }
-}

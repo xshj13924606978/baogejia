@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 
-export async function GET(request: NextRequest) {
+
+export const GET = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.audit.view'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status') || 'pending';
@@ -61,7 +66,7 @@ export async function GET(request: NextRequest) {
     let filteredItems = mockAuditItems;
     if (status !== 'all') {
       filteredItems = mockAuditItems.filter(item => item.status === status);
-    }
+    });
 
     return NextResponse.json(filteredItems);
   } catch (error) {
@@ -71,4 +76,3 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}

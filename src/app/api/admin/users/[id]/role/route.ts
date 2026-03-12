@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+
+export const POST = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.access'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     const { id: userIdStr } = await params;
     const userId = parseInt(userIdStr);
@@ -14,7 +16,7 @@ export async function POST(
     if (!validRoles.includes(role)) {
       return NextResponse.json(
         { error: '无效的角色' },
-        { status: 400 }
+        { status: 400 });
       );
     }
 
@@ -29,4 +31,3 @@ export async function POST(
       { status: 500 }
     );
   }
-}

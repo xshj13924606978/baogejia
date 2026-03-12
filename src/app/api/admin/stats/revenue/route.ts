@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
@@ -9,13 +10,17 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
  * - GET: 获取收入统计数据，包括总收入、订单数、平均订单价值、按支付方式统计、按套餐统计、每日/每月收入、顶级用户
  * 权限：仅超级管理员
  */
-export async function GET(request: NextRequest) {
+
+export const GET = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.stats.revenue'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
-    }
+    });
 
     // 查询用户角色
     const supabase = getSupabaseClient();
@@ -232,4 +237,3 @@ export async function GET(request: NextRequest) {
     console.error('[Revenue API] 获取收入统计失败:', error);
     return NextResponse.json({ error: '获取失败' }, { status: 500 });
   }
-}

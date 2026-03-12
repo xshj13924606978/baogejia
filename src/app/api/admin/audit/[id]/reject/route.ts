@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+
+export const POST = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.audit.reject'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     const { id: auditIdStr } = await params;
     const auditId = parseInt(auditIdStr);
@@ -12,7 +14,7 @@ export async function POST(
     if (!reason) {
       return NextResponse.json(
         { error: '请提供拒绝原因' },
-        { status: 400 }
+        { status: 400 });
       );
     }
 
@@ -27,4 +29,3 @@ export async function POST(
       { status: 500 }
     );
   }
-}

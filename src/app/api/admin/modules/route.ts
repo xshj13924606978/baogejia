@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
@@ -12,14 +13,18 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 /**
  * 获取模块列表
  */
-export async function GET(request: NextRequest) {
+
+export const GET = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.modules.view'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
         { error: '未登录或用户信息无效' },
-        { status: 401 }
+        { status: 401 });
       );
     }
 
@@ -74,4 +79,3 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}

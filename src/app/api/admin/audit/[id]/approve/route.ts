@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+
+export const POST = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.audit.approve'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     const { id: auditIdStr } = await params;
     const auditId = parseInt(auditIdStr);
@@ -17,7 +19,6 @@ export async function POST(
     console.error('审核通过失败:', error);
     return NextResponse.json(
       { error: '审核通过失败' },
-      { status: 500 }
+      { status: 500 });
     );
   }
-}

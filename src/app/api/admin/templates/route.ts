@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 import { userLevelService } from '@/lib/user-level-service';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
@@ -30,7 +31,7 @@ const TEMPLATES = {
           can_view_phone: true
         },
         modulePermissions: ['product.search', 'price.view', 'quote.create', 'excel.export']
-      }
+      });
     }
   },
   retail: {
@@ -115,7 +116,11 @@ const TEMPLATES = {
 /**
  * 获取所有权限模板
  */
-export async function GET(request: NextRequest) {
+
+export const GET = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.templates.view'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
@@ -163,12 +168,15 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
 
 /**
  * 应用权限模板
  */
-export async function POST(request: NextRequest) {
+
+export const POST = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.templates.edit'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
@@ -263,4 +271,3 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}

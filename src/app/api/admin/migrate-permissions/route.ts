@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { getCurrentUser } from '@/lib/auth-utils';
 import fs from 'fs';
@@ -9,14 +10,18 @@ import path from 'path';
  * 仅限超级管理员使用
  */
 
-export async function POST(request: NextRequest) {
+
+export const POST = withPermissionCheck(
+  {"minLevel":5,"roles":["super_admin"]},
+  async (request: NextRequest, user: any) => {
+
   try {
     // 验证用户身份
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
         { error: '未登录或用户信息无效' },
-        { status: 401 }
+        { status: 401 });
       );
     }
 
@@ -119,4 +124,3 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}

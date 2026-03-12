@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withPermissionCheck } from '@/lib/permission-check';
 
-export async function GET() {
+
+export const GET = withPermissionCheck(
+  { requiresAuth: true, permissions: ['admin.stats.view'] },
+  async (request: NextRequest, user: any) => {
+
   try {
     // 模拟统计数据
     const mockStats = {
@@ -19,7 +24,6 @@ export async function GET() {
     console.error('获取统计数据失败:', error);
     return NextResponse.json(
       { error: '获取统计数据失败' },
-      { status: 500 }
+      { status: 500 });
     );
   }
-}
