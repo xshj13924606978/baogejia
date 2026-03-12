@@ -85,6 +85,50 @@ export class TokenBillingService {
   private supabase = getSupabaseClient();
 
   /**
+   * 更新计费配置
+   */
+  async updateBillingConfig(config: Partial<TokenPricingConfig>): Promise<boolean> {
+    try {
+      const updateData: any = {};
+
+      if (config.configName !== undefined) updateData.config_name = config.configName;
+      if (config.yuanToTokens !== undefined) updateData.yuan_to_tokens = config.yuanToTokens;
+      if (config.yuanToPoints !== undefined) updateData.yuan_to_points = config.yuanToPoints;
+      if (config.pointsToTokens !== undefined) updateData.points_to_tokens = config.pointsToTokens;
+      if (config.inputTokenRate !== undefined) updateData.input_token_rate = config.inputTokenRate;
+      if (config.outputTokenRate !== undefined) updateData.output_token_rate = config.outputTokenRate;
+      if (config.level1InputRate !== undefined) updateData.level_1_input_rate = config.level1InputRate;
+      if (config.level1OutputRate !== undefined) updateData.level_1_output_rate = config.level1OutputRate;
+      if (config.level2InputRate !== undefined) updateData.level_2_input_rate = config.level2InputRate;
+      if (config.level2OutputRate !== undefined) updateData.level_2_output_rate = config.level2OutputRate;
+      if (config.level3InputRate !== undefined) updateData.level_3_input_rate = config.level3InputRate;
+      if (config.level3OutputRate !== undefined) updateData.level_3_output_rate = config.level3OutputRate;
+      if (config.level4InputRate !== undefined) updateData.level_4_input_rate = config.level4InputRate;
+      if (config.level4OutputRate !== undefined) updateData.level_4_output_rate = config.level4OutputRate;
+      if (config.level5InputRate !== undefined) updateData.level_5_input_rate = config.level5InputRate;
+      if (config.level5OutputRate !== undefined) updateData.level_5_output_rate = config.level5OutputRate;
+      if (config.isActive !== undefined) updateData.is_active = config.isActive;
+
+      updateData.updated_at = new Date().toISOString();
+
+      const { error } = await this.supabase
+        .from('token_pricing_config')
+        .update(updateData)
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('[TokenBillingService] 更新计费配置失败:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[TokenBillingService] 更新计费配置异常:', error);
+      return false;
+    }
+  }
+
+  /**
    * 获取当前计费配置
    */
   async getBillingConfig(): Promise<TokenPricingConfig | null> {

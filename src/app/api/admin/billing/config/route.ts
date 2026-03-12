@@ -145,13 +145,33 @@ export async function POST(request: NextRequest) {
       pointsToTokens
     });
 
-    // TODO: 实现更新配置的逻辑
-    // 当前tokenBillingService.getBillingConfig()只是读取，没有更新方法
-    // 需要在服务层添加updateBillingConfig方法
+    // 更新计费配置
+    const success = await tokenBillingService.updateBillingConfig({
+      yuanToTokens,
+      yuanToPoints,
+      pointsToTokens,
+      level1InputRate,
+      level1OutputRate,
+      level2InputRate,
+      level2OutputRate,
+      level3InputRate,
+      level3OutputRate,
+      level4InputRate,
+      level4OutputRate,
+      level5InputRate,
+      level5OutputRate
+    });
+
+    if (!success) {
+      return NextResponse.json(
+        { error: '更新配置失败' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      message: '配置更新成功（需要实现更新逻辑）'
+      message: '配置更新成功'
     });
   } catch (error) {
     console.error('[BillingConfig API] 更新计费配置异常:', error);
