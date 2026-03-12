@@ -1,6 +1,7 @@
 import { ServerDatabaseUtils } from './server-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { brandRankingService, RankedBrand } from './brand-ranking-service';
+import { userLevelService } from './user-level-service';
 
 export interface PriceMatchResult {
   price: number;
@@ -21,6 +22,9 @@ export interface PriceMatchResult {
   description?: string; // 完整描述
   currency?: string; // 货币单位（CNY、USD等）
   category?: string; // 产品分类
+  manufacturer?: string; // 制造商
+  contact?: string; // 联系人
+  phone?: string; // 联系电话
   // 新增：模糊查询标记
   needsConfirmation?: boolean; // 是否需要用户确认产品类别
   possibleCategories?: string[]; // 可能的产品类别列表
@@ -482,6 +486,20 @@ export class PriceMatcher {
     console.log('[PriceMatcher] ========== 开始价格匹配 ==========');
     console.log('[PriceMatcher] 产品信息:', product, enableBrandRanking);
 
+    // 获取用户等级信息
+    let userLevel = 1; // 默认等级为免费用户
+    if (userId) {
+      try {
+        const levelData = await userLevelService.getUserLevel(userId);
+        if (levelData) {
+          userLevel = levelData.level;
+          console.log('[PriceMatcher] 用户等级:', userLevel);
+        }
+      } catch (error) {
+        console.error('[PriceMatcher] 获取用户等级失败:', error);
+      }
+    }
+
     // 检测产品类别是否明确
     if (!this.isProductCategoryClear(product)) {
       console.log('[PriceMatcher] ⚠️ 产品类别不明确，需要用户确认');
@@ -503,34 +521,35 @@ export class PriceMatcher {
     const dbResult = await this.matchFromDatabase(product, enableBrandRanking);
     if (dbResult) {
       console.log('[PriceMatcher] ✅ 产品库匹配成功:', dbResult);
-      return dbResult;
+      // 根据用户等级过滤敏感字段
+      return this.filterSensitiveFields(dbResult, userLevel);
     }
 
     // 第2级：知识库匹配（历史报价、案例）
     const knowledgeResult = await this.matchFromKnowledge(product, userId);
     if (knowledgeResult) {
       console.log('[PriceMatcher] ✅ 知识库匹配成功:', knowledgeResult);
-      return knowledgeResult;
+      return this.filterSensitiveFields(knowledgeResult, userLevel);
     }
 
     // 第3级：市场价兜底（新增）
     const marketResult = await this.matchFromMarket(product);
     if (marketResult) {
       console.log('[PriceMatcher] ✅ 市场价兜底成功:', marketResult);
-      return marketResult;
+      return this.filterSensitiveFields(marketResult, userLevel);
     }
 
     // 第4级：按类别估算
     const estimateResult = this.estimateByCategory(product);
     if (estimateResult) {
       console.log('[PriceMatcher] ⚠️ 使用类别估算:', estimateResult);
-      return estimateResult;
+      return this.filterSensitiveFields(estimateResult, userLevel);
     }
 
     // 第5级：默认兜底
     const defaultResult = this.getDefaultPrice();
     console.log('[PriceMatcher] ⚠️ 使用默认价格:', defaultResult);
-    return defaultResult;
+    return this.filterSensitiveFields(defaultResult, userLevel);
   }
 
   /**
@@ -1567,6 +1586,9 @@ export class PriceMatcher {
       description: product.description,
       currency: product.currency, // 货币单位
       category: product.category,
+      manufacturer: product.manufacturer,
+      contact: product.contact,
+      phone: product.phone,
       // 新增字段
       matchedBy: matchedBy || '多维度匹配',
       matchDetails: matchDetails || undefined
@@ -2161,5 +2183,44 @@ export class PriceMatcher {
     } else {
       return '❌ 仅供参考，请核实';
     }
+  }
+
+  /**
+   * 根据用户等级过滤敏感字段
+   * @param result 价格匹配结果
+   * @param userLevel 用户等级
+   * @returns 过滤后的结果
+   */
+  private static filterSensitiveFields(result: PriceMatchResult, userLevel: number): PriceMatchResult {
+    const filteredResult = { ...result };
+    
+    // 定义需要根据等级控制的敏感字段
+    const sensitiveFields: { [key: string]: { minLevel: number; name: string } } = {
+      costPrice: { minLevel: 3, name: '成本价' },
+      minPrice: { minLevel: 3, name: '最低售价' },
+      manufacturer: { minLevel: 3, name: '制造商' },
+      contact: { minLevel: 4, name: '联系人' },
+      phone: { minLevel: 4, name: '联系电话' }
+    };
+
+    // 移除用户无权查看的敏感字段
+    for (const [field, config] of Object.entries(sensitiveFields)) {
+      if (userLevel < config.minLevel && (result as any)[field] !== undefined) {
+        console.log(`[PriceMatcher] 过滤敏感字段: ${config.name} (需要等级${config.minLevel}, 当前等级${userLevel})`);
+        delete (filteredResult as any)[field];
+      }
+    }
+
+    // 标记是否过滤了敏感字段
+    const hasFilteredFields = Object.keys(sensitiveFields).some(field => 
+      (result as any)[field] !== undefined && userLevel < sensitiveFields[field].minLevel
+    );
+
+    if (hasFilteredFields) {
+      (filteredResult as any).hasFilteredSensitiveFields = true;
+      (filteredResult as any).filteredByLevel = userLevel;
+    }
+
+    return filteredResult;
   }
 }

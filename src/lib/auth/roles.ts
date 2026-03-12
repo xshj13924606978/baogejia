@@ -156,3 +156,57 @@ export const getRoleLevel = (role: UserRole): number => {
   };
   return levels[role] || 0;
 };
+
+// ==================== 等级系统相关函数 ====================
+
+/**
+ * 根据等级获取角色
+ * @param level 用户等级
+ * @returns 对应的角色
+ */
+export const getRoleByLevel = (level: number): UserRole => {
+  if (level >= 5) return 'super_admin';
+  if (level >= 4) return 'enterprise_admin';
+  if (level >= 3) return 'vip';
+  if (level >= 2) return 'premium';
+  return 'free';
+};
+
+/**
+ * 检查用户是否拥有某权限
+ * @param user 用户对象
+ * @param permissionId 权限ID
+ * @returns 是否有权限
+ */
+export const hasPermission = (user: any, permissionId: string): boolean => {
+  if (!user) return false;
+  
+  // 如果是超级管理员，拥有所有权限
+  if (user.role === 'super_admin') return true;
+  
+  // 优先使用用户角色
+  const role = user.role || getRoleByLevel(user.level || 1);
+  const permissions = ROLE_PERMISSIONS[role] || [];
+  
+  return permissions.includes(permissionId);
+};
+
+/**
+ * 检查用户是否拥有多个权限中的任意一个
+ * @param user 用户对象
+ * @param permissionIds 权限ID数组
+ * @returns 是否有任意一个权限
+ */
+export const hasAnyPermission = (user: any, permissionIds: string[]): boolean => {
+  return permissionIds.some(permissionId => hasPermission(user, permissionId));
+};
+
+/**
+ * 检查用户是否拥有所有指定权限
+ * @param user 用户对象
+ * @param permissionIds 权限ID数组
+ * @returns 是否拥有所有权限
+ */
+export const hasAllPermissions = (user: any, permissionIds: string[]): boolean => {
+  return permissionIds.every(permissionId => hasPermission(user, permissionId));
+};

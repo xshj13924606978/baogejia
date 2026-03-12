@@ -17,6 +17,20 @@ interface User {
   createdAt?: string;
   lastLogin?: string;
   
+  // 用户等级相关
+  level?: number;        // 用户等级
+  currentPoints?: number; // 当前积分
+  levelConfig?: {        // 等级配置
+    name: string;
+    requiredPoints: number;
+    permissions: string[];
+    can_view_cost_price: boolean;
+    can_view_min_price: boolean;
+    can_view_manufacturer: boolean;
+    can_view_contact: boolean;
+    can_view_phone: boolean;
+  };
+  
   // 第三方绑定
   wechat?: {
     openId: string;
