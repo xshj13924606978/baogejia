@@ -691,9 +691,75 @@ export const LevelList: React.FC = () => {
               }
             }, 500);
             
-            // 只在弹窗打开时重置表单
+            // 如果弹窗打开，重新加载默认配置到表单（不清空表单）
             if (batchUpdateOpen) {
-              resetBatchForm();
+              // 重新获取默认配置
+              try {
+                const defaultRes = await fetch('/api/admin/levels/defaults', {
+                  credentials: 'include',
+                });
+                
+                if (defaultRes.ok) {
+                  const defaultConfig = await defaultRes.json();
+                  
+                  // 重新构建表单数据
+                  const refreshedValues: Record<string, string> = {};
+                  const refreshedChecked = new Set<string>();
+                  
+                  levels.forEach((level) => {
+                    const levelConfig = defaultConfig.find((c: any) => c.level === level.level);
+                    if (!levelConfig) return;
+                    
+                    // 配额默认值
+                    const quotas = levelConfig.quotas || levelConfig;
+                    refreshedValues[`${level.level}-daily_quota`] = String(quotas.daily_quota ?? 10);
+                    refreshedValues[`${level.level}-max_files`] = String(quotas.max_files ?? 5);
+                    refreshedValues[`${level.level}-max_chat_messages`] = String(quotas.max_chat_messages ?? 20);
+                    
+                    // 字段权限默认值
+                    const fieldPerms = levelConfig.fieldPermissions || levelConfig.field_permissions || {};
+                    refreshedValues[`${level.level}-can_view_cost_price`] = String(
+                      fieldPerms.can_view_cost_price !== undefined 
+                        ? fieldPerms.can_view_cost_price 
+                        : (levelConfig.can_view_cost_price !== undefined ? levelConfig.can_view_cost_price : false)
+                    );
+                    refreshedValues[`${level.level}-can_view_min_price`] = String(
+                      fieldPerms.can_view_min_price !== undefined 
+                        ? fieldPerms.can_view_min_price 
+                        : (levelConfig.can_view_min_price !== undefined ? levelConfig.can_view_min_price : false)
+                    );
+                    refreshedValues[`${level.level}-can_view_manufacturer`] = String(
+                      fieldPerms.can_view_manufacturer !== undefined 
+                        ? fieldPerms.can_view_manufacturer 
+                        : (levelConfig.can_view_manufacturer !== undefined ? levelConfig.can_view_manufacturer : false)
+                    );
+                    refreshedValues[`${level.level}-can_view_contact`] = String(
+                      fieldPerms.can_view_contact !== undefined 
+                        ? fieldPerms.can_view_contact 
+                        : (levelConfig.can_view_contact !== undefined ? levelConfig.can_view_contact : false)
+                    );
+                    refreshedValues[`${level.level}-can_view_phone`] = String(
+                      fieldPerms.can_view_phone !== undefined 
+                        ? fieldPerms.can_view_phone 
+                        : (levelConfig.can_view_phone !== undefined ? levelConfig.can_view_phone : false)
+                    );
+                    
+                    // 添加到勾选列表
+                    Object.keys(configCategories).forEach((categoryKey) => {
+                      configCategories[categoryKey as keyof typeof configCategories].items.forEach((item) => {
+                        refreshedChecked.add(`${level.level}-${item.field}`);
+                      });
+                    });
+                  });
+                  
+                  // 重新填充表单（不清空）
+                  setItemValues(refreshedValues);
+                  setCheckedItems(refreshedChecked);
+                  console.log('[LevelList] 已重新加载默认配置到表单');
+                }
+              } catch (error) {
+                console.error('[LevelList] 重新加载默认配置失败:', error);
+              }
             }
           } else {
             toast({
