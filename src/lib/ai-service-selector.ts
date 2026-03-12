@@ -19,7 +19,7 @@
  */
 
 import { callDeepSeekChat, streamDeepSeekChat } from './deepseek-client';
-import { cozeTools } from './coze-tools';
+import { cozeToolsService } from './coze-tools';
 import { Logger } from './logger';
 
 // ============================================================================
@@ -70,7 +70,7 @@ export class AIServiceSelector {
     Logger.info(`[AIServiceSelector] 任务类型: ${taskType}`);
 
     // 获取服务状态
-    const cozeStatus = cozeTools.getStatus();
+    const cozeStatus = cozeToolsService.getStatus();
     const deepseekAvailable = !!process.env.DEEPSEEK_API_KEY;
 
     // 根据任务类型选择
@@ -88,7 +88,7 @@ export class AIServiceSelector {
 
       case 'market-price':
         // 市场价格查询需要联网搜索，使用 Coze
-        if (!cozeStatus.enabled || !cozeStatus.webSearch) {
+        if (!cozeStatus.enabled || !cozeStatus.webSearchEnabled) {
           Logger.warn('[AIServiceSelector] Coze Web Search 未启用，尝试降级到 DeepSeek');
           if (deepseekAvailable) {
             return {
@@ -112,7 +112,7 @@ export class AIServiceSelector {
 
       case 'similar-products':
         // 相似产品推荐需要向量搜索，使用 Coze
-        if (!cozeStatus.enabled || !cozeStatus.embedding) {
+        if (!cozeStatus.enabled || !cozeStatus.embeddingEnabled) {
           Logger.warn('[AIServiceSelector] Coze Embedding 未启用，降级到 DeepSeek');
           if (deepseekAvailable) {
             return {
@@ -136,7 +136,7 @@ export class AIServiceSelector {
 
       case 'product-image':
         // 产品图生成需要生图能力，使用 Coze
-        if (!cozeStatus.enabled || !cozeStatus.imageGeneration) {
+        if (!cozeStatus.enabled || !cozeStatus.imageGenerationEnabled) {
           return {
             service: 'none',
             reason: 'Coze Image Generation 未启用，无法生成产品图',
@@ -192,7 +192,7 @@ export class AIServiceSelector {
     };
   } {
     const deepseekAvailable = !!process.env.DEEPSEEK_API_KEY;
-    const cozeStatus = cozeTools.getStatus();
+    const cozeStatus = cozeToolsService.getStatus();
 
     let available = false;
 
@@ -219,9 +219,9 @@ export class AIServiceSelector {
       deepseekAvailable,
       cozeAvailable: cozeStatus.enabled,
       cozeTools: {
-        webSearch: cozeStatus.webSearch,
-        embedding: cozeStatus.embedding,
-        imageGeneration: cozeStatus.imageGeneration,
+        webSearch: cozeStatus.webSearchEnabled,
+        embedding: cozeStatus.embeddingEnabled,
+        imageGeneration: cozeStatus.imageGenerationEnabled,
       },
     };
   }
@@ -244,12 +244,12 @@ export class AIServiceSelector {
     };
   } {
     const availability = this.checkAvailability('auto');
-    const cozeStatus = cozeTools.getStatus();
+    const cozeStatus = cozeToolsService.getStatus();
 
     const cozeToolsList = [];
-    if (cozeStatus.webSearch) cozeToolsList.push('Web Search');
-    if (cozeStatus.embedding) cozeToolsList.push('Embedding');
-    if (cozeStatus.imageGeneration) cozeToolsList.push('Image Generation');
+    if (cozeStatus.webSearchEnabled) cozeToolsList.push('Web Search');
+    if (cozeStatus.embeddingEnabled) cozeToolsList.push('Embedding');
+    if (cozeStatus.imageGenerationEnabled) cozeToolsList.push('Image Generation');
 
     return {
       recommendation: availability.deepseekAvailable && availability.cozeAvailable

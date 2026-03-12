@@ -10,8 +10,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cozeTools, MarketPriceInfo, GeneratedImage, SimilarProduct } from '@/lib/coze-tools';
+import { cozeToolsService, MarketPriceInfo, GeneratedImage, SimilarProduct } from '@/lib/coze-tools';
 import { quoteEnhancer, QuoteEnhancementResult, Product } from '@/lib/quote-enhancer';
+import { Logger } from '@/lib/logger';
 
 // ============================================================================
 // GET - 获取工具状态
@@ -19,7 +20,7 @@ import { quoteEnhancer, QuoteEnhancementResult, Product } from '@/lib/quote-enha
 
 export async function GET(request: NextRequest) {
   try {
-    const status = cozeTools.getStatus();
+    const status = cozeToolsService.getStatus();
 
     return NextResponse.json({
       success: true,
@@ -108,13 +109,14 @@ async function handleSearchMarketPrice(body: any) {
     );
   }
 
-  if (!cozeTools.isAvailable()) {
+  const status = cozeToolsService.getStatus();
+  if (!status.enabled) {
     return NextResponse.json({
       success: false,
       error: 'Coze工具未启用，请配置 API Key',
       data: {
         message: '请在 .env.local 中配置 COZE_API_KEY 并设置 ENABLE_COZE_TOOLS=true',
-        status: cozeTools.getStatus(),
+        status,
       },
     });
   }
@@ -124,11 +126,11 @@ async function handleSearchMarketPrice(body: any) {
 
     if (productNames && Array.isArray(productNames)) {
       // 批量搜索
-      const resultMap = await cozeTools.batchSearchMarketPrices(productNames);
+      const resultMap = await cozeToolsService.batchSearchMarketPrices(productNames);
       result = Array.from(resultMap.entries());
     } else {
       // 单个搜索
-      result = await cozeTools.searchMarketPrice(productName);
+      result = await cozeToolsService.searchMarketPrice(productName);
     }
 
     return NextResponse.json({
@@ -163,23 +165,17 @@ async function handleGenerateProductImage(body: any) {
     );
   }
 
-  if (!cozeTools.isAvailable()) {
+  const status = cozeToolsService.getStatus();
+  if (!status.enabled || !status.imageGenerationEnabled) {
     return NextResponse.json({
       success: false,
-      error: 'Coze工具未启用，请配置 API Key',
+      error: 'Coze生图工具未启用，请配置 API Key 并启用图片生成',
     });
   }
 
   try {
-    let result;
-
-    if (type === 'quote-cover') {
-      // 生成报价单封面
-      result = await cozeTools.generateQuoteCoverImage(productName, theme);
-    } else {
-      // 生成产品图
-      result = await cozeTools.generateProductImage(productName, specs);
-    }
+    // 生成产品图
+    const result = await cozeToolsService.generateProductImage(productName, specs);
 
     return NextResponse.json({
       success: true,
@@ -223,15 +219,16 @@ async function handleSearchSimilarProducts(body: any) {
     );
   }
 
-  if (!cozeTools.isAvailable()) {
+  const status = cozeToolsService.getStatus();
+  if (!status.enabled || !status.embeddingEnabled) {
     return NextResponse.json({
       success: false,
-      error: 'Coze工具未启用，请配置 API Key',
+      error: 'Coze向量搜索工具未启用，请配置 API Key 并启用嵌入功能',
     });
   }
 
   try {
-    const result = await cozeTools.searchSimilarProducts(query, products);
+    const result = await cozeToolsService.searchSimilarProducts(query, products);
 
     return NextResponse.json({
       success: true,
@@ -265,13 +262,14 @@ async function handleEnhanceQuote(body: any) {
     );
   }
 
-  if (!cozeTools.isAvailable()) {
+  const status = cozeToolsService.getStatus();
+  if (!status.enabled) {
     return NextResponse.json({
       success: false,
       error: 'Coze工具未启用，请配置 API Key',
       data: {
         message: '即使未启用，也会使用基础功能进行处理',
-        status: cozeTools.getStatus(),
+        status,
       },
     });
   }

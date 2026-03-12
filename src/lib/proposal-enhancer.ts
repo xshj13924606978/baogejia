@@ -19,7 +19,7 @@
  */
 
 import { callDeepSeekChat } from './deepseek-client';
-import { cozeTools } from './coze-tools';
+import { cozeToolsService } from './coze-tools';
 import { Logger } from './logger';
 
 // ============================================================================
@@ -283,7 +283,7 @@ export class ProposalEnhancer {
       usedTools.deepseek = true;
     }
     if (enableMarketData) {
-      usedTools.webSearch = cozeTools.getStatus().webSearch;
+      usedTools.webSearch = cozeToolsService.getStatus().webSearchEnabled;
     }
 
     // 生成增强后的方案

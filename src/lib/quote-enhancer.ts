@@ -10,7 +10,7 @@
  * 集成到报价生成流程中，支持智能服务选择和降级
  */
 
-import { cozeTools, MarketPriceInfo, SimilarProduct, GeneratedImage } from './coze-tools';
+import { cozeToolsService, MarketPriceInfo, SimilarProduct, GeneratedImage } from './coze-tools';
 import { callDeepSeekChat } from './deepseek-client';
 import { aiServiceSelector } from './ai-service-selector';
 import { Logger } from './logger';
@@ -130,7 +130,7 @@ export class QuoteEnhancer {
         const enhanced: EnhancedProduct = { ...product };
 
         // 1. 获取市场价格（使用 Coze Web Search）
-        if (enableMarketPrice && cozeTools.isAvailable()) {
+        if (enableMarketPrice && cozeToolsService.getStatus().enabled && cozeToolsService.getStatus().webSearchEnabled) {
           const marketPrice = await this.getProductMarketPrice(product.name);
           if (marketPrice) {
             enhanced.marketPrice = marketPrice;
@@ -157,7 +157,7 @@ export class QuoteEnhancer {
         }
 
         // 3. 生成产品图（使用 Coze Image Generation）
-        if (enableProductImages && cozeTools.isAvailable()) {
+        if (enableProductImages && cozeToolsService.getStatus().enabled && cozeToolsService.getStatus().imageGenerationEnabled) {
           const productImage = await this.getProductImage(
             product.name,
             product.specs
@@ -213,7 +213,7 @@ export class QuoteEnhancer {
     }
 
     // 调用Coze工具
-    const marketPrice = await cozeTools.searchMarketPrice(productName);
+    const marketPrice = await cozeToolsService.searchMarketPrice(productName);
     
     // 缓存结果
     if (marketPrice) {
@@ -237,7 +237,7 @@ export class QuoteEnhancer {
     }
 
     // 调用Coze工具
-    const similarProducts = await cozeTools.searchSimilarProducts(
+    const similarProducts = await cozeToolsService.searchSimilarProducts(
       productName,
       productDatabase.map(p => ({
         id: p.id || p.name,
@@ -263,7 +263,7 @@ export class QuoteEnhancer {
     specs?: string
   ): Promise<GeneratedImage | null> {
     // 检查缓存（简单实现，实际可以缓存到对象存储）
-    return await cozeTools.generateProductImage(productName, specs);
+    return await cozeToolsService.generateProductImage(productName, specs);
   }
 
   /**
