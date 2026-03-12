@@ -353,7 +353,8 @@ export class UserLevelService {
       }
 
       const field = permissionField.startsWith('can_') ? permissionField : `can_${permissionField}`;
-      return levelInfo.config[field] || false;
+      // 使用类型断言来动态访问属性
+      return (levelInfo.config as any)[field] || false;
     } catch (error) {
       console.error('[UserLevelService] 检查等级权限异常:', error);
       return false;

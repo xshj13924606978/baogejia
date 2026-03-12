@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { tokenBillingService } from '@/lib/token-billing-service';
 import { getCurrentUser } from '@/lib/auth-utils';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
  * 计费配置管理API（管理员）
- * 
+ *
  * 功能：
  * - GET: 获取当前计费配置
  * - POST: 更新计费配置
@@ -24,8 +25,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // 查询用户角色
+    const supabase = getSupabaseClient();
+    const { data: userRole, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', currentUser.id)
+      .single();
+
+    if (roleError || !userRole) {
+      console.error('[BillingConfig API] 获取用户角色失败:', roleError);
+      return NextResponse.json(
+        { error: '获取用户角色失败' },
+        { status: 500 }
+      );
+    }
+
     // 检查管理员权限
-    if (currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+    if (userRole.role !== 'super_admin' && userRole.role !== 'admin') {
       return NextResponse.json(
         { error: '需要管理员权限' },
         { status: 403 }
@@ -71,8 +88,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 检查管理员权限
-    if (currentUser.role !== 'super_admin') {
+    // 查询用户角色
+    const supabase = getSupabaseClient();
+    const { data: userRole, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', currentUser.id)
+      .single();
+
+    if (roleError || !userRole) {
+      console.error('[BillingConfig API] 获取用户角色失败:', roleError);
+      return NextResponse.json(
+        { error: '获取用户角色失败' },
+        { status: 500 }
+      );
+    }
+
+    // 检查超级管理员权限
+    if (userRole.role !== 'super_admin') {
       return NextResponse.json(
         { error: '需要超级管理员权限' },
         { status: 403 }
