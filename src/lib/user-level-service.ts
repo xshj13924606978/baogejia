@@ -672,7 +672,7 @@ export class UserLevelService {
         .from('level_permission_history')
         .select(`
           *,
-          admin:admin_profiles(name)
+          admin:users(id, username, email)
         `)
         .eq('level', level)
         .order('created_at', { ascending: false });
@@ -685,10 +685,10 @@ export class UserLevelService {
       return data.map((item: any) => ({
         id: item.id,
         adminId: item.admin_id,
-        changes: JSON.parse(item.changes),
+        changes: typeof item.changes === 'string' ? JSON.parse(item.changes) : item.changes,
         reason: item.reason,
         createdAt: new Date(item.created_at),
-        adminName: item.admin?.name,
+        adminName: item.admin?.username || item.admin?.email || '系统',
       }));
     } catch (error) {
       console.error('[UserLevelService] 获取权限历史异常:', error);

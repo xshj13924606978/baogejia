@@ -40,10 +40,10 @@ export async function GET(
       );
     }
 
-    // 检查超级管理员权限
-    if (userRole.role !== 'super_admin') {
+    // 检查管理员权限（超级管理员或管理员）
+    if (userRole.role !== 'super_admin' && userRole.role !== 'admin') {
       return NextResponse.json(
-        { error: '无权限，需要超级管理员权限' },
+        { error: '无权限，需要管理员权限' },
         { status: 403 }
       );
     }
