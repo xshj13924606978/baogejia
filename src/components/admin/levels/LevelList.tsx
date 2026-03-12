@@ -101,6 +101,7 @@ export const LevelList: React.FC = () => {
     'user.manage': '用户管理',
     'user.edit': '用户编辑',
     'user.delete': '用户删除',
+    'user.create': '用户新建',
     
     // 产品相关
     'product.search': '产品搜索',
@@ -109,6 +110,7 @@ export const LevelList: React.FC = () => {
     'product.edit': '产品编辑',
     'product.delete': '产品删除',
     'product.export': '产品导出',
+    'product.create': '产品新建',
     
     // 报价相关
     'quote.create': '报价创建',
@@ -116,37 +118,52 @@ export const LevelList: React.FC = () => {
     'quote.edit': '报价编辑',
     'quote.delete': '报价删除',
     'quote.export': '报价导出',
+    'quote.generate': '报价生成',
     'quote_generation': '报价生成',
     'quote_export': '报价导出',
+    'quote.manage': '报价管理',
     
     // 文档相关
     'excel.export': 'Excel导出',
     'pdf.export': 'PDF导出',
+    'word.export': 'Word导出',
+    'doc.export': '文档导出',
     
     // 成本相关
     'cost_price.view': '成本价查看',
     'cost_price.edit': '成本价编辑',
+    'cost_analysis': '成本分析',
+    'cost.view': '成本查看',
     
     // 厂家相关
     'manufacturer.view': '厂家信息查看',
     'manufacturer.edit': '厂家信息编辑',
     'manufacturer.manage': '厂家管理',
+    'manufacturer.create': '厂家新建',
     
     // 联系人相关
     'contact.view': '联系人查看',
     'contact.edit': '联系人编辑',
+    'contact.manage': '联系人管理',
+    'contact.create': '联系人新建',
     
     // 电话相关
     'phone.view': '联系电话查看',
     'phone.edit': '联系电话编辑',
+    'phone.manage': '电话管理',
     
     // 系统相关
     'api.access': 'API调用',
     'api.manage': 'API管理',
     'admin_panel': '管理面板',
     'brand_recommend': '品牌推荐',
-    'cost_analysis': '成本分析',
-    '*': '全部权限'
+    'system.manage': '系统管理',
+    'system.config': '系统配置',
+    'system.view': '系统查看',
+    
+    // 特殊权限
+    '*': '全部权限',
+    'all': '全部权限'
   };
 
   // 角色名称映射
@@ -550,7 +567,8 @@ export const LevelList: React.FC = () => {
 
         toast({
           title: '已恢复默认配置',
-          description: '已从系统加载默认配置',
+          description: '已从系统加载默认配置到表单，请点击"保存修改"按钮生效',
+          duration: 5000,
         });
       } else {
         console.warn('[LevelList] API返回无默认配置，使用硬编码默认值');
@@ -662,7 +680,8 @@ export const LevelList: React.FC = () => {
 
     toast({
       title: '已恢复默认配置',
-      description: '所有配置项已重置为系统默认值',
+      description: '已从系统加载默认配置到表单，请点击"保存修改"按钮生效',
+      duration: 5000,
     });
   };
 
