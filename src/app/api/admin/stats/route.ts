@@ -25,6 +25,5 @@ export const GET = withPermissionCheck(
     return NextResponse.json(
       { error: '获取统计数据失败' }, { status: 500 }
       );
-    );
   }
 });

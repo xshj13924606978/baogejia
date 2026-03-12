@@ -100,7 +100,7 @@ export const POST = withPermissionCheck(
 
       // 避免过快的请求
       if (i < statements.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 100);
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
 
@@ -121,3 +121,4 @@ export const POST = withPermissionCheck(
       );
   }
 });
+

@@ -22,7 +22,6 @@ export const GET = withPermissionCheck(
       return NextResponse.json(
         { error: '未登录或用户信息无效' },
         { status: 401 });
-      );
     }
 
     // 查询用户角色

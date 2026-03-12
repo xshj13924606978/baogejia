@@ -31,7 +31,7 @@ const TEMPLATES = {
           can_view_phone: true
         },
         modulePermissions: ['product.search', 'price.view', 'quote.create', 'excel.export']
-      });
+      }
     }
   },
   retail: {
@@ -262,3 +262,4 @@ export const POST = withPermissionCheck(
       );
   }
 });
+

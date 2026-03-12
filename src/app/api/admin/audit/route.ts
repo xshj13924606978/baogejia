@@ -66,7 +66,7 @@ export const GET = withPermissionCheck(
     let filteredItems = mockAuditItems;
     if (status !== 'all') {
       filteredItems = mockAuditItems.filter(item => item.status === status);
-    });
+    }
 
     return NextResponse.json(filteredItems);
   } catch (error) {

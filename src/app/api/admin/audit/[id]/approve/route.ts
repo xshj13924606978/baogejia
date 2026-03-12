@@ -20,6 +20,5 @@ export const POST = withPermissionCheck(
     return NextResponse.json(
       { error: '审核通过失败' }, { status: 500 }
       );
-    );
   }
 });

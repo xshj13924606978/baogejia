@@ -243,7 +243,10 @@ export const GET = withPermissionCheck(
     return NextResponse.json(
       { error: '获取失败' }, { status: 500 }
       );
-  }import { NextRequest, NextResponse } from 'next/server';
+  }
+});
+
+import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { hasPermission, UserRole } from '@/lib/auth/roles';
 
@@ -481,3 +484,5 @@ export async function GET(request: NextRequest) {
       );
   }
 });
+
+

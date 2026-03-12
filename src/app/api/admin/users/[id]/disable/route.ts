@@ -22,6 +22,5 @@ export const POST = withPermissionCheck(
     return NextResponse.json(
       { error: '更新用户状态失败' }, { status: 500 }
       );
-    );
   }
 });

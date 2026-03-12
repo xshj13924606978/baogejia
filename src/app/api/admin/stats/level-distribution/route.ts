@@ -21,7 +21,7 @@ export const GET = withPermissionCheck(
     if (!currentUser || !currentUser.id) {
       return NextResponse.json({ error: '无权限' }, { status: 403 }
       );
-    });
+    }
 
     // 查询用户角色
     const supabase = getSupabaseClient();
