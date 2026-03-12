@@ -804,10 +804,28 @@ export const LevelList: React.FC = () => {
                 <div className="mb-4">
                   <h4 className="font-medium mb-2">配额设置</h4>
                   <ul className="list-disc list-inside text-sm space-y-1">
-                    <li>每日查询配额：{levelData.quotas?.daily_quota || 0} 次</li>
-                    <li>最大文件数量：{levelData.quotas?.max_files || 0} 个</li>
-                    <li>最大聊天消息数：{levelData.quotas?.max_chat_messages || 0} 条</li>
+                    <li>
+                      每日查询配额：{levelData.quotas?.daily_quota || 0} 次
+                      {levelData.quotas?.daily_quota === 0 && (
+                        <span className="text-muted-foreground ml-2">（不限制）</span>
+                      )}
+                    </li>
+                    <li>
+                      最大文件数量：{levelData.quotas?.max_files || 0} 个
+                      {levelData.quotas?.max_files === 0 && (
+                        <span className="text-muted-foreground ml-2">（不限制）</span>
+                      )}
+                    </li>
+                    <li>
+                      最大聊天消息数：{levelData.quotas?.max_chat_messages || 0} 条
+                      {levelData.quotas?.max_chat_messages === 0 && (
+                        <span className="text-muted-foreground ml-2">（不限制）</span>
+                      )}
+                    </li>
                   </ul>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    注：配额设置为 0 时代表不限制
+                  </p>
                 </div>
 
                 {/* 字段权限 */}
@@ -980,6 +998,9 @@ export const LevelList: React.FC = () => {
                                 )}
                                 <CategoryIcon className="h-4 w-4 text-muted-foreground" />
                                 <span className="font-medium text-sm">{category.name}</span>
+                                {categoryKey === 'quotas' && (
+                                  <span className="text-xs text-muted-foreground">（设为0表示不限制）</span>
+                                )}
                               </div>
 
                               {/* 配置项 */}

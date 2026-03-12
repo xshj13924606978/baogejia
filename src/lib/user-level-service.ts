@@ -668,28 +668,63 @@ export class UserLevelService {
    */
   async getLevelPermissionHistory(level: number): Promise<PermissionHistory[]> {
     try {
+      console.log('[UserLevelService] 查询等级历史记录, level:', level);
+      
+      // 先查询基础数据（不关联表）
       const { data, error } = await this.supabase
         .from('level_permission_history')
-        .select(`
-          *,
-          admin:users(id, username, email)
-        `)
+        .select('*')
         .eq('level', level)
         .order('created_at', { ascending: false });
+
+      console.log('[UserLevelService] 查询结果:', { 
+        hasData: !!data, 
+        dataLength: data?.length || 0,
+        error 
+      });
 
       if (error || !data) {
         console.error('[UserLevelService] 获取权限历史失败:', error);
         return [];
       }
 
-      return data.map((item: any) => ({
-        id: item.id,
-        adminId: item.admin_id,
-        changes: typeof item.changes === 'string' ? JSON.parse(item.changes) : item.changes,
-        reason: item.reason,
-        createdAt: new Date(item.created_at),
-        adminName: item.admin?.username || item.admin?.email || '系统',
-      }));
+      // 获取所有管理员ID
+      const adminIds = [...new Set(data.map(item => item.admin_id))];
+      console.log('[UserLevelService] 管理员ID列表:', adminIds);
+
+      // 查询管理员信息
+      let adminMap: Record<number, { username: string; email: string }> = {};
+      if (adminIds.length > 0) {
+        const { data: admins, error: adminError } = await this.supabase
+          .from('users')
+          .select('id, username, email')
+          .in('id', adminIds);
+
+        if (!adminError && admins) {
+          adminMap = admins.reduce((acc: any, admin: any) => {
+            acc[admin.id] = {
+              username: admin.username,
+              email: admin.email
+            };
+            return acc;
+          }, {});
+        }
+      }
+
+      const formattedData = data.map((item: any) => {
+        const admin = adminMap[item.admin_id];
+        return {
+          id: item.id,
+          adminId: item.admin_id,
+          changes: typeof item.changes === 'string' ? JSON.parse(item.changes) : item.changes,
+          reason: item.reason,
+          createdAt: new Date(item.created_at),
+          adminName: admin?.username || admin?.email || '系统',
+        };
+      });
+      
+      console.log('[UserLevelService] 格式化后的历史记录数量:', formattedData.length);
+      return formattedData;
     } catch (error) {
       console.error('[UserLevelService] 获取权限历史异常:', error);
       return [];
