@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { userLevelService } from '@/lib/user-level-service';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
- * 权限预览API
+ * 权限预览 API（管理员）
  *
- * 功能：预览权限修改对用户的影响
- * 权限：仅超级管理员
+ * 功能：
+ * - POST: 预览权限变更对用户的影响
  */
 
 export async function POST(request: NextRequest) {
@@ -30,47 +29,58 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (roleError || !userRole) {
-      console.error('[AdminPermissionsPreview API] 获取用户角色失败:', roleError);
+      console.error('[PermissionsPreview API] 获取用户角色失败:', roleError);
       return NextResponse.json(
         { error: '获取用户角色失败' },
         { status: 500 }
       );
     }
 
-    // 检查超级管理员权限
-    if (userRole.role !== 'super_admin') {
+    // 检查管理员权限
+    if (userRole.role !== 'super_admin' && userRole.role !== 'admin') {
       return NextResponse.json(
-        { error: '无权限，需要超级管理员权限' },
+        { error: '需要管理员权限' },
         { status: 403 }
       );
     }
 
-    // 获取请求体
     const body = await request.json();
-    const { level, changes, testUserId } = body;
+    const { level, changes } = body;
 
-    if (!level || !changes) {
+    console.log('[PermissionsPreview API] 预览权限变更', { level, changes });
+
+    // 查询该等级下的所有用户
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, username, points')
+      .eq('level', level);
+
+    if (usersError) {
+      console.error('[PermissionsPreview API] 查询用户失败:', usersError);
       return NextResponse.json(
-        { error: '缺少必要参数：level 和 changes' },
-        { status: 400 }
+        { error: '查询用户失败' },
+        { status: 500 }
       );
     }
 
-    console.log('[AdminPermissionsPreview API] 预览权限修改:', { level, testUserId });
-
-    // 预览权限修改效果
-    const preview = await userLevelService.previewPermissionChanges(
+    // 构建预览数据
+    const preview = {
       level,
+      affectedUsers: users?.length || 0,
       changes,
-      testUserId ? Number(testUserId) : undefined
-    );
+      affectedUsersList: users?.map((user: any) => ({
+        id: user.id,
+        username: user.username,
+        points: user.points,
+      })) || [],
+    };
 
     return NextResponse.json({
       success: true,
-      preview
+      preview,
     });
   } catch (error) {
-    console.error('[AdminPermissionsPreview API] 权限预览失败:', error);
+    console.error('[PermissionsPreview API] 预览权限变更异常:', error);
     return NextResponse.json(
       { error: '服务器错误' },
       { status: 500 }
