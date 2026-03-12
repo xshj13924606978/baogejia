@@ -511,6 +511,7 @@ export const LevelList: React.FC = () => {
   // 恢复默认配置
   const restoreDefaults = async () => {
     console.log('[LevelList] 开始恢复默认配置');
+    
     try {
       // 从 level_definitions 表获取系统默认配置
       const res = await fetch('/api/admin/levels/defaults', {
@@ -543,18 +544,39 @@ export const LevelList: React.FC = () => {
 
           console.log(`[LevelList] 等级 ${level.level} 默认配置:`, levelConfig);
 
-          // 配额默认值（优先使用嵌套结构，否则使用扁平结构）
-          newValues[`${level.level}-daily_quota`] = String(levelConfig.quotas?.daily_quota || levelConfig.daily_quota || 10);
-          newValues[`${level.level}-max_files`] = String(levelConfig.quotas?.max_files || levelConfig.max_files || 5);
-          newValues[`${level.level}-max_chat_messages`] = String(levelConfig.quotas?.max_chat_messages || levelConfig.max_chat_messages || 20);
+          // 配额默认值 - 优先使用嵌套结构，否则使用扁平结构
+          const quotas = levelConfig.quotas || levelConfig;
+          newValues[`${level.level}-daily_quota`] = String(quotas.daily_quota ?? 10);
+          newValues[`${level.level}-max_files`] = String(quotas.max_files ?? 5);
+          newValues[`${level.level}-max_chat_messages`] = String(quotas.max_chat_messages ?? 20);
 
-          // 字段权限默认值（优先使用嵌套结构，否则使用扁平结构）
-          const fieldPerms = levelConfig.fieldPermissions || levelConfig.field_permissions || levelConfig;
-          newValues[`${level.level}-can_view_cost_price`] = String(fieldPerms.can_view_cost_price ?? false);
-          newValues[`${level.level}-can_view_min_price`] = String(fieldPerms.can_view_min_price ?? false);
-          newValues[`${level.level}-can_view_manufacturer`] = String(fieldPerms.can_view_manufacturer ?? false);
-          newValues[`${level.level}-can_view_contact`] = String(fieldPerms.can_view_contact ?? false);
-          newValues[`${level.level}-can_view_phone`] = String(fieldPerms.can_view_phone ?? false);
+          // 字段权限默认值 - 关键修复点：明确检查每个字段
+          const fieldPerms = levelConfig.fieldPermissions || levelConfig.field_permissions || {};
+          
+          // 使用明确的检查，避免从 flat levelConfig 中读取到 undefined
+          newValues[`${level.level}-can_view_cost_price`] = String(
+            fieldPerms.can_view_cost_price !== undefined ? fieldPerms.can_view_cost_price : false
+          );
+          newValues[`${level.level}-can_view_min_price`] = String(
+            fieldPerms.can_view_min_price !== undefined ? fieldPerms.can_view_min_price : false
+          );
+          newValues[`${level.level}-can_view_manufacturer`] = String(
+            fieldPerms.can_view_manufacturer !== undefined ? fieldPerms.can_view_manufacturer : false
+          );
+          newValues[`${level.level}-can_view_contact`] = String(
+            fieldPerms.can_view_contact !== undefined ? fieldPerms.can_view_contact : false
+          );
+          newValues[`${level.level}-can_view_phone`] = String(
+            fieldPerms.can_view_phone !== undefined ? fieldPerms.can_view_phone : false
+          );
+
+          console.log(`[LevelList] 等级 ${level.level} 字段权限配置:`, {
+            can_view_cost_price: newValues[`${level.level}-can_view_cost_price`],
+            can_view_min_price: newValues[`${level.level}-can_view_min_price`],
+            can_view_manufacturer: newValues[`${level.level}-can_view_manufacturer`],
+            can_view_contact: newValues[`${level.level}-can_view_contact`],
+            can_view_phone: newValues[`${level.level}-can_view_phone`],
+          });
 
           // 添加到勾选列表
           Object.keys(configCategories).forEach((categoryKey) => {
