@@ -151,13 +151,12 @@ export class InputProcessor {
           return {
             type: 'pdf',
             rawContent: fileBuffer,
-            textContent: '[PDF文件已上传，但内容提取失败。文件已保存，可以手动查看。]',
+            textContent: `[PDF文件已上传，但内容提取失败：${error instanceof Error ? error.message : '未知错误'}。文件已保存，可以手动查看。]`,
             metadata: { 
               fileName, 
               fileSize: fileBuffer.length, 
               mimeType: mime,
-              pageCount: 0,
-              error: error instanceof Error ? error.message : '未知错误'
+              pageCount: 0
             }
           };
         } catch (fallbackError) {

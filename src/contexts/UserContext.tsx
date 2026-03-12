@@ -16,6 +16,7 @@ interface User {
   address?: string;
   createdAt?: string;
   lastLogin?: string;
+  password?: string; // 添加 password 字段用于内部验证
   
   // 用户等级相关
   level?: number;        // 用户等级
@@ -65,12 +66,13 @@ interface AuthResponse {
   error?: string;
   requiresTwoFactor?: boolean;
   requiresBinding?: boolean;
-  bindingType?: 'email' | 'phone' | 'wechat';
+  bindingType?: 'email' | 'phone' | 'wechat' | 'github' | 'google' | 'qq';
 }
 
 interface UserContextType {
   user: User | null;
   loading: boolean;
+  isLoading: boolean; // 添加 isLoading 属性
   error: string | null;
   
   // 登录方式
@@ -111,6 +113,11 @@ interface UserContextType {
   refreshUser: () => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>;
   resetPassword: (email: string) => Promise<boolean>;
+  
+  // 企业应用
+  submitEnterpriseApplication: (data: any) => Promise<{ success: boolean; applicationId?: string; error?: string }>;
+  getEnterpriseStatus: (applicationId: string) => Promise<any>;
+  enterpriseLogin: (enterpriseId: string, employeeId: string, token: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -364,7 +371,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
       
       const existingCodesStr = localStorage.getItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES);
-      let codes = {};
+      let codes: Record<string, { code: string; timestamp: number }> = {};
       if (existingCodesStr) {
         codes = JSON.parse(existingCodesStr);
       }
@@ -706,7 +713,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         return { success: true, user: userWithoutPassword };
       } else if (user) {
-        const updatedUser = { ...user };
+        const updatedUser = { ...user } as any;
         updatedUser[provider] = {
           id: thirdPartyUser.providerId,
           name: thirdPartyUser.name,
@@ -732,7 +739,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
           },
           requiresBinding: true,
-          bindingType: provider
+          bindingType: provider as 'email' | 'phone' | 'wechat' | 'github' | 'google' | 'qq'
         };
       }
     } catch (err) {
@@ -1123,6 +1130,114 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return true;
   };
 
+  // ==================== 企业应用 ====================
+
+  // 提交企业认证申请
+  const submitEnterpriseApplication = async (data: any): Promise<{ success: boolean; applicationId?: string; error?: string }> => {
+    try {
+      setLoading(true);
+      
+      // 模拟提交到后端API
+      const applicationId = `ENT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      
+      // 保存申请记录到localStorage（实际应该调用API）
+      const applications = JSON.parse(localStorage.getItem('enterprise_applications') || '[]');
+      const newApplication = {
+        id: applicationId,
+        ...data,
+        status: 'pending',
+        submittedAt: new Date().toISOString(),
+        userId: user?.id
+      };
+      applications.push(newApplication);
+      localStorage.setItem('enterprise_applications', JSON.stringify(applications));
+      
+      console.log('[UserContext] 企业申请已提交:', applicationId);
+      
+      return {
+        success: true,
+        applicationId
+      };
+    } catch (error) {
+      console.error('[UserContext] 提交企业申请失败:', error);
+      return {
+        success: false,
+        error: '提交失败，请稍后重试'
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 获取企业申请状态
+  const getEnterpriseStatus = async (applicationId: string): Promise<any> => {
+    try {
+      // 从localStorage获取申请记录（实际应该调用API）
+      const applications = JSON.parse(localStorage.getItem('enterprise_applications') || '[]');
+      const application = applications.find((app: any) => app.id === applicationId);
+      
+      if (!application) {
+        return {
+          status: 'not_found',
+          message: '未找到该申请'
+        };
+      }
+      
+      return application;
+    } catch (error) {
+      console.error('[UserContext] 获取企业状态失败:', error);
+      return {
+        status: 'error',
+        message: '获取状态失败'
+      };
+    }
+  };
+
+  // 企业登录
+  const enterpriseLogin = async (enterpriseId: string, employeeId: string, token: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setLoading(true);
+      
+      // 模拟企业登录验证（实际应该调用API）
+      // 这里只是模拟，实际需要验证企业ID和员工ID的合法性
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 检查企业是否存在（模拟）
+      const enterpriseData = JSON.parse(localStorage.getItem('enterprise_data') || '{}');
+      if (!enterpriseData[enterpriseId]) {
+        return {
+          success: false,
+          error: '企业不存在或已禁用'
+        };
+      }
+      
+      console.log('[UserContext] 企业登录成功:', { enterpriseId, employeeId });
+      
+      // 更新用户角色为企业用户
+      if (user) {
+        const updatedUser = {
+          ...user,
+          role: 'enterprise',
+          enterpriseId
+        };
+        setUser(updatedUser);
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+      }
+      
+      return {
+        success: true
+      };
+    } catch (error) {
+      console.error('[UserContext] 企业登录失败:', error);
+      return {
+        success: false,
+        error: '登录失败，请稍后重试'
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 初始化加载用户
   useEffect(() => {
     const loadUser = async () => {
@@ -1151,6 +1266,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     loading,
+    isLoading: loading, // 添加 isLoading 别名
     error,
     
     // 登录方式
@@ -1190,7 +1306,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     updateUser,
     refreshUser,
     changePassword,
-    resetPassword
+    resetPassword,
+    
+    // 企业应用
+    submitEnterpriseApplication,
+    getEnterpriseStatus,
+    enterpriseLogin
   };
 
   return (

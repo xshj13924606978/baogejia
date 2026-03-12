@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
     });
     
     // 3. 构建对话历史 - 优先从数据库加载
-    let history = [];
+    let history: any[] = [];
     if (conversationId) {
       // 先检查全局内存中是否有历史记录
       history = globalConversationMemory.getHistory(conversationId);
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
     
     const messages = [
       { role: 'system' as const, content: systemPrompt },
-      ...history.map(msg => ({ role: msg.role, content: msg.content })),
+      ...history.map((msg: any) => ({ role: msg.role, content: msg.content })),
       { role: 'user' as const, content: enhancedMessage }
     ];
     

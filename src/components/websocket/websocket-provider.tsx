@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSocket } from '@/hooks/useSocket';
+import { useWebSocket as useSocket } from '@/hooks/useWebSocket';
 import { NotificationPanel } from '@/components/notification-panel/notification-panel';
 
 interface WebSocketProviderProps {
@@ -35,18 +35,15 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
   // 使用 WebSocket hook，但不直接渲染任何内容
   // 这里的 WebSocketProvider 主要是为了在全局初始化 WebSocket 连接
-  const { isConnected, isConnecting } = useSocket({
+  const { isConnected } = useSocket({
     userId: userId || undefined,
-    username,
-    avatar,
-    autoConnect: !!userId,
     onConnect: () => {
       console.log('[WebSocketProvider] WebSocket 连接成功');
     },
-    onDisconnect: (reason) => {
-      console.log('[WebSocketProvider] WebSocket 断开连接:', reason);
+    onDisconnect: () => {
+      console.log('[WebSocketProvider] WebSocket 断开连接');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('[WebSocketProvider] WebSocket 连接错误:', error);
     },
   });

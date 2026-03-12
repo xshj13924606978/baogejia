@@ -74,7 +74,8 @@ export function SwitchProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useSwitch() {
+// 重新定义 useSwitch，确保不接受任何参数
+export function useSwitch(): SwitchContextType {
   const context = useContext(SwitchContext);
   if (context === undefined) {
     throw new Error('useSwitch must be used within a SwitchProvider');

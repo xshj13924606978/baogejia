@@ -185,7 +185,7 @@ export const hasPermission = (user: any, permissionId: string): boolean => {
   if (user.role === 'super_admin') return true;
   
   // 优先使用用户角色
-  const role = user.role || getRoleByLevel(user.level || 1);
+  const role: UserRole = user.role || getRoleByLevel(user.level || 1);
   const permissions = ROLE_PERMISSIONS[role] || [];
   
   return permissions.includes(permissionId);

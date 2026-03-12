@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { OnlineIndicator, OnlineUsersCount, UserOnlineStatus, StatusSelector } from '@/components/online-status/online-indicator';
 import { NotificationPanel } from '@/components/notification-panel/notification-panel';
 import { MessageReadReceipt, ChatMessageReadReceipt } from '@/components/message-read-receipt/message-read-receipt';
-import { useSocket } from '@/hooks/useSocket';
+import { useWebSocket as useSocket } from '@/hooks/useWebSocket';
 
 export default function RealtimeDemoPage() {
   const [testMessageId, setTestMessageId] = useState(`test-${Date.now()}`);
@@ -110,10 +110,10 @@ export default function RealtimeDemoPage() {
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">用户列表在线状态</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {onlineUsers.slice(0, 8).map((user, index) => (
+              {onlineUsers.slice(0, 8).map((user: any, index: number) => (
                 <UserOnlineStatus
                   key={user.userId}
-                  userId={user.userId}
+                  userId={typeof user.userId === 'number' ? user.userId : Number(user.userId)}
                   username={`用户${user.userId}`}
                 />
               ))}

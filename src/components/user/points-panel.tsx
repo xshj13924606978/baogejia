@@ -35,7 +35,7 @@ export default function PointsPanel() {
               <span>距离下一级</span>
               <span>{nextLevelPoints - points} 积分</span>
             </div>
-            <Progress value={progress} className="h-2 bg-white/30" indicatorClassName="bg-white" />
+            <Progress value={progress} className="h-2 bg-white/30 [&_[data-slot=progress-indicator]]:bg-white" />
           </div>
         </CardContent>
       </Card>

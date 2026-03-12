@@ -3,14 +3,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useSwitch } from './switch-manager';
+import { useSwitch } from '@/components/switch-manager';
 
 export default function FloatingSwitcher() {
+  // TypeScript误报：useSwitch不接受任何参数
   const { fileGroupId, currentChoice, isLoading, hasFiles } = useSwitch();
   const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [position, setPosition] = useState({ top: 0, right: 0 });
-  const hoverTimeoutRef = useRef<NodeJS.Timeout>();
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

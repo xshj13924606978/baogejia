@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label"
 import { useUser } from "@/contexts/UserContext"
 import { Camera, Mail, Phone, User as UserIcon, Loader2, Key, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -139,10 +138,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
     try {
       setUploading(true)
-      const formData = new FormData()
-      formData.append('avatar', file)
-      
-      await uploadAvatar(formData)
+      await uploadAvatar(file)
       toast({
         title: "成功",
         description: "头像上传成功",
@@ -207,7 +203,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
     try {
       setSendingEmailCode(true)
-      await bindEmail(newEmail, emailPassword, true)
+      await bindEmail(newEmail, emailPassword)
       setShowEmailCode(true)
       toast({
         title: "成功",
@@ -237,7 +233,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
     try {
       setBindingEmail(true)
-      await bindEmail(newEmail, emailPassword, false, emailCode)
+      await bindEmail(newEmail, emailPassword, emailCode)
       toast({
         title: "成功",
         description: "邮箱绑定成功",
@@ -769,8 +765,6 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <Toaster />
     </>
   )
 }

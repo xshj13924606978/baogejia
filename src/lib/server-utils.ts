@@ -207,7 +207,7 @@ export class ServerDatabaseUtils {
     const db = this.getDb();
     
     // 清理和规范化搜索关键词
-    const searchTerms = [];
+    const searchTerms: string[] = [];
     
     // 提取核心产品名称（去掉规格参数）
     let coreName = productName
@@ -269,7 +269,7 @@ export class ServerDatabaseUtils {
 
     if (data && data.length > 0) {
       // 计算匹配得分
-      const scored = data.map(product => {
+      const scored = data.map((product: any) => {
         let score = 0;
         for (const term of searchTerms) {
           const termLower = term.toLowerCase();

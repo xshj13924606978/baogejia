@@ -64,7 +64,7 @@ function fixFile(filePath: string): boolean {
 
       // 找到函数的开始位置
       const match = content.match(methodRegex);
-      if (!match) continue;
+      if (!match || match.index === undefined) continue;
 
       const startIndex = match.index;
       const startMarker = match[0];
@@ -87,8 +87,8 @@ function fixFile(filePath: string): boolean {
 
       if (bracketCount === 0) {
         // 提取函数体
-        const beforeFunction = content.substring(0, startIndex);
-        const functionBody = content.substring(startIndex + startMarker.length, endIndex);
+        const beforeFunction = content.substring(0, startIndex!);
+        const functionBody = content.substring(startIndex! + startMarker.length, endIndex);
         const afterFunction = content.substring(endIndex + 1);
 
         // 检查函数体是否以})(request);结尾

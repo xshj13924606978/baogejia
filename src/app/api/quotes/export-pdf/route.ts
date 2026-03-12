@@ -722,7 +722,7 @@ export async function POST(request: NextRequest) {
     const browserLaunchStart = Date.now();
     
     const browser = await puppeteer.launch({
-      headless: 'new',
+      headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -789,7 +789,7 @@ export async function POST(request: NextRequest) {
     console.log('[ExportPDF] 准备返回响应，文件名:', fileName);
 
     // 返回PDF文件
-    const response = new NextResponse(pdfBuffer, {
+    const response = new NextResponse(Buffer.from(pdfBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

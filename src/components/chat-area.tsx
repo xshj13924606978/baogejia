@@ -451,12 +451,12 @@ export default function ChatArea({
             isTemporary: msg.isTemporary || false,
             metadata: metadata
           };
-        }).filter(msg => msg !== null); // 过滤掉旧的助手消息
+        }).filter((msg: any) => msg !== null); // 过滤掉旧的助手消息
         
         setMessages(formattedMessages);
         
-        const uniqueFiles = allFiles.filter((file, index, self) => 
-          index === self.findIndex(f => f.id === file.id)
+        const uniqueFiles = allFiles.filter((file: any, index: number, self: any[]) => 
+          index === self.findIndex((f: any) => f.id === file.id)
         );
         
         // 注意：不要在这里调用 setFiles(uniqueFiles)
@@ -467,13 +467,13 @@ export default function ChatArea({
           console.log('[ChatArea] 没有文件可设置');
         }
         
-        const firstUserMessage = formattedMessages.find(m => m.role === 'user');
+        const firstUserMessage = formattedMessages.find((m: any) => m.role === 'user');
         if (firstUserMessage && onTitleChange) {
           const title = generateSmartTitle(firstUserMessage.content, []);
           onTitleChange(title);
         }
         
-        const fileCountByMessage = formattedMessages.map(m => ({
+        const fileCountByMessage = formattedMessages.map((m: any) => ({
           id: m.id,
           filesCount: m.files?.length || 0
         }));
@@ -705,7 +705,7 @@ export default function ChatArea({
               fileData: fileData,
               metadata: metadata
             };
-          }).filter(msg => msg !== null);
+          }).filter((msg: any) => msg !== null);
           
           setMessages(formattedMessages);
           
@@ -715,7 +715,7 @@ export default function ChatArea({
             console.log('[ChatArea] 检测到历史消息中的文件，但不会将其添加到输入框');
           }
           
-          const firstUserMessage = formattedMessages.find(m => m.role === 'user');
+          const firstUserMessage = formattedMessages.find((m: any) => m.role === 'user');
           if (firstUserMessage && onTitleChange) {
             const title = generateSmartTitle(firstUserMessage.content, []);
             onTitleChange(title);

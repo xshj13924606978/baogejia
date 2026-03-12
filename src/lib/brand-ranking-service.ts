@@ -289,7 +289,7 @@ export class BrandRankingService {
         continue;
       }
       
-      const quota = quotas[level];
+      const quota = quotas[level as keyof typeof quotas];
       if (quota <= 0) continue;
       
       // 选择该等级的前N个品牌

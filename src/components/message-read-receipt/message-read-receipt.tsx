@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSocket } from '@/hooks/useSocket';
+import { useWebSocket as useSocket } from '@/hooks/useWebSocket';
 import { cn } from '@/lib/utils';
 import { Check, CheckCheck, Clock } from 'lucide-react';
 
