@@ -87,6 +87,24 @@ export const LevelList: React.FC = () => {
     }
   };
 
+  // 模块名称映射
+  const moduleNameMap: Record<string, string> = {
+    'user.view': '用户查看',
+    'user.manage': '用户管理',
+    'product.search': '产品搜索',
+    'product.detail': '产品详情',
+    'quote.create': '报价创建',
+    'quote.export': '报价导出',
+    'quote_generation': '报价生成',
+    'quote_export': '报价导出',
+    'excel.export': 'Excel导出',
+    'api.access': 'API调用',
+    'cost_price.view': '成本价查看',
+    'manufacturer.view': '厂家信息查看',
+    'contact.view': '联系人查看',
+    'phone.view': '联系电话查看'
+  };
+
   useEffect(() => {
     fetchLevels();
   }, []);
@@ -147,7 +165,9 @@ export const LevelList: React.FC = () => {
   const showHistory = async (level: number) => {
     console.log('[LevelList] 显示历史记录, level:', level);
     try {
-      const res = await fetch(`/api/admin/levels/${level}/history`);
+      const res = await fetch(`/api/admin/levels/${level}/history`, {
+        credentials: 'include'
+      });
       console.log('[LevelList] 历史API响应状态:', res.status);
 
       if (!res.ok) {
@@ -195,7 +215,7 @@ export const LevelList: React.FC = () => {
             {historyText}
           </div>
         ),
-        duration: 10000,
+        duration: 15000, // 15秒后自动关闭，给用户足够时间阅读
       });
     } catch (error) {
       console.error('[LevelList] 获取历史失败:', error);
@@ -285,26 +305,37 @@ export const LevelList: React.FC = () => {
         reason: batchUpdateReason
       }));
 
+      console.log('[LevelList] 批量更新数据:', updates);
+
       const res = await fetch('/api/admin/levels/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ updates })
       });
 
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[LevelList] 批量更新API错误:', errorText);
+        throw new Error(errorText);
+      }
+
       const data = await res.json();
+      console.log('[LevelList] 批量更新结果:', data);
 
       if (data.success) {
         toast({
           title: `批量更新成功，共更新 ${updates.length} 个等级`,
         });
+        
+        // 先关闭弹窗，避免闪跳
         setBatchUpdateOpen(false);
-        fetchLevels();
-        // 重置表单
-        setBatchUpdateReason('');
-        setCheckedItems(new Set());
-        setItemValues({});
-        setExpandedLevels(new Set());
-        setExpandedCategories({});
+        
+        // 延迟刷新列表和重置表单，给用户更好的体验
+        setTimeout(() => {
+          fetchLevels();
+          resetBatchForm();
+        }, 100);
       } else {
         toast({
           variant: 'destructive',
@@ -313,13 +344,24 @@ export const LevelList: React.FC = () => {
         });
       }
     } catch (error) {
+      console.error('[LevelList] 批量更新失败:', error);
       toast({
         variant: 'destructive',
         title: '批量更新失败',
+        description: error instanceof Error ? error.message : '未知错误'
       });
     } finally {
       setBatchUpdating(false);
     }
+  };
+
+  // 重置批量更新表单
+  const resetBatchForm = () => {
+    setBatchUpdateReason('');
+    setCheckedItems(new Set());
+    setItemValues({});
+    setExpandedLevels(new Set());
+    setExpandedCategories({});
   };
 
   // 切换等级展开状态
@@ -706,7 +748,7 @@ export const LevelList: React.FC = () => {
                   <div className="flex flex-wrap gap-2">
                     {levelData.modulePermissions?.map((code: string) => (
                       <span key={code} className="px-2 py-1 bg-gray-100 rounded text-sm">
-                        {code}
+                        {moduleNameMap[code] || code}
                       </span>
                     ))}
                     {!levelData.modulePermissions || levelData.modulePermissions.length === 0 && (
