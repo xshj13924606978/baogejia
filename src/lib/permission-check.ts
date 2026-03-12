@@ -13,6 +13,7 @@ export interface PermissionCheckOptions {
   minLevel?: number;                     // 最低等级要求
   minPoints?: number;                    // 最低积分要求
   roles?: string[];                      // 允许的角色列表
+  requiresAuth?: boolean;                // 是否需要认证（默认 true）
 }
 
 export interface PermissionCheckResult {
