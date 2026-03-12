@@ -53,6 +53,13 @@ export const LevelList: React.FC = () => {
   const [selectedLevelForBatch, setSelectedLevelForBatch] = useState<number | null>(null);
   const [batchUpdateField, setBatchUpdateField] = useState<string>('');
   const [batchUpdateValue, setBatchUpdateValue] = useState<string>('');
+  
+  // 历史记录相关状态
+  const [historyLevel, setHistoryLevel] = useState<number | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  
   const { toast } = useToast();
 
   // 树状展开状态
@@ -176,12 +183,19 @@ export const LevelList: React.FC = () => {
 
   const showHistory = async (level: number) => {
     console.log('[LevelList] 显示历史记录, level:', level);
+    
+    // 设置当前查看的等级和加载状态
+    setHistoryLevel(level);
+    setHistoryLoading(true);
+    setHistoryOpen(true);
+    
     try {
       const res = await fetch(`/api/admin/levels/${level}/history`, {
         credentials: 'include'
       });
+      
       console.log('[LevelList] 历史API响应状态:', res.status);
-
+      
       if (!res.ok) {
         const errorText = await res.text();
         console.error('[LevelList] 历史API错误:', errorText);
@@ -191,12 +205,13 @@ export const LevelList: React.FC = () => {
           description: `HTTP ${res.status}: ${errorText}`,
           duration: 5000,
         });
+        setHistoryLoading(false);
         return;
       }
-
+      
       const data = await res.json();
       console.log('[LevelList] 历史数据:', data);
-
+      
       if (!data.success) {
         toast({
           variant: 'destructive',
@@ -204,31 +219,35 @@ export const LevelList: React.FC = () => {
           description: data.error || '服务器返回错误',
           duration: 5000,
         });
+        setHistoryLoading(false);
         return;
       }
 
       if (!data.history || data.history.length === 0) {
-        toast({
-          title: `等级 ${level}`,
-          description: '暂无修改历史记录',
-          duration: 3000,
-        });
+        setHistoryData([]);
+        setHistoryLoading(false);
         return;
       }
-
-      const historyText = data.history
-        .map((h: any) => `时间: ${new Date(h.createdAt).toLocaleString('zh-CN')} | 管理员: ${h.adminName || '未知'} | 原因: ${h.reason}`)
-        .join('\n');
-
-      toast({
-        title: `等级 ${level} 修改历史 (${data.history.length} 条)`,
-        description: (
-          <div className="whitespace-pre-wrap text-sm max-h-64 overflow-y-auto bg-muted/50 p-3 rounded-md">
-            {historyText}
-          </div>
-        ),
-        duration: 15000, // 15秒后自动关闭，给用户足够时间阅读
+      
+      // 格式化历史记录数据
+      const formattedHistory = data.history.map((item: any) => {
+        const date = item.created_at || item.createdAt;
+        const timeStr = date ? new Date(date).toLocaleString('zh-CN') : '未知时间';
+        const admin = item.admin_name || item.adminName || item.admin?.username || item.admin?.email || '系统';
+        const reason = item.reason || '无说明';
+        const changes = item.changes;
+        
+        return {
+          id: item.id,
+          time: timeStr,
+          admin: admin,
+          reason: reason,
+          changes: changes
+        };
       });
+      
+      setHistoryData(formattedHistory);
+      setHistoryLoading(false);
     } catch (error) {
       console.error('[LevelList] 获取历史失败:', error);
       toast({
@@ -237,6 +256,7 @@ export const LevelList: React.FC = () => {
         description: '网络请求失败，请稍后重试',
         duration: 5000,
       });
+      setHistoryLoading(false);
     }
   };
 
@@ -838,6 +858,64 @@ export const LevelList: React.FC = () => {
           </Dialog>
         );
       })()}
+
+      {/* 历史记录 Dialog */}
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>等级 {historyLevel} 修改历史</DialogTitle>
+            <DialogDescription>
+              查看该等级的权限配置修改记录
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            {historyLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                加载中...
+              </div>
+            ) : historyData.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                暂无历史记录
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {historyData.map((item, index) => (
+                  <div key={item.id || index} className="p-4 bg-muted/30 rounded-lg border border-border">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="text-sm text-muted-foreground">{item.time}</div>
+                      <Badge variant="outline">{index + 1}</Badge>
+                    </div>
+                    
+                    <div className="mb-2">
+                      <span className="font-medium">操作人：</span>
+                      <span>{item.admin}</span>
+                    </div>
+                    
+                    <div className="mb-2">
+                      <span className="font-medium">修改原因：</span>
+                      <span>{item.reason}</span>
+                    </div>
+                    
+                    {item.changes && (
+                      <details className="mt-3">
+                        <summary className="text-sm text-primary cursor-pointer hover:underline">
+                          查看修改详情
+                        </summary>
+                        <pre className="mt-2 p-3 bg-background rounded text-xs overflow-auto max-h-64 border border-border">
+                          {typeof item.changes === 'string' 
+                            ? item.changes 
+                            : JSON.stringify(item.changes, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={batchUpdateOpen} onOpenChange={setBatchUpdateOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
