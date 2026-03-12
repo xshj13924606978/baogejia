@@ -381,70 +381,71 @@ export const LevelList: React.FC = () => {
   const restoreDefaults = async () => {
     console.log('[LevelList] 开始恢复默认配置');
     try {
-      // 从 API 获取系统默认配置
-      const res = await fetch('/api/admin/levels/defaults');
+      // 从 level_definitions 表获取系统默认配置
+      const res = await fetch('/api/admin/levels/defaults', {
+        credentials: 'include', // 确保携带Cookie
+      });
       console.log('[LevelList] 默认配置API响应状态:', res.status);
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('[LevelList] 获取默认配置失败:', errorText);
-        // API 失败，使用硬编码默认值
+        console.error('[LevelList] 默认配置API错误:', errorText);
+        // 如果API失败，使用硬编码默认值
         useHardcodedDefaults();
         return;
       }
 
-      const data = await res.json();
-      console.log('[LevelList] 默认配置数据:', data);
+      const defaultConfig = await res.json();
+      console.log('[LevelList] 默认配置数据:', defaultConfig);
 
-      if (!data.success || !data.defaults || data.defaults.length === 0) {
+      // 使用系统默认配置
+      if (defaultConfig && defaultConfig.length > 0) {
+        const newValues: Record<string, string> = {};
+        const newChecked = new Set<string>();
+
+        levels.forEach((level) => {
+          const levelConfig = defaultConfig.find((c: any) => c.level === level.level);
+          if (!levelConfig) {
+            console.warn(`[LevelList] 未找到等级 ${level.level} 的默认配置`);
+            return;
+          }
+
+          console.log(`[LevelList] 等级 ${level.level} 默认配置:`, levelConfig);
+
+          // 配额默认值
+          newValues[`${level.level}-daily_quota`] = String(levelConfig.quotas?.daily_quota || levelConfig.daily_quota || 10);
+          newValues[`${level.level}-max_files`] = String(levelConfig.quotas?.max_files || levelConfig.max_files || 5);
+          newValues[`${level.level}-max_chat_messages`] = String(levelConfig.quotas?.max_chat_messages || levelConfig.max_chat_messages || 20);
+
+          // 字段权限默认值
+          const fieldPerms = levelConfig.field_permissions || levelConfig.fieldPermissions || {};
+          newValues[`${level.level}-can_view_cost_price`] = String(fieldPerms.can_view_cost_price ?? false);
+          newValues[`${level.level}-can_view_min_price`] = String(fieldPerms.can_view_min_price ?? false);
+          newValues[`${level.level}-can_view_manufacturer`] = String(fieldPerms.can_view_manufacturer ?? false);
+          newValues[`${level.level}-can_view_contact`] = String(fieldPerms.can_view_contact ?? false);
+          newValues[`${level.level}-can_view_phone`] = String(fieldPerms.can_view_phone ?? false);
+
+          // 添加到勾选列表
+          Object.keys(configCategories).forEach((categoryKey) => {
+            configCategories[categoryKey as keyof typeof configCategories].items.forEach((item) => {
+              newChecked.add(`${level.level}-${item.field}`);
+            });
+          });
+        });
+
+        setItemValues(newValues);
+        setCheckedItems(newChecked);
+        setBatchUpdateReason('恢复系统默认配置');
+
+        toast({
+          title: '已恢复默认配置',
+          description: '已从系统加载默认配置',
+        });
+      } else {
         console.warn('[LevelList] API返回无默认配置，使用硬编码默认值');
         // API 返回空数据，使用硬编码默认值
         useHardcodedDefaults();
-        return;
       }
-
-      // 使用系统默认配置
-      const newValues: Record<string, string> = {};
-      const newChecked = new Set<string>();
-
-      levels.forEach((level) => {
-        const defaultConfig = data.defaults.find((d: any) => d.level === level.level);
-        if (!defaultConfig) {
-          console.warn(`[LevelList] 未找到等级 ${level.level} 的默认配置`);
-          return;
-        }
-
-        console.log(`[LevelList] 等级 ${level.level} 默认配置:`, defaultConfig);
-
-        // 配额默认值
-        newValues[`${level.level}-daily_quota`] = String(defaultConfig.quotas?.daily_quota || 10);
-        newValues[`${level.level}-max_files`] = String(defaultConfig.quotas?.max_files || 5);
-        newValues[`${level.level}-max_chat_messages`] = String(defaultConfig.quotas?.max_chat_messages || 20);
-
-        // 字段权限默认值
-        const fieldPerms = defaultConfig.field_permissions || {};
-        newValues[`${level.level}-can_view_cost_price`] = String(fieldPerms.can_view_cost_price ?? false);
-        newValues[`${level.level}-can_view_min_price`] = String(fieldPerms.can_view_min_price ?? false);
-        newValues[`${level.level}-can_view_manufacturer`] = String(fieldPerms.can_view_manufacturer ?? false);
-        newValues[`${level.level}-can_view_contact`] = String(fieldPerms.can_view_contact ?? false);
-        newValues[`${level.level}-can_view_phone`] = String(fieldPerms.can_view_phone ?? false);
-
-        // 添加到勾选列表
-        Object.keys(configCategories).forEach((categoryKey) => {
-          configCategories[categoryKey as keyof typeof configCategories].items.forEach((item) => {
-            newChecked.add(`${level.level}-${item.field}`);
-          });
-        });
-      });
-
-      setItemValues(newValues);
-      setCheckedItems(newChecked);
-      setBatchUpdateReason('恢复系统默认配置');
-
-      toast({
-        title: '已恢复默认配置',
-        description: `已从${data.source === 'database' ? '数据库' : '系统'}加载默认配置`,
-      });
     } catch (error) {
       console.error('[LevelList] 恢复默认配置失败:', error);
       // 异常时使用硬编码默认值
@@ -631,89 +632,93 @@ export const LevelList: React.FC = () => {
       </Dialog>
 
       {/* 预览弹窗 */}
-      <Dialog open={!!previewLevel} onOpenChange={() => setPreviewLevel(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>等级权限预览</DialogTitle>
-            <DialogDescription>
-              查看等级的详细权限配置
-            </DialogDescription>
-          </DialogHeader>
-          {previewLevel && (() => {
-            const levelData = levels.find(l => l.level === previewLevel);
-            if (!levelData) return <div>未找到等级数据</div>;
+      {previewLevel && (() => {
+        const levelData = levels.find(l => l.level === previewLevel);
+        if (!levelData) return null;
 
-            const permissionsList = Object.entries(levelData.fieldPermissions)
-              .filter(([_, value]) => value)
-              .map(([key, _]) => {
-                const labels: Record<string, string> = {
-                  can_view_cost_price: '查看成本价',
-                  can_view_min_price: '查看最低售价',
-                  can_view_manufacturer: '查看厂家信息',
-                  can_view_contact: '查看联系人',
-                  can_view_phone: '查看联系电话',
-                };
-                return labels[key] || key;
-              });
+        return (
+          <Dialog open={!!previewLevel} onOpenChange={() => setPreviewLevel(null)}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>等级权限预览</DialogTitle>
+                <DialogDescription>
+                  查看等级的详细权限配置
+                </DialogDescription>
+              </DialogHeader>
 
-            return (
-              <div className="space-y-4 py-4">
-                <div className="flex items-center gap-3 pb-3 border-b">
-                  <Badge className={getLevelColor(levelData.level)}>
-                    Lv.{levelData.level}
-                  </Badge>
-                  <span className="text-xl font-semibold">{levelData.name}</span>
+              <div className="py-4">
+                <h3 className="text-lg font-semibold">Lv.{levelData.level}</h3>
+                <p className="text-sm text-muted-foreground mb-4">{levelData.name}</p>
+
+                {/* 基础信息 */}
+                <div className="mb-4">
+                  <h4 className="font-medium mb-2">基础信息</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <span className="text-muted-foreground">所需积分：</span>
+                    <span>{levelData.requiredPoints}</span>
+                    <span className="text-muted-foreground">角色：</span>
+                    <span>{levelData.role}</span>
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="bg-muted/50 p-4 rounded-md">
-                    <h4 className="font-semibold mb-2 text-sm">📊 基础信息</h4>
-                    <p className="text-sm"><strong>所需积分:</strong> {levelData.requiredPoints}</p>
-                    <p className="text-sm"><strong>角色:</strong> {levelData.role}</p>
-                  </div>
+                {/* 配额设置 */}
+                <div className="mb-4">
+                  <h4 className="font-medium mb-2">配额设置</h4>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    <li>每日查询配额：{levelData.quotas?.daily_quota || 0} 次</li>
+                    <li>最大文件数量：{levelData.quotas?.max_files || 0} 个</li>
+                    <li>最大聊天消息数：{levelData.quotas?.max_chat_messages || 0} 条</li>
+                  </ul>
+                </div>
 
-                  <div className="bg-muted/50 p-4 rounded-md">
-                    <h4 className="font-semibold mb-2 text-sm">📦 配额设置</h4>
-                    <ul className="text-sm space-y-1">
-                      <li>• 每日查询配额: <strong>{levelData.quotas.daily_quota}</strong> 次</li>
-                      <li>• 最大文件数量: <strong>{levelData.quotas.max_files}</strong> 个</li>
-                      <li>• 最大聊天消息数: <strong>{levelData.quotas.max_chat_messages}</strong> 条</li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-muted/50 p-4 rounded-md">
-                    <h4 className="font-semibold mb-2 text-sm">🔒 字段权限</h4>
-                    {permissionsList.length > 0 ? (
-                      <ul className="text-sm space-y-1">
-                        {permissionsList.map((perm, idx) => (
-                          <li key={idx}>✅ {perm}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">无权限</p>
+                {/* 字段权限 */}
+                <div className="mb-4">
+                  <h4 className="font-medium mb-2">字段权限</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {levelData.fieldPermissions?.can_view_cost_price && (
+                      <span className="text-green-600">✅ 查看成本价</span>
+                    )}
+                    {levelData.fieldPermissions?.can_view_min_price && (
+                      <span className="text-green-600">✅ 查看最低售价</span>
+                    )}
+                    {levelData.fieldPermissions?.can_view_manufacturer && (
+                      <span className="text-green-600">✅ 查看厂家信息</span>
+                    )}
+                    {levelData.fieldPermissions?.can_view_contact && (
+                      <span className="text-green-600">✅ 查看联系人</span>
+                    )}
+                    {levelData.fieldPermissions?.can_view_phone && (
+                      <span className="text-green-600">✅ 查看联系电话</span>
                     )}
                   </div>
+                  {!levelData.fieldPermissions?.can_view_cost_price &&
+                   !levelData.fieldPermissions?.can_view_min_price &&
+                   !levelData.fieldPermissions?.can_view_manufacturer &&
+                   !levelData.fieldPermissions?.can_view_contact &&
+                   !levelData.fieldPermissions?.can_view_phone && (
+                    <p className="text-sm text-muted-foreground">无权限</p>
+                  )}
+                </div>
 
-                  <div className="bg-muted/50 p-4 rounded-md">
-                    <h4 className="font-semibold mb-2 text-sm">🎯 模块权限</h4>
-                    {levelData.modulePermissions.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {levelData.modulePermissions.map((code) => (
-                          <Badge key={code} variant="outline" className="bg-purple-50">
-                            {code}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
+                {/* 模块权限 */}
+                <div>
+                  <h4 className="font-medium mb-2">模块权限</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {levelData.modulePermissions?.map((code: string) => (
+                      <span key={code} className="px-2 py-1 bg-gray-100 rounded text-sm">
+                        {code}
+                      </span>
+                    ))}
+                    {!levelData.modulePermissions || levelData.modulePermissions.length === 0 && (
                       <p className="text-sm text-muted-foreground">无权限</p>
                     )}
                   </div>
                 </div>
               </div>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       <Dialog open={batchUpdateOpen} onOpenChange={setBatchUpdateOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
