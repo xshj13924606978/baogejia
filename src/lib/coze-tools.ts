@@ -12,7 +12,7 @@
  * 3. 调用对应方法使用工具
  */
 
-import { webSearch, generateImage, embedding } from 'coze-coding-dev-sdk';
+import { SearchClient, ImageGenerationClient, EmbeddingClient } from 'coze-coding-dev-sdk';
 import { Logger } from './logger';
 
 // ============================================================================
@@ -21,8 +21,9 @@ import { Logger } from './logger';
 
 export interface WebSearchResult {
   title: string;
-  url: string;
+  url?: string;
   snippet: string;
+  summary?: string;
   publishedDate?: string;
 }
 
@@ -66,6 +67,11 @@ export class CozeToolsService {
   private webSearchEnabled: boolean;
   private embeddingEnabled: boolean;
   private imageGenerationEnabled: boolean;
+  
+  // 客户端实例（懒加载）
+  private searchClient: SearchClient | null = null;
+  private embeddingClient: EmbeddingClient | null = null;
+  private imageGenerationClient: ImageGenerationClient | null = null;
 
   constructor() {
     this.enabled = process.env.ENABLE_COZE_TOOLS === 'true';
@@ -83,6 +89,28 @@ export class CozeToolsService {
       向量大模型: this.embeddingEnabled ? '✅ 已启用' : '⚪ 未启用',
       生图大模型: this.imageGenerationEnabled ? '✅ 已启用' : '⚪ 未启用',
     });
+  }
+
+  // 获取客户端实例（懒加载）
+  private getSearchClient(): SearchClient {
+    if (!this.searchClient) {
+      this.searchClient = new SearchClient();
+    }
+    return this.searchClient;
+  }
+
+  private getEmbeddingClient(): EmbeddingClient {
+    if (!this.embeddingClient) {
+      this.embeddingClient = new EmbeddingClient();
+    }
+    return this.embeddingClient;
+  }
+
+  private getImageGenerationClient(): ImageGenerationClient {
+    if (!this.imageGenerationClient) {
+      this.imageGenerationClient = new ImageGenerationClient();
+    }
+    return this.imageGenerationClient;
   }
 
   // ============================================================================
@@ -104,12 +132,10 @@ export class CozeToolsService {
       Logger.info(`开始搜索产品价格: ${productName}`);
       
       const searchQuery = `${productName} 价格 厂家 报价 批发`;
-      const results = await webSearch({
-        query: searchQuery,
-        maxResults: 5,
-      });
+      const client = this.getSearchClient();
+      const response = await client.webSearch(searchQuery, 5, false);
 
-      if (!results || results.length === 0) {
+      if (!response.web_items || response.web_items.length === 0) {
         Logger.warn('未找到价格信息');
         return null;
       }
@@ -118,9 +144,9 @@ export class CozeToolsService {
       const prices: number[] = [];
       const suppliers: string[] = [];
 
-      results.forEach((result: any) => {
+      response.web_items.forEach((item) => {
         // 提取价格（简单实现）
-        const priceMatch = result.snippet?.match(/(\d+(\.\d+)?)/g);
+        const priceMatch = item.snippet?.match(/(\d+(\.\d+)?)/g);
         if (priceMatch) {
           const price = parseFloat(priceMatch[0]);
           if (price > 0 && price < 1000000) { // 过滤异常价格
@@ -129,8 +155,8 @@ export class CozeToolsService {
         }
         
         // 提取供应商名称（简单实现）
-        if (result.title) {
-          suppliers.push(result.title);
+        if (item.title) {
+          suppliers.push(item.title);
         }
       });
 
@@ -199,13 +225,24 @@ export class CozeToolsService {
       Logger.info(`搜索竞争对手报价: ${productName}`);
       
       const searchQuery = `${productName} 报价单 对比 供应商`;
-      const results = await webSearch({
-        query: searchQuery,
-        maxResults: 3,
-      });
+      const client = this.getSearchClient();
+      const response = await client.webSearch(searchQuery, 3, false);
+
+      if (!response.web_items || response.web_items.length === 0) {
+        Logger.warn('未找到竞争对手报价信息');
+        return [];
+      }
+
+      const results: WebSearchResult[] = response.web_items.map(item => ({
+        title: item.title,
+        url: item.url,
+        snippet: item.snippet,
+        summary: item.summary,
+        publishedDate: item.publish_time,
+      }));
 
       Logger.info(`找到 ${results.length} 个竞争对手报价信息`);
-      return results || [];
+      return results;
 
     } catch (error) {
       Logger.error('搜索竞争对手报价失败:', error);
@@ -245,15 +282,13 @@ export class CozeToolsService {
 
       Logger.info(`生成产品向量: ${product.name}`);
       
-      const embeddingResult = await embedding.create({
-        input: textFeatures,
-        model: 'text-embedding-3-small',
-      });
+      const client = this.getEmbeddingClient();
+      const embedding = await client.embedText(textFeatures);
 
       const productEmbedding: ProductEmbedding = {
         productId: product.id,
         productName: product.name,
-        embedding: embeddingResult,
+        embedding,
         category: product.category,
       };
 
@@ -285,10 +320,8 @@ export class CozeToolsService {
       Logger.info(`语义搜索: ${query}`);
       
       // 生成查询向量
-      const queryEmbedding = await embedding.create({
-        input: query,
-        model: 'text-embedding-3-small',
-      });
+      const client = this.getEmbeddingClient();
+      const queryEmbedding = await client.embedText(query);
 
       // 计算余弦相似度
       const similarities = products
@@ -400,21 +433,27 @@ export class CozeToolsService {
       // 构建提示词
       const prompt = `专业的${productName}产品摄影图${specs ? `，${specs}` : ''}，白色背景，高清细节，商业摄影风格，专业打光，4K分辨率`;
       
-      const images = await generateImage({
-        images: [{
-          prompt,
-          count: 1,
-          size: { width: 1024, height: 1024 },
-        }],
+      const client = this.getImageGenerationClient();
+      const response = await client.generate({
+        prompt,
+        size: '2048x2048',
+        watermark: false,
+        responseFormat: 'url',
       });
 
-      if (!images || images.length === 0) {
+      if (!response.data || response.data.length === 0) {
         Logger.warn('图片生成失败');
         return null;
       }
 
+      const firstImage = response.data[0];
+      if (!firstImage.url) {
+        Logger.warn('图片生成成功但未返回URL');
+        return null;
+      }
+
       const imageInfo: GeneratedImage = {
-        imageUrl: images[0],
+        imageUrl: firstImage.url,
         productName,
         prompt,
         createdAt: new Date(),
@@ -451,73 +490,15 @@ export class CozeToolsService {
     return results;
   }
 
-  /**
-   * 生成报价单封面图
-   * @param companyName 公司名称
-   * @param theme 主题风格
-   * @returns 生成的封面图
-   */
-  async generateQuoteCoverImage(
-    companyName: string,
-    theme: 'professional' | 'modern' | 'elegant' = 'professional'
-  ): Promise<GeneratedImage | null> {
-    if (!this.imageGenerationEnabled) {
-      Logger.warn('生图大模型未启用');
-      return null;
-    }
-
-    try {
-      Logger.info(`生成报价单封面: ${companyName}`);
-      
-      const themePrompts = {
-        professional: '专业商务风格，深蓝色调，简洁大气',
-        modern: '现代科技风格，渐变色，极简设计',
-        elegant: '优雅高端风格，金色元素，精致细节',
-      };
-
-      const prompt = `商业报价单封面设计，${companyName}公司，${themePrompts[theme]}，高质量，专业设计，无文字，纯图形元素`;
-      
-      const images = await generateImage({
-        images: [{
-          prompt,
-          count: 1,
-          size: { width: 1920, height: 1080 },
-        }],
-      });
-
-      if (!images || images.length === 0) {
-        return null;
-      }
-
-      return {
-        imageUrl: images[0],
-        productName: '报价单封面',
-        prompt,
-        createdAt: new Date(),
-      };
-
-    } catch (error) {
-      Logger.error('生成报价单封面失败:', error);
-      return null;
-    }
-  }
-
   // ============================================================================
   // 工具方法
   // ============================================================================
 
   /**
-   * 延迟执行
+   * 延迟工具
    */
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  /**
-   * 检查服务是否可用
-   */
-  isAvailable(): boolean {
-    return this.enabled;
   }
 
   /**
@@ -526,24 +507,15 @@ export class CozeToolsService {
   getStatus() {
     return {
       enabled: this.enabled,
-      webSearch: this.webSearchEnabled,
-      embedding: this.embeddingEnabled,
-      imageGeneration: this.imageGenerationEnabled,
+      webSearchEnabled: this.webSearchEnabled,
+      embeddingEnabled: this.embeddingEnabled,
+      imageGenerationEnabled: this.imageGenerationEnabled,
     };
   }
 }
 
 // ============================================================================
-// 导出单例实例
+// 单例模式
 // ============================================================================
 
-export const cozeTools = new CozeToolsService();
-
-// 导出类型
-export type {
-  WebSearchResult,
-  MarketPriceInfo,
-  ProductEmbedding,
-  SimilarProduct,
-  GeneratedImage,
-};
+export const cozeToolsService = new CozeToolsService();
