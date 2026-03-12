@@ -20,8 +20,7 @@ export const POST = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 });
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -36,16 +35,14 @@ export const POST = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[PermissionsPreview API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查管理员权限
     if (userRole.role !== 'super_admin' && userRole.role !== 'admin') {
       return NextResponse.json(
-        { error: '需要管理员权限' },
-        { status: 403 }
+        { error: '需要管理员权限' }, { status: 403 }
       );
     }
 
@@ -64,8 +61,7 @@ export const POST = withPermissionCheck(
     if (usersError) {
       console.error('[PermissionsPreview API] 查询用户失败:', usersError);
       return NextResponse.json(
-        { error: '查询用户失败' },
-        { status: 500 }
+        { error: '查询用户失败' }, { status: 500 }
       );
     }
 
@@ -79,8 +75,7 @@ export const POST = withPermissionCheck(
     if (configError) {
       console.error('[PermissionsPreview API] 查询等级配置失败:', configError);
       return NextResponse.json(
-        { error: '查询等级配置失败' },
-        { status: 500 }
+        { error: '查询等级配置失败' }, { status: 500 }
       );
     }
 
@@ -93,8 +88,7 @@ export const POST = withPermissionCheck(
     if (countError) {
       console.error('[PermissionsPreview API] 统计用户数失败:', countError);
       return NextResponse.json(
-        { error: '统计用户数失败' },
-        { status: 500 }
+        { error: '统计用户数失败' }, { status: 500 }
       );
     }
 
@@ -124,7 +118,7 @@ export const POST = withPermissionCheck(
   } catch (error) {
     console.error('[PermissionsPreview API] 预览权限变更异常:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
+});

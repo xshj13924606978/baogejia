@@ -25,8 +25,7 @@ export const GET = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 });
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -41,16 +40,14 @@ export const GET = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[BillingConfig API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查管理员权限
     if (userRole.role !== 'super_admin' && userRole.role !== 'admin') {
       return NextResponse.json(
-        { error: '需要管理员权限' },
-        { status: 403 }
+        { error: '需要管理员权限' }, { status: 403 }
       );
     }
 
@@ -61,8 +58,7 @@ export const GET = withPermissionCheck(
 
     if (!config) {
       return NextResponse.json(
-        { error: '获取计费配置失败' },
-        { status: 500 }
+        { error: '获取计费配置失败' }, { status: 500 }
       );
     }
 
@@ -73,14 +69,14 @@ export const GET = withPermissionCheck(
   } catch (error) {
     console.error('[BillingConfig API] 获取计费配置异常:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
 
 /**
  * 更新计费配置
  */
+  });
 
 export const POST = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.access'] },
@@ -91,8 +87,7 @@ export const POST = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
+        { error: '未登录' }, { status: 401 }
       );
     }
 
@@ -107,16 +102,14 @@ export const POST = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[BillingConfig API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查超级管理员权限
     if (userRole.role !== 'super_admin') {
       return NextResponse.json(
-        { error: '需要超级管理员权限' },
-        { status: 403 }
+        { error: '需要超级管理员权限' }, { status: 403 }
       );
     }
 
@@ -141,8 +134,7 @@ export const POST = withPermissionCheck(
     // 验证必填字段
     if (!yuanToTokens || !yuanToPoints || !pointsToTokens) {
       return NextResponse.json(
-        { error: '缺少必要参数' },
-        { status: 400 }
+        { error: '缺少必要参数' }, { status: 400 }
       );
     }
 
@@ -172,8 +164,7 @@ export const POST = withPermissionCheck(
 
     if (!success) {
       return NextResponse.json(
-        { error: '更新配置失败' },
-        { status: 500 }
+        { error: '更新配置失败' }, { status: 500 }
       );
     }
 
@@ -184,7 +175,7 @@ export const POST = withPermissionCheck(
   } catch (error) {
     console.error('[BillingConfig API] 更新计费配置异常:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
+});

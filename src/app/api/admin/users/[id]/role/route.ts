@@ -15,8 +15,7 @@ export const POST = withPermissionCheck(
     
     if (!validRoles.includes(role)) {
       return NextResponse.json(
-        { error: '无效的角色' },
-        { status: 400 });
+        { error: '无效的角色' }, { status: 400 }
       );
     }
 
@@ -27,7 +26,7 @@ export const POST = withPermissionCheck(
   } catch (error) {
     console.error('设置角色失败:', error);
     return NextResponse.json(
-      { error: '设置角色失败' },
-      { status: 500 }
-    );
+      { error: '设置角色失败' }, { status: 500 }
+      );
   }
+});

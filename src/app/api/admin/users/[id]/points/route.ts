@@ -13,8 +13,7 @@ export const POST = withPermissionCheck(
 
     if (typeof points !== 'number') {
       return NextResponse.json(
-        { error: '无效的积分值' },
-        { status: 400 });
+        { error: '无效的积分值' }, { status: 400 }
       );
     }
 
@@ -29,7 +28,7 @@ export const POST = withPermissionCheck(
   } catch (error) {
     console.error('分配积分失败:', error);
     return NextResponse.json(
-      { error: '分配积分失败' },
-      { status: 500 }
-    );
+      { error: '分配积分失败' }, { status: 500 }
+      );
   }
+});

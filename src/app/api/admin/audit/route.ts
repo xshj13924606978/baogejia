@@ -72,7 +72,7 @@ export const GET = withPermissionCheck(
   } catch (error) {
     console.error('获取审核列表失败:', error);
     return NextResponse.json(
-      { error: '获取审核列表失败' },
-      { status: 500 }
-    );
+      { error: '获取审核列表失败' }, { status: 500 }
+      );
   }
+});

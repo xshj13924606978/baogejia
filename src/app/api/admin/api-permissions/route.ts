@@ -27,8 +27,7 @@ export const GET = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 });
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -43,16 +42,14 @@ export const GET = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[AdminApiPermissions API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查超级管理员权限
     if (userRole.role !== 'super_admin') {
       return NextResponse.json(
-        { error: '无权限，需要超级管理员权限' },
-        { status: 403 }
+        { error: '无权限，需要超级管理员权限' }, { status: 403 }
       );
     }
 
@@ -76,14 +73,14 @@ export const GET = withPermissionCheck(
   } catch (error) {
     console.error('[AdminApiPermissions API] 获取API权限失败:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
 
 /**
  * 创建API权限规则
  */
+  });
 
 export const POST = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.access'] },
@@ -94,8 +91,7 @@ export const POST = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 }
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -110,16 +106,14 @@ export const POST = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[AdminApiPermissions API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查超级管理员权限
     if (userRole.role !== 'super_admin') {
       return NextResponse.json(
-        { error: '无权限，需要超级管理员权限' },
-        { status: 403 }
+        { error: '无权限，需要超级管理员权限' }, { status: 403 }
       );
     }
 
@@ -129,8 +123,7 @@ export const POST = withPermissionCheck(
 
     if (!api_path || !method) {
       return NextResponse.json(
-        { error: '缺少必要参数：api_path 和 method' },
-        { status: 400 }
+        { error: '缺少必要参数：api_path 和 method' }, { status: 400 }
       );
     }
 
@@ -163,14 +156,14 @@ export const POST = withPermissionCheck(
   } catch (error) {
     console.error('[AdminApiPermissions API] 创建API权限失败:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
 
 /**
  * 更新API权限规则
  */
+  });
 
 export const PUT = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.access'] },
@@ -181,8 +174,7 @@ export const PUT = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 }
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -197,16 +189,14 @@ export const PUT = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[AdminApiPermissions API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查超级管理员权限
     if (userRole.role !== 'super_admin') {
       return NextResponse.json(
-        { error: '无权限，需要超级管理员权限' },
-        { status: 403 }
+        { error: '无权限，需要超级管理员权限' }, { status: 403 }
       );
     }
 
@@ -216,8 +206,7 @@ export const PUT = withPermissionCheck(
 
     if (!id) {
       return NextResponse.json(
-        { error: '缺少参数：id' },
-        { status: 400 }
+        { error: '缺少参数：id' }, { status: 400 }
       );
     }
 
@@ -251,14 +240,14 @@ export const PUT = withPermissionCheck(
   } catch (error) {
     console.error('[AdminApiPermissions API] 更新API权限失败:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
 
 /**
  * 删除API权限规则
  */
+  });
 
 export const DELETE = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.access'] },
@@ -269,8 +258,7 @@ export const DELETE = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 }
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -285,16 +273,14 @@ export const DELETE = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[AdminApiPermissions API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查超级管理员权限
     if (userRole.role !== 'super_admin') {
       return NextResponse.json(
-        { error: '无权限，需要超级管理员权限' },
-        { status: 403 }
+        { error: '无权限，需要超级管理员权限' }, { status: 403 }
       );
     }
 
@@ -304,8 +290,7 @@ export const DELETE = withPermissionCheck(
 
     if (!id) {
       return NextResponse.json(
-        { error: '缺少参数：id' },
-        { status: 400 }
+        { error: '缺少参数：id' }, { status: 400 }
       );
     }
 
@@ -329,7 +314,7 @@ export const DELETE = withPermissionCheck(
   } catch (error) {
     console.error('[AdminApiPermissions API] 删除API权限失败:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
+});

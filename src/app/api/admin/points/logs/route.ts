@@ -23,8 +23,7 @@ export const GET = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 });
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -39,16 +38,14 @@ export const GET = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[PointsLogs API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查管理员权限
     if (userRole.role !== 'super_admin' && userRole.role !== 'admin') {
       return NextResponse.json(
-        { error: '需要管理员权限' },
-        { status: 403 }
+        { error: '需要管理员权限' }, { status: 403 }
       );
     }
 
@@ -72,7 +69,7 @@ export const GET = withPermissionCheck(
     if (end) {
       const endDate = new Date(end);
       endDate.setDate(endDate.getDate() + 1);
-      query = query.lt('created_at', endDate.toISOString());
+      query = query.lt('created_at', endDate.toISOString();
     }
 
     const { data: logs, error } = await query.limit(100);
@@ -80,8 +77,7 @@ export const GET = withPermissionCheck(
     if (error) {
       console.error('[PointsLogs API] 查询积分流水失败:', error);
       return NextResponse.json(
-        { error: '查询积分流水失败' },
-        { status: 500 }
+        { error: '查询积分流水失败' }, { status: 500 }
       );
     }
 
@@ -103,7 +99,7 @@ export const GET = withPermissionCheck(
       type: log.type,
       description: log.description,
       createdAt: new Date(log.created_at).toLocaleString('zh-CN'),
-    }));
+    });
 
     return NextResponse.json({
       success: true,
@@ -112,7 +108,7 @@ export const GET = withPermissionCheck(
   } catch (error) {
     console.error('[PointsLogs API] 获取积分流水记录异常:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
+});

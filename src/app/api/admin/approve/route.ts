@@ -18,15 +18,13 @@ export const POST = withPermissionCheck(
     // 验证必要参数
     if (!entryId) {
       return NextResponse.json(
-        { error: '缺少条目ID' },
-        { status: 400 });
+        { error: '缺少条目ID' }, { status: 400 }
       );
     }
 
     if (!type) {
       return NextResponse.json(
-        { error: '缺少类型' },
-        { status: 400 }
+        { error: '缺少类型' }, { status: 400 }
       );
     }
 
@@ -35,8 +33,7 @@ export const POST = withPermissionCheck(
     const userStr = request.cookies.get('user')?.value;
     if (!userStr) {
       return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
+        { error: '未登录' }, { status: 401 }
       );
     }
 
@@ -46,8 +43,7 @@ export const POST = withPermissionCheck(
     // 权限检查
     if (!hasPermission(userRole, 'canApproveKnowledge')) {
       return NextResponse.json(
-        { error: '没有审核权限' },
-        { status: 403 }
+        { error: '没有审核权限' }, { status: 403 }
       );
     }
 
@@ -68,9 +64,8 @@ export const POST = withPermissionCheck(
       if (error) {
         console.error('[Admin Approve] 知识库审核失败:', error);
         return NextResponse.json(
-          { error: '审核失败', details: error.message },
-          { status: 500 }
-        );
+          { error: '审核失败', details: error.message }, { status: 500 }
+      );
       }
 
       console.log(`[Admin Approve] 知识库条目 ${entryId} ${approve ? '通过' : '拒绝'}`);
@@ -88,9 +83,8 @@ export const POST = withPermissionCheck(
       if (error) {
         console.error('[Admin Approve] 产品审核失败:', error);
         return NextResponse.json(
-          { error: '审核失败', details: error.message },
-          { status: 500 }
-        );
+          { error: '审核失败', details: error.message }, { status: 500 }
+      );
       }
 
       console.log(`[Admin Approve] 产品 ${entryId} ${approve ? '通过' : '拒绝'}`);
@@ -109,9 +103,8 @@ export const POST = withPermissionCheck(
       if (error) {
         console.error('[Admin Approve] 用户审核失败:', error);
         return NextResponse.json(
-          { error: '审核失败', details: error.message },
-          { status: 500 }
-        );
+          { error: '审核失败', details: error.message }, { status: 500 }
+      );
       }
 
       console.log(`[Admin Approve] 用户 ${entryId} ${approve ? '通过' : '拒绝'}`);
@@ -135,12 +128,12 @@ export const POST = withPermissionCheck(
       { 
         error: '审核失败', 
         message: error instanceof Error ? error.message : '未知错误' 
-      },
-      { status: 500 }
-    );
+      }, { status: 500 }
+      );
   }
 
 // 获取待审核列表
+  });
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.access'] },
@@ -161,8 +154,7 @@ export const GET = withPermissionCheck(
     const userStr = request.cookies.get('user')?.value;
     if (!userStr) {
       return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
+        { error: '未登录' }, { status: 401 }
       );
     }
 
@@ -171,8 +163,7 @@ export const GET = withPermissionCheck(
 
     if (!hasPermission(userRole, 'canApproveKnowledge')) {
       return NextResponse.json(
-        { error: '没有查看权限' },
-        { status: 403 }
+        { error: '没有查看权限' }, { status: 403 }
       );
     }
 
@@ -250,9 +241,8 @@ export const GET = withPermissionCheck(
   } catch (error) {
     console.error('[Admin Approve] 获取待审核列表失败:', error);
     return NextResponse.json(
-      { error: '获取失败' },
-      { status: 500 }
-    );
+      { error: '获取失败' }, { status: 500 }
+      );
   }import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { hasPermission, UserRole } from '@/lib/auth/roles';
@@ -268,15 +258,13 @@ export async function POST(request: NextRequest) {
     // 验证必要参数
     if (!entryId) {
       return NextResponse.json(
-        { error: '缺少条目ID' },
-        { status: 400 }
+        { error: '缺少条目ID' }, { status: 400 }
       );
     }
 
     if (!type) {
       return NextResponse.json(
-        { error: '缺少类型' },
-        { status: 400 }
+        { error: '缺少类型' }, { status: 400 }
       );
     }
 
@@ -285,8 +273,7 @@ export async function POST(request: NextRequest) {
     const userStr = request.cookies.get('user')?.value;
     if (!userStr) {
       return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
+        { error: '未登录' }, { status: 401 }
       );
     }
 
@@ -296,8 +283,7 @@ export async function POST(request: NextRequest) {
     // 权限检查
     if (!hasPermission(userRole, 'canApproveKnowledge')) {
       return NextResponse.json(
-        { error: '没有审核权限' },
-        { status: 403 }
+        { error: '没有审核权限' }, { status: 403 }
       );
     }
 
@@ -318,9 +304,8 @@ export async function POST(request: NextRequest) {
       if (error) {
         console.error('[Admin Approve] 知识库审核失败:', error);
         return NextResponse.json(
-          { error: '审核失败', details: error.message },
-          { status: 500 }
-        );
+          { error: '审核失败', details: error.message }, { status: 500 }
+      );
       }
 
       console.log(`[Admin Approve] 知识库条目 ${entryId} ${approve ? '通过' : '拒绝'}`);
@@ -338,9 +323,8 @@ export async function POST(request: NextRequest) {
       if (error) {
         console.error('[Admin Approve] 产品审核失败:', error);
         return NextResponse.json(
-          { error: '审核失败', details: error.message },
-          { status: 500 }
-        );
+          { error: '审核失败', details: error.message }, { status: 500 }
+      );
       }
 
       console.log(`[Admin Approve] 产品 ${entryId} ${approve ? '通过' : '拒绝'}`);
@@ -359,9 +343,8 @@ export async function POST(request: NextRequest) {
       if (error) {
         console.error('[Admin Approve] 用户审核失败:', error);
         return NextResponse.json(
-          { error: '审核失败', details: error.message },
-          { status: 500 }
-        );
+          { error: '审核失败', details: error.message }, { status: 500 }
+      );
       }
 
       console.log(`[Admin Approve] 用户 ${entryId} ${approve ? '通过' : '拒绝'}`);
@@ -385,9 +368,8 @@ export async function POST(request: NextRequest) {
       { 
         error: '审核失败', 
         message: error instanceof Error ? error.message : '未知错误' 
-      },
-      { status: 500 }
-    );
+      }, { status: 500 }
+      );
   }
 }
 
@@ -408,8 +390,7 @@ export async function GET(request: NextRequest) {
     const userStr = request.cookies.get('user')?.value;
     if (!userStr) {
       return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
+        { error: '未登录' }, { status: 401 }
       );
     }
 
@@ -418,8 +399,7 @@ export async function GET(request: NextRequest) {
 
     if (!hasPermission(userRole, 'canApproveKnowledge')) {
       return NextResponse.json(
-        { error: '没有查看权限' },
-        { status: 403 }
+        { error: '没有查看权限' }, { status: 403 }
       );
     }
 
@@ -497,8 +477,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[Admin Approve] 获取待审核列表失败:', error);
     return NextResponse.json(
-      { error: '获取失败' },
-      { status: 500 }
-    );
+      { error: '获取失败' }, { status: 500 }
+      );
   }
 });

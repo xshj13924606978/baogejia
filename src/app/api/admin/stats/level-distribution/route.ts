@@ -19,7 +19,8 @@ export const GET = withPermissionCheck(
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '无权限' }, { status: 403 });
+      return NextResponse.json({ error: '无权限' }, { status: 403 }
+      );
     });
 
     // 查询用户角色
@@ -32,12 +33,14 @@ export const GET = withPermissionCheck(
 
     if (roleError || !userRole) {
       console.error('[LevelDistribution API] 获取用户角色失败:', roleError);
-      return NextResponse.json({ error: '无权限' }, { status: 403 });
+      return NextResponse.json({ error: '无权限' }, { status: 403 }
+      );
     }
 
     // 检查超级管理员权限
     if (userRole.role !== 'super_admin') {
-      return NextResponse.json({ error: '无权限，需要超级管理员权限' }, { status: 403 });
+      return NextResponse.json({ error: '无权限，需要超级管理员权限' }, { status: 403 }
+      );
     }
 
     console.log('[LevelDistribution API] 获取等级分布统计');
@@ -49,7 +52,8 @@ export const GET = withPermissionCheck(
 
     if (levelsError) {
       console.error('[LevelDistribution API] 获取用户等级失败:', levelsError);
-      return NextResponse.json({ error: '获取等级数据失败' }, { status: 500 });
+      return NextResponse.json({ error: '获取等级数据失败' }, { status: 500 }
+      );
     }
 
     // 获取用户基本信息（用于统计）
@@ -59,7 +63,8 @@ export const GET = withPermissionCheck(
 
     if (usersError) {
       console.error('[LevelDistribution API] 获取用户信息失败:', usersError);
-      return NextResponse.json({ error: '获取用户信息失败' }, { status: 500 });
+      return NextResponse.json({ error: '获取用户信息失败' }, { status: 500 }
+      );
     }
 
     // 合并数据
@@ -115,7 +120,7 @@ export const GET = withPermissionCheck(
         return { level, count, percentage, cumulativePercentage };
       });
 
-    distribution.summary.averageLevel = Number((totalLevelSum / totalUsers).toFixed(2));
+    distribution.summary.averageLevel = Number((totalLevelSum / totalUsers).toFixed(2);
     distribution.summary.mostCommonLevel = mostCommonLevel;
 
     // 计算等级转化率
@@ -139,7 +144,7 @@ export const GET = withPermissionCheck(
         const level = u.level;
         const upgradeDate = new Date(u.level_up_at);
         const createdDate = new Date(u.created_at);
-        const daysDiff = Math.floor((upgradeDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.floor((upgradeDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
 
         if (!upgradeTimeMap.has(level)) {
           upgradeTimeMap.set(level, []);
@@ -176,7 +181,7 @@ export const GET = withPermissionCheck(
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
       if (!monthlyMap.has(monthKey)) {
-        monthlyMap.set(monthKey, new Map());
+        monthlyMap.set(monthKey, new Map();
       }
 
       const monthData = monthlyMap.get(monthKey)!;
@@ -203,5 +208,7 @@ export const GET = withPermissionCheck(
     return NextResponse.json(distribution);
   } catch (error) {
     console.error('[LevelDistribution API] 获取等级分布失败:', error);
-    return NextResponse.json({ error: '获取失败' }, { status: 500 });
+    return NextResponse.json({ error: '获取失败' }, { status: 500 }
+      );
   }
+});

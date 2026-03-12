@@ -19,7 +19,8 @@ export const GET = withPermissionCheck(
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '无权限' }, { status: 403 });
+      return NextResponse.json({ error: '无权限' }, { status: 403 }
+      );
     });
 
     // 查询用户角色
@@ -32,12 +33,14 @@ export const GET = withPermissionCheck(
 
     if (roleError || !userRole) {
       console.error('[Revenue API] 获取用户角色失败:', roleError);
-      return NextResponse.json({ error: '无权限' }, { status: 403 });
+      return NextResponse.json({ error: '无权限' }, { status: 403 }
+      );
     }
 
     // 检查超级管理员权限
     if (userRole.role !== 'super_admin') {
-      return NextResponse.json({ error: '无权限，需要超级管理员权限' }, { status: 403 });
+      return NextResponse.json({ error: '无权限，需要超级管理员权限' }, { status: 403 }
+      );
     }
 
     // 获取查询参数
@@ -64,7 +67,8 @@ export const GET = withPermissionCheck(
 
     if (paymentsError) {
       console.error('[Revenue API] 获取支付记录失败:', paymentsError);
-      return NextResponse.json({ error: '获取支付记录失败' }, { status: 500 });
+      return NextResponse.json({ error: '获取支付记录失败' }, { status: 500 }
+      );
     }
 
     // 统计数据
@@ -162,7 +166,7 @@ export const GET = withPermissionCheck(
         amount: data.amount,
         count: data.count
       }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .sort((a, b) => a.date.localeCompare(b.date);
 
     // 找出最高和最低收入日
     if (stats.dailyRevenue.length > 0) {
@@ -193,14 +197,14 @@ export const GET = withPermissionCheck(
         amount: data.amount,
         count: data.count
       }))
-      .sort((a, b) => a.month.localeCompare(b.month));
+      .sort((a, b) => a.month.localeCompare(b.month);
 
     // 计算增长率（对比最近两个月）
     if (stats.monthlyRevenue.length >= 2) {
       const lastMonth = stats.monthlyRevenue[stats.monthlyRevenue.length - 1];
       const prevMonth = stats.monthlyRevenue[stats.monthlyRevenue.length - 2];
       if (prevMonth.amount > 0) {
-        stats.summary.growthRate = Number(((lastMonth.amount - prevMonth.amount) / prevMonth.amount * 100).toFixed(2));
+        stats.summary.growthRate = Number(((lastMonth.amount - prevMonth.amount) / prevMonth.amount * 100).toFixed(2);
       }
     }
 
@@ -235,5 +239,7 @@ export const GET = withPermissionCheck(
     return NextResponse.json(stats);
   } catch (error) {
     console.error('[Revenue API] 获取收入统计失败:', error);
-    return NextResponse.json({ error: '获取失败' }, { status: 500 });
+    return NextResponse.json({ error: '获取失败' }, { status: 500 }
+      );
   }
+});

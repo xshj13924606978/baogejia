@@ -13,8 +13,7 @@ export const POST = withPermissionCheck(
 
     if (!reason) {
       return NextResponse.json(
-        { error: '请提供拒绝原因' },
-        { status: 400 });
+        { error: '请提供拒绝原因' }, { status: 400 }
       );
     }
 
@@ -25,7 +24,7 @@ export const POST = withPermissionCheck(
   } catch (error) {
     console.error('审核拒绝失败:', error);
     return NextResponse.json(
-      { error: '审核拒绝失败' },
-      { status: 500 }
-    );
+      { error: '审核拒绝失败' }, { status: 500 }
+      );
   }
+});

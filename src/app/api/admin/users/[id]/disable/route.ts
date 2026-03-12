@@ -20,7 +20,8 @@ export const POST = withPermissionCheck(
   } catch (error) {
     console.error('更新用户状态失败:', error);
     return NextResponse.json(
-      { error: '更新用户状态失败' },
-      { status: 500 });
+      { error: '更新用户状态失败' }, { status: 500 }
+      );
     );
   }
+});

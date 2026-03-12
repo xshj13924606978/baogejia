@@ -21,8 +21,7 @@ export const POST = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 });
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -37,16 +36,14 @@ export const POST = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[AdminLevelsBatch API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查超级管理员权限
     if (userRole.role !== 'super_admin') {
       return NextResponse.json(
-        { error: '无权限，需要超级管理员权限' },
-        { status: 403 }
+        { error: '无权限，需要超级管理员权限' }, { status: 403 }
       );
     }
 
@@ -56,8 +53,7 @@ export const POST = withPermissionCheck(
 
     if (!updates || !Array.isArray(updates) || updates.length === 0) {
       return NextResponse.json(
-        { error: '缺少参数：updates（必须是非空数组）' },
-        { status: 400 }
+        { error: '缺少参数：updates（必须是非空数组）' }, { status: 400 }
       );
     }
 
@@ -65,9 +61,8 @@ export const POST = withPermissionCheck(
     for (const update of updates) {
       if (!update.level || !update.changes) {
         return NextResponse.json(
-          { error: '每个更新项必须包含 level 和 changes 字段' },
-          { status: 400 }
-        );
+          { error: '每个更新项必须包含 level 和 changes 字段' }, { status: 400 }
+      );
       }
     }
 
@@ -86,7 +81,7 @@ export const POST = withPermissionCheck(
   } catch (error) {
     console.error('[AdminLevelsBatch API] 批量更新等级失败:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
+});

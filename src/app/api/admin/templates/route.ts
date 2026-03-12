@@ -126,8 +126,7 @@ export const GET = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 }
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -142,16 +141,14 @@ export const GET = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[Templates API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查超级管理员权限
     if (userRole.role !== 'super_admin') {
       return NextResponse.json(
-        { error: '无权限，需要超级管理员权限' },
-        { status: 403 }
+        { error: '无权限，需要超级管理员权限' }, { status: 403 }
       );
     }
 
@@ -164,14 +161,14 @@ export const GET = withPermissionCheck(
   } catch (error) {
     console.error('[Templates API] 获取模板失败:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
 
 /**
  * 应用权限模板
  */
+  });
 
 export const POST = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.templates.edit'] },
@@ -182,8 +179,7 @@ export const POST = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 }
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -198,16 +194,14 @@ export const POST = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[Templates API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查超级管理员权限
     if (userRole.role !== 'super_admin') {
       return NextResponse.json(
-        { error: '无权限，需要超级管理员权限' },
-        { status: 403 }
+        { error: '无权限，需要超级管理员权限' }, { status: 403 }
       );
     }
 
@@ -217,8 +211,7 @@ export const POST = withPermissionCheck(
 
     if (!templateName || !targetLevels || !Array.isArray(targetLevels)) {
       return NextResponse.json(
-        { error: '缺少参数：templateName 和 targetLevels（数组）' },
-        { status: 400 }
+        { error: '缺少参数：templateName 和 targetLevels（数组）' }, { status: 400 }
       );
     }
 
@@ -226,8 +219,7 @@ export const POST = withPermissionCheck(
     const template = TEMPLATES[templateName as keyof typeof TEMPLATES];
     if (!template) {
       return NextResponse.json(
-        { error: '模板不存在' },
-        { status: 404 }
+        { error: '模板不存在' }, { status: 404 }
       );
     }
 
@@ -249,8 +241,7 @@ export const POST = withPermissionCheck(
 
     if (updates.length === 0) {
       return NextResponse.json(
-        { error: '模板中没有匹配的等级配置' },
-        { status: 400 }
+        { error: '模板中没有匹配的等级配置' }, { status: 400 }
       );
     }
 
@@ -267,7 +258,7 @@ export const POST = withPermissionCheck(
   } catch (error) {
     console.error('[Templates API] 应用模板失败:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
+});

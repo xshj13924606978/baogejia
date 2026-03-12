@@ -21,8 +21,7 @@ export const GET = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 });
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -37,16 +36,14 @@ export const GET = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[AdminLevelHistory API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查管理员权限（超级管理员或管理员）
     if (userRole.role !== 'super_admin' && userRole.role !== 'admin') {
       return NextResponse.json(
-        { error: '无权限，需要管理员权限' },
-        { status: 403 }
+        { error: '无权限，需要管理员权限' }, { status: 403 }
       );
     }
 
@@ -66,7 +63,7 @@ export const GET = withPermissionCheck(
   } catch (error) {
     console.error('[AdminLevelHistory API] 获取历史失败:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
+});

@@ -18,7 +18,8 @@ export const POST = withPermissionCheck(
   } catch (error) {
     console.error('审核通过失败:', error);
     return NextResponse.json(
-      { error: '审核通过失败' },
-      { status: 500 });
+      { error: '审核通过失败' }, { status: 500 }
+      );
     );
   }
+});

@@ -23,8 +23,7 @@ export const GET = withPermissionCheck(
     if (!currentUser || !currentUser.id) {
       console.log('[Defaults API] 用户未登录');
       return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 });
+        { error: '未登录' }, { status: 401 }
       );
     }
 
@@ -39,8 +38,7 @@ export const GET = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[Defaults API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
@@ -48,8 +46,7 @@ export const GET = withPermissionCheck(
     if (userRole.role !== 'super_admin' && userRole.role !== 'admin') {
       console.log('[Defaults API] 权限不足:', userRole.role);
       return NextResponse.json(
-        { error: '权限不足' },
-        { status: 403 }
+        { error: '权限不足' }, { status: 403 }
       );
     }
 
@@ -64,8 +61,7 @@ export const GET = withPermissionCheck(
     if (configsError) {
       console.error('[Defaults API] 查询默认配置失败:', configsError);
       return NextResponse.json(
-        { error: '查询默认配置失败' },
-        { status: 500 }
+        { error: '查询默认配置失败' }, { status: 500 }
       );
     }
 
@@ -79,7 +75,7 @@ export const GET = withPermissionCheck(
   } catch (error) {
     console.error('[Defaults API] 获取默认配置失败:', error);
     return NextResponse.json(
-      { error: '获取失败' },
-      { status: 500 }
-    );
+      { error: '获取失败' }, { status: 500 }
+      );
   }
+});

@@ -20,8 +20,7 @@ export const POST = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 });
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -35,8 +34,7 @@ export const POST = withPermissionCheck(
 
     if (roleError || !userRole || userRole.role !== 'super_admin') {
       return NextResponse.json(
-        { error: '需要超级管理员权限' },
-        { status: 403 }
+        { error: '需要超级管理员权限' }, { status: 403 }
       );
     }
 
@@ -47,8 +45,7 @@ export const POST = withPermissionCheck(
     
     if (!fs.existsSync(migrationFilePath)) {
       return NextResponse.json(
-        { error: '迁移文件不存在' },
-        { status: 404 }
+        { error: '迁移文件不存在' }, { status: 404 }
       );
     }
 
@@ -58,7 +55,7 @@ export const POST = withPermissionCheck(
     const statements = sql
       .split(';')
       .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--') && !s.startsWith('/*'));
+      .filter(s => s.length > 0 && !s.startsWith('--') && !s.startsWith('/*')));
 
     console.log(`[Migration] 共 ${statements.length} 条 SQL 语句`);
 
@@ -103,7 +100,7 @@ export const POST = withPermissionCheck(
 
       // 避免过快的请求
       if (i < statements.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 100);
       }
     }
 
@@ -120,7 +117,7 @@ export const POST = withPermissionCheck(
   } catch (error: any) {
     console.error('[Migration] 执行失败:', error);
     return NextResponse.json(
-      { error: '服务器错误', details: error.message },
-      { status: 500 }
-    );
+      { error: '服务器错误', details: error.message }, { status: 500 }
+      );
   }
+});

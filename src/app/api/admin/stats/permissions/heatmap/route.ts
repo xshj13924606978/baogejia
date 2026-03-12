@@ -19,7 +19,8 @@ export const GET = withPermissionCheck(
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '无权限' }, { status: 403 });
+      return NextResponse.json({ error: '无权限' }, { status: 403 }
+      );
     });
 
     // 查询用户角色
@@ -32,12 +33,14 @@ export const GET = withPermissionCheck(
 
     if (roleError || !userRole) {
       console.error('[Heatmap API] 获取用户角色失败:', roleError);
-      return NextResponse.json({ error: '无权限' }, { status: 403 });
+      return NextResponse.json({ error: '无权限' }, { status: 403 }
+      );
     }
 
     // 检查超级管理员权限
     if (userRole.role !== 'super_admin') {
-      return NextResponse.json({ error: '无权限，需要超级管理员权限' }, { status: 403 });
+      return NextResponse.json({ error: '无权限，需要超级管理员权限' }, { status: 403 }
+      );
     }
 
     // 获取查询参数
@@ -108,7 +111,7 @@ export const GET = withPermissionCheck(
       date,
       value: data.points,
       tokenUsage: data.tokens
-    }));
+    });
 
     // 处理权限拒绝统计
     denyStats?.forEach(log => {
@@ -136,5 +139,7 @@ export const GET = withPermissionCheck(
     return NextResponse.json(heatmap);
   } catch (error) {
     console.error('[Heatmap API] 获取热力图失败:', error);
-    return NextResponse.json({ error: '获取失败' }, { status: 500 });
+    return NextResponse.json({ error: '获取失败' }, { status: 500 }
+      );
   }
+});

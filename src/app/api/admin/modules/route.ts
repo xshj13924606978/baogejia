@@ -23,8 +23,7 @@ export const GET = withPermissionCheck(
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
       return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 });
+        { error: '未登录或用户信息无效' }, { status: 401 }
       );
     }
 
@@ -39,16 +38,14 @@ export const GET = withPermissionCheck(
     if (roleError || !userRole) {
       console.error('[Modules API] 获取用户角色失败:', roleError);
       return NextResponse.json(
-        { error: '获取用户角色失败' },
-        { status: 500 }
+        { error: '获取用户角色失败' }, { status: 500 }
       );
     }
 
     // 检查管理员权限
     if (userRole.role !== 'super_admin' && userRole.role !== 'admin') {
       return NextResponse.json(
-        { error: '需要管理员权限' },
-        { status: 403 }
+        { error: '需要管理员权限' }, { status: 403 }
       );
     }
 
@@ -63,8 +60,7 @@ export const GET = withPermissionCheck(
     if (error) {
       console.error('[Modules API] 查询模块列表失败:', error);
       return NextResponse.json(
-        { error: '查询模块列表失败' },
-        { status: 500 }
+        { error: '查询模块列表失败' }, { status: 500 }
       );
     }
 
@@ -75,7 +71,7 @@ export const GET = withPermissionCheck(
   } catch (error) {
     console.error('[Modules API] 获取模块列表异常:', error);
     return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+      { error: '服务器错误' }, { status: 500 }
+      );
   }
+});

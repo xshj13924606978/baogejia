@@ -23,7 +23,8 @@ export const GET = withPermissionCheck(
   } catch (error) {
     console.error('获取统计数据失败:', error);
     return NextResponse.json(
-      { error: '获取统计数据失败' },
-      { status: 500 });
+      { error: '获取统计数据失败' }, { status: 500 }
+      );
     );
   }
+});
