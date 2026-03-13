@@ -1146,7 +1146,8 @@ export default function ChatArea({
       });
 
       if (!response.ok) {
-        throw new Error('流式请求失败');
+        const errorText = await response.text();
+        throw new Error(`流式请求失败 (${response.status}: ${response.statusText}) - ${errorText}`);
       }
 
       const reader = response.body?.getReader();
@@ -1222,12 +1223,31 @@ export default function ChatArea({
       }
 
       console.error('[ChatArea] 流式聊天失败:', error);
+
+      // 根据错误类型生成更友好的提示信息
+      let userMessage = '抱歉，生成内容时发生错误，请稍后重试。';
+      if (error instanceof Error) {
+        if (error.message.includes('500')) {
+          userMessage = '服务器内部错误，请稍后重试。';
+        } else if (error.message.includes('401') || error.message.includes('403')) {
+          userMessage = '认证失败，请检查您的登录状态。';
+        } else if (error.message.includes('404')) {
+          userMessage = '请求的资源不存在。';
+        } else if (error.message.includes('429')) {
+          userMessage = '请求过于频繁，请稍后再试。';
+        } else if (error.message.includes('timeout') || error.message.includes('超时')) {
+          userMessage = '请求超时，请检查网络连接后重试。';
+        }
+        // 对于其他错误，在控制台输出完整错误信息
+        console.error('[ChatArea] 详细错误信息:', error.message);
+      }
+
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === tempId
             ? {
                 ...msg,
-                content: fullContent || '抱歉，生成内容时发生错误，请稍后重试。',
+                content: userMessage,
                 isStreaming: false,
               }
             : msg
