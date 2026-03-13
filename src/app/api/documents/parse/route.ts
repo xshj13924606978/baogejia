@@ -27,7 +27,10 @@ export async function POST(req: Request) {
       parseMethod = 'TextIn';
       console.log('[Parse] TextIn解析成功，产品数量:', result.products.length);
     } catch (textInError) {
-      console.log('[Parse] TextIn解析失败:', textInError instanceof Error ? textInError.message : String(textInError));
+      console.log(
+        '[Parse] TextIn解析失败:',
+        textInError instanceof Error ? textInError.message : String(textInError)
+      );
       parseError = textInError;
 
       // 方案二：TextIn失败时使用Coze Vision
@@ -37,8 +40,13 @@ export async function POST(req: Request) {
         parseMethod = 'Coze Vision';
         console.log('[Parse] Coze Vision解析成功，产品数量:', result.products.length);
       } catch (cozeError) {
-        console.error('[Parse] Coze Vision解析失败:', cozeError instanceof Error ? cozeError.message : String(cozeError));
-        throw new Error(`所有解析方案均失败: ${textInError instanceof Error ? textInError.message : String(textInError)}`);
+        console.error(
+          '[Parse] Coze Vision解析失败:',
+          cozeError instanceof Error ? cozeError.message : String(cozeError)
+        );
+        throw new Error(
+          `所有解析方案均失败: ${textInError instanceof Error ? textInError.message : String(textInError)}`
+        );
       }
     }
 
@@ -47,15 +55,14 @@ export async function POST(req: Request) {
       products: result.products || [],
       remarks: result.remarks || [],
       rawContent: result.rawContent,
-      parseMethod // 返回使用的解析方式，便于调试
+      parseMethod, // 返回使用的解析方式，便于调试
     });
-
   } catch (error) {
     console.error('[Parse] 解析失败:', error);
     return NextResponse.json({
       error: '解析失败',
       products: [],
-      remarks: [`解析失败: ${error instanceof Error ? error.message : '未知错误'}`]
+      remarks: [`解析失败: ${error instanceof Error ? error.message : '未知错误'}`],
     });
   }
 }
@@ -90,9 +97,9 @@ async function parseWithTextIn(fileBuffer: ArrayBuffer, fileName: string, fileTy
     headers: {
       'x-ti-app-id': appId,
       'x-ti-secret-code': secretCode,
-      'Content-Type': 'application/octet-stream'
+      'Content-Type': 'application/octet-stream',
     },
-    body: fileBuffer
+    body: fileBuffer,
   });
 
   const textInResult = await response.json();
@@ -100,9 +107,10 @@ async function parseWithTextIn(fileBuffer: ArrayBuffer, fileName: string, fileTy
   console.log(`[TextIn] API响应预览:`, JSON.stringify(textInResult).substring(0, 300));
 
   // 检查是否是"机器人不存在"错误
-  const isRobotError = textInResult.code === 40007 ||
-                      textInResult.message?.includes('机器人不存在') ||
-                      textInResult.msg?.includes('机器人不存在');
+  const isRobotError =
+    textInResult.code === 40007 ||
+    textInResult.message?.includes('机器人不存在') ||
+    textInResult.msg?.includes('机器人不存在');
 
   if (isRobotError && isImageOcr) {
     console.log('[TextIn] 图片OCR接口返回"机器人不存在"错误');
@@ -148,12 +156,17 @@ async function parseWithTextIn(fileBuffer: ArrayBuffer, fileName: string, fileTy
   return {
     products,
     remarks: products.length === 0 ? ['未从文件中提取到产品信息'] : [],
-    rawContent: markdown.substring(0, 5000)
+    rawContent: markdown.substring(0, 5000),
   };
 }
 
 // Coze Vision解析（备用方案）
-async function parseWithCozeVision(fileBuffer: ArrayBuffer, fileName: string, fileType: string, fileUrl: string) {
+async function parseWithCozeVision(
+  fileBuffer: ArrayBuffer,
+  fileName: string,
+  fileType: string,
+  fileUrl: string
+) {
   const visionConfig = new Config();
   const visionClient = new LLMClient(visionConfig);
 
@@ -225,7 +238,7 @@ async function parseWithCozeVision(fileBuffer: ArrayBuffer, fileName: string, fi
     return {
       products,
       remarks: products.length === 0 ? ['未从图片中识别到产品信息'] : [],
-      rawContent: extractedText.substring(0, 5000)
+      rawContent: extractedText.substring(0, 5000),
     };
   } catch (error) {
     console.error('[Coze Vision] 识别失败:', error);
@@ -284,10 +297,16 @@ ${contentSample}
     const llmConfig = new Config();
     const llmClient = new LLMClient(llmConfig);
 
-    const response = await llmClient.invoke([
-      { role: 'system', content: '你是一个专业的产品信息提取助手，擅长从HTML表格和Markdown表格中提取产品信息。' },
-      { role: 'user', content: prompt }
-    ], { temperature: 0.1 });
+    const response = await llmClient.invoke(
+      [
+        {
+          role: 'system',
+          content: '你是一个专业的产品信息提取助手，擅长从HTML表格和Markdown表格中提取产品信息。',
+        },
+        { role: 'user', content: prompt },
+      ],
+      { temperature: 0.1 }
+    );
 
     console.log(`[LLM提取] LLM响应:`, JSON.stringify(response).substring(0, 300));
 
@@ -313,7 +332,6 @@ ${contentSample}
       console.error('[LLM提取] JSON解析失败:', e);
       return [];
     }
-
   } catch (error) {
     console.error('[LLM提取] 失败:', error);
     return [];

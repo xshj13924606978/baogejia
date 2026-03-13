@@ -6,7 +6,7 @@ import { awardPoints } from '@/storage/database/points-utils';
 const MULTI_LEVEL_REWARDS = {
   level1: 30, // 一级好友奖励
   level2: 10, // 二级好友奖励
-  level3: 5,  // 三级好友奖励
+  level3: 5, // 三级好友奖励
 };
 
 // 处理用户注册时的邀请奖励（多级）
@@ -43,10 +43,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingRelation) {
-      return NextResponse.json(
-        { error: '已经建立过邀请关系' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '已经建立过邀请关系' }, { status: 400 });
     }
 
     // 创建一级邀请关系
@@ -162,7 +159,8 @@ export async function GET(request: NextRequest) {
     // 获取该用户邀请的所有好友（一级）
     const { data: level1Invites, error: level1Error } = await db
       .from('invite_relations')
-      .select(`
+      .select(
+        `
         *,
         invitee:users!invite_relations_invitee_id_fkey (
           id,
@@ -170,7 +168,8 @@ export async function GET(request: NextRequest) {
           email,
           avatar
         )
-      `)
+      `
+      )
       .eq('inviter_id', parseInt(user_id))
       .eq('level', 1)
       .order('created_at', { ascending: false });
@@ -184,7 +183,8 @@ export async function GET(request: NextRequest) {
     if (level2UserIds.length > 0) {
       const { data: level2Data } = await db
         .from('invite_relations')
-        .select(`
+        .select(
+          `
           *,
           invitee:users!invite_relations_invitee_id_fkey (
             id,
@@ -196,7 +196,8 @@ export async function GET(request: NextRequest) {
             id,
             username
           )
-        `)
+        `
+        )
         .in('inviter_id', level2UserIds)
         .eq('level', 1);
 

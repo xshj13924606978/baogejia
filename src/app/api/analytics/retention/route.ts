@@ -14,16 +14,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      retention: retentionData.map(r => ({
+      retention: retentionData.map((r) => ({
         ...r,
         date: r.date.toISOString().split('T')[0],
       })),
     });
   } catch (error) {
     console.error('[Analytics] 获取留存数据失败:', error);
-    return NextResponse.json(
-      { error: '获取留存数据失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '获取留存数据失败' }, { status: 500 });
   }
 }

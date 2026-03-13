@@ -9,9 +9,7 @@ export async function POST(request: NextRequest) {
     console.log('[Product Search] ========== 搜索产品 ==========');
     console.log('[Product Search] 关键词:', { name, model, category });
 
-    let query = supabase
-      .from('products')
-      .select('*');
+    let query = supabase.from('products').select('*');
 
     // 构建搜索条件
     if (name) {
@@ -36,10 +34,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[Product Search] 查询失败:', error);
-      return NextResponse.json(
-        { error: 'Failed to search products' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Failed to search products' }, { status: 500 });
     }
 
     console.log(`[Product Search] 找到 ${products?.length || 0} 个产品`);
@@ -47,14 +42,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: products || [],
-      count: products?.length || 0
+      count: products?.length || 0,
     });
-
   } catch (error) {
     console.error('[Product Search] 搜索失败:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

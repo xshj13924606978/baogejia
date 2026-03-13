@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   try {
     // 从请求中获取用户ID
     const userId = request.headers.get('x-user-id') || 'demo_user_1';
-    
+
     const body: CreateTeamRequest = await request.json();
 
     // 验证必填字段

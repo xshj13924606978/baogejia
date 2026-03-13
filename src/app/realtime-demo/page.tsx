@@ -1,15 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { OnlineIndicator, OnlineUsersCount, UserOnlineStatus, StatusSelector } from '@/components/online-status/online-indicator';
+import {
+  OnlineIndicator,
+  OnlineUsersCount,
+  UserOnlineStatus,
+  StatusSelector,
+} from '@/components/online-status/online-indicator';
 import { NotificationPanel } from '@/components/notification-panel/notification-panel';
-import { MessageReadReceipt, ChatMessageReadReceipt } from '@/components/message-read-receipt/message-read-receipt';
+import {
+  MessageReadReceipt,
+  ChatMessageReadReceipt,
+} from '@/components/message-read-receipt/message-read-receipt';
 import { useWebSocket as useSocket } from '@/hooks/useWebSocket';
 
 export default function RealtimeDemoPage() {
   const [testMessageId, setTestMessageId] = useState(`test-${Date.now()}`);
   const [testMessageText, setTestMessageText] = useState('');
-  const userId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : null;
+  const userId =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : null;
 
   const { isConnected, onlineUsers, sendMessage } = useSocket({
     userId,
@@ -64,9 +73,7 @@ export default function RealtimeDemoPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">实时通信功能演示</h1>
-          <p className="text-gray-600 mt-2">
-            WebSocket连接 · 实时通知 · 在线状态 · 消息已读回执
-          </p>
+          <p className="text-gray-600 mt-2">WebSocket连接 · 实时通知 · 在线状态 · 消息已读回执</p>
         </div>
         <div className="flex items-center gap-4">
           <OnlineUsersCount />
@@ -80,9 +87,7 @@ export default function RealtimeDemoPage() {
         <div className="flex items-center gap-4">
           <OnlineIndicator size="lg" showText />
           <div className="flex-1">
-            <div className="text-sm font-medium">
-              {isConnected ? '已连接' : '未连接'}
-            </div>
+            <div className="text-sm font-medium">{isConnected ? '已连接' : '未连接'}</div>
             <div className="text-xs text-gray-500">
               {isConnected ? 'WebSocket 连接正常' : '正在尝试连接...'}
             </div>
@@ -143,9 +148,7 @@ export default function RealtimeDemoPage() {
         <h2 className="text-xl font-semibold mb-4">消息已读回执</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              消息ID
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">消息ID</label>
             <input
               type="text"
               value={testMessageId}
@@ -155,9 +158,7 @@ export default function RealtimeDemoPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              消息内容
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">消息内容</label>
             <textarea
               value={testMessageText}
               onChange={(e) => setTestMessageText(e.target.value)}
@@ -184,9 +185,7 @@ export default function RealtimeDemoPage() {
           </div>
 
           <div className="border-t pt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">
-              单个消息已读回执
-            </h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">单个消息已读回执</h3>
             <div className="flex items-center gap-4">
               <MessageReadReceipt
                 userId={userId}
@@ -221,11 +220,7 @@ export default function RealtimeDemoPage() {
           <div className="space-y-4">
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-2">当前用户</h3>
-              <UserOnlineStatus
-                userId={userId}
-                username="我"
-                showText
-              />
+              <UserOnlineStatus userId={userId} username="我" showText />
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-2">更改状态</h3>
@@ -245,8 +240,7 @@ export default function RealtimeDemoPage() {
         <h2 className="text-lg font-semibold mb-3 text-blue-900">使用说明</h2>
         <ul className="space-y-2 text-sm text-blue-800">
           <li>
-            <strong>WebSocket 连接：</strong> 页面加载时自动建立 WebSocket 连接，
-            支持断线自动重连。
+            <strong>WebSocket 连接：</strong> 页面加载时自动建立 WebSocket 连接， 支持断线自动重连。
           </li>
           <li>
             <strong>在线状态：</strong> 用户上线/离线时会实时更新在线用户列表，
@@ -261,8 +255,7 @@ export default function RealtimeDemoPage() {
             点击标记按钮可以标记为已读。
           </li>
           <li>
-            <strong>心跳机制：</strong> 每 30 秒发送一次心跳保持连接活跃，
-            自动更新最后在线时间。
+            <strong>心跳机制：</strong> 每 30 秒发送一次心跳保持连接活跃， 自动更新最后在线时间。
           </li>
         </ul>
       </div>

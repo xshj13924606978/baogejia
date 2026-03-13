@@ -111,7 +111,9 @@ export class PaymentService {
     // 这里需要接入真实的微信支付SDK
     // 使用 wechatpay-node-v3 或类似库
 
-    console.log(`[PaymentService] 创建微信JSAPI支付: 订单号=${order.order_no}, 金额=${order.final_amount}`);
+    console.log(
+      `[PaymentService] 创建微信JSAPI支付: 订单号=${order.order_no}, 金额=${order.final_amount}`
+    );
 
     // 返回模拟数据
     return this.getMockPaymentData(PaymentMethod.WECHAT_JSAPI, order);
@@ -126,7 +128,9 @@ export class PaymentService {
       return this.getMockPaymentData(PaymentMethod.WECHAT_NATIVE, order);
     }
 
-    console.log(`[PaymentService] 创建微信扫码支付: 订单号=${order.order_no}, 金额=${order.final_amount}`);
+    console.log(
+      `[PaymentService] 创建微信扫码支付: 订单号=${order.order_no}, 金额=${order.final_amount}`
+    );
 
     return this.getMockPaymentData(PaymentMethod.WECHAT_NATIVE, order);
   }
@@ -140,7 +144,9 @@ export class PaymentService {
       return this.getMockPaymentData(PaymentMethod.WECHAT_H5, order);
     }
 
-    console.log(`[PaymentService] 创建微信H5支付: 订单号=${order.order_no}, 金额=${order.final_amount}`);
+    console.log(
+      `[PaymentService] 创建微信H5支付: 订单号=${order.order_no}, 金额=${order.final_amount}`
+    );
 
     return this.getMockPaymentData(PaymentMethod.WECHAT_H5, order);
   }
@@ -154,7 +160,9 @@ export class PaymentService {
       return this.getMockPaymentData(PaymentMethod.ALIPAY_WEB, order);
     }
 
-    console.log(`[PaymentService] 创建支付宝网页支付: 订单号=${order.order_no}, 金额=${order.final_amount}`);
+    console.log(
+      `[PaymentService] 创建支付宝网页支付: 订单号=${order.order_no}, 金额=${order.final_amount}`
+    );
 
     return this.getMockPaymentData(PaymentMethod.ALIPAY_WEB, order);
   }
@@ -168,7 +176,9 @@ export class PaymentService {
       return this.getMockPaymentData(PaymentMethod.ALIPAY_H5, order);
     }
 
-    console.log(`[PaymentService] 创建支付宝H5支付: 订单号=${order.order_no}, 金额=${order.final_amount}`);
+    console.log(
+      `[PaymentService] 创建支付宝H5支付: 订单号=${order.order_no}, 金额=${order.final_amount}`
+    );
 
     return this.getMockPaymentData(PaymentMethod.ALIPAY_H5, order);
   }
@@ -182,7 +192,9 @@ export class PaymentService {
       return this.getMockPaymentData(PaymentMethod.ALIPAY_QR, order);
     }
 
-    console.log(`[PaymentService] 创建支付宝扫码支付: 订单号=${order.order_no}, 金额=${order.final_amount}`);
+    console.log(
+      `[PaymentService] 创建支付宝扫码支付: 订单号=${order.order_no}, 金额=${order.final_amount}`
+    );
 
     return this.getMockPaymentData(PaymentMethod.ALIPAY_QR, order);
   }
@@ -259,7 +271,9 @@ export class PaymentService {
     // 更新订单和支付记录
     // 这里需要调用订单服务的方法
 
-    console.log(`[PaymentService] 支付成功处理: 订单号=${orderNo}, 交易号=${transactionId}, 金额=${amount}`);
+    console.log(
+      `[PaymentService] 支付成功处理: 订单号=${orderNo}, 交易号=${transactionId}, 金额=${amount}`
+    );
 
     // TODO: 实际实现需要调用订单服务更新订单状态
   }
@@ -352,7 +366,8 @@ export class PaymentService {
             return_url: this.alipayConfig.return_url,
             biz_content: JSON.stringify({
               out_trade_no: order.order_no,
-              product_code: method === PaymentMethod.ALIPAY_WEB ? 'FAST_INSTANT_TRADE_PAY' : 'QUICK_WAP_WAY',
+              product_code:
+                method === PaymentMethod.ALIPAY_WEB ? 'FAST_INSTANT_TRADE_PAY' : 'QUICK_WAP_WAY',
               total_amount: order.final_amount.toFixed(2),
               subject: order.metadata?.item_name || '订单支付',
             }),

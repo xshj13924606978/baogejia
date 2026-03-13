@@ -41,7 +41,7 @@ async function testLevelBasedFiltering() {
       min_price: product.min_price,
       manufacturer: product.manufacturer,
       contact: product.contact,
-      phone: product.phone
+      phone: product.phone,
     });
 
     // 3. 测试等级 2（普通会员）的权限
@@ -52,7 +52,7 @@ async function testLevelBasedFiltering() {
         name: product.name,
         model: product.model,
         category: product.category,
-        brand: product.brand
+        brand: product.brand,
       },
       testUserId
     );
@@ -66,7 +66,7 @@ async function testLevelBasedFiltering() {
       contact: (result2 as any).contact,
       phone: (result2 as any).phone,
       hasFilteredSensitiveFields: (result2 as any).hasFilteredSensitiveFields,
-      filteredByLevel: (result2 as any).filteredByLevel
+      filteredByLevel: (result2 as any).filteredByLevel,
     });
 
     // 验证
@@ -78,7 +78,9 @@ async function testLevelBasedFiltering() {
 
     // 4. 测试等级 4（企业会员）的权限
     console.log('\n4. 测试等级 4（企业会员）的权限过滤...');
-    console.log('等级 4 权限: can_view_cost_price=true, can_view_min_price=true, can_view_manufacturer=true, can_view_contact=true, can_view_phone=true');
+    console.log(
+      '等级 4 权限: can_view_cost_price=true, can_view_min_price=true, can_view_manufacturer=true, can_view_contact=true, can_view_phone=true'
+    );
 
     // 临时修改用户等级
     await userLevelService.setUserLevel(testUserId, 4);
@@ -88,7 +90,7 @@ async function testLevelBasedFiltering() {
         name: product.name,
         model: product.model,
         category: product.category,
-        brand: product.brand
+        brand: product.brand,
       },
       testUserId
     );
@@ -102,14 +104,13 @@ async function testLevelBasedFiltering() {
       contact: (result4 as any).contact,
       phone: (result4 as any).phone,
       hasFilteredSensitiveFields: (result4 as any).hasFilteredSensitiveFields,
-      filteredByLevel: (result4 as any).filteredByLevel
+      filteredByLevel: (result4 as any).filteredByLevel,
     });
 
     // 恢复用户等级
     await userLevelService.setUserLevel(testUserId, 2);
 
     console.log('\n========== 测试完成 ==========');
-
   } catch (error) {
     console.error('测试失败:', error);
   }

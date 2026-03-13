@@ -4,21 +4,21 @@ export async function POST(request: NextRequest) {
   try {
     const { products } = await request.json();
 
-    console.log('[BatchMarketPrice] Batch search request:', { productCount: products?.length || 0 });
+    console.log('[BatchMarketPrice] Batch search request:', {
+      productCount: products?.length || 0,
+    });
 
     if (!products || !Array.isArray(products) || products.length === 0) {
-      return NextResponse.json(
-        { error: 'Products array is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Products array is required' }, { status: 400 });
     }
 
     // 并行查询所有产品的市场价格
     const promises = products.map(async (product: any) => {
       try {
         // 安全地获取 origin
-        const origin = request.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5000';
-        
+        const origin =
+          request.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5000';
+
         const response = await fetch(`${origin}/api/quotes/market-price`, {
           method: 'POST',
           headers: {
@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
     const results = await Promise.all(promises);
 
     // 统计成功和失败的数量
-    const successCount = results.filter(r => r.success).length;
-    const failCount = results.filter(r => !r.success).length;
+    const successCount = results.filter((r) => r.success).length;
+    const failCount = results.filter((r) => !r.success).length;
 
     console.log('[BatchMarketPrice] Batch search completed:', {
       total: results.length,
@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
       total: results.length,
       success: successCount,
       failed: failCount,
-      data: results.filter(r => r.success),
-      errors: results.filter(r => !r.success),
+      data: results.filter((r) => r.success),
+      errors: results.filter((r) => !r.success),
     });
   } catch (error) {
     console.error('[BatchMarketPrice] Batch search error:', error);

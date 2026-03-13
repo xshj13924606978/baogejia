@@ -19,19 +19,19 @@ export const PointsManagement: React.FC = () => {
           <TabsTrigger value="config">积分规则配置</TabsTrigger>
           <TabsTrigger value="logs">积分流水</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="levels" className="mt-4">
           <Card>
             <LevelList />
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="config" className="mt-4">
           <Card>
             <PointsConfig />
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="logs" className="mt-4">
           <Card>
             <PointsLog />

@@ -17,14 +17,16 @@ export async function POST(request: NextRequest) {
         taxRate: data.taxRate,
         taxAmount: data.taxAmount,
         totalAmount: data.totalAmount,
-        quoteNumber: data.quoteNumber
-      }
+        quoteNumber: data.quoteNumber,
+      },
     });
-    
   } catch (error) {
     console.error('[Proposal] Generation error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate proposal', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Failed to generate proposal',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 }
     );
   }

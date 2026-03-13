@@ -19,7 +19,7 @@ export function OnlineIndicator({
     userId,
   });
 
-  const isOnline = userId ? onlineUsers.some(u => u.user_id === userId) : isConnected;
+  const isOnline = userId ? onlineUsers.some((u) => u.user_id === userId) : isConnected;
 
   const sizeClasses = {
     sm: 'w-2 h-2',
@@ -35,28 +35,21 @@ export function OnlineIndicator({
 
   return (
     <div className={`flex items-center gap-1.5 ${className}`}>
-      <div
-        className={`relative ${sizeClasses[size]}`}
-        title={isOnline ? '在线' : '离线'}
-      >
+      <div className={`relative ${sizeClasses[size]}`} title={isOnline ? '在线' : '离线'}>
         <div
           className={`absolute inset-0 rounded-full ${
-            isOnline
-              ? 'bg-green-500 animate-pulse'
-              : 'bg-gray-400'
+            isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
           }`}
         />
         {isOnline && (
-          <div
-            className={`absolute inset-0 rounded-full bg-green-500 opacity-75 animate-ping`}
-          />
+          <div className={`absolute inset-0 rounded-full bg-green-500 opacity-75 animate-ping`} />
         )}
       </div>
-      
+
       {showText && (
-        <span className={`${textSizeClasses[size]} ${
-          isOnline ? 'text-green-600' : 'text-gray-400'
-        }`}>
+        <span
+          className={`${textSizeClasses[size]} ${isOnline ? 'text-green-600' : 'text-gray-400'}`}
+        >
           {isOnline ? '在线' : '离线'}
         </span>
       )}
@@ -80,17 +73,13 @@ export function UserOnlineStatus({
 }: UserOnlineStatusProps) {
   const { onlineUsers } = useWebSocket();
 
-  const isOnline = onlineUsers.some(u => u.user_id === userId);
+  const isOnline = onlineUsers.some((u) => u.user_id === userId);
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {avatar && (
         <div className="relative">
-          <img
-            src={avatar}
-            alt={username}
-            className="w-8 h-8 rounded-full"
-          />
+          <img src={avatar} alt={username} className="w-8 h-8 rounded-full" />
           <OnlineIndicator userId={userId} size="sm" className="absolute -bottom-0.5 -right-0.5" />
         </div>
       )}
@@ -106,9 +95,7 @@ export function OnlineUsersCount() {
   return (
     <div className="flex items-center gap-2">
       <OnlineIndicator size="sm" />
-      <span className="text-sm text-gray-600">
-        在线用户: {onlineUsers.length}
-      </span>
+      <span className="text-sm text-gray-600">在线用户: {onlineUsers.length}</span>
     </div>
   );
 }

@@ -14,36 +14,28 @@ export async function GET(request: NextRequest) {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
     }
 
     console.log('[Recommendation API] 获取升级推荐:', currentUser.id);
 
     // 获取升级推荐
-    const recommendation = await userLevelService.recommendLevelUpgrade(
-      Number(currentUser.id)
-    );
+    const recommendation = await userLevelService.recommendLevelUpgrade(Number(currentUser.id));
 
     if (!recommendation) {
       return NextResponse.json({
         success: true,
         recommendation: null,
-        message: '当前已是最高等级或暂无推荐'
+        message: '当前已是最高等级或暂无推荐',
       });
     }
 
     return NextResponse.json({
       success: true,
-      recommendation
+      recommendation,
     });
   } catch (error) {
     console.error('[Recommendation API] 获取推荐失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

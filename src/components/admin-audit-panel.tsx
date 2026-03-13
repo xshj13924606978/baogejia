@@ -1,13 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -16,7 +10,7 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
+  TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,10 +20,16 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Check, X, Eye } from 'lucide-react';
 
@@ -88,7 +88,9 @@ export default function AdminAuditPanel({ userId, userRole }: AdminAuditPanelPro
   const loadAuditData = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/admin/audit?type=${activeTab === 'users' ? 'users' : 'products'}`);
+      const res = await fetch(
+        `/api/admin/audit?type=${activeTab === 'users' ? 'users' : 'products'}`
+      );
       const data = await res.json();
 
       if (data.success) {
@@ -126,8 +128,8 @@ export default function AdminAuditPanel({ userId, userRole }: AdminAuditPanelPro
           target_id: auditDialog.item.id,
           type: auditDialog.type,
           action: auditAction,
-          reason: auditAction === 'approve' ? auditRole : auditReason
-        })
+          reason: auditAction === 'approve' ? auditRole : auditReason,
+        }),
       });
 
       const data = await res.json();
@@ -167,19 +169,13 @@ export default function AdminAuditPanel({ userId, userRole }: AdminAuditPanelPro
       <Card>
         <CardHeader className="bg-gradient-to-r from-[#0a4a7a] to-[#2c8c99] text-white">
           <CardTitle>管理员审核</CardTitle>
-          <CardDescription className="text-white/80">
-            审核用户注册和产品上传
-          </CardDescription>
+          <CardDescription className="text-white/80">审核用户注册和产品上传</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="users">
-                待审核用户 ({users.length})
-              </TabsTrigger>
-              <TabsTrigger value="products">
-                待审核产品 ({products.length})
-              </TabsTrigger>
+              <TabsTrigger value="users">待审核用户 ({users.length})</TabsTrigger>
+              <TabsTrigger value="products">待审核产品 ({products.length})</TabsTrigger>
             </TabsList>
 
             {/* 用户审核 */}
@@ -253,9 +249,7 @@ export default function AdminAuditPanel({ userId, userRole }: AdminAuditPanelPro
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell>{product.brand}</TableCell>
                         <TableCell>{product.model}</TableCell>
-                        <TableCell className="text-[#d32f2f] font-bold">
-                          ¥{product.price}
-                        </TableCell>
+                        <TableCell className="text-[#d32f2f] font-bold">¥{product.price}</TableCell>
                         <TableCell>{product.users?.company}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(product.created_at).toLocaleString('zh-CN')}
@@ -280,12 +274,13 @@ export default function AdminAuditPanel({ userId, userRole }: AdminAuditPanelPro
       </Card>
 
       {/* 审核对话框 */}
-      <Dialog open={auditDialog.open} onOpenChange={(open) => !submitting && setAuditDialog({ ...auditDialog, open })}>
+      <Dialog
+        open={auditDialog.open}
+        onOpenChange={(open) => !submitting && setAuditDialog({ ...auditDialog, open })}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {auditDialog.type === 'user' ? '审核用户' : '审核产品'}
-            </DialogTitle>
+            <DialogTitle>{auditDialog.type === 'user' ? '审核用户' : '审核产品'}</DialogTitle>
             <DialogDescription>
               {auditDialog.type === 'user' ? (
                 <>
@@ -364,7 +359,13 @@ export default function AdminAuditPanel({ userId, userRole }: AdminAuditPanelPro
               disabled={submitting || (auditAction === 'reject' && !auditReason)}
               className={auditAction === 'approve' ? 'bg-[#2c8c99]' : 'bg-red-500'}
             >
-              {submitting ? '处理中...' : auditAction === 'approve' ? <Check className="h-4 w-4 mr-2" /> : <X className="h-4 w-4 mr-2" />}
+              {submitting ? (
+                '处理中...'
+              ) : auditAction === 'approve' ? (
+                <Check className="h-4 w-4 mr-2" />
+              ) : (
+                <X className="h-4 w-4 mr-2" />
+              )}
               {submitting ? '处理中' : auditAction === 'approve' ? '通过' : '拒绝'}
             </Button>
           </DialogFooter>

@@ -29,10 +29,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ terms });
   } catch (error) {
     console.error('Failed to load terms:', error);
-    return NextResponse.json(
-      { error: 'Failed to load terms' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to load terms' }, { status: 500 });
   }
 }
 
@@ -108,9 +105,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ term });
   } catch (error) {
     console.error('Failed to save term:', error);
-    return NextResponse.json(
-      { error: 'Failed to save term' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to save term' }, { status: 500 });
   }
 }

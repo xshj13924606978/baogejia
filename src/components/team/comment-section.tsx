@@ -136,7 +136,7 @@ export function CommentSection({ teamId, targetType }: CommentSectionProps) {
 
       const result = await response.json();
       if (result.success) {
-        setComments(comments.filter(c => c.id !== commentId));
+        setComments(comments.filter((c) => c.id !== commentId));
       } else {
         alert(result.error || '删除评论失败');
       }
@@ -164,9 +164,7 @@ export function CommentSection({ teamId, targetType }: CommentSectionProps) {
 
       const result = await response.json();
       if (result.success) {
-        setComments(
-          comments.map(c => (c.id === commentId ? { ...c, content: editContent } : c))
-        );
+        setComments(comments.map((c) => (c.id === commentId ? { ...c, content: editContent } : c)));
         setEditingComment(null);
         setEditContent('');
       } else {
@@ -187,9 +185,7 @@ export function CommentSection({ teamId, targetType }: CommentSectionProps) {
     >
       <div className="flex items-start space-x-3">
         <Avatar className="h-8 w-8">
-          <AvatarFallback>
-            {comment.userName[0]?.toUpperCase()}
-          </AvatarFallback>
+          <AvatarFallback>{comment.userName[0]?.toUpperCase()}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <div className="flex items-center space-x-2 mb-2">
@@ -247,19 +243,13 @@ export function CommentSection({ teamId, targetType }: CommentSectionProps) {
                 >
                   {submitting ? '保存中...' : '保存'}
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setEditingComment(null)}
-                >
+                <Button size="sm" variant="outline" onClick={() => setEditingComment(null)}>
                   取消
                 </Button>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">
-              {comment.content}
-            </p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.content}</p>
           )}
 
           {replyingTo === comment.id && (
@@ -278,11 +268,7 @@ export function CommentSection({ teamId, targetType }: CommentSectionProps) {
                 >
                   {submitting ? '发表中...' : '发表回复'}
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setReplyingTo(null)}
-                >
+                <Button size="sm" variant="outline" onClick={() => setReplyingTo(null)}>
                   取消
                 </Button>
               </div>
@@ -319,10 +305,7 @@ export function CommentSection({ teamId, targetType }: CommentSectionProps) {
               rows={3}
             />
             <div className="flex justify-end">
-              <Button
-                onClick={handleSubmitComment}
-                disabled={!newComment.trim() || submitting}
-              >
+              <Button onClick={handleSubmitComment} disabled={!newComment.trim() || submitting}>
                 <MessageSquare className="h-4 w-4 mr-2" />
                 {submitting ? '发表中...' : '发表评论'}
               </Button>
@@ -334,13 +317,9 @@ export function CommentSection({ teamId, targetType }: CommentSectionProps) {
       {/* 评论列表 */}
       <div className="border-t pt-4">
         {comments.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            暂无评论，发表第一条评论吧
-          </div>
+          <div className="text-center py-8 text-gray-500">暂无评论，发表第一条评论吧</div>
         ) : (
-          <div className="space-y-2">
-            {comments.map((comment) => renderComment(comment))}
-          </div>
+          <div className="space-y-2">{comments.map((comment) => renderComment(comment))}</div>
         )}
       </div>
     </div>

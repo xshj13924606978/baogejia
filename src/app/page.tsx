@@ -29,22 +29,28 @@ export default function Home() {
       setCurrentConversationTitle(title);
     };
 
-    window.addEventListener('conversation-title-changed', handleConversationTitleChange as EventListener);
+    window.addEventListener(
+      'conversation-title-changed',
+      handleConversationTitleChange as EventListener
+    );
     return () => {
-      window.removeEventListener('conversation-title-changed', handleConversationTitleChange as EventListener);
+      window.removeEventListener(
+        'conversation-title-changed',
+        handleConversationTitleChange as EventListener
+      );
     };
   }, []);
 
   // 标记组件已初始化
   useEffect(() => {
     setIsInitialized(true);
-    
+
     // 从本地存储读取侧边栏状态
     const savedState = localStorage.getItem('sidebar-collapsed');
     if (savedState) {
       setIsCollapsed(savedState === 'true');
     }
-    
+
     console.log('[Home] 组件初始化，isCollapsed:', isCollapsed);
   }, []);
 
@@ -61,7 +67,7 @@ export default function Home() {
     setSelectedConversationId(null);
     setCurrentConversationTitle('新对话');
     window.dispatchEvent(new CustomEvent('new-conversation'));
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   const handleSelectConversation = (id: string | null) => {
@@ -76,11 +82,15 @@ export default function Home() {
         <SwitchProvider>
           <div className="flex h-screen bg-white dark:bg-gray-950 w-full overflow-hidden">
             {/* 桌面端侧边栏 - 分栏线只在展开时显示 */}
-            <aside className={cn(
-              "hidden lg:flex lg:flex-col bg-gray-50/50 dark:bg-gray-900/50 transition-all duration-300",
-              isCollapsed ? "lg:w-16" : "lg:w-72 lg:border-r lg:border-gray-200 dark:lg:border-gray-800",
-              "flex-shrink-0 h-full"
-            )}>
+            <aside
+              className={cn(
+                'hidden lg:flex lg:flex-col bg-gray-50/50 dark:bg-gray-900/50 transition-all duration-300',
+                isCollapsed
+                  ? 'lg:w-16'
+                  : 'lg:w-72 lg:border-r lg:border-gray-200 dark:lg:border-gray-800',
+                'flex-shrink-0 h-full'
+              )}
+            >
               {/* Logo区域 - 包含收起/展开按钮 */}
               <div className="h-16 flex items-center border-b border-gray-200 dark:border-gray-800 px-4 flex-shrink-0">
                 <div className="flex items-center justify-between w-full gap-2">
@@ -89,7 +99,9 @@ export default function Home() {
                       <span className="text-white font-bold text-lg">报</span>
                     </div>
                     {!isCollapsed && (
-                      <span className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">报个价</span>
+                      <span className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
+                        报个价
+                      </span>
                     )}
                   </div>
 
@@ -141,12 +153,14 @@ export default function Home() {
                     <div className="relative h-10 w-10 overflow-hidden rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center flex-shrink-0">
                       <span className="text-white font-bold text-xl">报</span>
                     </div>
-                    <span className="text-xl font-bold text-gray-900 dark:text-gray-100 truncate">报个价</span>
+                    <span className="text-xl font-bold text-gray-900 dark:text-gray-100 truncate">
+                      报个价
+                    </span>
                   </div>
-                  
+
                   <div className="flex-1 overflow-hidden min-h-0">
                     <ScrollArea className="h-full">
-                      <ConversationList 
+                      <ConversationList
                         selectedConversationId={selectedConversationId}
                         onSelectConversation={handleSelectConversation}
                         onNewConversation={handleNewConversation}
@@ -189,7 +203,9 @@ export default function Home() {
                   <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-bold text-sm">报</span>
                   </div>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">报个价</span>
+                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
+                    报个价
+                  </span>
                 </div>
                 <Button
                   variant="ghost"

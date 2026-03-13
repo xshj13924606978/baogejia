@@ -7,11 +7,11 @@ import * as path from 'path';
 const escapeHtml = (unsafe: string): string => {
   if (!unsafe) return '-';
   return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 };
 
 // 处理产品名称，将换行符转换为空格
@@ -42,31 +42,31 @@ const formatAmountToChinese = (amount: number) => {
   const digitUppercase = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
   const unit = ['', '拾', '佰', '仟'];
   const bigUnit = ['', '万', '亿', '万亿'];
-  
+
   const amountStr = amount.toFixed(2);
   const [integerPart, decimalPart] = amountStr.split('.');
-  
+
   if (parseInt(integerPart) === 0 && parseInt(decimalPart) === 0) {
     return '零元整';
   }
-  
+
   // 处理整数部分
   const integer = parseInt(integerPart);
   if (integer === 0) {
     return '零元' + (parseInt(decimalPart) > 0 ? '' : '整');
   }
-  
+
   const integerStr = integer.toString();
   const len = integerStr.length;
   let result = '';
   let zeroFlag = false;
-  
+
   for (let i = 0; i < len; i++) {
     const digit = parseInt(integerStr[i]);
     const pos = len - i - 1;
     const section = Math.floor(pos / 4);
     const unitPos = pos % 4;
-    
+
     if (digit !== 0) {
       if (zeroFlag) {
         result += '零';
@@ -76,20 +76,20 @@ const formatAmountToChinese = (amount: number) => {
     } else {
       zeroFlag = true;
     }
-    
+
     // 处理万、亿等单位
     if (unitPos === 0 && pos > 0) {
       result += bigUnit[section];
       zeroFlag = false;
     }
   }
-  
+
   result += '元';
-  
+
   // 处理小数部分
   const jiao = parseInt(decimalPart[0]);
   const fen = parseInt(decimalPart[1]);
-  
+
   if (jiao === 0 && fen === 0) {
     result += '整';
   } else {
@@ -100,13 +100,13 @@ const formatAmountToChinese = (amount: number) => {
       result += digitUppercase[fen] + '分';
     }
   }
-  
+
   return result;
 };
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  
+
   try {
     const data = await request.json();
     console.log('[ExportPDF] ==========================================');
@@ -142,8 +142,12 @@ export async function POST(request: NextRequest) {
     console.log('[ExportPDF] 数据验证通过');
 
     // 获取联系人信息
-    const contactPerson = projectFields?.find((f: any) => f.name === '联系人')?.value || customerInfo.contactPerson || '';
-    const phone = projectFields?.find((f: any) => f.name === '电话')?.value || customerInfo.phone || '';
+    const contactPerson =
+      projectFields?.find((f: any) => f.name === '联系人')?.value ||
+      customerInfo.contactPerson ||
+      '';
+    const phone =
+      projectFields?.find((f: any) => f.name === '电话')?.value || customerInfo.phone || '';
 
     // 预处理产品数据
     console.log('[ExportPDF] 开始预处理产品数据...');
@@ -620,7 +624,9 @@ export async function POST(request: NextRequest) {
         </tr>
       </thead>
       <tbody>
-        ${processedProducts.map((product: any, index: number) => `
+        ${processedProducts
+          .map(
+            (product: any, index: number) => `
           <tr>
             <td>${index + 1}</td>
             <td>
@@ -634,7 +640,9 @@ export async function POST(request: NextRequest) {
             <td>¥${product.unitPrice.toFixed(2)}</td>
             <td>¥${product.totalPrice.toFixed(2)}</td>
           </tr>
-        `).join('')}
+        `
+          )
+          .join('')}
       </tbody>
     </table>
     
@@ -674,11 +682,15 @@ export async function POST(request: NextRequest) {
     </div>
     
     <!-- 备注 -->
-    ${notes ? `
+    ${
+      notes
+        ? `
     <div class="note-box">
       <strong>备注：</strong> ${formatText(notes)}
     </div>
-    ` : ''}
+    `
+        : ''
+    }
     
     <!-- 商务条款 -->
     <h2 class="section-title">商务条款</h2>
@@ -720,7 +732,7 @@ export async function POST(request: NextRequest) {
     console.log('[ExportPDF] ==========================================');
     console.log('[ExportPDF] 启动Puppeteer浏览器...');
     const browserLaunchStart = Date.now();
-    
+
     const browser = await puppeteer.launch({
       headless: true,
       args: [
@@ -732,28 +744,28 @@ export async function POST(request: NextRequest) {
         '--no-zygote',
         '--disable-gpu',
         '--font-render-hinting=none',
-        '--disable-features=IsolateOrigins,site-per-process'
-      ]
+        '--disable-features=IsolateOrigins,site-per-process',
+      ],
     });
-    
+
     const browserLaunchTime = Date.now() - browserLaunchStart;
     console.log('[ExportPDF] 浏览器启动耗时:', browserLaunchTime, 'ms');
-    
+
     console.log('[ExportPDF] 创建新页面...');
     const page = await browser.newPage();
-    
+
     // 设置视口
     await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 2 });
-    
+
     console.log('[ExportPDF] 设置HTML内容...');
     const setContentStart = Date.now();
-    await page.setContent(htmlTemplate, { 
+    await page.setContent(htmlTemplate, {
       waitUntil: 'networkidle0',
-      timeout: 30000
+      timeout: 30000,
     });
     const setContentTime = Date.now() - setContentStart;
     console.log('[ExportPDF] HTML内容设置耗时:', setContentTime, 'ms');
-    
+
     console.log('[ExportPDF] 开始生成PDF...');
     const pdfStart = Date.now();
     const pdfBuffer = await page.pdf({
@@ -764,16 +776,16 @@ export async function POST(request: NextRequest) {
         top: '15mm',
         right: '15mm',
         bottom: '15mm',
-        left: '15mm'
+        left: '15mm',
       },
-      preferCSSPageSize: true
+      preferCSSPageSize: true,
     });
     const pdfTime = Date.now() - pdfStart;
     console.log('[ExportPDF] PDF生成耗时:', pdfTime, 'ms');
-    
+
     console.log('[ExportPDF] 关闭浏览器...');
     await browser.close();
-    
+
     const totalTime = Date.now() - startTime;
     console.log('[ExportPDF] ==========================================');
     console.log('[ExportPDF] PDF生成成功！');
@@ -796,14 +808,13 @@ export async function POST(request: NextRequest) {
         'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
         'Content-Length': pdfBuffer.length.toString(),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        Pragma: 'no-cache',
+        Expires: '0',
       },
     });
 
     console.log('[ExportPDF] 响应已准备就绪');
     return response;
-
   } catch (error) {
     const errorTime = Date.now() - startTime;
     console.error('[ExportPDF] ==========================================');
@@ -812,12 +823,12 @@ export async function POST(request: NextRequest) {
     console.error('[ExportPDF] 错误信息:', error instanceof Error ? error.message : '未知错误');
     console.error('[ExportPDF] 错误堆栈:', error instanceof Error ? error.stack : '无堆栈信息');
     console.error('[ExportPDF] ==========================================');
-    
+
     return NextResponse.json(
-      { 
-        error: 'PDF生成失败', 
+      {
+        error: 'PDF生成失败',
         message: error instanceof Error ? error.message : '未知错误',
-        details: error instanceof Error ? error.stack : ''
+        details: error instanceof Error ? error.stack : '',
       },
       { status: 500 }
     );

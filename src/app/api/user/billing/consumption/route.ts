@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth-utils';
 
 /**
  * 用户消费记录API
- * 
+ *
  * 功能：
  * - GET: 获取用户消费记录
  */
@@ -14,10 +14,7 @@ export async function GET(request: NextRequest) {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
     }
 
     // 获取查询参数
@@ -37,13 +34,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: logs,
-      total: logs.length
+      total: logs.length,
     });
   } catch (error) {
     console.error('[UserConsumption API] 获取消费记录异常:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

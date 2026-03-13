@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
     console.log('[RealUploadTest] 文件信息:', {
       size: buffer.length,
-      path: fileKey
+      path: fileKey,
     });
 
     // 1. 使用 anon key 尝试上传
@@ -37,14 +37,11 @@ export async function POST(request: Request) {
     let uploadData: any = null;
 
     try {
-      const result = await anonClient
-        .storage
-        .from('quote-files')
-        .upload(fileKey, buffer, {
-          contentType: 'text/plain',
-          cacheControl: '3600',
-          upsert: false
-        });
+      const result = await anonClient.storage.from('quote-files').upload(fileKey, buffer, {
+        contentType: 'text/plain',
+        cacheControl: '3600',
+        upsert: false,
+      });
 
       uploadData = result.data;
       uploadError = result.error;
@@ -63,17 +60,16 @@ export async function POST(request: Request) {
         const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
           auth: {
             autoRefreshToken: false,
-            persistSession: false
-          }
+            persistSession: false,
+          },
         });
 
-        const retryResult = await serviceClient
-          .storage
+        const retryResult = await serviceClient.storage
           .from('quote-files')
           .upload(fileKey, buffer, {
             contentType: 'text/plain',
             cacheControl: '3600',
-            upsert: false
+            upsert: false,
           });
 
         uploadData = retryResult.data;
@@ -81,39 +77,39 @@ export async function POST(request: Request) {
 
         if (uploadError) {
           console.error('[RealUploadTest] Service role 上传也失败:', uploadError);
-          return NextResponse.json({
-            success: false,
-            error: 'Service role upload failed',
-            details: uploadError.message
-          }, { status: 500 });
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Service role upload failed',
+              details: uploadError.message,
+            },
+            { status: 500 }
+          );
         }
 
         console.log('[RealUploadTest] Service role 上传成功!');
       } else {
         console.error('[RealUploadTest] 上传失败（非 bucket 问题）:', uploadError);
-        return NextResponse.json({
-          success: false,
-          error: 'Upload failed',
-          details: uploadError.message
-        }, { status: 500 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Upload failed',
+            details: uploadError.message,
+          },
+          { status: 500 }
+        );
       }
     } else {
       console.log('[RealUploadTest] Anon 上传成功!');
     }
 
     // 3. 获取公共 URL
-    const { data: urlData } = anonClient
-      .storage
-      .from('quote-files')
-      .getPublicUrl(fileKey);
+    const { data: urlData } = anonClient.storage.from('quote-files').getPublicUrl(fileKey);
 
     console.log('[RealUploadTest] 公开 URL:', urlData.publicUrl);
 
     // 4. 清理测试文件
-    await anonClient
-      .storage
-      .from('quote-files')
-      .remove([fileKey]);
+    await anonClient.storage.from('quote-files').remove([fileKey]);
 
     console.log('[RealUploadTest] 测试文件已清理');
 
@@ -123,17 +119,19 @@ export async function POST(request: Request) {
       uploadInfo: {
         fileKey,
         publicUrl: urlData.publicUrl,
-        size: buffer.length
-      }
+        size: buffer.length,
+      },
     });
-
   } catch (error: any) {
     console.error('[RealUploadTest] 测试失败:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Test failed',
-      message: error.message,
-      stack: error.stack
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Test failed',
+        message: error.message,
+        stack: error.stack,
+      },
+      { status: 500 }
+    );
   }
 }

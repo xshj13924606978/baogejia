@@ -6,33 +6,35 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Building2, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Banknote, 
-  Receipt, 
+import {
+  Building2,
+  Phone,
+  Mail,
+  MapPin,
+  Banknote,
+  Receipt,
   FileText,
   Edit2,
   Save,
-  X
+  X,
 } from 'lucide-react';
 import { useQuote } from '@/contexts/QuoteContext';
 
 export default function SupplierPanel() {
   const { quoteData, updateSupplierInfo } = useQuote();
   const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState(quoteData?.supplierInfo || {
-    companyName: '兴绿环境科技有限公司',
-    contactPerson: '张经理',
-    phone: '021-12345678',
-    email: 'zhang@xinglv.com',
-    address: '上海市浦东新区xx路123号',
-    bankName: '中国建设银行上海分行',
-    bankAccount: '3100 1234 5678 9012 345',
-    taxNumber: '91310115MA1H123456'
-  });
+  const [formData, setFormData] = useState(
+    quoteData?.supplierInfo || {
+      companyName: '兴绿环境科技有限公司',
+      contactPerson: '张经理',
+      phone: '021-12345678',
+      email: 'zhang@xinglv.com',
+      address: '上海市浦东新区xx路123号',
+      bankName: '中国建设银行上海分行',
+      bankAccount: '3100 1234 5678 9012 345',
+      taxNumber: '91310115MA1H123456',
+    }
+  );
 
   // 同步 quoteData 的变化到表单
   useEffect(() => {
@@ -81,9 +83,9 @@ export default function SupplierPanel() {
           <div className="space-y-2">
             <Label className="text-xs">公司名称</Label>
             {editing ? (
-              <Input 
-                value={formData.companyName} 
-                onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+              <Input
+                value={formData.companyName}
+                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                 className="h-8 text-sm"
               />
             ) : (
@@ -93,9 +95,9 @@ export default function SupplierPanel() {
           <div className="space-y-2">
             <Label className="text-xs">联系人</Label>
             {editing ? (
-              <Input 
-                value={formData.contactPerson} 
-                onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
+              <Input
+                value={formData.contactPerson}
+                onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
                 className="h-8 text-sm"
               />
             ) : (
@@ -107,9 +109,9 @@ export default function SupplierPanel() {
               <Phone className="h-3 w-3" /> 电话
             </Label>
             {editing ? (
-              <Input 
-                value={formData.phone} 
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+              <Input
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="h-8 text-sm"
               />
             ) : (
@@ -121,9 +123,9 @@ export default function SupplierPanel() {
               <Mail className="h-3 w-3" /> 邮箱
             </Label>
             {editing ? (
-              <Input 
-                value={formData.email} 
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
+              <Input
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="h-8 text-sm"
               />
             ) : (
@@ -135,9 +137,9 @@ export default function SupplierPanel() {
               <MapPin className="h-3 w-3" /> 地址
             </Label>
             {editing ? (
-              <Input 
-                value={formData.address} 
-                onChange={(e) => setFormData({...formData, address: e.target.value})}
+              <Input
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 className="h-8 text-sm"
               />
             ) : (
@@ -154,9 +156,9 @@ export default function SupplierPanel() {
                 <Banknote className="h-3 w-3" /> 开户银行
               </Label>
               {editing ? (
-                <Input 
-                  value={formData.bankName} 
-                  onChange={(e) => setFormData({...formData, bankName: e.target.value})}
+                <Input
+                  value={formData.bankName}
+                  onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
                   className="h-8 text-sm"
                 />
               ) : (
@@ -168,9 +170,9 @@ export default function SupplierPanel() {
                 <Receipt className="h-3 w-3" /> 银行账号
               </Label>
               {editing ? (
-                <Input 
-                  value={formData.bankAccount} 
-                  onChange={(e) => setFormData({...formData, bankAccount: e.target.value})}
+                <Input
+                  value={formData.bankAccount}
+                  onChange={(e) => setFormData({ ...formData, bankAccount: e.target.value })}
                   className="h-8 text-sm"
                 />
               ) : (
@@ -182,9 +184,9 @@ export default function SupplierPanel() {
                 <FileText className="h-3 w-3" /> 税号
               </Label>
               {editing ? (
-                <Input 
-                  value={formData.taxNumber} 
-                  onChange={(e) => setFormData({...formData, taxNumber: e.target.value})}
+                <Input
+                  value={formData.taxNumber}
+                  onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
                   className="h-8 text-sm"
                 />
               ) : (

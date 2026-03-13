@@ -22,12 +22,12 @@ interface VerificationDialogProps {
   onVerified: () => void;
 }
 
-export function VerificationDialog({ 
-  open, 
-  onOpenChange, 
-  email, 
+export function VerificationDialog({
+  open,
+  onOpenChange,
+  email,
   expectedCode,
-  onVerified 
+  onVerified,
 }: VerificationDialogProps) {
   const { toast } = useToast();
   const { verifyEmail, sendEmailVerification } = useUser();
@@ -40,23 +40,23 @@ export function VerificationDialog({
   const handleVerify = async () => {
     if (!code || code.length !== 6) {
       toast({
-        title: "请输入6位验证码",
-        variant: "destructive",
+        title: '请输入6位验证码',
+        variant: 'destructive',
         duration: 2000,
       });
       return;
     }
 
     setStep('verifying');
-    
+
     try {
       const success = await verifyEmail(email, code);
-      
+
       if (success) {
         setStep('success');
         toast({
-          title: "验证成功",
-          description: "您的邮箱已成功验证",
+          title: '验证成功',
+          description: '您的邮箱已成功验证',
           duration: 2000,
         });
         setTimeout(() => {
@@ -65,9 +65,9 @@ export function VerificationDialog({
       } else {
         setStep('error');
         toast({
-          title: "验证失败",
-          description: "验证码错误或已过期",
-          variant: "destructive",
+          title: '验证失败',
+          description: '验证码错误或已过期',
+          variant: 'destructive',
           duration: 2000,
         });
         setTimeout(() => setStep('input'), 2000);
@@ -82,12 +82,12 @@ export function VerificationDialog({
   const handleResend = async () => {
     setCountdown(60);
     setCanResend(false);
-    
+
     const result = await sendEmailVerification(email);
-    
+
     toast({
-      title: "验证码已重新发送",
-      description: result.code ? `验证码: ${result.code}` : "请查收邮件",
+      title: '验证码已重新发送',
+      description: result.code ? `验证码: ${result.code}` : '请查收邮件',
       duration: 3000,
     });
   };
@@ -100,7 +100,7 @@ export function VerificationDialog({
     }
 
     const timer = setInterval(() => {
-      setCountdown(prev => prev - 1);
+      setCountdown((prev) => prev - 1);
     }, 1000);
 
     return () => clearInterval(timer);
@@ -127,9 +127,7 @@ export function VerificationDialog({
           <DialogDescription>
             验证码已发送至 <span className="font-medium text-blue-600">{email}</span>
             {expectedCode && (
-              <span className="block mt-1 text-xs text-gray-500">
-                调试验证码: {expectedCode}
-              </span>
+              <span className="block mt-1 text-xs text-gray-500">调试验证码: {expectedCode}</span>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -147,7 +145,7 @@ export function VerificationDialog({
                 autoFocus
               />
             </div>
-            
+
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-500">
                 {countdown > 0 ? `${countdown}秒后可重新发送` : '验证码已过期'}
@@ -163,11 +161,7 @@ export function VerificationDialog({
               </button>
             </div>
 
-            <Button 
-              onClick={handleVerify} 
-              className="w-full"
-              disabled={code.length !== 6}
-            >
+            <Button onClick={handleVerify} className="w-full" disabled={code.length !== 6}>
               验证
             </Button>
           </div>

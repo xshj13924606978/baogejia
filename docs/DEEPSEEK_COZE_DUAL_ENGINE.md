@@ -10,16 +10,16 @@
 
 ### 双引擎分工
 
-| 功能 | 主要服务 | 辅助服务 | 说明 |
-|------|---------|---------|------|
-| **对话理解** | ✅ DeepSeek | - | 智能语义理解、意图识别 |
-| **技术方案生成** | ✅ DeepSeek | - | 生成完整技术方案和配置清单 |
-| **报价单生成** | ✅ DeepSeek | - | 基于产品清单生成报价 |
-| **市场价格查询** | - | ✅ Coze Web Search | 联网搜索实时市场价格 |
-| **相似产品推荐** | 降级选项 | ✅ Coze Embedding | 向量搜索推荐相似产品 |
-| **产品图生成** | - | ✅ Coze Image Generation | 自动生成产品展示图 |
-| **价格优化建议** | ✅ DeepSeek | ✅ Coze Web Search | 结合市场数据和智能分析 |
-| **报价增强** | ✅ DeepSeek | ✅ Coze (全部工具) | 组合使用双引擎能力 |
+| 功能             | 主要服务    | 辅助服务                 | 说明                       |
+| ---------------- | ----------- | ------------------------ | -------------------------- |
+| **对话理解**     | ✅ DeepSeek | -                        | 智能语义理解、意图识别     |
+| **技术方案生成** | ✅ DeepSeek | -                        | 生成完整技术方案和配置清单 |
+| **报价单生成**   | ✅ DeepSeek | -                        | 基于产品清单生成报价       |
+| **市场价格查询** | -           | ✅ Coze Web Search       | 联网搜索实时市场价格       |
+| **相似产品推荐** | 降级选项    | ✅ Coze Embedding        | 向量搜索推荐相似产品       |
+| **产品图生成**   | -           | ✅ Coze Image Generation | 自动生成产品展示图         |
+| **价格优化建议** | ✅ DeepSeek | ✅ Coze Web Search       | 结合市场数据和智能分析     |
+| **报价增强**     | ✅ DeepSeek | ✅ Coze (全部工具)       | 组合使用双引擎能力         |
 
 ---
 
@@ -44,16 +44,16 @@ console.log(selection);
 
 ### 任务类型映射
 
-| 任务类型 | 首选服务 | 降级策略 |
-|---------|---------|---------|
-| `chat` | DeepSeek | → Coze（如 DeepSeek 不可用） |
-| `technical-proposal` | DeepSeek | → Coze |
-| `quote-generation` | DeepSeek | → Coze |
-| `market-price` | Coze Web Search | → DeepSeek（关键词匹配） |
-| `similar-products` | Coze Embedding | → DeepSeek（文本匹配） |
-| `product-image` | Coze Image Generation | → 无替代方案 |
-| `quote-enhancement` | DeepSeek + Coze | → 单独使用可用服务 |
-| `price-optimization` | DeepSeek | → 不可用则跳过 |
+| 任务类型             | 首选服务              | 降级策略                     |
+| -------------------- | --------------------- | ---------------------------- |
+| `chat`               | DeepSeek              | → Coze（如 DeepSeek 不可用） |
+| `technical-proposal` | DeepSeek              | → Coze                       |
+| `quote-generation`   | DeepSeek              | → Coze                       |
+| `market-price`       | Coze Web Search       | → DeepSeek（关键词匹配）     |
+| `similar-products`   | Coze Embedding        | → DeepSeek（文本匹配）       |
+| `product-image`      | Coze Image Generation | → 无替代方案                 |
+| `quote-enhancement`  | DeepSeek + Coze       | → 单独使用可用服务           |
+| `price-optimization` | DeepSeek              | → 不可用则跳过               |
 
 ### 故障降级流程
 
@@ -79,9 +79,7 @@ console.log(selection);
 
 ```typescript
 // 用户发送消息
-const response = await smartChatProcessor.process(
-  "我需要一个60吨/天的污水处理方案"
-);
+const response = await smartChatProcessor.process('我需要一个60吨/天的污水处理方案');
 
 // 自动选择：DeepSeek
 // 原因：对话理解和方案生成适合 DeepSeek 的语义理解能力
@@ -92,15 +90,12 @@ const response = await smartChatProcessor.process(
 
 ```typescript
 // 增强报价单
-const result = await quoteEnhancer.enhanceQuote(
-  products,
-  {
-    enableMarketPrice: true,        // 使用 Coze Web Search
-    enableSimilarProducts: true,    // 使用 Coze Embedding
-    enableProductImages: false,     // 不生成产品图
-    enablePriceOptimization: true,  // 使用 DeepSeek 智能建议
-  }
-);
+const result = await quoteEnhancer.enhanceQuote(products, {
+  enableMarketPrice: true, // 使用 Coze Web Search
+  enableSimilarProducts: true, // 使用 Coze Embedding
+  enableProductImages: false, // 不生成产品图
+  enablePriceOptimization: true, // 使用 DeepSeek 智能建议
+});
 
 // 结果包含：
 // - products[].marketPrice (Coze 联网搜索)
@@ -198,13 +193,13 @@ ENABLE_COZE_IMAGE_GENERATION=false
 
 ### 配置状态
 
-| 服务 | API Key | 状态 | 可用功能 |
-|------|---------|------|---------|
-| **DeepSeek** | ✅ 已配置 | ✅ 正常 | 对话、方案、报价、价格优化 |
-| **Coze** | ⏳ 待配置 | ⚪ 未启用 | - |
-| **Coze Web Search** | ⏳ 待配置 | ⚪ 未启用 | 市场价格查询 |
-| **Coze Embedding** | ⏳ 待配置 | ⚪ 未启用 | 相似产品推荐 |
-| **Coze Image Generation** | ⏳ 待配置 | ⚪ 未启用 | 产品图生成 |
+| 服务                      | API Key   | 状态      | 可用功能                   |
+| ------------------------- | --------- | --------- | -------------------------- |
+| **DeepSeek**              | ✅ 已配置 | ✅ 正常   | 对话、方案、报价、价格优化 |
+| **Coze**                  | ⏳ 待配置 | ⚪ 未启用 | -                          |
+| **Coze Web Search**       | ⏳ 待配置 | ⚪ 未启用 | 市场价格查询               |
+| **Coze Embedding**        | ⏳ 待配置 | ⚪ 未启用 | 相似产品推荐               |
+| **Coze Image Generation** | ⏳ 待配置 | ⚪ 未启用 | 产品图生成                 |
 
 ---
 
@@ -217,11 +212,12 @@ ENABLE_COZE_IMAGE_GENERATION=false
    - 创建应用并获取 API Key
 
 2. **更新 .env.local**（30秒）
+
    ```env
    COZE_API_KEY=your_actual_api_key
    COZE_BOT_ID=your_actual_bot_id
    COZE_WORKSPACE_ID=your_actual_workspace_id
-   
+
    ENABLE_COZE_TOOLS=true
    ENABLE_COZE_WEB_SEARCH=true
    ENABLE_COZE_EMBEDDING=true
@@ -236,6 +232,7 @@ ENABLE_COZE_IMAGE_GENERATION=false
 ### 启用后的能力对比
 
 #### 启用前（仅 DeepSeek）
+
 - ✅ 智能对话理解
 - ✅ 技术方案生成
 - ✅ 报价单生成
@@ -245,6 +242,7 @@ ENABLE_COZE_IMAGE_GENERATION=false
 - ✅ 基础价格优化建议（基于行业经验）
 
 #### 启用后（DeepSeek + Coze）
+
 - ✅ 智能对话理解（DeepSeek）
 - ✅ 技术方案生成（DeepSeek）
 - ✅ 报价单生成（DeepSeek）
@@ -254,6 +252,7 @@ ENABLE_COZE_IMAGE_GENERATION=false
 - ✅ 智能价格优化建议（DeepSeek + 市场数据）
 
 **预期提升**：
+
 - 报价准确度：↑ 40%
 - 工作效率：↑ 60%
 - 竞争力：↑ 50%
@@ -265,6 +264,7 @@ ENABLE_COZE_IMAGE_GENERATION=false
 ### 何时使用双引擎
 
 ✅ **推荐启用 Coze 的情况**：
+
 - 需要实时市场价格数据
 - 需要智能相似产品推荐
 - 需要自动生成产品展示图
@@ -272,6 +272,7 @@ ENABLE_COZE_IMAGE_GENERATION=false
 - 需要快速响应市场变化
 
 ✅ **仅使用 DeepSeek 即可**：
+
 - 仅需要对话理解和方案生成
 - 已有完整的产品数据库
 - 产品图由其他方式提供
@@ -343,4 +344,4 @@ curl -X POST http://localhost:5000/api/chat \
 
 ---
 
-*最后更新：2024-01-XX*
+_最后更新：2024-01-XX_

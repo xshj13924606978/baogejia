@@ -7,7 +7,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { TrendingUp, Users, DollarSign, Activity, Calendar, Download } from 'lucide-react';
 import {
   LineChart,
@@ -93,9 +99,13 @@ export default function AnalyticsPage() {
 
       // 并行获取所有数据
       const [funnelRes, retentionRes, revenueRes] = await Promise.all([
-        fetch(`/api/analytics/funnel?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
+        fetch(
+          `/api/analytics/funnel?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+        ),
         fetch(`/api/analytics/retention?days=7&limit=30`),
-        fetch(`/api/analytics/revenue?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
+        fetch(
+          `/api/analytics/revenue?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+        ),
       ]);
 
       const [funnelData, retentionData, revenueData] = await Promise.all([
@@ -162,9 +172,7 @@ export default function AnalyticsPage() {
   if (!data) {
     return (
       <div className="p-8">
-        <div className="text-center text-gray-500 py-8">
-          暂无分析数据
-        </div>
+        <div className="text-center text-gray-500 py-8">暂无分析数据</div>
       </div>
     );
   }
@@ -204,9 +212,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.stats.totalUsers.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              +{data.stats.newUsers} 新增
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">+{data.stats.newUsers} 新增</p>
           </CardContent>
         </Card>
 
@@ -230,9 +236,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">¥{data.stats.totalRevenue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {data.summary.totalOrders} 单
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">{data.summary.totalOrders} 单</p>
           </CardContent>
         </Card>
 
@@ -243,9 +247,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.stats.conversionRate.toFixed(2)}%</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              访问→付费
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">访问→付费</p>
           </CardContent>
         </Card>
 
@@ -255,10 +257,10 @@ export default function AnalyticsPage() {
             <Calendar className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">¥{data.summary.averageOrderValue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              平均订单价值
-            </p>
+            <div className="text-2xl font-bold">
+              ¥{data.summary.averageOrderValue.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">平均订单价值</p>
           </CardContent>
         </Card>
       </div>
@@ -372,19 +374,31 @@ export default function AnalyticsPage() {
                 <div className="p-4 bg-blue-50 rounded-lg">
                   <div className="text-sm text-gray-600 mb-1">平均次日留存</div>
                   <div className="text-2xl font-bold text-blue-600">
-                    {(data.retention.reduce((sum, r) => sum + r.retentionRate1, 0) / data.retention.length).toFixed(2)}%
+                    {(
+                      data.retention.reduce((sum, r) => sum + r.retentionRate1, 0) /
+                      data.retention.length
+                    ).toFixed(2)}
+                    %
                   </div>
                 </div>
                 <div className="p-4 bg-green-50 rounded-lg">
                   <div className="text-sm text-gray-600 mb-1">平均7日留存</div>
                   <div className="text-2xl font-bold text-green-600">
-                    {(data.retention.reduce((sum, r) => sum + r.retentionRate7, 0) / data.retention.length).toFixed(2)}%
+                    {(
+                      data.retention.reduce((sum, r) => sum + r.retentionRate7, 0) /
+                      data.retention.length
+                    ).toFixed(2)}
+                    %
                   </div>
                 </div>
                 <div className="p-4 bg-orange-50 rounded-lg">
                   <div className="text-sm text-gray-600 mb-1">平均30日留存</div>
                   <div className="text-2xl font-bold text-orange-600">
-                    {(data.retention.reduce((sum, r) => sum + r.retentionRate30, 0) / data.retention.length).toFixed(2)}%
+                    {(
+                      data.retention.reduce((sum, r) => sum + r.retentionRate30, 0) /
+                      data.retention.length
+                    ).toFixed(2)}
+                    %
                   </div>
                 </div>
               </div>
@@ -491,13 +505,15 @@ export default function AnalyticsPage() {
                 <div>
                   <h3 className="font-semibold mb-4">事件类型分布</h3>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={[
-                      { name: '页面访问', value: data.stats.totalUsers * 10 },
-                      { name: '按钮点击', value: data.stats.totalUsers * 5 },
-                      { name: '文件上传', value: data.funnel[2]?.count || 0 },
-                      { name: '报价生成', value: data.funnel[3]?.count || 0 },
-                      { name: '支付', value: data.funnel[4]?.count || 0 },
-                    ]}>
+                    <BarChart
+                      data={[
+                        { name: '页面访问', value: data.stats.totalUsers * 10 },
+                        { name: '按钮点击', value: data.stats.totalUsers * 5 },
+                        { name: '文件上传', value: data.funnel[2]?.count || 0 },
+                        { name: '报价生成', value: data.funnel[3]?.count || 0 },
+                        { name: '支付', value: data.funnel[4]?.count || 0 },
+                      ]}
+                    >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
                       <YAxis />
@@ -537,7 +553,9 @@ export default function AnalyticsPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <div className="text-sm text-gray-600 mb-1">页面访问量</div>
-                    <div className="text-xl font-bold">{(data.stats.totalUsers * 10).toLocaleString()}</div>
+                    <div className="text-xl font-bold">
+                      {(data.stats.totalUsers * 10).toLocaleString()}
+                    </div>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <div className="text-sm text-gray-600 mb-1">平均会话时长</div>

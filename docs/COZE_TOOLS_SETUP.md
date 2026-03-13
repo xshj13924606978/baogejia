@@ -3,6 +3,7 @@
 ## 📋 概述
 
 《报个价》应用已预留好Coze内置工具的集成配置，包括：
+
 - ✅ **联网搜索** - 实时查询产品市场价格
 - ✅ **向量大模型** - 语义化搜索产品库
 - ✅ **生图大模型** - 生成产品展示图
@@ -49,6 +50,7 @@ pnpm dev
 **功能**：实时查询产品市场价格和供应商信息
 
 **API调用示例**：
+
 ```typescript
 // 搜索单个产品价格
 const response = await fetch('/api/coze', {
@@ -72,6 +74,7 @@ const response = await fetch('/api/coze', {
 ```
 
 **返回数据**：
+
 ```json
 {
   "success": true,
@@ -90,6 +93,7 @@ const response = await fetch('/api/coze', {
 ```
 
 **应用场景**：
+
 - 在报价生成时自动查询市场价格
 - 对比当前报价与市场均价
 - 提供价格调整建议
@@ -101,6 +105,7 @@ const response = await fetch('/api/coze', {
 **功能**：语义化搜索相似产品，智能推荐
 
 **API调用示例**：
+
 ```typescript
 const response = await fetch('/api/coze', {
   method: 'POST',
@@ -113,7 +118,7 @@ const response = await fetch('/api/coze', {
         id: '1',
         name: '不锈钢立式泵',
         price: 3500,
-        specs: '流量100m³/h，扬程20m'
+        specs: '流量100m³/h，扬程20m',
       },
       // ... 更多产品
     ],
@@ -122,6 +127,7 @@ const response = await fetch('/api/coze', {
 ```
 
 **返回数据**：
+
 ```json
 {
   "success": true,
@@ -138,6 +144,7 @@ const response = await fetch('/api/coze', {
 ```
 
 **应用场景**：
+
 - 当用户描述需求时，推荐相似产品
 - 产品库智能搜索
 - 替代产品推荐
@@ -149,6 +156,7 @@ const response = await fetch('/api/coze', {
 **功能**：生成产品展示图和报价单封面
 
 **API调用示例**：
+
 ```typescript
 // 生成产品图
 const response = await fetch('/api/coze', {
@@ -175,6 +183,7 @@ const response = await fetch('/api/coze', {
 ```
 
 **返回数据**：
+
 ```json
 {
   "success": true,
@@ -188,6 +197,7 @@ const response = await fetch('/api/coze', {
 ```
 
 **应用场景**：
+
 - 自动生成产品展示图
 - 创建报价单封面
 - 提升报价单视觉效果
@@ -199,6 +209,7 @@ const response = await fetch('/api/coze', {
 **功能**：一键增强报价单（市场价格 + 相似产品 + 产品图）
 
 **API调用示例**：
+
 ```typescript
 const response = await fetch('/api/coze', {
   method: 'POST',
@@ -227,6 +238,7 @@ const response = await fetch('/api/coze', {
 ```
 
 **返回数据**：
+
 ```json
 {
   "success": true,
@@ -284,6 +296,7 @@ curl http://localhost:5000/api/coze
 ```
 
 **未配置时的响应**：
+
 ```json
 {
   "success": true,
@@ -304,6 +317,7 @@ curl http://localhost:5000/api/coze
 ```
 
 **配置成功后的响应**：
+
 ```json
 {
   "success": true,
@@ -347,6 +361,7 @@ curl http://localhost:5000/api/coze
 ### 成本控制
 
 Coze工具可能产生费用，建议：
+
 - 开发阶段：谨慎使用，优先测试核心功能
 - 生产环境：设置调用频率限制
 - 监控用量：定期检查API调用统计
@@ -354,6 +369,7 @@ Coze工具可能产生费用，建议：
 ### 错误处理
 
 所有工具都包含错误处理：
+
 - API Key未配置：返回友好提示
 - 网络错误：自动降级到基础功能
 - 超时处理：设置合理的超时时间
@@ -367,6 +383,7 @@ Coze工具可能产生费用，建议：
 **原因**：未配置API Key或未启用功能开关
 
 **解决**：
+
 1. 检查 `.env.local` 中的 `COZE_API_KEY` 是否正确
 2. 确认 `ENABLE_COZE_TOOLS=true`
 3. 重启应用
@@ -376,6 +393,7 @@ Coze工具可能产生费用，建议：
 **原因**：搜索词过于具体或网络问题
 
 **解决**：
+
 1. 使用更通用的搜索词
 2. 检查网络连接
 3. 查看控制台日志
@@ -385,6 +403,7 @@ Coze工具可能产生费用，建议：
 **原因**：API调用次数超限或内容违规
 
 **解决**：
+
 1. 检查Coze平台的使用配额
 2. 简化提示词，避免敏感内容
 3. 稍后重试

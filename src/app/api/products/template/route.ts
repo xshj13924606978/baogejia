@@ -8,10 +8,18 @@ export async function GET(request: NextRequest) {
     // 创建模板数据
     const data = [
       ['产品名称', '型号', '类别', '品牌', '价格', '单位', '规格参数'],
-      ['PAM搅拌罐本体', 'φ4000×3000', '搅拌设备', '', '8000', '套', 'φ4000×3000mm Q235B碳钢/壁厚10mm'],
+      [
+        'PAM搅拌罐本体',
+        'φ4000×3000',
+        '搅拌设备',
+        '',
+        '8000',
+        '套',
+        'φ4000×3000mm Q235B碳钢/壁厚10mm',
+      ],
       ['药剂搅拌系统', '11kW', '搅拌设备', '佳木斯', '2200', '套', '不锈钢搅拌器/功率11kW/380V'],
       ['工业离心泵', 'IS150-125-250', '泵类', '上海水泵', '15800', '台', '流量200m³/h 扬程20m'],
-      ['蝶阀', 'D341X-16 DN150', '阀门', '上海阀门', '850', '个', '对夹式 铸钢 法兰连接']
+      ['蝶阀', 'D341X-16 DN150', '阀门', '上海阀门', '850', '个', '对夹式 铸钢 法兰连接'],
     ];
 
     // 创建工作簿
@@ -25,8 +33,8 @@ export async function GET(request: NextRequest) {
       { wch: 12 }, // 类别
       { wch: 12 }, // 品牌
       { wch: 10 }, // 价格
-      { wch: 8 },  // 单位
-      { wch: 40 }  // 规格参数
+      { wch: 8 }, // 单位
+      { wch: 40 }, // 规格参数
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, '产品模板');
@@ -42,15 +50,11 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': 'attachment; filename="产品导入模板.xlsx"',
-        'Content-Length': buffer.length.toString()
-      }
+        'Content-Length': buffer.length.toString(),
+      },
     });
-
   } catch (error) {
     console.error('[Product Template] 生成模板失败:', error);
-    return NextResponse.json(
-      { error: '生成模板失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '生成模板失败' }, { status: 500 });
   }
 }

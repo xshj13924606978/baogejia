@@ -25,10 +25,7 @@ declare module 'pdf-parse' {
     disableCombineTextItems?: boolean;
   }
 
-  function parse(
-    dataBuffer: Buffer,
-    options?: ParseOptions
-  ): Promise<PDFData>;
+  function parse(dataBuffer: Buffer, options?: ParseOptions): Promise<PDFData>;
 
   export = parse;
 }

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * 品牌管理API
- * 
+ *
  * 功能：
  * - GET: 获取所有品牌列表
  * - POST: 创建新品牌
@@ -15,14 +15,14 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
     db: {
-      schema: 'public'
-    }
+      schema: 'public',
+    },
   }
 );
 
 /**
  * 获取所有品牌列表
- * 
+ *
  * 查询参数：
  * - active: boolean - 是否只获取启用的品牌（可选）
  * - level: number - 按付费等级筛选（可选）
@@ -55,25 +55,19 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[BrandVendors] 查询失败:', error);
-      return NextResponse.json(
-        { error: '查询失败', details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '查询失败', details: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ brands: data || [] });
   } catch (error) {
     console.error('[BrandVendors] 异常:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
 
 /**
  * 创建新品牌
- * 
+ *
  * 请求体：
  * - brand_name: string - 品牌名称（必填）
  * - brand_code: string - 品牌代码（可选）
@@ -94,10 +88,7 @@ export async function POST(request: NextRequest) {
 
     // 验证必填字段
     if (!body.brand_name) {
-      return NextResponse.json(
-        { error: '品牌名称不能为空' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '品牌名称不能为空' }, { status: 400 });
     }
 
     // 准备插入数据
@@ -127,7 +118,7 @@ export async function POST(request: NextRequest) {
 
       // 时间戳
       created_at: now,
-      updated_at: now
+      updated_at: now,
     };
 
     const { data, error } = await supabase
@@ -138,22 +129,16 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[BrandVendors] 插入失败:', error);
-      return NextResponse.json(
-        { error: '创建失败', details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '创建失败', details: error.message }, { status: 500 });
     }
 
     console.log('[BrandVendors] ✅ 品牌创建成功:', data.brand_name);
     return NextResponse.json({
       success: true,
-      brand: data
+      brand: data,
     });
   } catch (error) {
     console.error('[BrandVendors] 异常:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

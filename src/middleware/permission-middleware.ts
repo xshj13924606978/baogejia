@@ -11,11 +11,11 @@ import { permissionService } from '@/lib/permission-service';
  * 权限检查配置
  */
 export interface PermissionConfig {
-  permissions?: string | string[];  // 需要的权限（支持多个，OR 关系）
-  requireAll?: boolean;             // 是否需要所有权限（默认 false，OR 关系）
-  minLevel?: number;                // 最低等级要求
-  minPoints?: number;               // 最低积分要求
-  roles?: string[];                 // 允许的角色列表
+  permissions?: string | string[]; // 需要的权限（支持多个，OR 关系）
+  requireAll?: boolean; // 是否需要所有权限（默认 false，OR 关系）
+  minLevel?: number; // 最低等级要求
+  minPoints?: number; // 最低积分要求
+  roles?: string[]; // 允许的角色列表
 }
 
 /**
@@ -40,19 +40,19 @@ export async function checkPermission(
   try {
     // 1. 获取当前用户
     const user = await getCurrentUser(request);
-    
+
     if (!user || !user.id) {
       return {
         allowed: false,
         error: '未登录或用户信息无效',
-        statusCode: 401
+        statusCode: 401,
       };
     }
 
     // 2. 获取用户角色
     const { getSupabaseClient } = await import('@/storage/database/supabase-client');
     const supabase = getSupabaseClient();
-    
+
     const { data: userRole, error: roleError } = await supabase
       .from('user_roles')
       .select('role')
@@ -63,7 +63,7 @@ export async function checkPermission(
       return {
         allowed: false,
         error: '获取用户角色失败',
-        statusCode: 500
+        statusCode: 500,
       };
     }
 
@@ -75,7 +75,7 @@ export async function checkPermission(
           error: '角色权限不足',
           statusCode: 403,
           userId: user.id,
-          userRole: userRole.role
+          userRole: userRole.role,
         };
       }
     }
@@ -94,7 +94,7 @@ export async function checkPermission(
           error: `需要等级 ${config.minLevel} 及以上`,
           statusCode: 403,
           userId: user.id,
-          userRole: userRole.role
+          userRole: userRole.role,
         };
       }
     }
@@ -113,26 +113,25 @@ export async function checkPermission(
           error: `需要积分 ${config.minPoints} 及以上`,
           statusCode: 403,
           userId: user.id,
-          userRole: userRole.role
+          userRole: userRole.role,
         };
       }
     }
 
     // 6. 检查权限
     if (config.permissions) {
-      const permissions = Array.isArray(config.permissions) 
-        ? config.permissions 
+      const permissions = Array.isArray(config.permissions)
+        ? config.permissions
         : [config.permissions];
 
       if (config.requireAll) {
         // 需要所有权限
         const hasAll = await permissionService.hasAllPermissions(user.id, permissions);
-        
+
         if (!hasAll) {
           const userPermInfo = await permissionService.getUserPermissions(user.id);
-          const userPerms = userPermInfo?.permissions
-            .filter(p => p.granted)
-            .map(p => p.code) || [];
+          const userPerms =
+            userPermInfo?.permissions.filter((p) => p.granted).map((p) => p.code) || [];
 
           return {
             allowed: false,
@@ -140,18 +139,17 @@ export async function checkPermission(
             statusCode: 403,
             userId: user.id,
             userRole: userRole.role,
-            userPermissions: userPerms
+            userPermissions: userPerms,
           };
         }
       } else {
         // 只需要任一权限
         const hasAny = await permissionService.hasAnyPermission(user.id, permissions);
-        
+
         if (!hasAny) {
           const userPermInfo = await permissionService.getUserPermissions(user.id);
-          const userPerms = userPermInfo?.permissions
-            .filter(p => p.granted)
-            .map(p => p.code) || [];
+          const userPerms =
+            userPermInfo?.permissions.filter((p) => p.granted).map((p) => p.code) || [];
 
           return {
             allowed: false,
@@ -159,7 +157,7 @@ export async function checkPermission(
             statusCode: 403,
             userId: user.id,
             userRole: userRole.role,
-            userPermissions: userPerms
+            userPermissions: userPerms,
           };
         }
       }
@@ -169,14 +167,14 @@ export async function checkPermission(
     return {
       allowed: true,
       userId: user.id,
-      userRole: userRole.role
+      userRole: userRole.role,
     };
   } catch (error) {
     console.error('[PermissionMiddleware] 权限检查失败:', error);
     return {
       allowed: false,
       error: '权限检查失败',
-      statusCode: 500
+      statusCode: 500,
     };
   }
 }
@@ -185,9 +183,7 @@ export async function checkPermission(
  * 创建权限检查包装器
  */
 export function withPermission(config: PermissionConfig) {
-  return function <T extends (...args: any[]) => Promise<NextResponse>>(
-    handler: T
-  ): T {
+  return function <T extends (...args: any[]) => Promise<NextResponse>>(handler: T): T {
     return (async (request: NextRequest, ...args: any[]) => {
       // 执行权限检查
       const result = await checkPermission(request, config);
@@ -195,11 +191,11 @@ export function withPermission(config: PermissionConfig) {
       // 如果权限检查失败，返回错误响应
       if (!result.allowed) {
         return NextResponse.json(
-          { 
+          {
             error: result.error || '权限不足',
             userId: result.userId,
             userRole: result.userRole,
-            userPermissions: result.userPermissions
+            userPermissions: result.userPermissions,
           },
           { status: result.statusCode || 403 }
         );
@@ -214,38 +210,29 @@ export function withPermission(config: PermissionConfig) {
 /**
  * 需要管理员权限
  */
-export function withAdmin<T extends (...args: any[]) => Promise<NextResponse>>(
-  handler: T
-): T {
+export function withAdmin<T extends (...args: any[]) => Promise<NextResponse>>(handler: T): T {
   return withPermission({
-    roles: ['admin', 'super_admin']
+    roles: ['admin', 'super_admin'],
   })(handler);
 }
 
 /**
  * 需要超级管理员权限
  */
-export function withSuperAdmin<T extends (...args: any[]) => Promise<NextResponse>>(
-  handler: T
-): T {
+export function withSuperAdmin<T extends (...args: any[]) => Promise<NextResponse>>(handler: T): T {
   return withPermission({
-    roles: ['super_admin']
+    roles: ['super_admin'],
   })(handler);
 }
 
 /**
  * 需要特定权限
  */
-export function withPermissionCheck(
-  permission: string | string[],
-  requireAll: boolean = false
-) {
-  return function <T extends (...args: any[]) => Promise<NextResponse>>(
-    handler: T
-  ): T {
+export function withPermissionCheck(permission: string | string[], requireAll: boolean = false) {
+  return function <T extends (...args: any[]) => Promise<NextResponse>>(handler: T): T {
     return withPermission({
       permissions: permission,
-      requireAll
+      requireAll,
     })(handler);
   };
 }

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * 品牌展示规则配置API
- * 
+ *
  * 功能：
  * - GET: 获取所有展示规则
  * - POST: 创建新的展示规则
@@ -15,14 +15,14 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
     db: {
-      schema: 'public'
-    }
+      schema: 'public',
+    },
   }
 );
 
 /**
  * 获取所有展示规则
- * 
+ *
  * 查询参数：
  * - active: boolean - 是否只获取启用的规则（可选）
  */
@@ -47,25 +47,19 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[DisplayRules] 查询失败:', error);
-      return NextResponse.json(
-        { error: '查询失败', details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '查询失败', details: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ rules: data || [] });
   } catch (error) {
     console.error('[DisplayRules] 异常:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
 
 /**
  * 创建新的展示规则
- * 
+ *
  * 请求体：
  * - rule_name: string - 规则名称（必填）
  * - rule_description: string - 规则描述（可选）
@@ -91,17 +85,14 @@ export async function POST(request: NextRequest) {
 
     // 验证必填字段
     if (!body.rule_name) {
-      return NextResponse.json(
-        { error: '规则名称不能为空' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '规则名称不能为空' }, { status: 400 });
     }
 
     // 验证权重总和（可选）
     const levelWeight = body.payment_level_weight ?? 0.6;
     const amountWeight = body.payment_amount_weight ?? 0.3;
     const displayWeight = body.display_weight_weight ?? 0.1;
-    
+
     const totalWeight = levelWeight + amountWeight + displayWeight;
     if (Math.abs(totalWeight - 1.0) > 0.01) {
       console.warn('[DisplayRules] ⚠️ 权重总和不为1，当前总和:', totalWeight);
@@ -139,7 +130,7 @@ export async function POST(request: NextRequest) {
 
       // 时间戳
       created_at: now,
-      updated_at: now
+      updated_at: now,
     };
 
     const { data, error } = await supabase
@@ -150,22 +141,16 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[DisplayRules] 插入失败:', error);
-      return NextResponse.json(
-        { error: '创建失败', details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '创建失败', details: error.message }, { status: 500 });
     }
 
     console.log('[DisplayRules] ✅ 展示规则创建成功:', data.rule_name);
     return NextResponse.json({
       success: true,
-      rule: data
+      rule: data,
     });
   } catch (error) {
     console.error('[DisplayRules] 异常:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

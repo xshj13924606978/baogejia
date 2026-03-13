@@ -8,13 +8,34 @@ import { Bell, CheckCheck, AlertCircle, Info, Award } from 'lucide-react';
 
 export default function NotificationsPanel() {
   const notifications = [
-    { id: 1, title: '报价单已生成', message: '您的搅拌设备报价单已生成', time: '5分钟前', read: false, icon: '📄' },
-    { id: 2, title: '积分到账', message: '邀请好友获得50积分', time: '1小时前', read: false, icon: '🎁' },
-    { id: 3, title: '文件解析完成', message: '上传的PDF文件已解析完成', time: '2小时前', read: true, icon: '📁' },
+    {
+      id: 1,
+      title: '报价单已生成',
+      message: '您的搅拌设备报价单已生成',
+      time: '5分钟前',
+      read: false,
+      icon: '📄',
+    },
+    {
+      id: 2,
+      title: '积分到账',
+      message: '邀请好友获得50积分',
+      time: '1小时前',
+      read: false,
+      icon: '🎁',
+    },
+    {
+      id: 3,
+      title: '文件解析完成',
+      message: '上传的PDF文件已解析完成',
+      time: '2小时前',
+      read: true,
+      icon: '📁',
+    },
     { id: 4, title: '系统通知', message: '新版本功能上线', time: '昨天', read: true, icon: '✨' },
   ];
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <Card>
@@ -33,9 +54,9 @@ export default function NotificationsPanel() {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {notifications.map(item => (
-            <div 
-              key={item.id} 
+          {notifications.map((item) => (
+            <div
+              key={item.id}
               className={`flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer ${
                 !item.read ? 'bg-blue-50/50' : ''
               }`}

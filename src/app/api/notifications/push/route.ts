@@ -6,17 +6,11 @@ export async function POST(request: NextRequest) {
     const { userIds, title, content, type = 'info', action_url, metadata } = await request.json();
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-      return NextResponse.json(
-        { error: '缺少用户ID列表' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少用户ID列表' }, { status: 400 });
     }
 
     if (!title) {
-      return NextResponse.json(
-        { error: '缺少通知标题' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少通知标题' }, { status: 400 });
     }
 
     // 模拟批量创建通知
@@ -46,10 +40,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('推送通知失败:', error);
-    return NextResponse.json(
-      { error: '推送通知失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '推送通知失败' }, { status: 500 });
   }
 }
 
@@ -60,10 +51,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
 
     if (!userId) {
-      return NextResponse.json(
-        { error: '缺少用户ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
     // 模拟未读通知数量
@@ -75,9 +63,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('获取未读通知数量失败:', error);
-    return NextResponse.json(
-      { error: '获取未读通知数量失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '获取未读通知数量失败' }, { status: 500 });
   }
 }

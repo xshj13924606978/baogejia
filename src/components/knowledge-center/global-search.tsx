@@ -30,28 +30,76 @@ export default function GlobalSearch() {
         price: [
           { id: 'p1', name: '提升泵', price: 3200, source: '产品价格库', type: 'price' },
           { id: 'p2', name: '搅拌罐', price: 14500, source: '产品价格库', type: 'price' },
-          { id: 'p3', name: '一体化设备', price: 28000, source: '产品价格库', type: 'price' }
+          { id: 'p3', name: '一体化设备', price: 28000, source: '产品价格库', type: 'price' },
         ],
         document: [
-          { id: 'd1', name: '一体化设备说明书.pdf', description: '详细操作维护说明', source: '技术文档库', type: 'document' },
-          { id: 'd2', name: '安装调试手册.docx', description: '现场安装调试指南', source: '技术文档库', type: 'document' }
+          {
+            id: 'd1',
+            name: '一体化设备说明书.pdf',
+            description: '详细操作维护说明',
+            source: '技术文档库',
+            type: 'document',
+          },
+          {
+            id: 'd2',
+            name: '安装调试手册.docx',
+            description: '现场安装调试指南',
+            source: '技术文档库',
+            type: 'document',
+          },
         ],
         quota: [
           { id: 'q1', code: 'GD-001', name: '设备安装定额', source: '定额库', type: 'quota' },
-          { id: 'q2', code: '1-1-1', name: '人工挖土方', source: '定额库', type: 'quota' }
+          { id: 'q2', code: '1-1-1', name: '人工挖土方', source: '定额库', type: 'quota' },
         ],
         case: [
-          { id: 'c1', name: '某污水处理厂案例', description: 'MBR工艺升级改造', source: '案例库', type: 'case' },
-          { id: 'c2', name: '工业园区供水管网', description: '15km管网改造', source: '案例库', type: 'case' }
+          {
+            id: 'c1',
+            name: '某污水处理厂案例',
+            description: 'MBR工艺升级改造',
+            source: '案例库',
+            type: 'case',
+          },
+          {
+            id: 'c2',
+            name: '工业园区供水管网',
+            description: '15km管网改造',
+            source: '案例库',
+            type: 'case',
+          },
         ],
         standard: [
-          { id: 's1', code: 'GB 50014-2021', name: '室外排水设计标准', source: '规范库', type: 'standard' },
-          { id: 's2', code: 'GB 50242-2002', name: '建筑给水排水验收规范', source: '规范库', type: 'standard' }
+          {
+            id: 's1',
+            code: 'GB 50014-2021',
+            name: '室外排水设计标准',
+            source: '规范库',
+            type: 'standard',
+          },
+          {
+            id: 's2',
+            code: 'GB 50242-2002',
+            name: '建筑给水排水验收规范',
+            source: '规范库',
+            type: 'standard',
+          },
         ],
         drawing: [
-          { id: 'dw1', name: '工艺流程图.dwg', description: '主要工艺流程', source: '图纸库', type: 'drawing' },
-          { id: 'dw2', name: '设备布置图.dwg', description: '设备平面布置', source: '图纸库', type: 'drawing' }
-        ]
+          {
+            id: 'dw1',
+            name: '工艺流程图.dwg',
+            description: '主要工艺流程',
+            source: '图纸库',
+            type: 'drawing',
+          },
+          {
+            id: 'dw2',
+            name: '设备布置图.dwg',
+            description: '设备平面布置',
+            source: '图纸库',
+            type: 'drawing',
+          },
+        ],
       });
       setSearching(false);
     }, 1000);
@@ -59,25 +107,39 @@ export default function GlobalSearch() {
 
   const getModuleIcon = (key: string) => {
     switch (key) {
-      case 'price': return '📊';
-      case 'document': return '📄';
-      case 'quota': return '📊';
-      case 'case': return '🏗️';
-      case 'standard': return '📋';
-      case 'drawing': return '🖼️';
-      default: return '📁';
+      case 'price':
+        return '📊';
+      case 'document':
+        return '📄';
+      case 'quota':
+        return '📊';
+      case 'case':
+        return '🏗️';
+      case 'standard':
+        return '📋';
+      case 'drawing':
+        return '🖼️';
+      default:
+        return '📁';
     }
   };
 
   const getModuleName = (key: string) => {
     switch (key) {
-      case 'price': return '产品价格库';
-      case 'document': return '技术文档库';
-      case 'quota': return '定额库';
-      case 'case': return '案例库';
-      case 'standard': return '规范库';
-      case 'drawing': return '图纸库';
-      default: return '未知';
+      case 'price':
+        return '产品价格库';
+      case 'document':
+        return '技术文档库';
+      case 'quota':
+        return '定额库';
+      case 'case':
+        return '案例库';
+      case 'standard':
+        return '规范库';
+      case 'drawing':
+        return '图纸库';
+      default:
+        return '未知';
     }
   };
 
@@ -110,10 +172,13 @@ export default function GlobalSearch() {
         <div className="mb-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">热门搜索</h3>
           <div className="flex flex-wrap gap-2">
-            {['一体化设备', '搅拌罐', '提升泵', '污水处理', 'CAD图纸'].map(term => (
+            {['一体化设备', '搅拌罐', '提升泵', '污水处理', 'CAD图纸'].map((term) => (
               <button
                 key={term}
-                onClick={() => { setKeyword(term); handleSearch(); }}
+                onClick={() => {
+                  setKeyword(term);
+                  handleSearch();
+                }}
                 className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm"
               >
                 {term}
@@ -138,42 +203,50 @@ export default function GlobalSearch() {
 
           {/* 搜索结果列表 */}
           <div className="space-y-6 max-h-[60vh] overflow-auto pb-4">
-            {Object.entries(results).map(([key, items]) => (
-              items.length > 0 && (
-                <div key={key}>
-                  <h3 className="font-bold text-blue-600 mb-2 flex items-center gap-2">
-                    <span>{getModuleIcon(key)}</span>
-                    <span>{getModuleName(key)}</span>
-                    <span className="text-sm font-normal text-gray-500">({items.length})</span>
-                  </h3>
-                  <div className="space-y-2">
-                    {items.map((item: SearchResult) => (
-                      <div key={item.id} className="p-3 border rounded hover:bg-gray-50 cursor-pointer">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="font-medium flex items-center gap-2">
-                              {item.name}
-                              {item.code && (
-                                <span className="font-mono text-sm text-gray-500">({item.code})</span>
+            {Object.entries(results).map(
+              ([key, items]) =>
+                items.length > 0 && (
+                  <div key={key}>
+                    <h3 className="font-bold text-blue-600 mb-2 flex items-center gap-2">
+                      <span>{getModuleIcon(key)}</span>
+                      <span>{getModuleName(key)}</span>
+                      <span className="text-sm font-normal text-gray-500">({items.length})</span>
+                    </h3>
+                    <div className="space-y-2">
+                      {items.map((item: SearchResult) => (
+                        <div
+                          key={item.id}
+                          className="p-3 border rounded hover:bg-gray-50 cursor-pointer"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="font-medium flex items-center gap-2">
+                                {item.name}
+                                {item.code && (
+                                  <span className="font-mono text-sm text-gray-500">
+                                    ({item.code})
+                                  </span>
+                                )}
+                              </div>
+                              {item.description && (
+                                <div className="text-sm text-gray-600 mt-1">{item.description}</div>
                               )}
+                              <div className="text-xs text-gray-500 mt-2">{item.source}</div>
                             </div>
-                            {item.description && (
-                              <div className="text-sm text-gray-600 mt-1">{item.description}</div>
+                            {item.price && (
+                              <div className="text-right">
+                                <div className="text-red-600 font-bold">
+                                  ¥{item.price.toLocaleString()}
+                                </div>
+                              </div>
                             )}
-                            <div className="text-xs text-gray-500 mt-2">{item.source}</div>
                           </div>
-                          {item.price && (
-                            <div className="text-right">
-                              <div className="text-red-600 font-bold">¥{item.price.toLocaleString()}</div>
-                            </div>
-                          )}
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )
-            ))}
+                )
+            )}
           </div>
         </div>
       ) : hasSearched && totalResults === 0 ? (

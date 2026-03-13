@@ -11,7 +11,7 @@ const POINTS_RULES = {
   upload_drawing: 15,
   data_adopted: 50,
   invite_friend: 30,
-  redeem: -1 // 兑换消耗
+  redeem: -1, // 兑换消耗
 };
 
 // 增加积分
@@ -21,10 +21,7 @@ export async function POST(request: NextRequest) {
     const { user_id, type, reference_id, description, custom_points } = body;
 
     if (!user_id || !type) {
-      return NextResponse.json(
-        { error: '缺少必要参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -33,10 +30,7 @@ export async function POST(request: NextRequest) {
     const points = custom_points || POINTS_RULES[type as keyof typeof POINTS_RULES] || 0;
 
     if (points === 0) {
-      return NextResponse.json(
-        { error: '无效的积分类型' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '无效的积分类型' }, { status: 400 });
     }
 
     // 创建积分记录
@@ -47,17 +41,14 @@ export async function POST(request: NextRequest) {
         points,
         type,
         reference_id,
-        description: description || `积分奖励：${type}`
+        description: description || `积分奖励：${type}`,
       })
       .select()
       .single();
 
     if (recordError) {
       console.error('[Points] 创建积分记录失败:', recordError);
-      return NextResponse.json(
-        { error: '创建积分记录失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '创建积分记录失败' }, { status: 500 });
     }
 
     // 更新用户积分
@@ -69,10 +60,7 @@ export async function POST(request: NextRequest) {
 
     if (userError) {
       console.error('[Points] 查询用户失败:', userError);
-      return NextResponse.json(
-        { error: '查询用户失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '查询用户失败' }, { status: 500 });
     }
 
     const newPoints = Math.max(0, (user.points || 0) + points);
@@ -82,16 +70,13 @@ export async function POST(request: NextRequest) {
       .from('users')
       .update({
         points: newPoints,
-        total_points: newTotalPoints
+        total_points: newTotalPoints,
       })
       .eq('id', user_id);
 
     if (updateError) {
       console.error('[Points] 更新用户积分失败:', updateError);
-      return NextResponse.json(
-        { error: '更新用户积分失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '更新用户积分失败' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -99,14 +84,11 @@ export async function POST(request: NextRequest) {
       points,
       new_balance: newPoints,
       total_points: newTotalPoints,
-      record
+      record,
     });
   } catch (error) {
     console.error('[Points] 请求失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
 
@@ -117,10 +99,7 @@ export async function GET(request: NextRequest) {
     const user_id = searchParams.get('user_id');
 
     if (!user_id) {
-      return NextResponse.json(
-        { error: '缺少用户ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -133,10 +112,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (userError || !user) {
-      return NextResponse.json(
-        { error: '用户不存在' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: '用户不存在' }, { status: 404 });
     }
 
     // 获取积分记录（最近50条）
@@ -149,24 +125,18 @@ export async function GET(request: NextRequest) {
 
     if (recordsError) {
       console.error('[Points] 查询积分记录失败:', recordsError);
-      return NextResponse.json(
-        { error: '查询积分记录失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '查询积分记录失败' }, { status: 500 });
     }
 
     return NextResponse.json({
       user: {
         points: user.points || 0,
-        total_points: user.total_points || 0
+        total_points: user.total_points || 0,
       },
-      records: records || []
+      records: records || [],
     });
   } catch (error) {
     console.error('[Points] 请求失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

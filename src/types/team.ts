@@ -4,21 +4,21 @@
 
 // 团队角色
 export enum TeamRole {
-  ADMIN = 'admin',      // 管理员：完全控制权限
-  MEMBER = 'member',    // 成员：可以编辑和评论
-  GUEST = 'guest'       // 访客：只能查看
+  ADMIN = 'admin', // 管理员：完全控制权限
+  MEMBER = 'member', // 成员：可以编辑和评论
+  GUEST = 'guest', // 访客：只能查看
 }
 
 // 团队权限定义
 export interface TeamPermissions {
-  canCreateQuotes: boolean;      // 创建报价单
-  canEditQuotes: boolean;        // 编辑报价单
-  canDeleteQuotes: boolean;      // 删除报价单
-  canInviteMembers: boolean;     // 邀请成员
-  canManageMembers: boolean;     // 管理成员
-  canManageSettings: boolean;    // 管理团队设置
-  canComment: boolean;           // 评论
-  canExport: boolean;            // 导出报价单
+  canCreateQuotes: boolean; // 创建报价单
+  canEditQuotes: boolean; // 编辑报价单
+  canDeleteQuotes: boolean; // 删除报价单
+  canInviteMembers: boolean; // 邀请成员
+  canManageMembers: boolean; // 管理成员
+  canManageSettings: boolean; // 管理团队设置
+  canComment: boolean; // 评论
+  canExport: boolean; // 导出报价单
 }
 
 // 团队信息
@@ -36,10 +36,10 @@ export interface Team {
 
 // 团队设置
 export interface TeamSettings {
-  allowGuestInvite: boolean;     // 允许访客邀请
-  quoteVisibility: 'private' | 'team' | 'public';  // 报价单可见性
-  requireApproval: boolean;      // 新成员需要审批
-  maxMembers: number;            // 最大成员数
+  allowGuestInvite: boolean; // 允许访客邀请
+  quoteVisibility: 'private' | 'team' | 'public'; // 报价单可见性
+  requireApproval: boolean; // 新成员需要审批
+  maxMembers: number; // 最大成员数
 }
 
 // 团队成员
@@ -70,17 +70,17 @@ export interface TeamInvite {
 // 评论
 export interface Comment {
   id: string;
-  targetId: string;              // 评论目标ID（报价单ID等）
-  targetType: 'quote' | 'team' | 'proposal';  // 评论目标类型
+  targetId: string; // 评论目标ID（报价单ID等）
+  targetType: 'quote' | 'team' | 'proposal'; // 评论目标类型
   userId: string;
   userName: string;
   userAvatar?: string;
   content: string;
-  parentId?: string;             // 父评论ID（用于回复）
+  parentId?: string; // 父评论ID（用于回复）
   createdAt: Date;
   updatedAt: Date;
-  likes: number;                 // 点赞数
-  replies?: Comment[];           // 回复列表
+  likes: number; // 点赞数
+  replies?: Comment[]; // 回复列表
 }
 
 // 共享报价单
@@ -103,9 +103,9 @@ export interface TeamActivity {
   teamId: string;
   userId: string;
   userName: string;
-  action: string;                // 动作描述
-  targetId?: string;             // 目标对象ID
-  targetType?: string;           // 目标对象类型
+  action: string; // 动作描述
+  targetId?: string; // 目标对象ID
+  targetType?: string; // 目标对象类型
   metadata?: Record<string, any>; // 额外信息
   createdAt: Date;
 }

@@ -21,7 +21,7 @@ export default function ImportDiagnosticsSimple() {
     setLoading(true);
     try {
       const res = await fetch('/api/test/simulate-import', {
-        method: 'POST'
+        method: 'POST',
       });
       const data = await res.json();
       setSimulateResult(JSON.stringify(data, null, 2));
@@ -35,20 +35,35 @@ export default function ImportDiagnosticsSimple() {
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
       <h1 style={{ fontSize: '24px', marginBottom: '20px' }}>产品导入诊断工具</h1>
-      
+
       <div style={{ marginBottom: '20px' }}>
         <h2>操作按钮</h2>
         <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-          <button 
+          <button
             onClick={testDbQuery}
-            style={{ padding: '10px 20px', background: '#0070f3', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+            style={{
+              padding: '10px 20px',
+              background: '#0070f3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+            }}
           >
             查询数据库
           </button>
-          <button 
+          <button
             onClick={testSimulateImport}
             disabled={loading}
-            style={{ padding: '10px 20px', background: '#0070f3', color: 'white', border: 'none', borderRadius: '5px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1 }}
+            style={{
+              padding: '10px 20px',
+              background: '#0070f3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.5 : 1,
+            }}
           >
             {loading ? '导入中...' : '模拟导入'}
           </button>
@@ -58,7 +73,15 @@ export default function ImportDiagnosticsSimple() {
       {dbQueryResult && (
         <div style={{ marginBottom: '20px' }}>
           <h2>数据库查询结果</h2>
-          <pre style={{ background: '#f5f5f5', padding: '10px', borderRadius: '5px', overflow: 'auto', maxHeight: '400px' }}>
+          <pre
+            style={{
+              background: '#f5f5f5',
+              padding: '10px',
+              borderRadius: '5px',
+              overflow: 'auto',
+              maxHeight: '400px',
+            }}
+          >
             {dbQueryResult}
           </pre>
         </div>
@@ -67,7 +90,15 @@ export default function ImportDiagnosticsSimple() {
       {simulateResult && (
         <div style={{ marginBottom: '20px' }}>
           <h2>模拟导入结果</h2>
-          <pre style={{ background: '#f5f5f5', padding: '10px', borderRadius: '5px', overflow: 'auto', maxHeight: '400px' }}>
+          <pre
+            style={{
+              background: '#f5f5f5',
+              padding: '10px',
+              borderRadius: '5px',
+              overflow: 'auto',
+              maxHeight: '400px',
+            }}
+          >
             {simulateResult}
           </pre>
         </div>

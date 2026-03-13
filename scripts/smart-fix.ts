@@ -34,7 +34,8 @@ function fixFile(filePath: string) {
   let content = fs.readFileSync(fullPath, 'utf8');
 
   // 查找所有 withPermissionCheck 函数
-  const methodPattern = /export const (GET|POST|PUT|DELETE|PATCH) = withPermissionCheck\(\s*{[^}]*}\s*,\s*async \(request: NextRequest, user: any\) =>\s*\{/g;
+  const methodPattern =
+    /export const (GET|POST|PUT|DELETE|PATCH) = withPermissionCheck\(\s*{[^}]*}\s*,\s*async \(request: NextRequest, user: any\) =>\s*\{/g;
   const matches = [...content.matchAll(methodPattern)];
 
   if (matches.length === 0) {

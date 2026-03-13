@@ -23,34 +23,22 @@ export async function POST(request: NextRequest) {
 
     // 验证必填参数
     if (!user_id || !type || !item_id || !item_name || !amount || !payment_method) {
-      return NextResponse.json(
-        { success: false, error: '缺少必填参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '缺少必填参数' }, { status: 400 });
     }
 
     // 验证订单类型
     if (!Object.values(OrderType).includes(type)) {
-      return NextResponse.json(
-        { success: false, error: '无效的订单类型' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '无效的订单类型' }, { status: 400 });
     }
 
     // 验证支付方式
     if (!Object.values(PaymentMethod).includes(payment_method)) {
-      return NextResponse.json(
-        { success: false, error: '不支持的支付方式' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '不支持的支付方式' }, { status: 400 });
     }
 
     // 验证金额
     if (amount <= 0) {
-      return NextResponse.json(
-        { success: false, error: '订单金额必须大于0' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '订单金额必须大于0' }, { status: 400 });
     }
 
     // 创建订单请求
@@ -74,10 +62,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Orders API] 创建订单失败:', error);
-    return NextResponse.json(
-      { success: false, error: '创建订单失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: '创建订单失败' }, { status: 500 });
   }
 }
 
@@ -94,10 +79,7 @@ export async function GET(request: NextRequest) {
 
     // 验证用户ID
     if (!user_id) {
-      return NextResponse.json(
-        { success: false, error: '缺少用户ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '缺少用户ID' }, { status: 400 });
     }
 
     // 查询订单列表
@@ -114,9 +96,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Orders API] 查询订单失败:', error);
-    return NextResponse.json(
-      { success: false, error: '查询订单失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: '查询订单失败' }, { status: 500 });
   }
 }

@@ -82,7 +82,7 @@ export default function PosterGenerator({ user, inviteCode, onClose }: PosterPro
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ style, user_id: user.id }),
-        }).catch(err => {
+        }).catch((err) => {
           console.error('下载统计记录失败:', err);
         });
       }
@@ -160,7 +160,7 @@ export default function PosterGenerator({ user, inviteCode, onClose }: PosterPro
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ user_id: user.id, style }),
-          }).catch(err => {
+          }).catch((err) => {
             console.error('分享统计记录失败:', err);
           });
         }
@@ -233,11 +233,7 @@ export default function PosterGenerator({ user, inviteCode, onClose }: PosterPro
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-2xl shadow-md flex-shrink-0 overflow-hidden">
                   {user?.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt="头像"
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={user.avatar} alt="头像" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-3xl">👤</span>
                   )}
@@ -246,20 +242,14 @@ export default function PosterGenerator({ user, inviteCode, onClose }: PosterPro
                   <div className={`font-bold text-lg ${currentStyle.title}`}>
                     {user?.username || '用户'}
                   </div>
-                  <div className={`text-sm ${currentStyle.text}`}>
-                    邀请您加入
-                  </div>
+                  <div className={`text-sm ${currentStyle.text}`}>邀请您加入</div>
                 </div>
               </div>
 
               {/* 中间文案 */}
               <div className="flex-1 flex flex-col items-center justify-center">
-                <div className={`text-3xl font-bold mb-2 ${currentStyle.title}`}>
-                  智能报价系统
-                </div>
-                <div className={`text-base mb-6 ${currentStyle.text}`}>
-                  让报价更简单
-                </div>
+                <div className={`text-3xl font-bold mb-2 ${currentStyle.title}`}>智能报价系统</div>
+                <div className={`text-base mb-6 ${currentStyle.text}`}>让报价更简单</div>
 
                 {/* 二维码 */}
                 <div className={`${currentStyle.qrContainer} p-3 rounded-xl shadow-md mb-3`}>
@@ -272,8 +262,8 @@ export default function PosterGenerator({ user, inviteCode, onClose }: PosterPro
                     style === 'simple'
                       ? 'bg-blue-100 text-blue-700'
                       : style === 'festive'
-                      ? 'bg-yellow-400 text-red-700'
-                      : 'bg-purple-100 text-purple-700'
+                        ? 'bg-yellow-400 text-red-700'
+                        : 'bg-purple-100 text-purple-700'
                   }`}
                 >
                   🎁 邀请好友赚积分，30分/人
@@ -281,17 +271,13 @@ export default function PosterGenerator({ user, inviteCode, onClose }: PosterPro
               </div>
 
               {/* 底部 */}
-              <div
-                className={`text-xs text-center mt-4 ${currentStyle.text} opacity-70`}
-              >
+              <div className={`text-xs text-center mt-4 ${currentStyle.text} opacity-70`}>
                 长按保存图片，分享给好友
               </div>
 
               {/* 品牌LOGO（右下角） */}
               <div className="absolute bottom-3 right-3">
-                <div className={`text-xs ${currentStyle.text} opacity-60`}>
-                  © 智能报价系统
-                </div>
+                <div className={`text-xs ${currentStyle.text} opacity-60`}>© 智能报价系统</div>
               </div>
             </div>
           </div>
@@ -357,9 +343,7 @@ export default function PosterGenerator({ user, inviteCode, onClose }: PosterPro
                   <div className="text-gray-600">
                     <div className="text-2xl mb-1">📷</div>
                     <div className="text-sm">点击上传自定义背景</div>
-                    <div className="text-xs text-gray-400 mt-1">
-                      支持 JPG/PNG，最大2MB
-                    </div>
+                    <div className="text-xs text-gray-400 mt-1">支持 JPG/PNG，最大2MB</div>
                   </div>
                 )}
               </label>
@@ -379,9 +363,7 @@ export default function PosterGenerator({ user, inviteCode, onClose }: PosterPro
               <div className="flex justify-center bg-white p-3 rounded-lg">
                 <QRCode value={inviteLink} size={100} level="H" />
               </div>
-              <div className="text-xs text-center text-gray-500 mt-2 break-all">
-                {inviteLink}
-              </div>
+              <div className="text-xs text-center text-gray-500 mt-2 break-all">{inviteLink}</div>
             </div>
 
             {/* 操作按钮 */}

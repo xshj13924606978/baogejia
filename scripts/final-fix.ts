@@ -83,7 +83,7 @@ function fixFile(filePath: string): boolean {
   // 修复3: 缺失的闭合括号（在文件末尾）
   // 查找模式：\n  } 应该是 \n  }\n});
   const lines = content.split('\n');
-  const lastNonEmptyLineIndex = lines.findLastIndex(line => line.trim().length > 0);
+  const lastNonEmptyLineIndex = lines.findLastIndex((line) => line.trim().length > 0);
   if (lastNonEmptyLineIndex >= 0) {
     const lastLine = lines[lastNonEmptyLineIndex];
     if (lastLine.trim() === '}' && !content.endsWith('});')) {
@@ -107,10 +107,7 @@ function fixFile(filePath: string): boolean {
   // 修复6: 缺失的括号在 filter 等方法调用中
   // 错误: .startsWith('/*');
   // 正确: .startsWith('/*'));
-  content = content.replace(
-    /(\.startsWith\('\/\*'\);)/g,
-    ".startsWith('/*'))"
-  );
+  content = content.replace(/(\.startsWith\('\/\*'\);)/g, ".startsWith('/*'))");
 
   if (content !== original) {
     fs.writeFileSync(fullPath, content);
@@ -124,7 +121,7 @@ function fixFile(filePath: string): boolean {
 async function verifyFix() {
   try {
     const { stdout, stderr } = await execAsync('npx tsc --noEmit', {
-      timeout: 60000
+      timeout: 60000,
     });
 
     if (stderr) {

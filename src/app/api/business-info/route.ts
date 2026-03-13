@@ -3,7 +3,8 @@ import { Pool } from 'pg';
 
 // 从环境变量获取数据库连接信息
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres',
+  connectionString:
+    process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres',
 });
 
 // ============================================================================
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     let result: any = {
       success: true,
-      data: {}
+      data: {},
     };
 
     // 获取供应商信息
@@ -93,10 +94,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error('[business-info] 获取商务信息失败:', error);
-    return NextResponse.json(
-      { success: false, error: '获取商务信息失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: '获取商务信息失败' }, { status: 500 });
   }
 }
 
@@ -109,10 +107,7 @@ export async function POST(request: NextRequest) {
     const { type, data } = body;
 
     if (!type || !data) {
-      return NextResponse.json(
-        { success: false, error: '缺少必要参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '缺少必要参数' }, { status: 400 });
     }
 
     // 保存供应商信息
@@ -240,9 +235,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, message: '保存成功' });
   } catch (error) {
     console.error('[business-info] 保存商务信息失败:', error);
-    return NextResponse.json(
-      { success: false, error: '保存商务信息失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: '保存商务信息失败' }, { status: 500 });
   }
 }

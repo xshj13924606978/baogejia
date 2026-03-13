@@ -38,12 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CommentSection } from '@/components/team/comment-section';
 import { MemberManagement } from '@/components/team/member-management';
 import { PermissionManagement } from '@/components/team/permission-management';
@@ -238,9 +233,7 @@ export default function TeamDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle>团队评论</CardTitle>
-                <CardDescription>
-                  查看和管理团队中的评论
-                </CardDescription>
+                <CardDescription>查看和管理团队中的评论</CardDescription>
               </CardHeader>
               <CardContent>
                 <CommentSection teamId={teamId} targetType="team" />

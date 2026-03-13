@@ -7,8 +7,19 @@ interface MultiUploadDialogProps {
   onClose: () => void;
   onLocalFileUpload: (file: File) => void;
   onWebLinkUpload: (url: string, content: string) => void;
-  onCloudFileUpload: (url: string, fileName: string, description: string, extractCode: string) => void;
-  onCloudFileWithFile?: (url: string, fileName: string, description: string, extractCode: string, file: File) => void;
+  onCloudFileUpload: (
+    url: string,
+    fileName: string,
+    description: string,
+    extractCode: string
+  ) => void;
+  onCloudFileWithFile?: (
+    url: string,
+    fileName: string,
+    description: string,
+    extractCode: string,
+    file: File
+  ) => void;
   moduleType: 'document' | 'case' | 'standard' | 'drawing' | 'quota';
   uploading?: boolean;
 }
@@ -20,7 +31,7 @@ export default function MultiUploadDialog({
   onCloudFileUpload,
   onCloudFileWithFile,
   moduleType,
-  uploading = false
+  uploading = false,
 }: MultiUploadDialogProps) {
   const [activeTab, setActiveTab] = useState<'local' | 'weblink' | 'clouddrive'>('local');
   const [webLinkUrl, setWebLinkUrl] = useState('');
@@ -37,7 +48,7 @@ export default function MultiUploadDialog({
     case: '案例',
     standard: '规范',
     drawing: '图纸',
-    quota: '定额'
+    quota: '定额',
   };
 
   const handleWebLinkSubmit = async () => {
@@ -54,7 +65,7 @@ export default function MultiUploadDialog({
       const res = await fetch('/api/knowledge/parse-web-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: webLinkUrl })
+        body: JSON.stringify({ url: webLinkUrl }),
       });
 
       const data = await res.json();
@@ -106,7 +117,7 @@ export default function MultiUploadDialog({
         const res = await fetch('/api/knowledge/parse-cloud-link', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: cloudDriveUrl, extractCode, moduleType })
+          body: JSON.stringify({ url: cloudDriveUrl, extractCode, moduleType }),
         });
 
         const data = await res.json();
@@ -119,11 +130,14 @@ export default function MultiUploadDialog({
             byteNumbers[i] = byteCharacters.charCodeAt(i);
           }
           const byteArray = new Uint8Array(byteNumbers);
-          const file = new File([byteArray], data.fileName || fileName, { type: data.fileType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          const file = new File([byteArray], data.fileName || fileName, {
+            type:
+              data.fileType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          });
 
           // 调用文件上传回调
           onCloudFileWithFile(cloudDriveUrl, fileName, description, extractCode, file);
-          
+
           setCloudDriveUrl('');
           setCloudFileName('');
           setCloudFileDescription('');
@@ -259,9 +273,7 @@ export default function MultiUploadDialog({
                   <p className="mb-2 text-sm text-slate-500 dark:text-slate-400">
                     <span className="font-semibold">点击上传</span> 或拖拽文件到此处
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    最大支持 50MB
-                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">最大支持 50MB</p>
                 </div>
                 <input
                   type="file"
@@ -269,11 +281,15 @@ export default function MultiUploadDialog({
                   disabled={uploading}
                   className="hidden"
                   accept={
-                    moduleType === 'document' ? '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt' :
-                    moduleType === 'drawing' ? '.dwg,.dxf,.jpg,.jpeg,.png,.pdf' :
-                    moduleType === 'case' ? '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png' :
-                    moduleType === 'standard' ? '.pdf,.doc,.docx,.txt' :
-                    '.xls,.xlsx,.csv,.txt'
+                    moduleType === 'document'
+                      ? '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt'
+                      : moduleType === 'drawing'
+                        ? '.dwg,.dxf,.jpg,.jpeg,.png,.pdf'
+                        : moduleType === 'case'
+                          ? '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png'
+                          : moduleType === 'standard'
+                            ? '.pdf,.doc,.docx,.txt'
+                            : '.xls,.xlsx,.csv,.txt'
                   }
                 />
               </label>
@@ -314,11 +330,7 @@ export default function MultiUploadDialog({
               )}
 
               <div className="flex justify-end gap-2">
-                <Button
-                  onClick={onClose}
-                  disabled={parsing || uploading}
-                  variant="outline"
-                >
+                <Button onClick={onClose} disabled={parsing || uploading} variant="outline">
                   取消
                 </Button>
                 <Button
@@ -338,18 +350,29 @@ export default function MultiUploadDialog({
                   <strong>网盘链接上传说明：</strong>
                 </p>
                 <ul className="text-xs text-purple-600 dark:text-purple-400 space-y-1">
-                  <li>• <strong>网盘分享链接</strong>（必填）：支持百度网盘、阿里云盘、腾讯云盘等</li>
-                  <li>• <strong>提取码</strong>（可选）：百度网盘填写后可尝试自动下载，其他网盘请先手动下载</li>
-                  <li>• <strong>文件说明</strong>（可选）：填写原始文件名便于识别，不填写则使用默认名称</li>
-                  <li>• <strong>手动上传</strong>（可选）：如果自动下载失败，可上传从网盘下载的文件</li>
+                  <li>
+                    • <strong>网盘分享链接</strong>（必填）：支持百度网盘、阿里云盘、腾讯云盘等
+                  </li>
+                  <li>
+                    • <strong>提取码</strong>
+                    （可选）：百度网盘填写后可尝试自动下载，其他网盘请先手动下载
+                  </li>
+                  <li>
+                    • <strong>文件说明</strong>
+                    （可选）：填写原始文件名便于识别，不填写则使用默认名称
+                  </li>
+                  <li>
+                    • <strong>手动上传</strong>（可选）：如果自动下载失败，可上传从网盘下载的文件
+                  </li>
                 </ul>
                 <div className="mt-3 p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
-                  <p className="text-xs text-purple-800 dark:text-purple-200 font-medium mb-2">示例格式：</p>
+                  <p className="text-xs text-purple-800 dark:text-purple-200 font-medium mb-2">
+                    示例格式：
+                  </p>
                   <p className="text-xs text-purple-700 dark:text-purple-300 font-mono whitespace-pre-wrap">
-                    文件说明: 广州金石环保设备有限公司-化粪池产品数据库.xlsx
-链接: https://pan.baidu.com/s/1nCFucqkGjuGrebVg2QTDIw?pwd=tfzm
-提取码: tfzm
-文件名: 化粪池产品价格
+                    文件说明: 广州金石环保设备有限公司-化粪池产品数据库.xlsx 链接:
+                    https://pan.baidu.com/s/1nCFucqkGjuGrebVg2QTDIw?pwd=tfzm 提取码: tfzm 文件名:
+                    化粪池产品价格
                   </p>
                 </div>
               </div>
@@ -407,8 +430,10 @@ export default function MultiUploadDialog({
                   <strong>📁 上传从网盘下载的文件（可选）</strong>
                 </p>
                 <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">
-                  {moduleType === 'quota' && '如果百度网盘自动下载失败，请手动下载文件后在此上传。系统将自动解析 Excel 内容并进行字段映射。'}
-                  {moduleType !== 'quota' && '如果百度网盘自动下载失败，请手动下载文件后在此上传。系统将自动解析文件内容并导入。'}
+                  {moduleType === 'quota' &&
+                    '如果百度网盘自动下载失败，请手动下载文件后在此上传。系统将自动解析 Excel 内容并进行字段映射。'}
+                  {moduleType !== 'quota' &&
+                    '如果百度网盘自动下载失败，请手动下载文件后在此上传。系统将自动解析文件内容并导入。'}
                 </p>
                 <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-amber-300 dark:border-amber-700 rounded-lg cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
                   <div className="flex flex-col items-center justify-center">
@@ -425,7 +450,11 @@ export default function MultiUploadDialog({
                     onChange={handleCloudFileChange}
                     disabled={uploading}
                     className="hidden"
-                    accept={moduleType === 'quota' ? '.xlsx,.xls,.csv,.txt' : '.xlsx,.xls,.pdf,.doc,.docx,.txt'}
+                    accept={
+                      moduleType === 'quota'
+                        ? '.xlsx,.xls,.csv,.txt'
+                        : '.xlsx,.xls,.pdf,.doc,.docx,.txt'
+                    }
                   />
                 </label>
               </div>
@@ -451,11 +480,7 @@ export default function MultiUploadDialog({
               )}
 
               <div className="flex justify-end gap-2">
-                <Button
-                  onClick={onClose}
-                  disabled={uploading}
-                  variant="outline"
-                >
+                <Button onClick={onClose} disabled={uploading} variant="outline">
                   取消
                 </Button>
                 <Button

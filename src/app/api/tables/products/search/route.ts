@@ -13,11 +13,14 @@ export async function POST(request: NextRequest) {
       const { data, error } = await db.from('products').select('*');
       if (error) {
         console.error('获取产品失败:', error);
-        return NextResponse.json({
-          success: false,
-          error: error.message,
-          data: [],
-        }, { status: 500 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: error.message,
+            data: [],
+          },
+          { status: 500 }
+        );
       }
 
       return NextResponse.json({
@@ -39,15 +42,20 @@ export async function POST(request: NextRequest) {
     const { data, error } = await db
       .from('products')
       .select('*')
-      .or(`name.ilike.%${keyword}%,model.ilike.%${keyword}%,supplier.ilike.%${keyword}%,specifications.ilike.%${keyword}%`);
+      .or(
+        `name.ilike.%${keyword}%,model.ilike.%${keyword}%,supplier.ilike.%${keyword}%,specifications.ilike.%${keyword}%`
+      );
 
     if (error) {
       console.error('搜索产品失败:', error);
-      return NextResponse.json({
-        success: false,
-        error: error.message,
-        data: [],
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          data: [],
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -65,10 +73,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('搜索产品失败:', error);
-    return NextResponse.json({
-      success: false,
-      error: '搜索产品失败',
-      data: [],
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: '搜索产品失败',
+        data: [],
+      },
+      { status: 500 }
+    );
   }
 }

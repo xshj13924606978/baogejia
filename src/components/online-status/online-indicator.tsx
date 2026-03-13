@@ -24,7 +24,7 @@ export function OnlineIndicator({
 }: OnlineIndicatorProps) {
   const { isConnected, onlineUsers } = useSocket({ userId });
 
-  const isOnline = userId ? onlineUsers.some(u => u.userId === userId) : isConnected;
+  const isOnline = userId ? onlineUsers.some((u) => u.userId === userId) : isConnected;
 
   const sizeClasses = {
     sm: 'w-2 h-2',
@@ -42,24 +42,20 @@ export function OnlineIndicator({
 
   return (
     <div className={cn('flex items-center gap-1.5', className)}>
-      <div
-        className={cn('relative', sizeClasses[size])}
-        title={isOnline ? '在线' : '离线'}
-      >
+      <div className={cn('relative', sizeClasses[size])} title={isOnline ? '在线' : '离线'}>
         <div className={cn('rounded-full', colorClass)} />
         {showPulse && isOnline && (
-          <div className={cn(
-            'absolute inset-0 rounded-full bg-green-500 animate-ping',
-            sizeClasses[size]
-          )} />
+          <div
+            className={cn(
+              'absolute inset-0 rounded-full bg-green-500 animate-ping',
+              sizeClasses[size]
+            )}
+          />
         )}
       </div>
 
       {showText && (
-        <span className={cn(
-          textSizeClasses[size],
-          isOnline ? 'text-green-600' : 'text-gray-400'
-        )}>
+        <span className={cn(textSizeClasses[size], isOnline ? 'text-green-600' : 'text-gray-400')}>
           {isOnline ? '在线' : '离线'}
         </span>
       )}
@@ -89,7 +85,7 @@ export function UserOnlineStatus({
 }: UserOnlineStatusProps) {
   const { onlineUsers } = useSocket();
 
-  const user = onlineUsers.find(u => u.userId === userId);
+  const user = onlineUsers.find((u) => u.userId === userId);
   const isOnline = !!user;
   const status = user?.status || 'offline';
 
@@ -106,19 +102,12 @@ export function UserOnlineStatus({
               height: size === 'sm' ? '24px' : size === 'md' ? '32px' : '40px',
             }}
           />
-          <OnlineIndicator
-            userId={userId}
-            size="sm"
-            className="absolute -bottom-0.5 -right-0.5"
-          />
+          <OnlineIndicator userId={userId} size="sm" className="absolute -bottom-0.5 -right-0.5" />
         </div>
       )}
       <span className="text-sm">{username}</span>
       {showText && (
-        <span className={cn(
-          'text-xs',
-          isOnline ? 'text-green-600' : 'text-gray-400'
-        )}>
+        <span className={cn('text-xs', isOnline ? 'text-green-600' : 'text-gray-400')}>
           {status === 'busy' ? '忙碌' : status === 'away' ? '离开' : isOnline ? '在线' : '离线'}
         </span>
       )}
@@ -166,17 +155,13 @@ export function OnlineUsersList({
 
   if (!isConnected) {
     return (
-      <div className={cn('text-center py-4 text-gray-500 text-sm', className)}>
-        正在连接...
-      </div>
+      <div className={cn('text-center py-4 text-gray-500 text-sm', className)}>正在连接...</div>
     );
   }
 
   if (displayUsers.length === 0) {
     return (
-      <div className={cn('text-center py-4 text-gray-500 text-sm', className)}>
-        暂无在线用户
-      </div>
+      <div className={cn('text-center py-4 text-gray-500 text-sm', className)}>暂无在线用户</div>
     );
   }
 
@@ -185,26 +170,33 @@ export function OnlineUsersList({
       {displayUsers.map((user) => (
         <div
           key={user.userId}
-          onClick={() => onItemClick?.(typeof user.userId === 'number' ? user.userId : Number(user.userId))}
+          onClick={() =>
+            onItemClick?.(typeof user.userId === 'number' ? user.userId : Number(user.userId))
+          }
           className={cn(
             'flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors',
             onItemClick && 'cursor-pointer'
           )}
         >
-          <OnlineIndicator userId={typeof user.userId === 'number' ? user.userId : Number(user.userId)} size="sm" />
+          <OnlineIndicator
+            userId={typeof user.userId === 'number' ? user.userId : Number(user.userId)}
+            size="sm"
+          />
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium truncate">
               {user.username || `用户${user.userId}`}
             </div>
-            <div className={cn(
-              'text-xs',
-              user.status === 'busy' ? 'text-yellow-600' :
-              user.status === 'away' ? 'text-orange-600' :
-              'text-green-600'
-            )}>
-              {user.status === 'busy' ? '忙碌' :
-               user.status === 'away' ? '离开' :
-               '在线'}
+            <div
+              className={cn(
+                'text-xs',
+                user.status === 'busy'
+                  ? 'text-yellow-600'
+                  : user.status === 'away'
+                    ? 'text-orange-600'
+                    : 'text-green-600'
+              )}
+            >
+              {user.status === 'busy' ? '忙碌' : user.status === 'away' ? '离开' : '在线'}
             </div>
           </div>
         </div>
@@ -227,14 +219,10 @@ export interface StatusSelectorProps {
   onStatusChange?: (status: 'online' | 'busy' | 'away') => void;
 }
 
-export function StatusSelector({
-  userId,
-  className = '',
-  onStatusChange,
-}: StatusSelectorProps) {
+export function StatusSelector({ userId, className = '', onStatusChange }: StatusSelectorProps) {
   const { onlineUsers, updateUserStatus } = useSocket({ userId });
 
-  const currentUser = onlineUsers.find(u => u.userId === userId);
+  const currentUser = onlineUsers.find((u) => u.userId === userId);
   const currentStatus = currentUser?.status || 'offline';
 
   const handleStatusChange = (newStatus: 'online' | 'busy' | 'away') => {

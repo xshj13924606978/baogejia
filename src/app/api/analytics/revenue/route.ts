@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      revenue: revenueData.map(r => ({
+      revenue: revenueData.map((r) => ({
         ...r,
         date: r.date.toISOString().split('T')[0],
       })),
@@ -42,9 +42,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Analytics] 获取收入数据失败:', error);
-    return NextResponse.json(
-      { error: '获取收入数据失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '获取收入数据失败' }, { status: 500 });
   }
 }

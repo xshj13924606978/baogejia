@@ -15,18 +15,19 @@
 
 ### ✅ 已迁移模块
 
-| 模块 | 文件数 | 状态 |
-|------|--------|------|
-| 用户管理 (user) | 4 | ✅ 已迁移 |
-| 积分等级 (points) | 6 | ✅ 已迁移 |
-| 审核管理 (audit) | 4 | ✅ 已迁移 |
-| 系统管理 (system) | 3 | ✅ 已迁移 |
-| 统计数据 (stats) | 4 | ✅ 已迁移 |
-| 模板权限 (templates) | 3 | ✅ 已迁移 |
+| 模块                 | 文件数 | 状态      |
+| -------------------- | ------ | --------- |
+| 用户管理 (user)      | 4      | ✅ 已迁移 |
+| 积分等级 (points)    | 6      | ✅ 已迁移 |
+| 审核管理 (audit)     | 4      | ✅ 已迁移 |
+| 系统管理 (system)    | 3      | ✅ 已迁移 |
+| 统计数据 (stats)     | 4      | ✅ 已迁移 |
+| 模板权限 (templates) | 3      | ✅ 已迁移 |
 
 ### 🔧 技术细节
 
 #### 迁移脚本
+
 - **主脚本**: `scripts/migrate-api-routes.ts`
 - **辅助脚本**:
   - `scripts/quick-fix.ts` - 快速修复重复导入
@@ -38,6 +39,7 @@
 已为以下API配置权限：
 
 **用户管理**
+
 - `GET /admin/users` → `user.view`
 - `POST /admin/users` → `user.create`
 - `POST /admin/users/[id]/points` → `user.points.edit`
@@ -45,6 +47,7 @@
 - `POST /admin/users/[id]/disable` → `user.disable`
 
 **积分等级**
+
 - `GET /admin/levels` → `admin.points.view`
 - `POST /admin/levels` → `admin.points.create`
 - `PUT /admin/levels` → `admin.points.edit`
@@ -54,12 +57,14 @@
 - `GET /admin/points/logs` → `admin.points.logs`
 
 **审核管理**
+
 - `GET /admin/audit` → `admin.audit.view`
 - `POST /admin/audit/[id]/approve` → `admin.audit.approve`
 - `POST /admin/audit/[id]/reject` → `admin.audit.reject`
 - `POST /admin/approve` → `admin.audit.approve`
 
 **系统管理**
+
 - `GET /admin/modules` → `admin.modules.view`
 - `POST /admin/modules` → `admin.modules.edit`
 - `GET /admin/billing/config` → `admin.billing.view`
@@ -67,12 +72,14 @@
 - `POST /admin/migrate-permissions` → `admin.permissions.migrate`
 
 **统计数据**
+
 - `GET /admin/stats` → `admin.stats.view`
 - `GET /admin/stats/level-distribution` → `admin.stats.view`
 - `GET /admin/stats/permissions/heatmap` → `admin.stats.view`
 - `GET /admin/stats/revenue` → `admin.stats.revenue`
 
 **模板权限**
+
 - `GET /admin/templates` → `admin.templates.view`
 - `POST /admin/templates` → `admin.templates.edit`
 - `GET /admin/api-permissions` → `admin.permissions.view`
@@ -84,21 +91,25 @@
 ### ⚠️ 遇到的问题
 
 #### 问题1: 迁移脚本函数闭合问题
+
 **描述**: 初始迁移脚本只替换了函数开始部分，没有正确处理函数结尾，导致语法错误。
 
 **影响**: 所有迁移的文件都有语法错误
 
 **解决方案**: 创建了多个修复脚本来逐步解决问题：
+
 1. 移除重复的导入语句
 2. 修复函数闭合括号
 3. 移除重复的 `})(request);` 调用
 
 #### 问题2: 类型检查错误
+
 **描述**: 迁移后存在88个TypeScript类型错误
 
 **影响**: 部分API可能无法正常编译
 
 **原因分析**:
+
 - 函数签名不匹配
 - 缺少必要的导入
 - 权限检查工具的类型定义问题
@@ -106,6 +117,7 @@
 **后续处理**: 需要手动修复类型错误
 
 #### 问题3: 运行时错误
+
 **描述**: 测试API时遇到 "request is not defined" 错误
 
 **影响**: API无法正常响应
@@ -117,6 +129,7 @@
 ### 📝 迁移示例
 
 #### 迁移前
+
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -131,6 +144,7 @@ export async function GET() {
 ```
 
 #### 迁移后
+
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { withPermissionCheck } from '@/lib/permission-check';

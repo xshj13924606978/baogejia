@@ -158,8 +158,14 @@ async function migrateFile(filePath: string): Promise<boolean> {
 
   for (const method of methods) {
     // 检查是否有该方法的导出
-    const methodRegex = new RegExp(`export\\s+(?:async\\s+)?function\\s+${method}\\s*\\([^)]*\\)`, 'g');
-    const constMethodRegex = new RegExp(`export\\s+const\\s+${method}\\s*=\\s*(?:async\\s*)?\\([^)]*\\)\\s*=>`, 'g');
+    const methodRegex = new RegExp(
+      `export\\s+(?:async\\s+)?function\\s+${method}\\s*\\([^)]*\\)`,
+      'g'
+    );
+    const constMethodRegex = new RegExp(
+      `export\\s+const\\s+${method}\\s*=\\s*(?:async\\s*)?\\([^)]*\\)\\s*=>`,
+      'g'
+    );
 
     if (methodRegex.test(content) || constMethodRegex.test(content)) {
       // 获取该API需要的权限
@@ -301,7 +307,9 @@ async function migrateAll() {
     totalFailed += result.failed;
     totalSkipped += result.skipped;
 
-    console.log(`${category.padEnd(10)}: ✅ ${result.success} | ⏭️ ${result.skipped} | ❌ ${result.failed}`);
+    console.log(
+      `${category.padEnd(10)}: ✅ ${result.success} | ⏭️ ${result.skipped} | ❌ ${result.failed}`
+    );
   }
 
   console.log('='.repeat(60));

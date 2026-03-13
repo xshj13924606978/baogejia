@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Users, 
+import {
+  Users,
   Plus,
   Search,
   Edit2,
@@ -20,7 +20,7 @@ import {
   FileText,
   DollarSign,
   CreditCard,
-  Building2
+  Building2,
 } from 'lucide-react';
 import { useQuote } from '@/contexts/QuoteContext';
 import {
@@ -68,10 +68,10 @@ interface CustomerTemplate {
   notes: string;
 }
 
-export default function CustomerListPanel({ 
-  onSelect, 
-  onClose 
-}: { 
+export default function CustomerListPanel({
+  onSelect,
+  onClose,
+}: {
   onSelect?: (customer: Customer) => void;
   onClose?: () => void;
 }) {
@@ -106,7 +106,9 @@ export default function CustomerListPanel({
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const url = searchTerm ? `/api/customers?search=${encodeURIComponent(searchTerm)}` : '/api/customers';
+      const url = searchTerm
+        ? `/api/customers?search=${encodeURIComponent(searchTerm)}`
+        : '/api/customers';
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
@@ -127,7 +129,7 @@ export default function CustomerListPanel({
   const handleAddCustomer = async (customerData: Omit<Customer, 'id'>) => {
     try {
       console.log('[CustomerListPanel] 添加客户:', customerData);
-      
+
       const response = await fetch('/api/customers', {
         method: 'POST',
         headers: {
@@ -182,7 +184,7 @@ export default function CustomerListPanel({
       });
 
       if (response.ok) {
-        setCustomers(customers.filter(c => c.id !== customerToDelete.id));
+        setCustomers(customers.filter((c) => c.id !== customerToDelete.id));
         toast({
           title: '删除成功',
           description: '客户已删除',
@@ -215,7 +217,7 @@ export default function CustomerListPanel({
       email: customer.email,
       address: customer.address,
     });
-    
+
     // 触发选择回调并关闭弹窗
     if (onSelect) {
       onSelect(customer);
@@ -228,11 +230,21 @@ export default function CustomerListPanel({
   // 下载客户列表
   const handleDownload = () => {
     const headers = [
-      '公司名称', '项目名称', '联系人', '电话', '邮箱', '地址',
-      '银行名称', '银行账号', '税号', '信用额度', '付款方式', '备注'
+      '公司名称',
+      '项目名称',
+      '联系人',
+      '电话',
+      '邮箱',
+      '地址',
+      '银行名称',
+      '银行账号',
+      '税号',
+      '信用额度',
+      '付款方式',
+      '备注',
     ];
-    
-    const rows = customers.map(c => [
+
+    const rows = customers.map((c) => [
       c.companyName,
       c.projectName,
       c.contactPerson,
@@ -244,12 +256,12 @@ export default function CustomerListPanel({
       c.taxNumber || '',
       c.creditLimit || '',
       c.paymentTerms || '',
-      c.notes || ''
+      c.notes || '',
     ]);
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
     ].join('\n');
 
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -275,10 +287,10 @@ export default function CustomerListPanel({
       const lines = text.split('\n').slice(1); // 跳过表头
 
       const importPromises = lines
-        .filter(line => line.trim())
-        .map(line => {
-          const values = line.match(/"([^"]*)"/g)?.map(v => v.slice(1, -1)) || [];
-          
+        .filter((line) => line.trim())
+        .map((line) => {
+          const values = line.match(/"([^"]*)"/g)?.map((v) => v.slice(1, -1)) || [];
+
           if (values.length >= 3) {
             return fetch('/api/customers', {
               method: 'POST',
@@ -334,9 +346,7 @@ export default function CustomerListPanel({
                 <Users className="h-5 w-5 text-green-500" />
                 客户资料库
               </CardTitle>
-              <CardDescription>
-                {customers.length} 个客户记录
-              </CardDescription>
+              <CardDescription>{customers.length} 个客户记录</CardDescription>
             </div>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>
@@ -404,7 +414,7 @@ export default function CustomerListPanel({
                           <Check className="h-4 w-4 text-green-500" />
                         )}
                       </div>
-                      
+
                       <div className="space-y-1 text-xs text-gray-600">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">项目:</span>
@@ -430,7 +440,7 @@ export default function CustomerListPanel({
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex gap-1 ml-4">
                       <Button
                         variant="ghost"
@@ -503,11 +513,11 @@ export default function CustomerListPanel({
 }
 
 // 添加客户对话框组件
-function AddCustomerDialog({ 
-  open, 
-  onOpenChange, 
+function AddCustomerDialog({
+  open,
+  onOpenChange,
   onAdd,
-  templates 
+  templates,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -577,11 +587,9 @@ function AddCustomerDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>添加新客户</DialogTitle>
-          <DialogDescription>
-            填写客户信息，添加到客户资料库
-          </DialogDescription>
+          <DialogDescription>填写客户信息，添加到客户资料库</DialogDescription>
         </DialogHeader>
-        
+
         {templates.length > 0 && (
           <div className="space-y-2 pb-4 border-b">
             <Label className="text-xs font-medium">快速应用模板</Label>
@@ -600,71 +608,77 @@ function AddCustomerDialog({
             </div>
           </div>
         )}
-        
+
         <Tabs defaultValue="basic" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="basic">基本信息</TabsTrigger>
             <TabsTrigger value="financial">财务信息</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="basic" className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs">公司名称 <span className="text-red-500">*</span></Label>
+                <Label className="text-xs">
+                  公司名称 <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   value={formData.companyName}
-                  onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                   placeholder="XX工程有限公司"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">项目名称</Label>
                 <Input
                   value={formData.projectName}
-                  onChange={(e) => setFormData({...formData, projectName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
                   placeholder="污水处理设备采购项目"
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label className="text-xs">联系人 <span className="text-red-500">*</span></Label>
+                <Label className="text-xs">
+                  联系人 <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   value={formData.contactPerson}
-                  onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
                   placeholder="张经理"
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label className="text-xs">电话 <span className="text-red-500">*</span></Label>
+                <Label className="text-xs">
+                  电话 <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="13912345678"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">邮箱</Label>
                 <Input
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="contact@example.com"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">地址</Label>
                 <Input
                   value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="XX省XX市XX区XX路XX号"
                 />
               </div>
             </div>
           </TabsContent>
-          
+
           <TabsContent value="financial" className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -674,11 +688,11 @@ function AddCustomerDialog({
                 </Label>
                 <Input
                   value={formData.bankName}
-                  onChange={(e) => setFormData({...formData, bankName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
                   placeholder="中国建设银行XX分行"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs flex items-center gap-2">
                   <DollarSign className="h-3 w-3" />
@@ -686,11 +700,11 @@ function AddCustomerDialog({
                 </Label>
                 <Input
                   value={formData.bankAccount}
-                  onChange={(e) => setFormData({...formData, bankAccount: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, bankAccount: e.target.value })}
                   placeholder="6222 0000 0000 0000"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs flex items-center gap-2">
                   <FileText className="h-3 w-3" />
@@ -698,26 +712,26 @@ function AddCustomerDialog({
                 </Label>
                 <Input
                   value={formData.taxNumber}
-                  onChange={(e) => setFormData({...formData, taxNumber: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
                   placeholder="91310000XXXXXXXXXX"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">付款方式</Label>
                 <Input
                   value={formData.paymentTerms}
-                  onChange={(e) => setFormData({...formData, paymentTerms: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
                   placeholder="月结30天"
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-xs">备注</Label>
               <Textarea
                 value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="其他备注信息..."
                 rows={3}
               />
@@ -729,9 +743,7 @@ function AddCustomerDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={handleSubmit}>
-            添加
-          </Button>
+          <Button onClick={handleSubmit}>添加</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -739,11 +751,11 @@ function AddCustomerDialog({
 }
 
 // 模板管理对话框
-function TemplateDialog({ 
-  open, 
-  onOpenChange, 
+function TemplateDialog({
+  open,
+  onOpenChange,
   templates,
-  setTemplates 
+  setTemplates,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -774,7 +786,7 @@ function TemplateDialog({
 
     if (editingTemplate) {
       // 更新模板
-      const index = templates.findIndex(t => t.name === editingTemplate.name);
+      const index = templates.findIndex((t) => t.name === editingTemplate.name);
       if (index !== -1) {
         const newTemplates = [...templates];
         newTemplates[index] = formData;
@@ -809,7 +821,7 @@ function TemplateDialog({
 
   const handleDeleteTemplate = (templateName: string) => {
     if (confirm(`确定要删除模板 "${templateName}" 吗？`)) {
-      setTemplates(templates.filter(t => t.name !== templateName));
+      setTemplates(templates.filter((t) => t.name !== templateName));
     }
   };
 
@@ -818,19 +830,17 @@ function TemplateDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>客户信息模板</DialogTitle>
-          <DialogDescription>
-            管理客户信息模板，快速填充常用信息
-          </DialogDescription>
+          <DialogDescription>管理客户信息模板，快速填充常用信息</DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {/* 模板列表 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-medium">现有模板</Label>
-              <Button 
-                size="sm" 
-                variant="outline" 
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => {
                   setEditingTemplate(null);
                   setFormData({
@@ -853,7 +863,7 @@ function TemplateDialog({
                 新建模板
               </Button>
             </div>
-            
+
             {templates.length === 0 ? (
               <div className="text-center text-gray-500 py-4 border rounded-lg">
                 暂无模板，点击"新建模板"创建
@@ -882,7 +892,9 @@ function TemplateDialog({
                     </div>
                     <div className="text-xs text-gray-600 space-y-1">
                       <div>{template.companyName}</div>
-                      <div>{template.contactPerson} - {template.phone}</div>
+                      <div>
+                        {template.contactPerson} - {template.phone}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -892,144 +904,145 @@ function TemplateDialog({
 
           {/* 编辑/新建模板 */}
           <div className="border-t pt-4 space-y-4">
-            <h3 className="font-medium text-sm">
-              {editingTemplate ? '编辑模板' : '新建模板'}
-            </h3>
-            
+            <h3 className="font-medium text-sm">{editingTemplate ? '编辑模板' : '新建模板'}</h3>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs">模板名称 <span className="text-red-500">*</span></Label>
+                <Label className="text-xs">
+                  模板名称 <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="例如：政府客户模板"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">公司名称</Label>
                 <Input
                   value={formData.companyName}
-                  onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                   placeholder="XX工程有限公司"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">项目名称</Label>
                 <Input
                   value={formData.projectName}
-                  onChange={(e) => setFormData({...formData, projectName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
                   placeholder="污水处理设备采购项目"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">联系人</Label>
                 <Input
                   value={formData.contactPerson}
-                  onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
                   placeholder="张经理"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">电话</Label>
                 <Input
                   value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="13912345678"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">邮箱</Label>
                 <Input
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="contact@example.com"
                 />
               </div>
-              
+
               <div className="space-y-2 col-span-2">
                 <Label className="text-xs">地址</Label>
                 <Input
                   value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="XX省XX市XX区XX路XX号"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">银行名称</Label>
                 <Input
                   value={formData.bankName}
-                  onChange={(e) => setFormData({...formData, bankName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
                   placeholder="中国建设银行XX分行"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">银行账号</Label>
                 <Input
                   value={formData.bankAccount}
-                  onChange={(e) => setFormData({...formData, bankAccount: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, bankAccount: e.target.value })}
                   placeholder="6222 0000 0000 0000"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">税号</Label>
                 <Input
                   value={formData.taxNumber}
-                  onChange={(e) => setFormData({...formData, taxNumber: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
                   placeholder="91310000XXXXXXXXXX"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">付款方式</Label>
                 <Input
                   value={formData.paymentTerms}
-                  onChange={(e) => setFormData({...formData, paymentTerms: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
                   placeholder="月结30天"
                 />
               </div>
-              
+
               <div className="space-y-2 col-span-2">
                 <Label className="text-xs">备注</Label>
                 <Textarea
                   value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="其他备注信息..."
                   rows={2}
                 />
               </div>
             </div>
-            
+
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => {
-                setEditingTemplate(null);
-                setFormData({
-                  name: '',
-                  companyName: '',
-                  projectName: '',
-                  contactPerson: '',
-                  phone: '',
-                  email: '',
-                  address: '',
-                  bankName: '',
-                  bankAccount: '',
-                  taxNumber: '',
-                  paymentTerms: '',
-                  notes: '',
-                });
-              }}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditingTemplate(null);
+                  setFormData({
+                    name: '',
+                    companyName: '',
+                    projectName: '',
+                    contactPerson: '',
+                    phone: '',
+                    email: '',
+                    address: '',
+                    bankName: '',
+                    bankAccount: '',
+                    taxNumber: '',
+                    paymentTerms: '',
+                    notes: '',
+                  });
+                }}
+              >
                 取消
               </Button>
-              <Button onClick={handleSaveTemplate}>
-                保存模板
-              </Button>
+              <Button onClick={handleSaveTemplate}>保存模板</Button>
             </div>
           </div>
         </div>

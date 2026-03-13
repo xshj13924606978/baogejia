@@ -30,15 +30,13 @@ export function MessageReadReceipt({
 }: MessageReadReceiptProps) {
   const [readStatuses, setReadStatuses] = useState<ReadStatus[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const currentUserId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : userId;
+  const currentUserId =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : userId;
 
   const { markMessageAsRead } = useWebSocket({
     userId: currentUserId,
     onMessageRead: (data) => {
-      if (
-        data.messageType === messageType &&
-        data.messageId === messageId
-      ) {
+      if (data.messageType === messageType && data.messageId === messageId) {
         // 更新已读状态
         setReadStatuses((prev) =>
           prev.map((status) =>
@@ -71,7 +69,7 @@ export function MessageReadReceipt({
 
     // 标记为已读
     markMessageAsRead(messageType, messageId);
-    
+
     // 更新本地状态
     setReadStatuses((prev) =>
       prev.map((status) =>
@@ -130,11 +128,10 @@ export function BatchMessageReadReceipt({
   messages,
   className = '',
 }: BatchMessageReadReceiptProps) {
-  const [readStatuses, setReadStatuses] = useState<
-    Record<string, Record<number, boolean>>
-  >({});
+  const [readStatuses, setReadStatuses] = useState<Record<string, Record<number, boolean>>>({});
   const [isLoading, setIsLoading] = useState(false);
-  const currentUserId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : userId;
+  const currentUserId =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : userId;
 
   const { markMessageAsRead } = useWebSocket({
     userId: currentUserId,
@@ -169,10 +166,7 @@ export function BatchMessageReadReceipt({
         const allRead = readCount === totalCount;
 
         return (
-          <div
-            key={key}
-            className="flex items-center gap-2"
-          >
+          <div key={key} className="flex items-center gap-2">
             <span className="text-xs text-gray-500">#{index + 1}</span>
             <MessageReadReceipt
               userId={currentUserId}
@@ -206,7 +200,8 @@ export function ChatMessageReadReceipt({
 }: ChatMessageReadReceiptProps) {
   const [readUsers, setReadUsers] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const currentUserId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : null;
+  const currentUserId =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : null;
 
   useEffect(() => {
     if (!messageId || recipients.length === 0) return;
@@ -233,9 +228,7 @@ export function ChatMessageReadReceipt({
         <Check className="w-4 h-4 text-gray-400" />
       ) : null}
 
-      {showCount && readCount > 0 && (
-        <span className="text-xs text-gray-400">{readCount}</span>
-      )}
+      {showCount && readCount > 0 && <span className="text-xs text-gray-400">{readCount}</span>}
     </div>
   );
 }

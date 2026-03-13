@@ -6,7 +6,7 @@ import { useUser } from '@/contexts/UserContext';
 function TestUserPage() {
   try {
     const { user, loading } = useUser();
-    
+
     return (
       <div style={{ padding: '20px' }}>
         <h1>UserContext 测试</h1>

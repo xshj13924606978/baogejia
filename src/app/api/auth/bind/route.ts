@@ -38,43 +38,26 @@ export async function POST(request: NextRequest) {
 
     // 验证必填参数
     if (!provider || !openid || !username || !password) {
-      return NextResponse.json(
-        { success: false, error: '缺少必填参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '缺少必填参数' }, { status: 400 });
     }
 
     // 验证提供商
     if (!Object.values(OAuthProvider).includes(provider)) {
-      return NextResponse.json(
-        { success: false, error: '不支持的登录提供商' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '不支持的登录提供商' }, { status: 400 });
     }
 
     // 验证用户名和密码
-    const user = mockUsers.find(
-      (u) => u.username === username && u.password === password
-    );
+    const user = mockUsers.find((u) => u.username === username && u.password === password);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: '用户名或密码错误' },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: '用户名或密码错误' }, { status: 401 });
     }
 
     // 检查是否已绑定
-    const existingBinding = await oauthService.getBinding(
-      provider as OAuthProvider,
-      openid
-    );
+    const existingBinding = await oauthService.getBinding(provider as OAuthProvider, openid);
 
     if (existingBinding) {
-      return NextResponse.json(
-        { success: false, error: '该账号已绑定' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '该账号已绑定' }, { status: 400 });
     }
 
     // 创建绑定
@@ -106,10 +89,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Auth] 绑定账号失败:', error);
-    return NextResponse.json(
-      { success: false, error: '绑定账号失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: '绑定账号失败' }, { status: 500 });
   }
 }
 
@@ -121,10 +101,7 @@ export async function GET(request: NextRequest) {
     // 从Authorization header获取用户信息
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { success: false, error: '未登录' },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: '未登录' }, { status: 401 });
     }
 
     // 简化处理：从localStorage获取（实际应该从token解析）
@@ -139,10 +116,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Auth] 查询绑定列表失败:', error);
-    return NextResponse.json(
-      { success: false, error: '查询绑定列表失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: '查询绑定列表失败' }, { status: 500 });
   }
 }
 
@@ -156,18 +130,12 @@ export async function DELETE(request: NextRequest) {
 
     // 验证必填参数
     if (!provider || !password) {
-      return NextResponse.json(
-        { success: false, error: '缺少必填参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '缺少必填参数' }, { status: 400 });
     }
 
     // 验证提供商
     if (!Object.values(OAuthProvider).includes(provider)) {
-      return NextResponse.json(
-        { success: false, error: '不支持的登录提供商' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '不支持的登录提供商' }, { status: 400 });
     }
 
     // 验证密码
@@ -175,20 +143,14 @@ export async function DELETE(request: NextRequest) {
     const user = mockUsers.find((u) => u.id === userId);
 
     if (!user || user.password !== password) {
-      return NextResponse.json(
-        { success: false, error: '密码错误' },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: '密码错误' }, { status: 401 });
     }
 
     // 解绑账号
     const success = await oauthService.unbindAccount(userId, provider as OAuthProvider);
 
     if (!success) {
-      return NextResponse.json(
-        { success: false, error: '未找到绑定记录' },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: '未找到绑定记录' }, { status: 404 });
     }
 
     console.log(`[Auth] 用户 ${userId} 解绑 ${provider} 成功`);
@@ -198,9 +160,6 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Auth] 解绑账号失败:', error);
-    return NextResponse.json(
-      { success: false, error: '解绑账号失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: '解绑账号失败' }, { status: 500 });
   }
 }

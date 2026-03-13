@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseClient();
     const { searchParams } = new URL(request.url);
-    
+
     const userId = searchParams.get('userId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -18,20 +18,14 @@ export async function GET(request: NextRequest) {
     // 权限检查
     const userStr = request.cookies.get('user')?.value;
     if (!userStr) {
-      return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
     const user = JSON.parse(userStr);
-    
+
     // 非管理员只能查看自己的数据
     if (userId && userId !== user.id && !hasPermission(user.role, 'canViewStats')) {
-      return NextResponse.json(
-        { error: '没有权限查看其他用户数据' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: '没有权限查看其他用户数据' }, { status: 403 });
     }
 
     // 构建时间范围
@@ -49,42 +43,35 @@ export async function GET(request: NextRequest) {
     }
 
     // 并行查询多个统计数据
-    const [
-      uploadsResult,
-      quotesResult,
-      knowledgeResult,
-      productsResult,
-      usersResult
-    ] = await Promise.all([
-      // 上传统计
-      supabase
-        .from('user_uploads')
-        .select('*', { count: 'exact', head: true })
-        .eq(userId ? 'user_id' : 'user_id', userId || user.id),
+    const [uploadsResult, quotesResult, knowledgeResult, productsResult, usersResult] =
+      await Promise.all([
+        // 上传统计
+        supabase
+          .from('user_uploads')
+          .select('*', { count: 'exact', head: true })
+          .eq(userId ? 'user_id' : 'user_id', userId || user.id),
 
-      // 报价统计
-      supabase
-        .from('quotes')
-        .select('*', { count: 'exact', head: true })
-        .eq(userId ? 'user_id' : 'user_id', userId || user.id),
+        // 报价统计
+        supabase
+          .from('quotes')
+          .select('*', { count: 'exact', head: true })
+          .eq(userId ? 'user_id' : 'user_id', userId || user.id),
 
-      // 知识库贡献统计
-      supabase
-        .from('knowledge_entries')
-        .select('*', { count: 'exact', head: true })
-        .eq(userId ? 'user_id' : 'user_id', userId || user.id),
+        // 知识库贡献统计
+        supabase
+          .from('knowledge_entries')
+          .select('*', { count: 'exact', head: true })
+          .eq(userId ? 'user_id' : 'user_id', userId || user.id),
 
-      // 产品库贡献统计
-      supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq(userId ? 'created_by' : 'created_by', userId || user.id),
+        // 产品库贡献统计
+        supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq(userId ? 'created_by' : 'created_by', userId || user.id),
 
-      // 如果是管理员，查询用户总数
-      userId ? null : supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-    ]);
+        // 如果是管理员，查询用户总数
+        userId ? null : supabase.from('users').select('*', { count: 'exact', head: true }),
+      ]);
 
     // 获取每日趋势数据
     const trendQuery = supabase
@@ -96,8 +83,9 @@ export async function GET(request: NextRequest) {
       trendQuery.gte('created_at', startDate).lte('created_at', endDate);
     }
 
-    const { data: trendData, error: trendError } = await trendQuery
-      .order('created_at', { ascending: true });
+    const { data: trendData, error: trendError } = await trendQuery.order('created_at', {
+      ascending: true,
+    });
 
     if (trendError) {
       console.error('[Stats Usage] 获取趋势数据失败:', trendError);
@@ -107,12 +95,11 @@ export async function GET(request: NextRequest) {
     const trend = aggregateTrendData(trendData || [], period);
 
     // 获取存储空间使用情况
-    const { data: storageData, error: storageError } = await supabase
-      .storage
+    const { data: storageData, error: storageError } = await supabase.storage
       .from('quote-files')
       .list(userId ? `uploads/${userId}` : 'uploads', {
         limit: 1000,
-        offset: 0
+        offset: 0,
       });
 
     if (storageError) {
@@ -120,7 +107,7 @@ export async function GET(request: NextRequest) {
     }
 
     const totalStorage = (storageData || []).reduce(
-      (sum, file) => sum + (file.metadata?.size || 0), 
+      (sum, file) => sum + (file.metadata?.size || 0),
       0
     );
 
@@ -132,23 +119,23 @@ export async function GET(request: NextRequest) {
         totalProducts: productsResult.count || 0,
         totalUsers: usersResult?.count || 0,
         totalStorage: totalStorage,
-        storageFormatted: formatBytes(totalStorage)
+        storageFormatted: formatBytes(totalStorage),
       },
       trend: trend,
       period: period,
       dateRange: {
-        start: startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        end: endDate || new Date().toISOString().split('T')[0]
-      }
+        start:
+          startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        end: endDate || new Date().toISOString().split('T')[0],
+      },
     };
 
     console.log('[Stats Usage] 统计结果:', stats.overview);
 
     return NextResponse.json({
       success: true,
-      data: stats
+      data: stats,
     });
-
   } catch (error) {
     console.error('[Stats Usage] 统计查询失败:', error);
     return NextResponse.json(
@@ -164,7 +151,7 @@ export async function GET(request: NextRequest) {
 function aggregateTrendData(data: any[], period: string): any[] {
   const trend: Record<string, { date: string; count: number; size: number }> = {};
 
-  data.forEach(item => {
+  data.forEach((item) => {
     let key = '';
     const date = new Date(item.created_at);
 

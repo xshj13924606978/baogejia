@@ -5,7 +5,7 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
  * 购买等级API
- * 
+ *
  * 功能：
  * - POST: 购买等级权限（直接付费）
  */
@@ -15,42 +15,33 @@ export async function POST(request: NextRequest) {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
     const body = await request.json();
     const { level, amount, paymentMethod, days } = body;
 
     if (!level || !amount || !paymentMethod) {
-      return NextResponse.json(
-        { error: '缺少必要参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
     if (level < 1 || level > 5) {
-      return NextResponse.json(
-        { error: '等级必须在1-5之间' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '等级必须在1-5之间' }, { status: 400 });
     }
 
-    console.log('[LevelPurchase API] 购买等级:', { 
-      userId: currentUser.id, 
-      level, 
-      amount, 
+    console.log('[LevelPurchase API] 购买等级:', {
+      userId: currentUser.id,
+      level,
+      amount,
       paymentMethod,
-      days 
+      days,
     });
 
     const supabase = getSupabaseClient();
 
     // 创建支付记录（模拟支付成功）
     const orderNo = 'ORD' + Date.now() + Math.random().toString(36).substr(2, 9);
-    
+
     const { data: paymentData, error: paymentError } = await supabase
       .from('payment_records')
       .insert({
@@ -62,17 +53,14 @@ export async function POST(request: NextRequest) {
         level_upgraded_to: level,
         level_expiry_date: days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null,
         plan_days: days,
-        paid_at: new Date()
+        paid_at: new Date(),
       })
       .select()
       .single();
 
     if (paymentError || !paymentData) {
       console.error('[LevelPurchase API] 创建支付记录失败:', paymentError);
-      return NextResponse.json(
-        { error: '创建支付记录失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '创建支付记录失败' }, { status: 500 });
     }
 
     // 购买等级
@@ -85,10 +73,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: result.message }, { status: 400 });
     }
 
     return NextResponse.json({
@@ -96,15 +81,12 @@ export async function POST(request: NextRequest) {
       data: {
         ...result,
         orderNo,
-        paymentId: paymentData.id
+        paymentId: paymentData.id,
       },
-      message: result.message
+      message: result.message,
     });
   } catch (error) {
     console.error('[LevelPurchase API] 购买等级异常:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * 品牌付费记录API
- * 
+ *
  * 功能：
  * - GET: 获取所有付费记录
  * - POST: 创建新付费记录
@@ -15,14 +15,14 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
     db: {
-      schema: 'public'
-    }
+      schema: 'public',
+    },
   }
 );
 
 /**
  * 获取所有付费记录
- * 
+ *
  * 查询参数：
  * - brand_id: string - 按品牌ID筛选（可选）
  * - status: string - 按支付状态筛选（可选）
@@ -54,25 +54,19 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[PaymentRecords] 查询失败:', error);
-      return NextResponse.json(
-        { error: '查询失败', details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '查询失败', details: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ records: data || [] });
   } catch (error) {
     console.error('[PaymentRecords] 异常:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
 
 /**
  * 创建新付费记录
- * 
+ *
  * 请求体：
  * - brand_id: string - 品牌ID（必填）
  * - payment_amount: number - 付费金额（必填）
@@ -93,10 +87,7 @@ export async function POST(request: NextRequest) {
 
     // 验证必填字段
     if (!body.brand_id || !body.payment_amount) {
-      return NextResponse.json(
-        { error: '品牌ID和付费金额不能为空' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '品牌ID和付费金额不能为空' }, { status: 400 });
     }
 
     // 准备插入数据
@@ -121,7 +112,7 @@ export async function POST(request: NextRequest) {
       // 时间戳
       created_at: now,
       updated_at: now,
-      paid_at: body.paid_at || null
+      paid_at: body.paid_at || null,
     };
 
     const { data, error } = await supabase
@@ -132,22 +123,16 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[PaymentRecords] 插入失败:', error);
-      return NextResponse.json(
-        { error: '创建失败', details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '创建失败', details: error.message }, { status: 500 });
     }
 
     console.log('[PaymentRecords] ✅ 付费记录创建成功');
     return NextResponse.json({
       success: true,
-      record: data
+      record: data,
     });
   } catch (error) {
     console.error('[PaymentRecords] 异常:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

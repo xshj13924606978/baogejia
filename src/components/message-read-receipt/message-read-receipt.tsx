@@ -41,22 +41,22 @@ export function MessageReadReceipt({
   const [isLoading, setIsLoading] = useState(false);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
 
-  const currentUserId = typeof window !== 'undefined'
-    ? JSON.parse(localStorage.getItem('user') || '{}')?.id
-    : userId;
+  const currentUserId =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : userId;
 
   const { markMessageAsRead, isConnected } = useSocket({
     userId: currentUserId,
     onMessageRead: (data: any) => {
-      if (
-        data.messageType === messageType &&
-        data.messageId === messageId
-      ) {
+      if (data.messageType === messageType && data.messageId === messageId) {
         // 更新已读状态
         setReadStatuses((prev) =>
           prev.map((status) =>
             status.user_id === data.userId
-              ? { ...status, is_read: true, read_at: data.readAt ? new Date(data.readAt) : new Date() }
+              ? {
+                  ...status,
+                  is_read: true,
+                  read_at: data.readAt ? new Date(data.readAt) : new Date(),
+                }
               : status
           )
         );
@@ -146,10 +146,7 @@ export function MessageReadReceipt({
           <div className="font-medium text-sm mb-3">已读状态</div>
           <div className="space-y-2">
             {readStatuses.map((status) => (
-              <div
-                key={status.user_id}
-                className="flex items-center justify-between text-sm"
-              >
+              <div key={status.user_id} className="flex items-center justify-between text-sm">
                 <span className="text-gray-900">{status.username}</span>
                 <div className="flex items-center gap-2">
                   {status.is_read ? (
@@ -194,13 +191,10 @@ export function BatchMessageReadReceipt({
   messages,
   className = '',
 }: BatchMessageReadReceiptProps) {
-  const [readStatuses, setReadStatuses] = useState<
-    Record<string, Record<number, boolean>>
-  >({});
+  const [readStatuses, setReadStatuses] = useState<Record<string, Record<number, boolean>>>({});
 
-  const currentUserId = typeof window !== 'undefined'
-    ? JSON.parse(localStorage.getItem('user') || '{}')?.id
-    : userId;
+  const currentUserId =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : userId;
 
   const { markMessageAsRead } = useSocket({ userId: currentUserId });
 
@@ -280,9 +274,8 @@ export function ChatMessageReadReceipt({
   const [readUsers, setReadUsers] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const currentUserId = typeof window !== 'undefined'
-    ? JSON.parse(localStorage.getItem('user') || '{}')?.id
-    : null;
+  const currentUserId =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : null;
 
   useEffect(() => {
     if (!messageId || recipients.length === 0) return;
@@ -311,9 +304,7 @@ export function ChatMessageReadReceipt({
         <Clock className="w-4 h-4 text-gray-300" />
       )}
 
-      {showCount && readCount > 0 && (
-        <span className="text-xs text-gray-400">{readCount}</span>
-      )}
+      {showCount && readCount > 0 && <span className="text-xs text-gray-400">{readCount}</span>}
 
       {sentTime && readCount > 0 && (
         <span className="text-xs text-gray-400 ml-1">

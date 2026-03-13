@@ -6,11 +6,7 @@ export async function GET(request: NextRequest) {
     const db = getSupabaseClient();
 
     // 只返回第一条供应方记录（通常只有一个）
-    const { data, error } = await db
-      .from('suppliers')
-      .select('*')
-      .limit(1)
-      .single();
+    const { data, error } = await db.from('suppliers').select('*').limit(1).single();
 
     if (error && error.code !== 'PGRST116') {
       throw error;
@@ -19,7 +15,7 @@ export async function GET(request: NextRequest) {
     // 将 snake_case 转换为 camelCase
     if (data) {
       const camelCaseData: Record<string, any> = {};
-      Object.keys(data).forEach(key => {
+      Object.keys(data).forEach((key) => {
         const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
         camelCaseData[camelKey] = data[key];
       });
@@ -29,10 +25,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ supplier: null });
   } catch (error) {
     console.error('Failed to load supplier:', error);
-    return NextResponse.json(
-      { error: 'Failed to load supplier' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to load supplier' }, { status: 500 });
   }
 }
 
@@ -45,17 +38,13 @@ export async function POST(request: NextRequest) {
 
     // 将 camelCase 转换为 snake_case
     const snakeCaseData: Record<string, any> = {};
-    Object.keys(supplierData).forEach(key => {
+    Object.keys(supplierData).forEach((key) => {
       const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
       snakeCaseData[snakeKey] = supplierData[key];
     });
 
     // 检查是否已有供应方记录
-    const { data: existing } = await db
-      .from('suppliers')
-      .select('id')
-      .limit(1)
-      .single();
+    const { data: existing } = await db.from('suppliers').select('id').limit(1).single();
 
     let result;
 
@@ -92,9 +81,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ supplier: result });
   } catch (error) {
     console.error('Failed to save supplier:', error);
-    return NextResponse.json(
-      { error: 'Failed to save supplier' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to save supplier' }, { status: 500 });
   }
 }

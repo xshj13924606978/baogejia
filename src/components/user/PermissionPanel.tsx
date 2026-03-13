@@ -187,9 +187,7 @@ export const PermissionPanel: React.FC = () => {
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
           <div>
             <div className="text-sm text-muted-foreground">积分余额</div>
-            <div className="text-2xl font-bold text-orange-500 mt-1">
-              {user.currentPoints || 0}
-            </div>
+            <div className="text-2xl font-bold text-orange-500 mt-1">{user.currentPoints || 0}</div>
           </div>
         </div>
 
@@ -198,7 +196,9 @@ export const PermissionPanel: React.FC = () => {
           <div className="font-medium mb-2">可用模块</div>
           <div className="flex flex-wrap gap-2">
             {levelConfig?.modulePermissions?.map((code: string) => (
-              <Badge key={code} variant="secondary">{code}</Badge>
+              <Badge key={code} variant="secondary">
+                {code}
+              </Badge>
             ))}
           </div>
         </div>
@@ -255,16 +255,13 @@ export const PermissionPanel: React.FC = () => {
             <div className="font-bold mb-2">🎯 智能推荐升级</div>
             <p className="text-sm mb-2">
               推荐升级到{' '}
-              <Badge className="bg-yellow-500">
-                Lv.{recommendation.recommendedLevel}
-              </Badge>
+              <Badge className="bg-yellow-500">Lv.{recommendation.recommendedLevel}</Badge>
             </p>
             <p className="text-sm text-muted-foreground mb-2">
               推荐理由：{recommendation.benefits?.join('、')}
             </p>
             <p className="text-sm mb-4">
-              所需积分：{recommendation.cost.points} | ￥
-              {recommendation.cost.money.toFixed(2)}
+              所需积分：{recommendation.cost.points} | ￥{recommendation.cost.money.toFixed(2)}
             </p>
             <Button className="w-full" onClick={() => setUpgradeModal(true)}>
               立即升级
@@ -296,11 +293,7 @@ export const PermissionPanel: React.FC = () => {
                 </div>
               </div>
             </Button>
-            <Button
-              className="w-full justify-start"
-              onClick={handlePurchase}
-              disabled={loading}
-            >
+            <Button className="w-full justify-start" onClick={handlePurchase} disabled={loading}>
               <div className="flex-1 text-left">
                 <div className="font-medium">付费购买</div>
                 <div className="text-sm text-muted-foreground">

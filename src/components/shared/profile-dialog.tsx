@@ -16,20 +16,20 @@ import { useUser } from '@/contexts/UserContext';
 import { EmailBindDialog } from '@/components/auth/EmailBindDialog';
 import { WechatBindDialog } from '@/components/auth/WechatBindDialog';
 import { PhoneChangeDialog } from '@/components/auth/PhoneChangeDialog';
-import { 
-  Mail, 
-  Phone, 
-  MessageCircle, 
-  Building2, 
-  MapPin, 
-  User as UserIcon, 
-  Plus, 
+import {
+  Mail,
+  Phone,
+  MessageCircle,
+  Building2,
+  MapPin,
+  User as UserIcon,
+  Plus,
   Unlink,
   QrCode,
   AlertCircle,
   Camera,
   Loader2,
-  Edit2
+  Edit2,
 } from 'lucide-react';
 
 interface ProfileDialogProps {
@@ -38,10 +38,11 @@ interface ProfileDialogProps {
 }
 
 export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
-  const { user, updateUser, unbindEmail, unbindWechat, unbindPhone, uploadAvatar, refreshUser } = useUser();
+  const { user, updateUser, unbindEmail, unbindWechat, unbindPhone, uploadAvatar, refreshUser } =
+    useUser();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -49,9 +50,9 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     company: '',
     address: '',
     avatar: '',
-    wechat: null as any
+    wechat: null as any,
   });
-  
+
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showEmailBind, setShowEmailBind] = useState(false);
@@ -71,7 +72,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         company: user.company || '',
         address: user.address || '',
         avatar: user.avatar || '',
-        wechat: (user as any).wechat || null
+        wechat: (user as any).wechat || null,
       });
     }
   }, [user]);
@@ -88,7 +89,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     if (formData.name) {
       return formData.name
         .split(' ')
-        .map(n => n[0])
+        .map((n) => n[0])
         .join('')
         .toUpperCase()
         .slice(0, 2);
@@ -118,30 +119,30 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     if (!file) return;
 
     setUploadingAvatar(true);
-    
+
     try {
       const result = await uploadAvatar(file);
-      
+
       if (result.success && result.url) {
         setFormData({ ...formData, avatar: result.url });
         toast({
-          title: "上传成功",
-          description: "头像已更新",
+          title: '上传成功',
+          description: '头像已更新',
           duration: 2000,
         });
       } else {
         toast({
-          title: "上传失败",
-          description: result.error || "请重试",
-          variant: "destructive",
+          title: '上传失败',
+          description: result.error || '请重试',
+          variant: 'destructive',
           duration: 3000,
         });
       }
     } catch (error) {
       toast({
-        title: "上传失败",
-        description: "请稍后重试",
-        variant: "destructive",
+        title: '上传失败',
+        description: '请稍后重试',
+        variant: 'destructive',
         duration: 3000,
       });
     } finally {
@@ -155,18 +156,18 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   // 修改保存逻辑：保存成功后关闭弹窗
   const handleSave = async () => {
     setSaving(true);
-    
+
     try {
       const success = await updateUser({
         name: formData.name,
         company: formData.company,
         address: formData.address,
       });
-      
+
       if (success) {
         toast({
-          title: "保存成功",
-          description: "个人资料已更新",
+          title: '保存成功',
+          description: '个人资料已更新',
           duration: 2000,
         });
         setEditing(false);
@@ -176,17 +177,17 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         }, 500);
       } else {
         toast({
-          title: "保存失败",
-          description: "请稍后重试",
-          variant: "destructive",
+          title: '保存失败',
+          description: '请稍后重试',
+          variant: 'destructive',
           duration: 3000,
         });
       }
     } catch (error) {
       toast({
-        title: "保存失败",
-        description: "请稍后重试",
-        variant: "destructive",
+        title: '保存失败',
+        description: '请稍后重试',
+        variant: 'destructive',
         duration: 3000,
       });
     } finally {
@@ -203,7 +204,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         company: user.company || '',
         address: user.address || '',
         avatar: user.avatar || '',
-        wechat: (user as any).wechat || null
+        wechat: (user as any).wechat || null,
       });
     }
     setEditing(false);
@@ -211,7 +212,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
   const handleUnbind = async (type: 'email' | 'wechat' | 'phone') => {
     setUnbinding(type);
-    
+
     try {
       let success = false;
       if (type === 'email') {
@@ -221,27 +222,27 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
       } else if (type === 'phone') {
         success = await unbindPhone();
       }
-      
+
       if (success) {
         await refreshUser();
         toast({
-          title: "解绑成功",
+          title: '解绑成功',
           description: `${type === 'email' ? '邮箱' : type === 'wechat' ? '微信' : '手机号'}已解绑`,
           duration: 2000,
         });
       } else {
         toast({
-          title: "解绑失败",
+          title: '解绑失败',
           description: type === 'phone' ? '请至少保留一种登录方式' : '请稍后重试',
-          variant: "destructive",
+          variant: 'destructive',
           duration: 3000,
         });
       }
     } catch (error) {
       toast({
-        title: "解绑失败",
-        description: "请稍后重试",
-        variant: "destructive",
+        title: '解绑失败',
+        description: '请稍后重试',
+        variant: 'destructive',
         duration: 3000,
       });
     } finally {
@@ -266,26 +267,28 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>个人资料</DialogTitle>
-            <DialogDescription>
-              查看和编辑您的个人信息
-            </DialogDescription>
+            <DialogDescription>查看和编辑您的个人信息</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {/* 头像区域 - 可点击上传 */}
             <div className="flex flex-col items-center gap-2">
               <div className="relative">
-                <Avatar className="h-20 w-20 ring-2 ring-blue-100 cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={handleAvatarClick}>
-                  {formData.avatar ? (
-                    <AvatarImage src={formData.avatar} />
-                  ) : null}
-                  <AvatarFallback className={`bg-gradient-to-br ${gradientClass} text-white text-xl`}>
+                <Avatar
+                  className="h-20 w-20 ring-2 ring-blue-100 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={handleAvatarClick}
+                >
+                  {formData.avatar ? <AvatarImage src={formData.avatar} /> : null}
+                  <AvatarFallback
+                    className={`bg-gradient-to-br ${gradientClass} text-white text-xl`}
+                  >
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-                <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1.5 cursor-pointer hover:bg-blue-600 transition-colors"
-                     onClick={handleAvatarClick}>
+                <div
+                  className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1.5 cursor-pointer hover:bg-blue-600 transition-colors"
+                  onClick={handleAvatarClick}
+                >
                   {uploadingAvatar ? (
                     <Loader2 className="h-3 w-3 text-white animate-spin" />
                   ) : (
@@ -327,9 +330,9 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                   姓名
                 </label>
                 {editing ? (
-                  <Input 
-                    value={formData.name} 
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  <Input
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="请输入姓名"
                   />
                 ) : (
@@ -372,11 +375,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     </Button>
                   )}
                 </div>
-                {formData.email && (
-                  <p className="text-xs text-gray-500">
-                    可用于登录账号
-                  </p>
-                )}
+                {formData.email && <p className="text-xs text-gray-500">可用于登录账号</p>}
               </div>
 
               {/* 手机 - 可变更/绑定 */}
@@ -410,11 +409,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     </Button>
                   )}
                 </div>
-                {formData.phone && (
-                  <p className="text-xs text-gray-500">
-                    可用于登录账号
-                  </p>
-                )}
+                {formData.phone && <p className="text-xs text-gray-500">可用于登录账号</p>}
               </div>
 
               {/* 微信 - 绑定/解绑 */}
@@ -429,10 +424,14 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                       <span className="flex items-center gap-2">
                         <span className="text-green-600">已绑定</span>
                         {formData.wechat.nickname && (
-                          <span className="text-xs text-gray-500">({formData.wechat.nickname})</span>
+                          <span className="text-xs text-gray-500">
+                            ({formData.wechat.nickname})
+                          </span>
                         )}
                       </span>
-                    ) : '未绑定'}
+                    ) : (
+                      '未绑定'
+                    )}
                   </p>
                   {!formData.wechat ? (
                     <Button
@@ -456,11 +455,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     </Button>
                   )}
                 </div>
-                {formData.wechat && (
-                  <p className="text-xs text-gray-500">
-                    可使用微信扫码登录
-                  </p>
-                )}
+                {formData.wechat && <p className="text-xs text-gray-500">可使用微信扫码登录</p>}
               </div>
 
               {/* 公司 - 可编辑 */}
@@ -470,9 +465,9 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                   公司
                 </label>
                 {editing ? (
-                  <Input 
-                    value={formData.company} 
-                    onChange={(e) => setFormData({...formData, company: e.target.value})}
+                  <Input
+                    value={formData.company}
+                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                     placeholder="请输入公司名称"
                   />
                 ) : (
@@ -489,9 +484,9 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                   地址
                 </label>
                 {editing ? (
-                  <Input 
-                    value={formData.address} 
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  <Input
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     placeholder="请输入地址"
                   />
                 ) : (

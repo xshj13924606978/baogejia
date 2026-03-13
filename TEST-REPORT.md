@@ -23,19 +23,21 @@
 
 ### 🔑 测试账号
 
-| 角色 | 用户名 | 密码 | 邮箱 | 权限 |
-|------|--------|------|------|------|
-| 管理员 | admin | admin123 | admin@example.com | super_admin |
-| 普通用户 | test | test123 | test@example.com | user |
+| 角色     | 用户名 | 密码     | 邮箱              | 权限        |
+| -------- | ------ | -------- | ----------------- | ----------- |
+| 管理员   | admin  | admin123 | admin@example.com | super_admin |
+| 普通用户 | test   | test123  | test@example.com  | user        |
 
 ### 🌐 访问地址
 
 **外网访问（推荐）**:
+
 ```
 https://eea906de-e74a-496b-a0fb-ee58e7165f0d.dev.coze.site
 ```
 
 **本地访问**:
+
 ```
 http://localhost:5000
 ```
@@ -54,11 +56,13 @@ http://localhost:5000
 ### 🚀 如何使用
 
 #### 方法1：通过浏览器访问
+
 1. 打开浏览器访问: https://eea906de-e74a-496b-a0fb-ee58e7165f0d.dev.coze.site
 2. 点击登录按钮
 3. 使用测试账号登录
 
 #### 方法2：通过命令行测试
+
 ```bash
 # 快速登录测试
 bash test-login.sh
@@ -75,12 +79,14 @@ curl -X POST http://localhost:5000/api/auth/login \
 ### 📝 功能说明
 
 #### 管理员功能 (admin)
+
 - 用户管理（查看、禁用、修改角色）
 - 审核管理（审核产品、报价单等）
 - 统计数据查看
 - 积分管理
 
 #### 普通用户功能 (test)
+
 - 创建对话
 - 生成报价单
 - 查询积分
@@ -104,6 +110,7 @@ curl -X POST http://localhost:5000/api/auth/login \
 ### 🎯 下一步
 
 您现在可以：
+
 1. 使用浏览器访问系统并进行完整测试
 2. 使用测试账号登录体验所有功能
 3. 通过命令行脚本验证API功能

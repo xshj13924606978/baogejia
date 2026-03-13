@@ -12,10 +12,13 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('获取字段配置失败:', error);
-      return NextResponse.json({
-        success: false,
-        error: error.message,
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -24,10 +27,13 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('获取字段配置失败:', error);
-    return NextResponse.json({
-      success: false,
-      error: '获取字段配置失败',
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: '获取字段配置失败',
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -38,10 +44,13 @@ export async function PUT(request: NextRequest) {
     const { field_key, is_required } = body;
 
     if (!field_key) {
-      return NextResponse.json({
-        success: false,
-        error: '字段键名不能为空',
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: '字段键名不能为空',
+        },
+        { status: 400 }
+      );
     }
 
     const db = getSupabaseClient();
@@ -54,10 +63,13 @@ export async function PUT(request: NextRequest) {
 
     if (error) {
       console.error('更新字段配置失败:', error);
-      return NextResponse.json({
-        success: false,
-        error: error.message,
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -67,9 +79,12 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     console.error('更新字段配置失败:', error);
-    return NextResponse.json({
-      success: false,
-      error: '更新字段配置失败',
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: '更新字段配置失败',
+      },
+      { status: 500 }
+    );
   }
 }

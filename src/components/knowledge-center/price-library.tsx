@@ -37,13 +37,30 @@ export default function PriceLibrary() {
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
   const [showFieldMapping, setShowFieldMapping] = useState(false);
-  const [pendingExcelData, setPendingExcelData] = useState<{ headers: string[]; data: any[] } | null>(null);
-  const [pendingFilterConfig, setPendingFilterConfig] = useState<{ brands?: Set<string>, keyword?: string } | null>(null);
-  const [fieldConfigs, setFieldConfigs] = useState<Record<string, { label: string; required: boolean }>>({});
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
-    'select', 'product_name', 'model', 'brand', 'parameter_description',
-    'unit', 'price', 'supplier', 'operations'
-  ]));
+  const [pendingExcelData, setPendingExcelData] = useState<{
+    headers: string[];
+    data: any[];
+  } | null>(null);
+  const [pendingFilterConfig, setPendingFilterConfig] = useState<{
+    brands?: Set<string>;
+    keyword?: string;
+  } | null>(null);
+  const [fieldConfigs, setFieldConfigs] = useState<
+    Record<string, { label: string; required: boolean }>
+  >({});
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    new Set([
+      'select',
+      'product_name',
+      'model',
+      'brand',
+      'parameter_description',
+      'unit',
+      'price',
+      'supplier',
+      'operations',
+    ])
+  );
   const [exportFilterBrands, setExportFilterBrands] = useState<Set<string>>(new Set());
   const [exportFilterKeywords, setExportFilterKeywords] = useState<string>('');
   const [newProduct, setNewProduct] = useState({
@@ -57,7 +74,7 @@ export default function PriceLibrary() {
     price: '',
     supplier: '',
     contact_person: '',
-    contact_phone: ''
+    contact_phone: '',
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -85,9 +102,7 @@ export default function PriceLibrary() {
       try {
         const parsed = JSON.parse(savedColumns);
         // 确保所有 fixed 列都包含在配置中
-        const fixedColumns = availableColumns
-          .filter(col => col.fixed)
-          .map(col => col.key);
+        const fixedColumns = availableColumns.filter((col) => col.fixed).map((col) => col.key);
         const columnsWithFixed = [...new Set([...fixedColumns, ...parsed])];
         setVisibleColumns(new Set(columnsWithFixed));
       } catch (e) {
@@ -137,14 +152,78 @@ export default function PriceLibrary() {
 
   // 模拟产品数据
   const mockProducts = [
-    { product_name: '工业提升泵', model: 'CR5-12', brand: '格兰富', parameter_description: '流量12m³/h，扬程30m', unit: '台', price: 3200, supplier: '格兰富中国' },
-    { product_name: '搅拌罐', model: '2.5m³', brand: '通用', parameter_description: '不锈钢材质，配搅拌器', unit: '台', price: 14500, supplier: '通用机械' },
-    { product_name: '板框压滤机', model: 'XMYZ100/800-U', brand: '景津', parameter_description: '过滤面积100m²', unit: '台', price: 88000, supplier: '景津环保' },
-    { product_name: '一体化污水泵站', model: 'WZ-100', brand: '威尔克', parameter_description: '处理量100m³/h', unit: '套', price: 156000, supplier: '威尔克环境' },
-    { product_name: '曝气机', model: 'QXB-3', brand: '诸城清泉', parameter_description: '功率3kW', unit: '台', price: 4500, supplier: '诸城清泉' },
-    { product_name: '加药装置', model: 'JY-200', brand: '绿洁', parameter_description: '药箱容量200L', unit: '套', price: 8800, supplier: '绿洁环保' },
-    { product_name: '气浮机', model: 'QF-20', brand: '绿洁', parameter_description: '处理量20m³/h', unit: '台', price: 28000, supplier: '绿洁环保' },
-    { product_name: '刮泥机', brand: '通用', model: 'XNG-10', parameter_description: '池径10m', unit: '台', price: 42000, supplier: '通用机械' },
+    {
+      product_name: '工业提升泵',
+      model: 'CR5-12',
+      brand: '格兰富',
+      parameter_description: '流量12m³/h，扬程30m',
+      unit: '台',
+      price: 3200,
+      supplier: '格兰富中国',
+    },
+    {
+      product_name: '搅拌罐',
+      model: '2.5m³',
+      brand: '通用',
+      parameter_description: '不锈钢材质，配搅拌器',
+      unit: '台',
+      price: 14500,
+      supplier: '通用机械',
+    },
+    {
+      product_name: '板框压滤机',
+      model: 'XMYZ100/800-U',
+      brand: '景津',
+      parameter_description: '过滤面积100m²',
+      unit: '台',
+      price: 88000,
+      supplier: '景津环保',
+    },
+    {
+      product_name: '一体化污水泵站',
+      model: 'WZ-100',
+      brand: '威尔克',
+      parameter_description: '处理量100m³/h',
+      unit: '套',
+      price: 156000,
+      supplier: '威尔克环境',
+    },
+    {
+      product_name: '曝气机',
+      model: 'QXB-3',
+      brand: '诸城清泉',
+      parameter_description: '功率3kW',
+      unit: '台',
+      price: 4500,
+      supplier: '诸城清泉',
+    },
+    {
+      product_name: '加药装置',
+      model: 'JY-200',
+      brand: '绿洁',
+      parameter_description: '药箱容量200L',
+      unit: '套',
+      price: 8800,
+      supplier: '绿洁环保',
+    },
+    {
+      product_name: '气浮机',
+      model: 'QF-20',
+      brand: '绿洁',
+      parameter_description: '处理量20m³/h',
+      unit: '台',
+      price: 28000,
+      supplier: '绿洁环保',
+    },
+    {
+      product_name: '刮泥机',
+      brand: '通用',
+      model: 'XNG-10',
+      parameter_description: '池径10m',
+      unit: '台',
+      price: 42000,
+      supplier: '通用机械',
+    },
   ];
 
   // 加载产品列表
@@ -186,7 +265,7 @@ export default function PriceLibrary() {
       const response = await fetch(`/api/tables/products/${editingProduct.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingProduct)
+        body: JSON.stringify(editingProduct),
       });
 
       const result = await response.json();
@@ -247,7 +326,7 @@ export default function PriceLibrary() {
       const response = await fetch('/api/tables/products/batch-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: Array.from(selectedProducts) })
+        body: JSON.stringify({ ids: Array.from(selectedProducts) }),
       });
 
       const result = await response.json();
@@ -267,7 +346,7 @@ export default function PriceLibrary() {
 
   // 选择单个产品
   const handleSelectProduct = (productId: number) => {
-    setSelectedProducts(prev => {
+    setSelectedProducts((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(productId)) {
         newSet.delete(productId);
@@ -281,7 +360,7 @@ export default function PriceLibrary() {
   // 全选/取消全选
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedProducts(new Set(products.map(p => p.id)));
+      setSelectedProducts(new Set(products.map((p) => p.id)));
     } else {
       setSelectedProducts(new Set());
     }
@@ -301,7 +380,7 @@ export default function PriceLibrary() {
         data.data.forEach((config: any) => {
           configs[config.field_key] = {
             label: config.field_label,
-            required: config.is_required
+            required: config.is_required,
           };
         });
         setFieldConfigs(configs);
@@ -311,7 +390,7 @@ export default function PriceLibrary() {
       // 使用默认配置
       setFieldConfigs({
         product_name: { label: '产品名称', required: true },
-        price: { label: '指导价', required: true }
+        price: { label: '指导价', required: true },
       });
     }
   };
@@ -333,7 +412,7 @@ export default function PriceLibrary() {
       const res = await fetch('/api/tables/products/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword: searchTerm })
+        body: JSON.stringify({ keyword: searchTerm }),
       });
 
       const data = await res.json();
@@ -343,20 +422,22 @@ export default function PriceLibrary() {
       } else {
         console.error('搜索失败:', data.error);
         // 如果API调用失败，使用本地搜索
-        const filtered = mockProducts.filter(p =>
-          p.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.brand.toLowerCase().includes(searchTerm.toLowerCase())
+        const filtered = mockProducts.filter(
+          (p) =>
+            p.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.brand.toLowerCase().includes(searchTerm.toLowerCase())
         );
         setProducts(filtered);
       }
     } catch (error) {
       console.error('搜索失败:', error);
       // 如果网络错误，使用本地搜索
-      const filtered = mockProducts.filter(p =>
-        p.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.brand.toLowerCase().includes(searchTerm.toLowerCase())
+      const filtered = mockProducts.filter(
+        (p) =>
+          p.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.brand.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setProducts(filtered);
     } finally {
@@ -390,7 +471,8 @@ export default function PriceLibrary() {
           console.log('解析到的Excel数据:', jsonData);
 
           // 获取Excel表头
-          const headers = jsonData.length > 0 ? Object.keys(jsonData[0] as Record<string, any>) : [];
+          const headers =
+            jsonData.length > 0 ? Object.keys(jsonData[0] as Record<string, any>) : [];
 
           // 保存数据，显示字段映射对话框
           setPendingExcelData({ headers, data: jsonData });
@@ -436,13 +518,26 @@ export default function PriceLibrary() {
   };
 
   // 处理网盘链接上传
-  const handleCloudFileUpload = (url: string, fileName: string, description: string, extractCode: string) => {
+  const handleCloudFileUpload = (
+    url: string,
+    fileName: string,
+    description: string,
+    extractCode: string
+  ) => {
     // 保存网盘链接信息
-    alert(`网盘链接已保存\n链接：${url}\n文件名：${fileName}\n文件说明：${description}\n提取码：${extractCode}`);
+    alert(
+      `网盘链接已保存\n链接：${url}\n文件名：${fileName}\n文件说明：${description}\n提取码：${extractCode}`
+    );
   };
 
   // 处理网盘文件上传（带文件）
-  const handleCloudFileWithFile = async (url: string, fileName: string, description: string, extractCode: string, file: File) => {
+  const handleCloudFileWithFile = async (
+    url: string,
+    fileName: string,
+    description: string,
+    extractCode: string,
+    file: File
+  ) => {
     // 解析并导入文件到产品价格库
     setImporting(true);
 
@@ -483,7 +578,9 @@ export default function PriceLibrary() {
       setShowFieldMapping(true);
       setShowUploadDialog(false);
 
-      alert(`✅ 文件解析成功！\n\n检测到 ${importData.length} 条数据\n请完成字段映射后导入到产品价格库。`);
+      alert(
+        `✅ 文件解析成功！\n\n检测到 ${importData.length} 条数据\n请完成字段映射后导入到产品价格库。`
+      );
     } catch (error) {
       console.error('解析网盘文件失败:', error);
       alert(`❌ 文件解析失败：${error instanceof Error ? error.message : '未知错误'}`);
@@ -505,17 +602,20 @@ export default function PriceLibrary() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           products: pendingExcelData.data,
-          fieldMapping: mapping
-        })
+          fieldMapping: mapping,
+        }),
       });
 
       const result = await response.json();
 
       if (result.success) {
-        const duplicateMsg = result.duplicateCount > 0 ? `\n跳过 ${result.duplicateCount} 条重复产品` : '';
+        const duplicateMsg =
+          result.duplicateCount > 0 ? `\n跳过 ${result.duplicateCount} 条重复产品` : '';
         const errorMsg = result.errorCount > 0 ? `\n失败 ${result.errorCount} 条` : '';
 
-        alert(`✅ 导入成功！\n\n成功导入 ${result.successCount} 条产品数据${duplicateMsg}${errorMsg}`);
+        alert(
+          `✅ 导入成功！\n\n成功导入 ${result.successCount} 条产品数据${duplicateMsg}${errorMsg}`
+        );
 
         // 刷新产品列表
         await loadProducts();
@@ -549,10 +649,12 @@ export default function PriceLibrary() {
       .filter(([_, config]) => config.required)
       .map(([key, config]) => ({ key, label: config.label }));
 
-    const missingFields = requiredFields.filter(field => !newProduct[field.key as keyof typeof newProduct]);
+    const missingFields = requiredFields.filter(
+      (field) => !newProduct[field.key as keyof typeof newProduct]
+    );
 
     if (missingFields.length > 0) {
-      alert(`请填写必填字段：${missingFields.map(f => f.label).join('、')}`);
+      alert(`请填写必填字段：${missingFields.map((f) => f.label).join('、')}`);
       return;
     }
 
@@ -561,20 +663,22 @@ export default function PriceLibrary() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          products: [{
-            '产品名称': newProduct.product_name,
-            '型号': newProduct.model,
-            '品牌': newProduct.brand,
-            '参数描述': newProduct.parameter_description,
-            '单位': newProduct.unit,
-            '价格': newProduct.price,
-            '供应商': newProduct.supplier,
-            '联系人': newProduct.contact_person,
-            '联系电话': newProduct.contact_phone,
-            '成本': newProduct.cost_price,
-            '最低售价': newProduct.min_price
-          }]
-        })
+          products: [
+            {
+              产品名称: newProduct.product_name,
+              型号: newProduct.model,
+              品牌: newProduct.brand,
+              参数描述: newProduct.parameter_description,
+              单位: newProduct.unit,
+              价格: newProduct.price,
+              供应商: newProduct.supplier,
+              联系人: newProduct.contact_person,
+              联系电话: newProduct.contact_phone,
+              成本: newProduct.cost_price,
+              最低售价: newProduct.min_price,
+            },
+          ],
+        }),
       });
 
       const result = await response.json();
@@ -596,7 +700,7 @@ export default function PriceLibrary() {
           price: '',
           supplier: '',
           contact_person: '',
-          contact_phone: ''
+          contact_phone: '',
         });
         setShowAddForm(false);
         // 刷新产品列表
@@ -615,38 +719,40 @@ export default function PriceLibrary() {
     // 创建示例数据（包含所有字段）
     const templateData = [
       {
-        '产品名称': '工业提升泵',
-        '规格型号': 'CR5-12',
-        '品牌': '格兰富',
-        '参数描述': '流量12m³/h，扬程30m',
-        '供应商': '格兰富中国',
-        '联系人': '张三',
-        '联系电话': '13800138000',
-        '单位': '台',
-        '成本': 2800,
-        '最低售价': 3000,
-        '指导价': 3200
+        产品名称: '工业提升泵',
+        规格型号: 'CR5-12',
+        品牌: '格兰富',
+        参数描述: '流量12m³/h，扬程30m',
+        供应商: '格兰富中国',
+        联系人: '张三',
+        联系电话: '13800138000',
+        单位: '台',
+        成本: 2800,
+        最低售价: 3000,
+        指导价: 3200,
       },
       {
-        '产品名称': '搅拌罐',
-        '规格型号': '2.5m³',
-        '品牌': '通用',
-        '参数描述': '不锈钢材质，配搅拌器',
-        '供应商': '通用机械',
-        '联系人': '李四',
-        '联系电话': '13900139000',
-        '单位': '台',
-        '成本': 13000,
-        '最低售价': 14000,
-        '指导价': 14500
-      }
+        产品名称: '搅拌罐',
+        规格型号: '2.5m³',
+        品牌: '通用',
+        参数描述: '不锈钢材质，配搅拌器',
+        供应商: '通用机械',
+        联系人: '李四',
+        联系电话: '13900139000',
+        单位: '台',
+        成本: 13000,
+        最低售价: 14000,
+        指导价: 14500,
+      },
     ];
 
     // 创建CSV内容
     const headers = Object.keys(templateData[0]);
     const csvContent = [
       headers.join(','),
-      ...templateData.map(row => headers.map(header => row[header as keyof typeof row]).join(','))
+      ...templateData.map((row) =>
+        headers.map((header) => row[header as keyof typeof row]).join(',')
+      ),
     ].join('\n');
 
     // 创建Blob并下载
@@ -663,25 +769,29 @@ export default function PriceLibrary() {
   };
 
   // 导出产品为 Excel 格式
-  const handleExportExcel = (exportSelectedOnly: boolean = false, filterConfig?: { brands?: Set<string>, keyword?: string }) => {
+  const handleExportExcel = (
+    exportSelectedOnly: boolean = false,
+    filterConfig?: { brands?: Set<string>; keyword?: string }
+  ) => {
     try {
       // 确定要导出的产品数据
-      let productsToExport = exportSelectedOnly 
-        ? products.filter(p => selectedProducts.has(p.id))
+      let productsToExport = exportSelectedOnly
+        ? products.filter((p) => selectedProducts.has(p.id))
         : products;
 
       // 应用类别筛选
       if (filterConfig) {
         if (filterConfig.brands && filterConfig.brands.size > 0) {
-          productsToExport = productsToExport.filter(p => filterConfig.brands!.has(p.brand));
+          productsToExport = productsToExport.filter((p) => filterConfig.brands!.has(p.brand));
         }
         if (filterConfig.keyword) {
           const keyword = filterConfig.keyword.toLowerCase().trim();
           if (keyword) {
-            productsToExport = productsToExport.filter(p =>
-              (p.product_name || '').toLowerCase().includes(keyword) ||
-              (p.model || '').toLowerCase().includes(keyword) ||
-              (p.brand || '').toLowerCase().includes(keyword)
+            productsToExport = productsToExport.filter(
+              (p) =>
+                (p.product_name || '').toLowerCase().includes(keyword) ||
+                (p.model || '').toLowerCase().includes(keyword) ||
+                (p.brand || '').toLowerCase().includes(keyword)
             );
           }
         }
@@ -693,18 +803,18 @@ export default function PriceLibrary() {
       }
 
       // 转换数据格式（与导入模板字段保持一致）
-      const exportData = productsToExport.map(p => ({
-        '产品名称': p.product_name || '',
-        '规格型号': p.model || '',
-        '品牌': p.brand || '',
-        '参数描述': p.parameter_description || '',
-        '供应商': p.supplier || '',
-        '联系人': p.contact_person || '',
-        '联系电话': p.contact_phone || '',
-        '单位': p.unit || '',
-        '成本': p.cost_price || 0,
-        '最低售价': p.min_price || 0,
-        '指导价': p.price || 0
+      const exportData = productsToExport.map((p) => ({
+        产品名称: p.product_name || '',
+        规格型号: p.model || '',
+        品牌: p.brand || '',
+        参数描述: p.parameter_description || '',
+        供应商: p.supplier || '',
+        联系人: p.contact_person || '',
+        联系电话: p.contact_phone || '',
+        单位: p.unit || '',
+        成本: p.cost_price || 0,
+        最低售价: p.min_price || 0,
+        指导价: p.price || 0,
       }));
 
       // 创建工作簿和工作表
@@ -720,7 +830,7 @@ export default function PriceLibrary() {
         { wch: 20 }, // 供应商
         { wch: 10 }, // 联系人
         { wch: 15 }, // 联系电话
-        { wch: 8 },  // 单位
+        { wch: 8 }, // 单位
         { wch: 10 }, // 成本
         { wch: 10 }, // 最低售价
         { wch: 10 }, // 指导价
@@ -732,9 +842,9 @@ export default function PriceLibrary() {
 
       // 生成文件名
       const timestamp = new Date().toISOString().slice(0, 10);
-      const filterSuffix = (filterConfig?.brands?.size || 0) > 0 || filterConfig?.keyword 
-        ? '_筛选' : '';
-      const filename = exportSelectedOnly 
+      const filterSuffix =
+        (filterConfig?.brands?.size || 0) > 0 || filterConfig?.keyword ? '_筛选' : '';
+      const filename = exportSelectedOnly
         ? `产品价格库_选中${selectedProducts.size}条${filterSuffix}_${timestamp}.xlsx`
         : `产品价格库_全部${products.length}条${filterSuffix}_${timestamp}.xlsx`;
 
@@ -750,25 +860,29 @@ export default function PriceLibrary() {
   };
 
   // 导出产品为 CSV 格式
-  const handleExportCSV = (exportSelectedOnly: boolean = false, filterConfig?: { brands?: Set<string>, keyword?: string }) => {
+  const handleExportCSV = (
+    exportSelectedOnly: boolean = false,
+    filterConfig?: { brands?: Set<string>; keyword?: string }
+  ) => {
     try {
       // 确定要导出的产品数据
-      let productsToExport = exportSelectedOnly 
-        ? products.filter(p => selectedProducts.has(p.id))
+      let productsToExport = exportSelectedOnly
+        ? products.filter((p) => selectedProducts.has(p.id))
         : products;
 
       // 应用类别筛选
       if (filterConfig) {
         if (filterConfig.brands && filterConfig.brands.size > 0) {
-          productsToExport = productsToExport.filter(p => filterConfig.brands!.has(p.brand));
+          productsToExport = productsToExport.filter((p) => filterConfig.brands!.has(p.brand));
         }
         if (filterConfig.keyword) {
           const keyword = filterConfig.keyword.toLowerCase().trim();
           if (keyword) {
-            productsToExport = productsToExport.filter(p =>
-              (p.product_name || '').toLowerCase().includes(keyword) ||
-              (p.model || '').toLowerCase().includes(keyword) ||
-              (p.brand || '').toLowerCase().includes(keyword)
+            productsToExport = productsToExport.filter(
+              (p) =>
+                (p.product_name || '').toLowerCase().includes(keyword) ||
+                (p.model || '').toLowerCase().includes(keyword) ||
+                (p.brand || '').toLowerCase().includes(keyword)
             );
           }
         }
@@ -781,40 +895,46 @@ export default function PriceLibrary() {
 
       // 定义CSV列顺序和字段映射
       const csvHeaders = [
-        '产品名称', '规格型号', '品牌', '参数描述', 
-        '供应商', '联系人', '联系电话', '单位', 
-        '成本', '最低售价', '指导价'
+        '产品名称',
+        '规格型号',
+        '品牌',
+        '参数描述',
+        '供应商',
+        '联系人',
+        '联系电话',
+        '单位',
+        '成本',
+        '最低售价',
+        '指导价',
       ];
 
       const fieldMapping = {
-        '产品名称': 'product_name',
-        '规格型号': 'model',
-        '品牌': 'brand',
-        '参数描述': 'parameter_description',
-        '供应商': 'supplier',
-        '联系人': 'contact_person',
-        '联系电话': 'contact_phone',
-        '单位': 'unit',
-        '成本': 'cost_price',
-        '最低售价': 'min_price',
-        '指导价': 'price'
+        产品名称: 'product_name',
+        规格型号: 'model',
+        品牌: 'brand',
+        参数描述: 'parameter_description',
+        供应商: 'supplier',
+        联系人: 'contact_person',
+        联系电话: 'contact_phone',
+        单位: 'unit',
+        成本: 'cost_price',
+        最低售价: 'min_price',
+        指导价: 'price',
       } as const;
 
       // 转换数据为CSV格式
       const rows = [csvHeaders.join(',')];
 
-      productsToExport.forEach(p => {
-        const row = csvHeaders.map(header => {
+      productsToExport.forEach((p) => {
+        const row = csvHeaders.map((header) => {
           const fieldKey = fieldMapping[header as keyof typeof fieldMapping] as keyof typeof p;
-          let value = p[fieldKey] !== undefined && p[fieldKey] !== null 
-            ? String(p[fieldKey]) 
-            : '';
-          
+          let value = p[fieldKey] !== undefined && p[fieldKey] !== null ? String(p[fieldKey]) : '';
+
           // 处理包含逗号或引号的字段
           if (value.includes(',') || value.includes('"') || value.includes('\n')) {
             value = `"${value.replace(/"/g, '""')}"`;
           }
-          
+
           return value;
         });
         rows.push(row.join(','));
@@ -830,9 +950,9 @@ export default function PriceLibrary() {
 
       // 生成文件名
       const timestamp = new Date().toISOString().slice(0, 10);
-      const filterSuffix = (filterConfig?.brands?.size || 0) > 0 || filterConfig?.keyword 
-        ? '_筛选' : '';
-      const filename = exportSelectedOnly 
+      const filterSuffix =
+        (filterConfig?.brands?.size || 0) > 0 || filterConfig?.keyword ? '_筛选' : '';
+      const filename = exportSelectedOnly
         ? `产品价格库_选中${selectedProducts.size}条${filterSuffix}_${timestamp}.csv`
         : `产品价格库_全部${products.length}条${filterSuffix}_${timestamp}.csv`;
 
@@ -854,9 +974,7 @@ export default function PriceLibrary() {
 
   const handleSaveColumnConfig = (columns: string[]) => {
     // 确保所有 fixed 列都包含在配置中
-    const fixedColumns = availableColumns
-      .filter(col => col.fixed)
-      .map(col => col.key);
+    const fixedColumns = availableColumns.filter((col) => col.fixed).map((col) => col.key);
     const columnsWithFixed = [...new Set([...fixedColumns, ...columns])];
 
     // 保存列配置到 localStorage
@@ -881,19 +999,21 @@ export default function PriceLibrary() {
             onChange={handleFileChange}
             className="hidden"
           />
-          
+
           {/* 导入按钮组 */}
-          <div
-            className="relative"
-            onMouseLeave={() => handleMenuMouseLeave('import')}
-          >
+          <div className="relative" onMouseLeave={() => handleMenuMouseLeave('import')}>
             <button
               onClick={() => setShowImportMenu(!showImportMenu)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
             >
               <span>📤</span> 导入
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {showImportMenu && (
@@ -940,10 +1060,7 @@ export default function PriceLibrary() {
           </button>
 
           {/* 导出按钮组 */}
-          <div
-            className="relative"
-            onMouseLeave={() => handleMenuMouseLeave('export')}
-          >
+          <div className="relative" onMouseLeave={() => handleMenuMouseLeave('export')}>
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
               disabled={products.length === 0}
@@ -951,7 +1068,12 @@ export default function PriceLibrary() {
             >
               <span>📊</span> 导出
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {showExportMenu && (
@@ -984,7 +1106,7 @@ export default function PriceLibrary() {
                 <button
                   onClick={() => {
                     setShowExportMenu(false);
-                    const allBrands = new Set(products.map(p => p.brand).filter(Boolean));
+                    const allBrands = new Set(products.map((p) => p.brand).filter(Boolean));
                     setExportFilterBrands(allBrands);
                     setExportFilterKeywords('');
                     setShowExportFilter(true);
@@ -1009,17 +1131,19 @@ export default function PriceLibrary() {
           </div>
 
           {/* 配置按钮组 */}
-          <div
-            className="relative"
-            onMouseLeave={() => handleMenuMouseLeave('config')}
-          >
+          <div className="relative" onMouseLeave={() => handleMenuMouseLeave('config')}>
             <button
               onClick={() => setShowConfigMenu(!showConfigMenu)}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm"
             >
               <span>⚙️</span> 配置
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {showConfigMenu && (
@@ -1076,7 +1200,8 @@ export default function PriceLibrary() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                产品名称 {fieldConfigs.product_name?.required && <span className="text-red-500">*</span>}
+                产品名称{' '}
+                {fieldConfigs.product_name?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
@@ -1150,19 +1275,25 @@ export default function PriceLibrary() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                参数描述 {fieldConfigs.parameter_description?.required && <span className="text-red-500">*</span>}
+                参数描述{' '}
+                {fieldConfigs.parameter_description?.required && (
+                  <span className="text-red-500">*</span>
+                )}
               </label>
               <input
                 type="text"
                 value={newProduct.parameter_description}
-                onChange={(e) => setNewProduct({ ...newProduct, parameter_description: e.target.value })}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, parameter_description: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                 placeholder="输入产品参数描述"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                联系人 {fieldConfigs.contact_person?.required && <span className="text-red-500">*</span>}
+                联系人{' '}
+                {fieldConfigs.contact_person?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
@@ -1174,7 +1305,8 @@ export default function PriceLibrary() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                联系电话 {fieldConfigs.contact_phone?.required && <span className="text-red-500">*</span>}
+                联系电话{' '}
+                {fieldConfigs.contact_phone?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
@@ -1200,7 +1332,8 @@ export default function PriceLibrary() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                最低售价 {fieldConfigs.min_price?.required && <span className="text-red-500">*</span>}
+                最低售价{' '}
+                {fieldConfigs.min_price?.required && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="number"
@@ -1253,7 +1386,9 @@ export default function PriceLibrary() {
               <input
                 type="text"
                 value={editingProduct.product_name || ''}
-                onChange={(e) => setEditingProduct({ ...editingProduct, product_name: e.target.value })}
+                onChange={(e) =>
+                  setEditingProduct({ ...editingProduct, product_name: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                 placeholder="输入产品名称"
               />
@@ -1327,7 +1462,9 @@ export default function PriceLibrary() {
               <input
                 type="text"
                 value={editingProduct.parameter_description || ''}
-                onChange={(e) => setEditingProduct({ ...editingProduct, parameter_description: e.target.value })}
+                onChange={(e) =>
+                  setEditingProduct({ ...editingProduct, parameter_description: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                 placeholder="输入产品参数描述"
               />
@@ -1339,7 +1476,9 @@ export default function PriceLibrary() {
               <input
                 type="text"
                 value={editingProduct.contact_person || ''}
-                onChange={(e) => setEditingProduct({ ...editingProduct, contact_person: e.target.value })}
+                onChange={(e) =>
+                  setEditingProduct({ ...editingProduct, contact_person: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                 placeholder="输入联系人"
               />
@@ -1351,7 +1490,9 @@ export default function PriceLibrary() {
               <input
                 type="text"
                 value={editingProduct.contact_phone || ''}
-                onChange={(e) => setEditingProduct({ ...editingProduct, contact_phone: e.target.value })}
+                onChange={(e) =>
+                  setEditingProduct({ ...editingProduct, contact_phone: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                 placeholder="输入联系电话"
               />
@@ -1363,7 +1504,9 @@ export default function PriceLibrary() {
               <input
                 type="number"
                 value={editingProduct.cost_price || ''}
-                onChange={(e) => setEditingProduct({ ...editingProduct, cost_price: e.target.value })}
+                onChange={(e) =>
+                  setEditingProduct({ ...editingProduct, cost_price: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                 placeholder="输入成本价格"
                 min="0"
@@ -1377,7 +1520,9 @@ export default function PriceLibrary() {
               <input
                 type="number"
                 value={editingProduct.min_price || ''}
-                onChange={(e) => setEditingProduct({ ...editingProduct, min_price: e.target.value })}
+                onChange={(e) =>
+                  setEditingProduct({ ...editingProduct, min_price: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                 placeholder="输入最低售价"
                 min="0"
@@ -1428,18 +1573,23 @@ export default function PriceLibrary() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
           <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">总产品数</div>
-          <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">{products.length}</div>
+          <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+            {products.length}
+          </div>
         </div>
         <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
           <div className="text-xs text-green-600 dark:text-green-400 mb-1">品牌数量</div>
           <div className="text-2xl font-bold text-green-700 dark:text-green-300">
-            {new Set(products.map(p => p.brand)).size}
+            {new Set(products.map((p) => p.brand)).size}
           </div>
         </div>
         <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
           <div className="text-xs text-orange-600 dark:text-orange-400 mb-1">平均价格</div>
           <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">
-            ¥{(products.reduce((sum, p) => sum + (p.price || 0), 0) / (products.length || 1)).toFixed(2)}
+            ¥
+            {(
+              products.reduce((sum, p) => sum + (p.price || 0), 0) / (products.length || 1)
+            ).toFixed(2)}
           </div>
         </div>
       </div>
@@ -1484,15 +1634,18 @@ export default function PriceLibrary() {
             <thead className="bg-slate-50 dark:bg-slate-800">
               <tr>
                 {availableColumns
-                  .filter(col => visibleColumns.has(col.key))
-                  .map(col => (
+                  .filter((col) => visibleColumns.has(col.key))
+                  .map((col) => (
                     <th
                       key={col.key}
                       className={`px-4 py-3 ${
-                        col.key === 'select' ? 'w-12 text-center' :
-                        col.key === 'operations' ? 'text-center' :
-                        col.key === 'price' ? 'text-right' :
-                        'text-left'
+                        col.key === 'select'
+                          ? 'w-12 text-center'
+                          : col.key === 'operations'
+                            ? 'text-center'
+                            : col.key === 'price'
+                              ? 'text-right'
+                              : 'text-left'
                       } text-slate-700 dark:text-slate-300 font-medium`}
                     >
                       {col.key === 'select' ? (
@@ -1511,16 +1664,22 @@ export default function PriceLibrary() {
             <tbody>
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={availableColumns.length} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td
+                    colSpan={availableColumns.length}
+                    className="px-4 py-8 text-center text-slate-500 dark:text-slate-400"
+                  >
                     暂无数据，请导入Excel或手动添加
                   </td>
                 </tr>
               ) : (
                 products.map((p, idx) => (
-                  <tr key={idx} className="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  <tr
+                    key={idx}
+                    className="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  >
                     {availableColumns
-                      .filter(col => visibleColumns.has(col.key))
-                      .map(col => {
+                      .filter((col) => visibleColumns.has(col.key))
+                      .map((col) => {
                         if (col.key === 'select') {
                           return (
                             <td key={col.key} className="px-4 py-3 w-12 text-center">
@@ -1552,21 +1711,30 @@ export default function PriceLibrary() {
                         }
                         if (col.key === 'price') {
                           return (
-                            <td key={col.key} className="px-4 py-3 text-right text-slate-900 dark:text-slate-100 font-medium">
+                            <td
+                              key={col.key}
+                              className="px-4 py-3 text-right text-slate-900 dark:text-slate-100 font-medium"
+                            >
                               ¥{(p[col.key as keyof typeof p] as number)?.toFixed(2) || '-'}
                             </td>
                           );
                         }
                         if (col.key === 'parameter_description') {
                           return (
-                            <td key={col.key} className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-[200px] truncate">
+                            <td
+                              key={col.key}
+                              className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-[200px] truncate"
+                            >
                               {p[col.key as keyof typeof p] as string}
                             </td>
                           );
                         }
                         return (
-                          <td key={col.key} className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                            {p[col.key as keyof typeof p] as string || '-'}
+                          <td
+                            key={col.key}
+                            className="px-4 py-3 text-slate-600 dark:text-slate-400"
+                          >
+                            {(p[col.key as keyof typeof p] as string) || '-'}
                           </td>
                         );
                       })}
@@ -1581,11 +1749,13 @@ export default function PriceLibrary() {
       {/* 字段配置管理 */}
       {showFieldConfig && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <FieldConfigManager onClose={async () => {
-            setShowFieldConfig(false);
-            // 重新加载字段配置
-            await loadFieldConfigs();
-          }} />
+          <FieldConfigManager
+            onClose={async () => {
+              setShowFieldConfig(false);
+              // 重新加载字段配置
+              await loadFieldConfigs();
+            }}
+          />
         </div>
       )}
 
@@ -1606,7 +1776,9 @@ export default function PriceLibrary() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">配置表格显示列</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                配置表格显示列
+              </h3>
               <button
                 onClick={() => setShowColumnConfig(false)}
                 className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -1616,11 +1788,11 @@ export default function PriceLibrary() {
             </div>
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {availableColumns.map(col => (
+                {availableColumns.map((col) => (
                   <div
                     key={col.key}
                     className={`flex items-center gap-2 p-3 border rounded-lg ${
-                      col.fixed 
+                      col.fixed
                         ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed'
                         : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 cursor-pointer'
                     } ${visibleColumns.has(col.key) ? 'border-blue-300 dark:border-blue-700' : ''}`}
@@ -1652,8 +1824,8 @@ export default function PriceLibrary() {
                 onClick={() => {
                   // 恢复默认配置
                   const defaultColumns = availableColumns
-                    .filter(col => col.defaultVisible || col.fixed)
-                    .map(col => col.key);
+                    .filter((col) => col.defaultVisible || col.fixed)
+                    .map((col) => col.key);
                   setVisibleColumns(new Set(defaultColumns));
                   localStorage.setItem('price-library-columns', JSON.stringify(defaultColumns));
                 }}
@@ -1685,7 +1857,9 @@ export default function PriceLibrary() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">🔍 高级导出 - 按类别筛选</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                🔍 高级导出 - 按类别筛选
+              </h3>
               <button
                 onClick={() => setShowExportFilter(false)}
                 className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -1702,7 +1876,7 @@ export default function PriceLibrary() {
                 <div className="flex gap-2 mb-3">
                   <button
                     onClick={() => {
-                      const allBrands = new Set(products.map(p => p.brand).filter(Boolean));
+                      const allBrands = new Set(products.map((p) => p.brand).filter(Boolean));
                       setExportFilterBrands(allBrands);
                     }}
                     className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-sm"
@@ -1717,9 +1891,9 @@ export default function PriceLibrary() {
                   </button>
                 </div>
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-                  {Array.from(new Set(products.map(p => p.brand).filter(Boolean)))
+                  {Array.from(new Set(products.map((p) => p.brand).filter(Boolean)))
                     .sort((a, b) => a.localeCompare(b))
-                    .map(brand => (
+                    .map((brand) => (
                       <button
                         key={brand}
                         onClick={() => {
@@ -1767,19 +1941,28 @@ export default function PriceLibrary() {
                   <div className="flex gap-4">
                     <div>
                       <span className="text-slate-500 dark:text-slate-400">总产品：</span>
-                      <span className="font-medium text-slate-900 dark:text-slate-100">{products.length} 个</span>
+                      <span className="font-medium text-slate-900 dark:text-slate-100">
+                        {products.length} 个
+                      </span>
                     </div>
                     <div>
                       <span className="text-slate-500 dark:text-slate-400">筛选后：</span>
                       <span className="font-medium text-blue-600 dark:text-blue-400">
-                        {products.filter(p => {
-                          const brandMatch = exportFilterBrands.size === 0 || exportFilterBrands.has(p.brand);
-                          const keywordMatch = !exportFilterKeywords.trim() || 
-                            p.product_name?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
-                            p.model?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
-                            p.brand?.toLowerCase().includes(exportFilterKeywords.toLowerCase());
-                          return brandMatch && keywordMatch;
-                        }).length} 个
+                        {
+                          products.filter((p) => {
+                            const brandMatch =
+                              exportFilterBrands.size === 0 || exportFilterBrands.has(p.brand);
+                            const keywordMatch =
+                              !exportFilterKeywords.trim() ||
+                              p.product_name
+                                ?.toLowerCase()
+                                .includes(exportFilterKeywords.toLowerCase()) ||
+                              p.model?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
+                              p.brand?.toLowerCase().includes(exportFilterKeywords.toLowerCase());
+                            return brandMatch && keywordMatch;
+                          }).length
+                        }{' '}
+                        个
                       </span>
                     </div>
                   </div>
@@ -1797,20 +1980,24 @@ export default function PriceLibrary() {
                 onClick={() => {
                   const filterConfig = {
                     brands: exportFilterBrands,
-                    keyword: exportFilterKeywords
+                    keyword: exportFilterKeywords,
                   };
                   setPendingFilterConfig(filterConfig);
                   setShowExportFilter(false);
                   setShowExportFormatDialog(true);
                 }}
-                disabled={products.filter(p => {
-                  const brandMatch = exportFilterBrands.size === 0 || exportFilterBrands.has(p.brand);
-                  const keywordMatch = !exportFilterKeywords.trim() || 
-                    p.product_name?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
-                    p.model?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
-                    p.brand?.toLowerCase().includes(exportFilterKeywords.toLowerCase());
-                  return brandMatch && keywordMatch;
-                }).length === 0}
+                disabled={
+                  products.filter((p) => {
+                    const brandMatch =
+                      exportFilterBrands.size === 0 || exportFilterBrands.has(p.brand);
+                    const keywordMatch =
+                      !exportFilterKeywords.trim() ||
+                      p.product_name?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
+                      p.model?.toLowerCase().includes(exportFilterKeywords.toLowerCase()) ||
+                      p.brand?.toLowerCase().includes(exportFilterKeywords.toLowerCase());
+                    return brandMatch && keywordMatch;
+                  }).length === 0
+                }
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 下一步：选择格式
@@ -1825,7 +2012,9 @@ export default function PriceLibrary() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">📊 选择导出格式</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                📊 选择导出格式
+              </h3>
               <button
                 onClick={() => {
                   setShowExportFormatDialog(false);
@@ -1841,21 +2030,32 @@ export default function PriceLibrary() {
                 <div className="text-sm text-slate-700 dark:text-slate-300">
                   <p className="font-medium mb-2">即将导出：</p>
                   <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {products.filter(p => {
-                      const brandMatch = !pendingFilterConfig.brands || pendingFilterConfig.brands.size === 0 || pendingFilterConfig.brands.has(p.brand);
-                      const keywordMatch = !pendingFilterConfig.keyword || !pendingFilterConfig.keyword.trim() || 
-                        p.product_name?.toLowerCase().includes(pendingFilterConfig.keyword.toLowerCase()) ||
-                        p.model?.toLowerCase().includes(pendingFilterConfig.keyword.toLowerCase()) ||
-                        p.brand?.toLowerCase().includes(pendingFilterConfig.keyword.toLowerCase());
-                      return brandMatch && keywordMatch;
-                    }).length}
+                    {
+                      products.filter((p) => {
+                        const brandMatch =
+                          !pendingFilterConfig.brands ||
+                          pendingFilterConfig.brands.size === 0 ||
+                          pendingFilterConfig.brands.has(p.brand);
+                        const keywordMatch =
+                          !pendingFilterConfig.keyword ||
+                          !pendingFilterConfig.keyword.trim() ||
+                          p.product_name
+                            ?.toLowerCase()
+                            .includes(pendingFilterConfig.keyword.toLowerCase()) ||
+                          p.model
+                            ?.toLowerCase()
+                            .includes(pendingFilterConfig.keyword.toLowerCase()) ||
+                          p.brand
+                            ?.toLowerCase()
+                            .includes(pendingFilterConfig.keyword.toLowerCase());
+                        return brandMatch && keywordMatch;
+                      }).length
+                    }
                   </p>
                   <p className="text-slate-500 dark:text-slate-400">条产品数据</p>
                 </div>
               </div>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                请选择导出格式：
-              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">请选择导出格式：</p>
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => {
@@ -1868,7 +2068,9 @@ export default function PriceLibrary() {
                   <span className="text-4xl">📊</span>
                   <div className="text-center">
                     <div className="font-bold text-green-700 dark:text-green-300">Excel</div>
-                    <div className="text-xs text-green-600 dark:text-green-400 mt-1">.xlsx 格式</div>
+                    <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      .xlsx 格式
+                    </div>
                   </div>
                 </button>
                 <button

@@ -35,7 +35,10 @@ export default function PointsPanel() {
               <span>距离下一级</span>
               <span>{nextLevelPoints - points} 积分</span>
             </div>
-            <Progress value={progress} className="h-2 bg-white/30 [&_[data-slot=progress-indicator]]:bg-white" />
+            <Progress
+              value={progress}
+              className="h-2 bg-white/30 [&_[data-slot=progress-indicator]]:bg-white"
+            />
           </div>
         </CardContent>
       </Card>
@@ -72,8 +75,11 @@ export default function PointsPanel() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {recentActivity.map(item => (
-              <div key={item.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
+            {recentActivity.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg"
+              >
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{item.icon}</span>
                   <div>
@@ -81,8 +87,14 @@ export default function PointsPanel() {
                     <p className="text-xs text-gray-500">{item.date}</p>
                   </div>
                 </div>
-                <Badge variant={item.points.startsWith('+') ? 'default' : 'destructive'} 
-                  className={item.points.startsWith('+') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                <Badge
+                  variant={item.points.startsWith('+') ? 'default' : 'destructive'}
+                  className={
+                    item.points.startsWith('+')
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-red-100 text-red-700'
+                  }
+                >
                   {item.points}
                 </Badge>
               </div>

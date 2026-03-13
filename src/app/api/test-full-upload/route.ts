@@ -31,22 +31,24 @@ export async function POST(request: Request) {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('quote-files')
       .upload(fileKey, buffer, {
         contentType: 'text/plain',
         cacheControl: '3600',
-        upsert: true
+        upsert: true,
       });
 
     if (uploadError) {
       console.error('[FullUploadTest] 上传失败:', uploadError);
-      return NextResponse.json({
-        success: false,
-        error: '上传失败',
-        details: uploadError.message
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: '上传失败',
+          details: uploadError.message,
+        },
+        { status: 500 }
+      );
     }
 
     console.log('[FullUploadTest] 上传成功:', uploadData);
@@ -64,12 +66,15 @@ export async function POST(request: Request) {
       const errorText = await downloadResponse.text();
       console.error('[FullUploadTest] 错误内容:', errorText);
 
-      return NextResponse.json({
-        success: false,
-        error: '下载失败',
-        status: downloadResponse.status,
-        errorText: errorText
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: '下载失败',
+          status: downloadResponse.status,
+          errorText: errorText,
+        },
+        { status: 500 }
+      );
     }
 
     const downloadBuffer = Buffer.from(await downloadResponse.arrayBuffer());
@@ -82,10 +87,7 @@ export async function POST(request: Request) {
 
     // 6. 清理
     console.log('[FullUploadTest] 步骤4: 清理测试文件...');
-    await supabase
-      .storage
-      .from('quote-files')
-      .remove([fileKey]);
+    await supabase.storage.from('quote-files').remove([fileKey]);
 
     console.log('[FullUploadTest] ========== 测试完成 ==========');
 
@@ -95,24 +97,26 @@ export async function POST(request: Request) {
       results: {
         upload: {
           success: !!uploadData,
-          path: uploadData?.path
+          path: uploadData?.path,
         },
         download: {
           success: true,
           url: publicUrl,
           size: downloadBuffer.length,
-          contentMatches
-        }
-      }
+          contentMatches,
+        },
+      },
     });
-
   } catch (error: any) {
     console.error('[FullUploadTest] 测试失败:', error);
-    return NextResponse.json({
-      success: false,
-      error: '测试失败',
-      message: error.message,
-      stack: error.stack
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: '测试失败',
+        message: error.message,
+        stack: error.stack,
+      },
+      { status: 500 }
+    );
   }
 }

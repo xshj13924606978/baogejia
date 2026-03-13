@@ -21,7 +21,7 @@ export function useUser() {
     try {
       // 从 localStorage 获取用户信息
       const userStr = localStorage.getItem('user');
-      
+
       if (userStr) {
         const userData = JSON.parse(userStr);
         setUser(userData);
@@ -41,11 +41,11 @@ export function useUser() {
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      
+
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
@@ -53,11 +53,11 @@ export function useUser() {
       }
 
       const userData = await response.json();
-      
+
       // 保存到 localStorage
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
-      
+
       return { success: true, user: userData };
     } catch (err) {
       console.error('Login error:', err);
@@ -89,6 +89,6 @@ export function useUser() {
     login,
     logout,
     updateUser,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
   };
 }

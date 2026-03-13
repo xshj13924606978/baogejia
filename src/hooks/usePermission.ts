@@ -51,7 +51,9 @@ export const usePermission = (
       try {
         if (moduleCode) {
           // 检查模块权限
-          const res = await fetch(`/api/user/level/check-module?userId=${user.id}&moduleCode=${moduleCode}`);
+          const res = await fetch(
+            `/api/user/level/check-module?userId=${user.id}&moduleCode=${moduleCode}`
+          );
           const data = await res.json();
 
           if (data.success) {
@@ -61,7 +63,9 @@ export const usePermission = (
           }
         } else if (apiPath && method) {
           // 检查API权限
-          const res = await fetch(`/api/user/level/check-api?userId=${user.id}&apiPath=${apiPath}&method=${method}`);
+          const res = await fetch(
+            `/api/user/level/check-api?userId=${user.id}&apiPath=${apiPath}&method=${method}`
+          );
           const data = await res.json();
 
           if (data.success) {

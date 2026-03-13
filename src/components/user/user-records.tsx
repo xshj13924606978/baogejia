@@ -3,7 +3,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface UserRecordProps {
   userId: number;
@@ -44,10 +51,10 @@ export default function UserRecord({ userId }: UserRecordProps) {
 
   const getTypeLabel = (type: string) => {
     const map: Record<string, string> = {
-      'upload_price': '产品价格',
-      'upload_doc': '技术文档',
-      'upload_case': '成功案例',
-      'upload_drawing': '工程图纸',
+      upload_price: '产品价格',
+      upload_doc: '技术文档',
+      upload_case: '成功案例',
+      upload_drawing: '工程图纸',
     };
     return map[type] || type;
   };
@@ -76,9 +83,7 @@ export default function UserRecord({ userId }: UserRecordProps) {
       </CardHeader>
       <CardContent>
         {records.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            暂无上传记录
-          </div>
+          <div className="text-center py-8 text-gray-500">暂无上传记录</div>
         ) : (
           <Table>
             <TableHeader>

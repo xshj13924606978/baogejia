@@ -17,20 +17,20 @@ export class Logger {
     const toDelete: string[] = [];
 
     this.lastErrorTime.forEach((time, key) => {
-      if (now - time > 60000) { // 1分钟后清理
+      if (now - time > 60000) {
+        // 1分钟后清理
         toDelete.push(key);
       }
     });
 
-    toDelete.forEach(key => {
+    toDelete.forEach((key) => {
       this.errorMessages.delete(key);
       this.lastErrorTime.delete(key);
     });
 
     // 限制缓存大小
     if (this.errorMessages.size > this.MAX_ERROR_CACHE) {
-      const entries = Array.from(this.lastErrorTime.entries())
-        .sort((a, b) => a[1] - b[1]);
+      const entries = Array.from(this.lastErrorTime.entries()).sort((a, b) => a[1] - b[1]);
       for (let i = 0; i < entries.length - this.MAX_ERROR_CACHE; i++) {
         this.errorMessages.delete(entries[i][0]);
         this.lastErrorTime.delete(entries[i][0]);
@@ -115,7 +115,7 @@ export class Logger {
       const keys = Object.keys(data);
       if (keys.length > 5) {
         const simplified: any = {};
-        keys.slice(0, 5).forEach(key => {
+        keys.slice(0, 5).forEach((key) => {
           simplified[key] = data[key];
         });
         simplified._more = `... (${keys.length - 5} more fields)`;

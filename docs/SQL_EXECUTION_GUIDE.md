@@ -16,6 +16,7 @@
 ### 刷新原理
 
 当检测到 DDL 语句时，函数会自动执行：
+
 ```sql
 NOTIFY pgrst, 'reload schema';
 ```
@@ -30,16 +31,10 @@ NOTIFY pgrst, 'reload schema';
 import { exec_sql } from '@/lib/supabase-exec';
 
 // DML 语句（数据操作）
-const result = await exec_sql(
-  "SELECT * FROM products WHERE id = $1",
-  [123]
-);
+const result = await exec_sql('SELECT * FROM products WHERE id = $1', [123]);
 
 // DDL 语句（结构变更）- 会自动刷新缓存
-await exec_sql(
-  "ALTER TABLE products ADD COLUMN brand VARCHAR(100);",
-  []
-);
+await exec_sql('ALTER TABLE products ADD COLUMN brand VARCHAR(100);', []);
 ```
 
 ### 2. 执行结果
@@ -90,41 +85,53 @@ curl -X POST http://localhost:5000/api/test/schema-refresh
 ### 创建新表
 
 ```typescript
-await exec_sql(`
+await exec_sql(
+  `
   CREATE TABLE IF NOT EXISTS categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
-`, []);
+`,
+  []
+);
 ```
 
 ### 添加字段
 
 ```typescript
-await exec_sql(`
+await exec_sql(
+  `
   ALTER TABLE products 
   ADD COLUMN IF NOT EXISTS brand VARCHAR(100);
-`, []);
+`,
+  []
+);
 ```
 
 ### 修改字段
 
 ```typescript
-await exec_sql(`
+await exec_sql(
+  `
   ALTER TABLE products 
   ALTER COLUMN brand TYPE VARCHAR(200);
-`, []);
+`,
+  []
+);
 ```
 
 ### 删除字段
 
 ```typescript
-await exec_sql(`
+await exec_sql(
+  `
   ALTER TABLE products 
   DROP COLUMN IF EXISTS old_field;
-`, []);
+`,
+  []
+);
 ```
 
 ## 相关文件
@@ -136,32 +143,41 @@ await exec_sql(`
 ## 最佳实践
 
 1. **使用参数化查询**：避免 SQL 注入
+
    ```typescript
    // ❌ 不推荐
    await exec_sql(`SELECT * FROM products WHERE name = '${name}'`, []);
-   
+
    // ✅ 推荐
-   await exec_sql("SELECT * FROM products WHERE name = $1", [name]);
+   await exec_sql('SELECT * FROM products WHERE name = $1', [name]);
    ```
 
 2. **使用 IF NOT EXISTS**：避免重复执行错误
+
    ```typescript
-   await exec_sql(`
+   await exec_sql(
+     `
      ALTER TABLE products 
      ADD COLUMN IF NOT EXISTS brand VARCHAR(100);
-   `, []);
+   `,
+     []
+   );
    ```
 
 3. **使用事务**：对于复杂操作，确保数据一致性
+
    ```typescript
-   await exec_sql(`
+   await exec_sql(
+     `
      BEGIN;
      
      ALTER TABLE products ADD COLUMN brand VARCHAR(100);
      ALTER TABLE products ADD COLUMN unit VARCHAR(50);
      
      COMMIT;
-   `, []);
+   `,
+     []
+   );
    ```
 
 4. **查看日志**：执行失败时检查日志输出

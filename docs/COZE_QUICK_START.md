@@ -3,6 +3,7 @@
 ## 当前状态
 
 ✅ **已预留配置完成**
+
 - ✅ 联网搜索功能已集成
 - ✅ 向量大模型已集成
 - ✅ 生图大模型已集成
@@ -10,6 +11,7 @@
 - ✅ 测试脚本已就绪
 
 ⚪ **等待启用**
+
 - ⚪ 需要配置 Coze API Key
 
 ---
@@ -56,11 +58,13 @@ pnpm dev
 ## 🧪 验证是否启用成功
 
 ### 方法1：浏览器访问
+
 ```
 http://localhost:5000/api/coze
 ```
 
 **成功响应示例**：
+
 ```json
 {
   "success": true,
@@ -81,6 +85,7 @@ http://localhost:5000/api/coze
 ```
 
 ### 方法2：运行测试脚本
+
 ```bash
 node scripts/test-coze-tools.mjs
 ```
@@ -90,6 +95,7 @@ node scripts/test-coze-tools.mjs
 ## 💡 功能使用示例
 
 ### 联网搜索市场价格
+
 ```bash
 curl -X POST http://localhost:5000/api/coze \
   -H "Content-Type: application/json" \
@@ -100,6 +106,7 @@ curl -X POST http://localhost:5000/api/coze \
 ```
 
 ### 生成产品图片
+
 ```bash
 curl -X POST http://localhost:5000/api/coze \
   -H "Content-Type: application/json" \
@@ -111,6 +118,7 @@ curl -X POST http://localhost:5000/api/coze \
 ```
 
 ### 智能增强报价单
+
 ```bash
 curl -X POST http://localhost:5000/api/coze \
   -H "Content-Type: application/json" \
@@ -148,18 +156,23 @@ curl -X POST http://localhost:5000/api/coze \
 ## ❓ 常见问题
 
 ### Q: API Key在哪里获取？
+
 A: 访问 https://www.coze.cn/open/oauth/apps 创建应用后即可获取
 
 ### Q: 需要付费吗？
+
 A: Coze提供免费额度，超过后可能产生费用。建议先测试再启用
 
 ### Q: 可以只启用部分功能吗？
+
 A: 可以。在 `.env.local` 中单独设置：
+
 - `ENABLE_COZE_WEB_SEARCH=true` - 仅启用联网搜索
 - `ENABLE_COZE_EMBEDDING=true` - 仅启用向量模型
 - `ENABLE_COZE_IMAGE_GENERATION=true` - 仅启用生图功能
 
 ### Q: 如何测试功能是否正常？
+
 A: 运行 `node scripts/test-coze-tools.mjs` 自动测试所有功能
 
 ---

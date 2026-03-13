@@ -13,7 +13,7 @@
 ✅ **实施指导**：提供分阶段的实施步骤和时间安排  
 ✅ **运营建议**：提供启动、日常操作、维护、故障排查等指导  
 ✅ **风险评估**：识别项目风险并提供缓解措施  
-✅ **优化建议**：提供技术、运营、环保等多维度的优化建议  
+✅ **优化建议**：提供技术、运营、环保等多维度的优化建议
 
 ---
 
@@ -26,6 +26,7 @@ curl http://localhost:5000/api/proposal/enhance
 ```
 
 **响应示例**：
+
 ```json
 {
   "success": true,
@@ -77,29 +78,31 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 
 #### 请求参数
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `action` | string | 是 | 固定为 `"enhance"` |
-| `context` | object | 是 | 项目上下文信息 |
-| `originalProposal` | string | 是 | 原始方案内容 |
-| `options` | object | 否 | 增强选项 |
+| 参数               | 类型   | 必填 | 说明               |
+| ------------------ | ------ | ---- | ------------------ |
+| `action`           | string | 是   | 固定为 `"enhance"` |
+| `context`          | object | 是   | 项目上下文信息     |
+| `originalProposal` | string | 是   | 原始方案内容       |
+| `options`          | object | 否   | 增强选项           |
 
 #### Context 参数说明
 
 ```typescript
 interface ProposalContext {
-  projectType: string;           // 项目类型：生活污水、工业废水等
-  capacity: number;               // 处理规模（吨/天）
-  influentQuality?: {             // 进水水质（可选）
-    cod?: number;                 // COD (mg/L)
-    bod5?: number;                // BOD5 (mg/L)
-    ss?: number;                  // SS (mg/L)
-    nh3n?: number;                // NH3-N (mg/L)
-    tn?: number;                  // TN (mg/L)
-    tp?: number;                  // TP (mg/L)
-    ph?: number;                  // pH
+  projectType: string; // 项目类型：生活污水、工业废水等
+  capacity: number; // 处理规模（吨/天）
+  influentQuality?: {
+    // 进水水质（可选）
+    cod?: number; // COD (mg/L)
+    bod5?: number; // BOD5 (mg/L)
+    ss?: number; // SS (mg/L)
+    nh3n?: number; // NH3-N (mg/L)
+    tn?: number; // TN (mg/L)
+    tp?: number; // TP (mg/L)
+    ph?: number; // pH
   };
-  effluentStandards?: {           // 出水标准（可选）
+  effluentStandards?: {
+    // 出水标准（可选）
     cod?: number;
     bod5?: number;
     ss?: number;
@@ -107,10 +110,10 @@ interface ProposalContext {
     tn?: number;
     tp?: number;
   };
-  processType?: string;           // 工艺类型：A/O、MBR、SBR等
-  location?: string;              // 项目地点
-  budget?: number;                // 预算（万元）
-  requirements?: string[];        // 特殊要求
+  processType?: string; // 工艺类型：A/O、MBR、SBR等
+  location?: string; // 项目地点
+  budget?: number; // 预算（万元）
+  requirements?: string[]; // 特殊要求
 }
 ```
 
@@ -118,60 +121,60 @@ interface ProposalContext {
 
 ```typescript
 interface EnhancementOptions {
-  enableTechnicalParams?: boolean;      // 启用技术参数细化（默认 true）
+  enableTechnicalParams?: boolean; // 启用技术参数细化（默认 true）
   enableProcessOptimization?: boolean; // 启用工艺流程优化（默认 true）
   enableEquipmentOptimization?: boolean; // 启用设备配置优化（默认 true）
-  enableCostAnalysis?: boolean;        // 启用成本分析（默认 true）
+  enableCostAnalysis?: boolean; // 启用成本分析（默认 true）
   enableImplementationGuide?: boolean; // 启用实施指导（默认 true）
-  enableOperationAdvice?: boolean;     // 启用运营建议（默认 true）
-  enableRiskAssessment?: boolean;      // 启用风险评估（默认 true）
-  enableMarketData?: boolean;          // 启用市场数据查询（默认 false）
+  enableOperationAdvice?: boolean; // 启用运营建议（默认 true）
+  enableRiskAssessment?: boolean; // 启用风险评估（默认 true）
+  enableMarketData?: boolean; // 启用市场数据查询（默认 false）
   enhancementLevel?: 'basic' | 'standard' | 'comprehensive'; // 增强级别（默认 standard）
 }
 ```
 
 #### 增强级别说明
 
-| 级别 | 说明 | 内容 |
-|------|------|------|
-| `basic` | 基础增强 | 技术参数、工艺流程 |
-| `standard` | 标准增强 | 包含 basic + 设备配置、成本分析、实施指导 |
+| 级别            | 说明     | 内容                                         |
+| --------------- | -------- | -------------------------------------------- |
+| `basic`         | 基础增强 | 技术参数、工艺流程                           |
+| `standard`      | 标准增强 | 包含 basic + 设备配置、成本分析、实施指导    |
 | `comprehensive` | 综合增强 | 包含 standard + 运营建议、风险评估、优化建议 |
 
 #### 响应参数
 
 ```typescript
 interface EnhancedProposal {
-  originalProposal: string;       // 原始方案
-  enhancedProposal: string;       // 增强后的方案（Markdown格式）
-  
+  originalProposal: string; // 原始方案
+  enhancedProposal: string; // 增强后的方案（Markdown格式）
+
   // 技术细节
-  technicalParameters: TechnicalParameter[];  // 技术参数列表
-  processFlow: ProcessStep[];                 // 工艺流程步骤
-  equipmentConfig: EquipmentConfig[];         // 设备配置清单
-  
+  technicalParameters: TechnicalParameter[]; // 技术参数列表
+  processFlow: ProcessStep[]; // 工艺流程步骤
+  equipmentConfig: EquipmentConfig[]; // 设备配置清单
+
   // 成本分析
-  costAnalysis?: CostAnalysis;                // 成本分析
-  
+  costAnalysis?: CostAnalysis; // 成本分析
+
   // 实施指导
-  implementationGuide: ImplementationGuide;   // 实施指导
-  
+  implementationGuide: ImplementationGuide; // 实施指导
+
   // 运营建议
-  operationAdvice: OperationAdvice;           // 运营建议
-  
+  operationAdvice: OperationAdvice; // 运营建议
+
   // 风险评估
-  riskAssessment: RiskAssessment;             // 风险评估
-  
+  riskAssessment: RiskAssessment; // 风险评估
+
   // 优化建议
   optimizationSuggestions: OptimizationSuggestion[]; // 优化建议
-  
+
   // 元数据
   enhancementLevel: 'basic' | 'standard' | 'comprehensive';
-  confidence: number;                         // 置信度
+  confidence: number; // 置信度
   usedTools: {
-    deepseek: boolean;                        // 是否使用 DeepSeek
-    webSearch: boolean;                       // 是否使用联网搜索
-    embedding: boolean;                       // 是否使用向量搜索
+    deepseek: boolean; // 是否使用 DeepSeek
+    webSearch: boolean; // 是否使用联网搜索
+    embedding: boolean; // 是否使用向量搜索
   };
 }
 ```
@@ -303,6 +306,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 提供两类成本分析：
 
 #### 投资成本（CapitalCost）
+
 - 设备费用
 - 土建费用
 - 安装费用
@@ -310,6 +314,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 - 总投资
 
 #### 运营成本（OperatingCost）
+
 - 电费
 - 药剂费
 - 人工费
@@ -327,6 +332,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 - **调试阶段**：单机调试、联动调试、验收
 
 每个阶段包含：
+
 - 任务列表
 - 预计周期
 - 关键要求
@@ -346,13 +352,13 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 
 识别项目风险并提供缓解措施：
 
-| 风险类别 | 风险描述 | 可能性 | 影响程度 | 缓解措施 |
-|---------|---------|--------|---------|---------|
-| 技术风险 | 进水水质波动大，影响处理效果 | 中 | 中 | 设置调节池，增加系统抗冲击能力 |
-| 成本风险 | 设备价格波动，超出预算 | 中 | 高 | 预留不可预见费，锁定价格 |
-| 环保风险 | 出水不达标，面临罚款 | 低 | 高 | 制定调试方案，确保达标 |
-| 安全风险 | 有限空间作业风险 | 低 | 高 | 严格执行安全规程 |
-| 质量风险 | 安装精度不足 | 中 | 中 | 加强质量控制 |
+| 风险类别 | 风险描述                     | 可能性 | 影响程度 | 缓解措施                       |
+| -------- | ---------------------------- | ------ | -------- | ------------------------------ |
+| 技术风险 | 进水水质波动大，影响处理效果 | 中     | 中       | 设置调节池，增加系统抗冲击能力 |
+| 成本风险 | 设备价格波动，超出预算       | 中     | 高       | 预留不可预见费，锁定价格       |
+| 环保风险 | 出水不达标，面临罚款         | 低     | 高       | 制定调试方案，确保达标         |
+| 安全风险 | 有限空间作业风险             | 低     | 高       | 严格执行安全规程               |
+| 质量风险 | 安装精度不足                 | 中     | 中       | 加强质量控制                   |
 
 ### 8. 优化建议（OptimizationSuggestions）
 
@@ -364,6 +370,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 - **经济优化**：成本控制、收益提升、投资回报
 
 每个建议包含：
+
 - 优化类别
 - 具体描述
 - 预期效益
@@ -376,6 +383,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 ### AI 引擎集成
 
 #### DeepSeek 智能分析
+
 - ✅ 技术参数智能提取和生成
 - ✅ 工艺流程智能优化
 - ✅ 设备配置智能推荐
@@ -386,6 +394,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 - ✅ 优化建议智能提供
 
 #### Coze 工具增强（可选）
+
 - ⏳ 联网搜索：获取市场价格和技术资料
 - ⏳ 向量搜索：推荐相似项目案例
 - ⏳ 生图模型：生成工艺流程图和设备示意图
@@ -394,11 +403,11 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 
 根据任务类型自动选择最合适的服务：
 
-| 任务类型 | 首选服务 | 降级策略 |
-|---------|---------|---------|
-| 技术参数细化 | DeepSeek | → Coze（如可用） |
-| 工艺流程优化 | DeepSeek | → Coze（如可用） |
-| 设备配置优化 | DeepSeek | → Coze（如可用） |
+| 任务类型     | 首选服务        | 降级策略                 |
+| ------------ | --------------- | ------------------------ |
+| 技术参数细化 | DeepSeek        | → Coze（如可用）         |
+| 工艺流程优化 | DeepSeek        | → Coze（如可用）         |
+| 设备配置优化 | DeepSeek        | → Coze（如可用）         |
 | 市场数据查询 | Coze Web Search | → DeepSeek（关键词匹配） |
 
 ---
@@ -444,13 +453,13 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 
 ### 提升效果
 
-| 维度 | 提升 |
-|------|------|
+| 维度       | 提升    |
+| ---------- | ------- |
 | 内容丰富度 | ↑ 1000% |
-| 专业性 | ↑ 500% |
-| 可实施性 | ↑ 800% |
-| 指导性 | ↑ 700% |
-| 实用价值 | ↑ 900% |
+| 专业性     | ↑ 500%  |
+| 可实施性   | ↑ 800%  |
+| 指导性     | ↑ 700%  |
+| 实用价值   | ↑ 900%  |
 
 ---
 
@@ -461,6 +470,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 **需求**：客户需要60吨/天生活污水处理方案
 
 **操作**：
+
 1. 输入基础信息（项目类型、处理规模、工艺类型）
 2. 输入原始方案（简短描述）
 3. 选择增强级别：`standard`
@@ -473,6 +483,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 **需求**：需要对比不同工艺方案的优劣
 
 **操作**：
+
 1. 为每个工艺（A/O、MBR、SBR）生成增强方案
 2. 对比成本分析
 3. 对比风险评估
@@ -486,6 +497,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 **需求**：项目团队需要详细的实施指导
 
 **操作**：
+
 1. 使用 `comprehensive` 级别增强方案
 2. 重点关注"实施指导"和"运营建议"
 3. 根据指导制定项目计划
@@ -498,6 +510,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 **需求**：向客户展示专业方案，提升信任度
 
 **操作**：
+
 1. 生成增强方案
 2. 导出为 PDF
 3. 添加公司Logo和封面
@@ -512,6 +525,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 ### 1. 提供准确的项目信息
 
 **✅ 推荐**：
+
 ```json
 {
   "context": {
@@ -543,6 +557,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 ```
 
 **❌ 避免**：
+
 ```json
 {
   "context": {
@@ -555,12 +570,12 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 
 ### 2. 选择合适的增强级别
 
-| 场景 | 推荐级别 | 原因 |
-|------|---------|------|
-| 快速评估 | `basic` | 速度快，满足初步评估需求 |
-| 方案竞标 | `standard` | 平衡速度和内容丰富度 |
-| 项目实施 | `comprehensive` | 最详细，指导性强 |
-| 客户展示 | `comprehensive` | 最专业，展示效果最好 |
+| 场景     | 推荐级别        | 原因                     |
+| -------- | --------------- | ------------------------ |
+| 快速评估 | `basic`         | 速度快，满足初步评估需求 |
+| 方案竞标 | `standard`      | 平衡速度和内容丰富度     |
+| 项目实施 | `comprehensive` | 最详细，指导性强         |
+| 客户展示 | `comprehensive` | 最专业，展示效果最好     |
 
 ### 3. 启用 Coze 工具获取实时数据
 
@@ -576,6 +591,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 ```
 
 这样可以获取：
+
 - 实时市场价格
 - 最新的技术资料
 - 相似项目案例
@@ -614,10 +630,10 @@ if (availability.cozeAvailable) {
 ✅ **专业**：20+个技术参数、10+台设备配置  
 ✅ **丰富**：工艺流程、成本分析、实施指导、运营建议  
 ✅ **可实施**：详细的实施计划和操作指导  
-✅ **可操作**：风险识别、优化建议、故障排查  
+✅ **可操作**：风险识别、优化建议、故障排查
 
 **让每个方案都具备工程实施的专业水平！** 🚀
 
 ---
 
-*最后更新：2024-01-XX*
+_最后更新：2024-01-XX_

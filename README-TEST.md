@@ -1,12 +1,14 @@
 ## 测试账号
 
 ### 管理员账号
+
 - **用户名**: `admin`
 - **密码**: `admin123`
 - **角色**: super_admin
 - **权限**: 完整的管理权限，包括用户管理、审核、统计等
 
 ### 普通用户账号
+
 - **用户名**: `test`
 - **密码**: `test123`
 - **角色**: user
@@ -15,16 +17,19 @@
 ## 命令行测试
 
 ### 快速登录测试
+
 ```bash
 bash test-login.sh
 ```
 
 ### 完整功能测试（登录后测试所有API）
+
 ```bash
 bash test-with-login.sh
 ```
 
 ### 手动测试登录
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \

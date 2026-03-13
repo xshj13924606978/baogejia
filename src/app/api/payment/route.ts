@@ -14,18 +14,12 @@ export async function POST(request: NextRequest) {
 
     // 验证必填参数
     if (!order_id || !payment_method) {
-      return NextResponse.json(
-        { success: false, error: '缺少必填参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '缺少必填参数' }, { status: 400 });
     }
 
     // 验证支付方式
     if (!Object.values(PaymentMethod).includes(payment_method)) {
-      return NextResponse.json(
-        { success: false, error: '不支持的支付方式' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '不支持的支付方式' }, { status: 400 });
     }
 
     // 创建支付
@@ -37,19 +31,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: result.error }, { status: 400 });
     }
 
     return NextResponse.json(result);
   } catch (error) {
     console.error('[Payment API] 创建支付失败:', error);
-    return NextResponse.json(
-      { success: false, error: '创建支付失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: '创建支付失败' }, { status: 500 });
   }
 }
 

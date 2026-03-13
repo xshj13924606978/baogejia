@@ -39,15 +39,23 @@ export async function GET(request: NextRequest) {
       '',
       '转化漏斗',
       '步骤,数量,转化率,流失率',
-      ...funnel.map(f => `${f.step},${f.count},${f.conversionRate.toFixed(2)}%,${f.dropOffRate.toFixed(2)}%`),
+      ...funnel.map(
+        (f) => `${f.step},${f.count},${f.conversionRate.toFixed(2)}%,${f.dropOffRate.toFixed(2)}%`
+      ),
       '',
       '收入数据',
       '日期,收入,订单数,平均客单价',
-      ...revenue.map(r => `${r.date.toISOString().split('T')[0]},${r.revenue},${r.orderCount},${r.averageOrderValue.toFixed(2)}`),
+      ...revenue.map(
+        (r) =>
+          `${r.date.toISOString().split('T')[0]},${r.revenue},${r.orderCount},${r.averageOrderValue.toFixed(2)}`
+      ),
       '',
       '留存数据',
       '日期,新增用户,次日留存,7日留存,30日留存',
-      ...retention.map(r => `${r.date.toISOString().split('T')[0]},${r.day0},${r.retentionRate1.toFixed(2)}%,${r.retentionRate7.toFixed(2)}%,${r.retentionRate30.toFixed(2)}%`),
+      ...retention.map(
+        (r) =>
+          `${r.date.toISOString().split('T')[0]},${r.day0},${r.retentionRate1.toFixed(2)}%,${r.retentionRate7.toFixed(2)}%,${r.retentionRate30.toFixed(2)}%`
+      ),
     ].join('\n');
 
     // 返回CSV文件
@@ -60,9 +68,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Analytics] 导出数据失败:', error);
-    return NextResponse.json(
-      { error: '导出数据失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '导出数据失败' }, { status: 500 });
   }
 }

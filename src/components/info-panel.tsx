@@ -8,7 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Building2, Users, FileText, Save, Plus, Settings, Type, ExternalLink } from 'lucide-react';
 
@@ -213,9 +219,7 @@ export default function InfoPanel() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
               <Settings className="h-4 w-4 text-white" />
             </div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              信息管理
-            </h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">信息管理</h2>
           </div>
 
           <Tabs defaultValue="supplier" className="w-full">
@@ -297,28 +301,28 @@ export default function InfoPanel() {
                     <Input
                       id="phone"
                       value={supplierInfo.phone}
-                      onChange={(e) =>
-                        setSupplierInfo({ ...supplierInfo, phone: e.target.value })
-                      }
+                      onChange={(e) => setSupplierInfo({ ...supplierInfo, phone: e.target.value })}
                       className="border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500"
                       placeholder="请输入电话"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium">邮箱</Label>
+                    <Label htmlFor="email" className="text-sm font-medium">
+                      邮箱
+                    </Label>
                     <Input
                       id="email"
                       type="email"
                       value={supplierInfo.email}
-                      onChange={(e) =>
-                        setSupplierInfo({ ...supplierInfo, email: e.target.value })
-                      }
+                      onChange={(e) => setSupplierInfo({ ...supplierInfo, email: e.target.value })}
                       className="border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500"
                       placeholder="请输入邮箱"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="address" className="text-sm font-medium">地址</Label>
+                    <Label htmlFor="address" className="text-sm font-medium">
+                      地址
+                    </Label>
                     <Textarea
                       id="address"
                       value={supplierInfo.address}
@@ -331,7 +335,9 @@ export default function InfoPanel() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="bank-name" className="text-sm font-medium">开户行</Label>
+                    <Label htmlFor="bank-name" className="text-sm font-medium">
+                      开户行
+                    </Label>
                     <Input
                       id="bank-name"
                       value={supplierInfo.bankName}
@@ -343,7 +349,9 @@ export default function InfoPanel() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="bank-account" className="text-sm font-medium">账号</Label>
+                    <Label htmlFor="bank-account" className="text-sm font-medium">
+                      账号
+                    </Label>
                     <Input
                       id="bank-account"
                       value={supplierInfo.bankAccount}
@@ -355,7 +363,9 @@ export default function InfoPanel() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="tax-number" className="text-sm font-medium">税号</Label>
+                    <Label htmlFor="tax-number" className="text-sm font-medium">
+                      税号
+                    </Label>
                     <Input
                       id="tax-number"
                       value={supplierInfo.taxNumber}
@@ -452,7 +462,9 @@ export default function InfoPanel() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="project-name" className="text-sm font-medium">项目名称</Label>
+                    <Label htmlFor="project-name" className="text-sm font-medium">
+                      项目名称
+                    </Label>
                     <Input
                       id="project-name"
                       value={currentCustomer.projectName}
@@ -464,7 +476,9 @@ export default function InfoPanel() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="customer-contact" className="text-sm font-medium">联系人</Label>
+                    <Label htmlFor="customer-contact" className="text-sm font-medium">
+                      联系人
+                    </Label>
                     <Input
                       id="customer-contact"
                       value={currentCustomer.contactPerson}
@@ -476,7 +490,9 @@ export default function InfoPanel() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="customer-phone" className="text-sm font-medium">电话</Label>
+                    <Label htmlFor="customer-phone" className="text-sm font-medium">
+                      电话
+                    </Label>
                     <Input
                       id="customer-phone"
                       value={currentCustomer.phone}
@@ -488,7 +504,9 @@ export default function InfoPanel() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="customer-email" className="text-sm font-medium">邮箱</Label>
+                    <Label htmlFor="customer-email" className="text-sm font-medium">
+                      邮箱
+                    </Label>
                     <Input
                       id="customer-email"
                       type="email"
@@ -501,7 +519,9 @@ export default function InfoPanel() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="customer-address" className="text-sm font-medium">地址</Label>
+                    <Label htmlFor="customer-address" className="text-sm font-medium">
+                      地址
+                    </Label>
                     <Textarea
                       id="customer-address"
                       value={currentCustomer.address}
@@ -586,19 +606,21 @@ export default function InfoPanel() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="term-name" className="text-sm font-medium">条款名称</Label>
+                    <Label htmlFor="term-name" className="text-sm font-medium">
+                      条款名称
+                    </Label>
                     <Input
                       id="term-name"
                       value={currentTerm.name}
-                      onChange={(e) =>
-                        setCurrentTerm({ ...currentTerm, name: e.target.value })
-                      }
+                      onChange={(e) => setCurrentTerm({ ...currentTerm, name: e.target.value })}
                       className="border-slate-200 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-500"
                       placeholder="请输入条款名称"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="payment-terms" className="text-sm font-medium">付款方式</Label>
+                    <Label htmlFor="payment-terms" className="text-sm font-medium">
+                      付款方式
+                    </Label>
                     <Input
                       id="payment-terms"
                       value={currentTerm.paymentTerms}
@@ -613,49 +635,64 @@ export default function InfoPanel() {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="warranty-period" className="text-sm font-medium">质保期（月）</Label>
+                    <Label htmlFor="warranty-period" className="text-sm font-medium">
+                      质保期（月）
+                    </Label>
                     <Input
                       id="warranty-period"
                       type="number"
                       value={currentTerm.warrantyPeriod}
                       onChange={(e) =>
-                        setCurrentTerm({ ...currentTerm, warrantyPeriod: parseInt(e.target.value) || 0 })
+                        setCurrentTerm({
+                          ...currentTerm,
+                          warrantyPeriod: parseInt(e.target.value) || 0,
+                        })
                       }
                       className="border-slate-200 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="delivery-period" className="text-sm font-medium">交货期（工作日）</Label>
+                    <Label htmlFor="delivery-period" className="text-sm font-medium">
+                      交货期（工作日）
+                    </Label>
                     <Input
                       id="delivery-period"
                       type="number"
                       value={currentTerm.deliveryPeriod}
                       onChange={(e) =>
-                        setCurrentTerm({ ...currentTerm, deliveryPeriod: parseInt(e.target.value) || 0 })
+                        setCurrentTerm({
+                          ...currentTerm,
+                          deliveryPeriod: parseInt(e.target.value) || 0,
+                        })
                       }
                       className="border-slate-200 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="validity-period" className="text-sm font-medium">报价有效期（天）</Label>
+                    <Label htmlFor="validity-period" className="text-sm font-medium">
+                      报价有效期（天）
+                    </Label>
                     <Input
                       id="validity-period"
                       type="number"
                       value={currentTerm.validityPeriod}
                       onChange={(e) =>
-                        setCurrentTerm({ ...currentTerm, validityPeriod: parseInt(e.target.value) || 0 })
+                        setCurrentTerm({
+                          ...currentTerm,
+                          validityPeriod: parseInt(e.target.value) || 0,
+                        })
                       }
                       className="border-slate-200 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="remarks" className="text-sm font-medium">备注</Label>
+                    <Label htmlFor="remarks" className="text-sm font-medium">
+                      备注
+                    </Label>
                     <Textarea
                       id="remarks"
                       value={currentTerm.remarks}
-                      onChange={(e) =>
-                        setCurrentTerm({ ...currentTerm, remarks: e.target.value })
-                      }
+                      onChange={(e) => setCurrentTerm({ ...currentTerm, remarks: e.target.value })}
                       className="border-slate-200 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-500"
                       placeholder="请输入备注"
                       rows={2}

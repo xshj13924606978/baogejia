@@ -34,8 +34,10 @@ function fixFile(filePath: string) {
   let content = fs.readFileSync(fullPath, 'utf8');
 
   // 修复重复导入
-  content = content.replace(/import { NextRequest } from 'next\/server';\nimport { withPermissionCheck } from '@\/lib\/permission-check';\nimport { NextRequest, NextResponse } from 'next\/server';/g,
-    "import { NextRequest, NextResponse } from 'next/server';\nimport { withPermissionCheck } from '@/lib/permission-check';");
+  content = content.replace(
+    /import { NextRequest } from 'next\/server';\nimport { withPermissionCheck } from '@\/lib\/permission-check';\nimport { NextRequest, NextResponse } from 'next\/server';/g,
+    "import { NextRequest, NextResponse } from 'next/server';\nimport { withPermissionCheck } from '@/lib/permission-check';"
+  );
 
   // 修复函数结尾
   // 查找所有以空行+两个空格+}结尾的模式，替换为 })(request);

@@ -18,7 +18,9 @@ class EnterpriseAuthService {
   private applications: EnterpriseApplication[] = [];
 
   // 提交企业认证
-  async submitApplication(data: Partial<EnterpriseApplication>): Promise<{ success: boolean; applicationId?: string; error?: string }> {
+  async submitApplication(
+    data: Partial<EnterpriseApplication>
+  ): Promise<{ success: boolean; applicationId?: string; error?: string }> {
     try {
       // 验证营业执照
       if (!data.businessLicense || !data.licenseImage) {
@@ -36,12 +38,12 @@ class EnterpriseAuthService {
         contactEmail: data.contactEmail || '',
         companyAddress: data.companyAddress || '',
         status: 'pending',
-        submittedAt: new Date().toISOString()
+        submittedAt: new Date().toISOString(),
       };
 
       // 保存申请
       this.applications.push(application);
-      
+
       // 模拟审核（实际应该由管理员审核）
       // 这里简化处理：自动审核通过
       setTimeout(() => {
@@ -56,11 +58,11 @@ class EnterpriseAuthService {
 
   // 审核通过
   private approveApplication(id: string) {
-    const index = this.applications.findIndex(app => app.id === id);
+    const index = this.applications.findIndex((app) => app.id === id);
     if (index !== -1) {
       this.applications[index].status = 'approved';
       this.applications[index].approvedAt = new Date().toISOString();
-      
+
       // 创建企业账号
       this.createEnterpriseAccount(this.applications[index]);
     }
@@ -77,7 +79,7 @@ class EnterpriseAuthService {
       company: application.companyName,
       address: application.companyAddress,
       enterprise: application,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     // 保存到用户数据库
@@ -87,8 +89,10 @@ class EnterpriseAuthService {
   }
 
   // 获取申请状态
-  async getApplicationStatus(applicationId: string): Promise<{ status: string; application?: EnterpriseApplication }> {
-    const application = this.applications.find(app => app.id === applicationId);
+  async getApplicationStatus(
+    applicationId: string
+  ): Promise<{ status: string; application?: EnterpriseApplication }> {
+    const application = this.applications.find((app) => app.id === applicationId);
     if (application) {
       return { status: application.status, application };
     }
@@ -96,11 +100,15 @@ class EnterpriseAuthService {
   }
 
   // 企业员工登录
-  async employeeLogin(enterpriseId: string, employeeId: string, accessToken: string): Promise<{ success: boolean; user?: any; error?: string }> {
+  async employeeLogin(
+    enterpriseId: string,
+    employeeId: string,
+    accessToken: string
+  ): Promise<{ success: boolean; user?: any; error?: string }> {
     // 验证企业账号和员工凭证
     const users = JSON.parse(localStorage.getItem('users_db') || '[]');
     const enterpriseUser = users.find((u: any) => u.id === enterpriseId && u.role === 'enterprise');
-    
+
     if (!enterpriseUser) {
       return { success: false, error: '企业不存在' };
     }
@@ -112,8 +120,8 @@ class EnterpriseAuthService {
         user: {
           ...enterpriseUser,
           employeeId,
-          role: 'enterprise_staff'
-        }
+          role: 'enterprise_staff',
+        },
       };
     }
 

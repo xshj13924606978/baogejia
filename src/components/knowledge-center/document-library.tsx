@@ -26,7 +26,7 @@ export default function DocumentLibrary() {
       tags: ['一体化设备', '操作手册'],
       size: '2.3 MB',
       uploadTime: '2026-02-18',
-      description: '详细操作维护说明'
+      description: '详细操作维护说明',
     },
     {
       id: '2',
@@ -36,7 +36,7 @@ export default function DocumentLibrary() {
       tags: ['安装', '调试'],
       size: '1.1 MB',
       uploadTime: '2026-02-17',
-      description: '现场安装调试指南'
+      description: '现场安装调试指南',
     },
     {
       id: '3',
@@ -46,7 +46,7 @@ export default function DocumentLibrary() {
       tags: ['维护', '保养'],
       size: '1.8 MB',
       uploadTime: '2026-02-16',
-      description: '日常维护保养流程'
+      description: '日常维护保养流程',
     },
     {
       id: '4',
@@ -56,8 +56,8 @@ export default function DocumentLibrary() {
       tags: ['参数', '规格'],
       size: '0.5 MB',
       uploadTime: '2026-02-15',
-      description: '所有设备技术参数'
-    }
+      description: '所有设备技术参数',
+    },
   ]);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,11 +67,13 @@ export default function DocumentLibrary() {
 
   const categories = ['全部', '产品说明书', '技术文档', '操作手册', '维护指南'];
 
-  const filteredDocs = documents.filter(doc => {
+  const filteredDocs = documents.filter((doc) => {
     if (category !== 'all' && doc.category !== category) return false;
     if (searchTerm) {
-      return doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             doc.description.toLowerCase().includes(searchTerm.toLowerCase());
+      return (
+        doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
     return true;
   });
@@ -87,15 +89,19 @@ export default function DocumentLibrary() {
       const newDoc: Document = {
         id: String(documents.length + 1),
         name: file.name,
-        type: file.name.endsWith('.pdf') ? 'pdf' :
-              file.name.endsWith('.doc') || file.name.endsWith('.docx') ? 'doc' :
-              file.name.endsWith('.xls') || file.name.endsWith('.xlsx') ? 'xls' : 'other',
+        type: file.name.endsWith('.pdf')
+          ? 'pdf'
+          : file.name.endsWith('.doc') || file.name.endsWith('.docx')
+            ? 'doc'
+            : file.name.endsWith('.xls') || file.name.endsWith('.xlsx')
+              ? 'xls'
+              : 'other',
         category: '技术文档',
         tags: [],
         size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
         uploadTime: new Date().toISOString().split('T')[0],
         description: '通过本地文件上传',
-        source: 'local'
+        source: 'local',
       };
       setDocuments([...documents, newDoc]);
       setUploading(false);
@@ -115,14 +121,19 @@ export default function DocumentLibrary() {
         uploadTime: new Date().toISOString().split('T')[0],
         description: content.substring(0, 200),
         source: 'weblink',
-        sourceUrl: url
+        sourceUrl: url,
       };
       setDocuments([...documents, newDoc]);
       setUploading(false);
     }, 1000);
   };
 
-  const handleCloudFileUpload = (url: string, fileName: string, description: string, extractCode: string) => {
+  const handleCloudFileUpload = (
+    url: string,
+    fileName: string,
+    description: string,
+    extractCode: string
+  ) => {
     setUploading(true);
     setTimeout(() => {
       const newDoc: Document = {
@@ -135,14 +146,20 @@ export default function DocumentLibrary() {
         uploadTime: new Date().toISOString().split('T')[0],
         description: `${description}${extractCode ? ` (提取码: ${extractCode})` : ''}`,
         source: 'clouddrive',
-        sourceUrl: url
+        sourceUrl: url,
       };
       setDocuments([...documents, newDoc]);
       setUploading(false);
     }, 1000);
   };
 
-  const handleCloudFileWithFile = (url: string, fileName: string, description: string, extractCode: string, file: File) => {
+  const handleCloudFileWithFile = (
+    url: string,
+    fileName: string,
+    description: string,
+    extractCode: string,
+    file: File
+  ) => {
     // 直接使用文件上传功能
     handleLocalFileUpload(file);
   };
@@ -158,9 +175,7 @@ export default function DocumentLibrary() {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-bold flex items-center gap-2">
           <span>📄</span> 技术文档库
-          <span className="text-sm font-normal text-gray-500 ml-2">
-            {documents.length}个文档
-          </span>
+          <span className="text-sm font-normal text-gray-500 ml-2">{documents.length}个文档</span>
         </h3>
         <div className="flex gap-2">
           <button
@@ -188,21 +203,17 @@ export default function DocumentLibrary() {
         <button
           onClick={() => setCategory('all')}
           className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
-            category === 'all'
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-100 hover:bg-gray-200'
+            category === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
           }`}
         >
           全部
         </button>
-        {categories.slice(1).map(cat => (
+        {categories.slice(1).map((cat) => (
           <button
             key={cat}
             onClick={() => setCategory(cat)}
             className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
-              category === cat
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 hover:bg-gray-200'
+              category === cat ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
             }`}
           >
             {cat}
@@ -228,7 +239,7 @@ export default function DocumentLibrary() {
 
       {/* 文档列表 - 网格视图 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredDocs.map(doc => (
+        {filteredDocs.map((doc) => (
           <div key={doc.id} className="border rounded-lg p-3 hover:shadow-md transition-shadow">
             <div className="flex items-start gap-3">
               <span className="text-3xl">
@@ -238,7 +249,7 @@ export default function DocumentLibrary() {
                 <div className="font-medium truncate">{doc.name}</div>
                 <div className="text-xs text-gray-500 mt-1">{doc.size}</div>
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {doc.tags.map(tag => (
+                  {doc.tags.map((tag) => (
                     <span key={tag} className="px-2 py-0.5 bg-gray-100 rounded-full text-xs">
                       {tag}
                     </span>

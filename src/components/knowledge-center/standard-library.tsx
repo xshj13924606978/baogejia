@@ -26,7 +26,7 @@ export default function StandardLibrary() {
       industry: '建筑给排水',
       publishDate: '2021-04-09',
       status: '现行',
-      description: '室外排水工程设计标准'
+      description: '室外排水工程设计标准',
     },
     {
       id: '2',
@@ -36,7 +36,7 @@ export default function StandardLibrary() {
       industry: '建筑给排水',
       publishDate: '2002-03-01',
       status: '现行',
-      description: '建筑给水排水工程施工质量验收'
+      description: '建筑给水排水工程施工质量验收',
     },
     {
       id: '3',
@@ -46,7 +46,7 @@ export default function StandardLibrary() {
       industry: '市政工程',
       publishDate: '2016-06-01',
       status: '现行',
-      description: '城镇排水管道检测与评估'
+      description: '城镇排水管道检测与评估',
     },
     {
       id: '4',
@@ -56,8 +56,8 @@ export default function StandardLibrary() {
       industry: '环保工程',
       publishDate: '2019-05-01',
       status: '现行',
-      description: '广东省地方标准'
-    }
+      description: '广东省地方标准',
+    },
   ]);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,32 +68,43 @@ export default function StandardLibrary() {
   const standardTypes = ['全部', '国标', '行标', '地标', '企标'];
   const statusTypes = ['全部', '现行', '废止', '修订中'];
 
-  const filteredStandards = standards.filter(item => {
+  const filteredStandards = standards.filter((item) => {
     if (filterType !== 'all' && item.type !== filterType) return false;
     if (filterStatus !== 'all' && item.status !== filterStatus) return false;
     if (searchTerm) {
-      return item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      return (
+        item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
     return true;
   });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case '现行': return 'bg-green-100 text-green-700';
-      case '废止': return 'bg-red-100 text-red-700';
-      case '修订中': return 'bg-yellow-100 text-yellow-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case '现行':
+        return 'bg-green-100 text-green-700';
+      case '废止':
+        return 'bg-red-100 text-red-700';
+      case '修订中':
+        return 'bg-yellow-100 text-yellow-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case '国标': return 'bg-blue-100 text-blue-700';
-      case '行标': return 'bg-purple-100 text-purple-700';
-      case '地标': return 'bg-orange-100 text-orange-700';
-      case '企标': return 'bg-teal-100 text-teal-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case '国标':
+        return 'bg-blue-100 text-blue-700';
+      case '行标':
+        return 'bg-purple-100 text-purple-700';
+      case '地标':
+        return 'bg-orange-100 text-orange-700';
+      case '企标':
+        return 'bg-teal-100 text-teal-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -111,7 +122,7 @@ export default function StandardLibrary() {
       publishDate: new Date().toISOString().split('T')[0],
       status: '现行',
       description: '通过本地文件导入的规范',
-      source: 'local'
+      source: 'local',
     };
     setStandards([...standards, newStandard]);
   };
@@ -127,12 +138,17 @@ export default function StandardLibrary() {
       status: '现行',
       description: content.substring(0, 200),
       source: 'weblink',
-      sourceUrl: url
+      sourceUrl: url,
     };
     setStandards([...standards, newStandard]);
   };
 
-  const handleCloudFileUpload = (url: string, fileName: string, description: string, extractCode: string) => {
+  const handleCloudFileUpload = (
+    url: string,
+    fileName: string,
+    description: string,
+    extractCode: string
+  ) => {
     const newStandard: Standard = {
       id: String(standards.length + 1),
       code: '网盘-' + String(standards.length + 1),
@@ -143,12 +159,18 @@ export default function StandardLibrary() {
       status: '现行',
       description: `${description}${extractCode ? ` (提取码: ${extractCode})` : ''}`,
       source: 'clouddrive',
-      sourceUrl: url
+      sourceUrl: url,
     };
     setStandards([...standards, newStandard]);
   };
 
-  const handleCloudFileWithFile = (url: string, fileName: string, description: string, extractCode: string, file: File) => {
+  const handleCloudFileWithFile = (
+    url: string,
+    fileName: string,
+    description: string,
+    extractCode: string,
+    file: File
+  ) => {
     // 直接使用文件上传功能
     handleLocalFileUpload(file);
   };
@@ -164,9 +186,7 @@ export default function StandardLibrary() {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-bold flex items-center gap-2">
           <span>📋</span> 规范库
-          <span className="text-sm font-normal text-gray-500 ml-2">
-            {standards.length}条规范
-          </span>
+          <span className="text-sm font-normal text-gray-500 ml-2">{standards.length}条规范</span>
         </h3>
         <div className="flex gap-2">
           <button className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center gap-1">
@@ -195,8 +215,10 @@ export default function StandardLibrary() {
           onChange={(e) => setFilterType(e.target.value)}
           className="p-2 border rounded bg-white"
         >
-          {standardTypes.map(type => (
-            <option key={type} value={type === '全部' ? 'all' : type}>{type}</option>
+          {standardTypes.map((type) => (
+            <option key={type} value={type === '全部' ? 'all' : type}>
+              {type}
+            </option>
           ))}
         </select>
         <select
@@ -204,8 +226,10 @@ export default function StandardLibrary() {
           onChange={(e) => setFilterStatus(e.target.value)}
           className="p-2 border rounded bg-white"
         >
-          {statusTypes.map(status => (
-            <option key={status} value={status === '全部' ? 'all' : status}>{status}</option>
+          {statusTypes.map((status) => (
+            <option key={status} value={status === '全部' ? 'all' : status}>
+              {status}
+            </option>
           ))}
         </select>
         <input
@@ -231,7 +255,7 @@ export default function StandardLibrary() {
             </tr>
           </thead>
           <tbody>
-            {filteredStandards.map(item => (
+            {filteredStandards.map((item) => (
               <tr key={item.id} className="border-t hover:bg-gray-50">
                 <td className="px-3 py-2 font-mono font-medium">{item.code}</td>
                 <td className="px-3 py-2">{item.name}</td>

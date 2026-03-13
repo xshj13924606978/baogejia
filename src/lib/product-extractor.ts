@@ -1,11 +1,11 @@
 /**
  * 智能产品信息提取器
- * 
+ *
  * 核心理念：
  * 1. 使用 LLM 进行语义理解，应对千变万化的用户表达
  * 2. 多策略组合：LLM 提取 + 规则匹配 + 模糊搜索
  * 3. 宽松匹配 + 精确验证的策略
- * 
+ *
  * 支持的用户表达方式：
  * - "化粪池100立方的多少钱一个"
  * - "100立方的化粪池价格"
@@ -96,10 +96,10 @@ export class ProductExtractor {
       const response = await callDeepSeekChat({
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
+          { role: 'user', content: userPrompt },
         ],
         temperature: 0.1, // 低温度确保一致性
-        maxTokens: 500
+        maxTokens: 500,
       });
 
       // 解析 LLM 返回的 JSON
@@ -137,7 +137,7 @@ export class ProductExtractor {
         brand: result.brand,
         confidence: result.confidence || 70,
         originalInput: userInput,
-        normalizedInput: this.normalizeInput(userInput)
+        normalizedInput: this.normalizeInput(userInput),
       };
     } catch (error) {
       console.error('[ProductExtractor] LLM 提取失败:', error);
@@ -152,17 +152,43 @@ export class ProductExtractor {
   static extractWithRules(userInput: string): ExtractedProduct | null {
     try {
       const normalized = this.normalizeInput(userInput);
-      
+
       // 1. 移除价格查询关键词
-      const priceKeywords = ['多少钱', '价格', '单价', '售价', '报价', '成本', '费用', '询问', '查询', '想知道'];
+      const priceKeywords = [
+        '多少钱',
+        '价格',
+        '单价',
+        '售价',
+        '报价',
+        '成本',
+        '费用',
+        '询问',
+        '查询',
+        '想知道',
+      ];
       let cleaned = normalized;
-      priceKeywords.forEach(keyword => {
+      priceKeywords.forEach((keyword) => {
         cleaned = cleaned.replace(keyword, '');
       });
 
       // 2. 移除量词
-      const unitKeywords = ['一个', '一台', '一套', '一件', '一只', '一支', '每台', '每套', '每件', '个', '台', '套', '件', '座'];
-      unitKeywords.forEach(keyword => {
+      const unitKeywords = [
+        '一个',
+        '一台',
+        '一套',
+        '一件',
+        '一只',
+        '一支',
+        '每台',
+        '每套',
+        '每件',
+        '个',
+        '台',
+        '套',
+        '件',
+        '座',
+      ];
+      unitKeywords.forEach((keyword) => {
         cleaned = cleaned.replace(keyword, '');
       });
 
@@ -177,7 +203,7 @@ export class ProductExtractor {
         // 模式3: 字母数字组合（HFC-13、PW-100、10M、5.5K）
         /([A-Za-z]*[-_]?\d+(\.\d+)?[A-Za-z]*|\d+(\.\d+)?[A-Za-z]+)/gi,
         // 模式4: 纯数字（100、50、10）
-        /(\d+(\.\d+)?)/g
+        /(\d+(\.\d+)?)/g,
       ];
 
       let model: string | undefined;
@@ -193,11 +219,22 @@ export class ProductExtractor {
 
           // 如果是中文数字，转换为阿拉伯数字
           const chineseNumbers: Record<string, string> = {
-            '一': '1', '二': '2', '三': '3', '四': '4', '五': '5',
-            '六': '6', '七': '7', '八': '8', '九': '9', '十': '10',
-            '百': '100', '千': '1000', '万': '10000', '亿': '100000000'
+            一: '1',
+            二: '2',
+            三: '3',
+            四: '4',
+            五: '5',
+            六: '6',
+            七: '7',
+            八: '8',
+            九: '9',
+            十: '10',
+            百: '100',
+            千: '1000',
+            万: '10000',
+            亿: '100000000',
           };
-          
+
           if (/^[一二三四五六七八九十百千万亿]+$/.test(model)) {
             let converted = '';
             for (let i = 0; i < model.length; i++) {
@@ -245,7 +282,7 @@ export class ProductExtractor {
         parameter_description: model,
         confidence: 60, // 规则匹配置信度较低
         originalInput: userInput,
-        normalizedInput: normalized
+        normalizedInput: normalized,
       };
     } catch (error) {
       console.error('[ProductExtractor] 规则提取失败:', error);
@@ -284,27 +321,31 @@ export class ProductExtractor {
    * 注意：不要替换数字中的小数点
    */
   private static normalizeInput(input: string): string {
-    return input
-      .toLowerCase()
-      // 替换标点符号，但保留数字中的小数点
-      .replace(/[？?！!，,。;;、\s]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    return (
+      input
+        .toLowerCase()
+        // 替换标点符号，但保留数字中的小数点
+        .replace(/[？?！!，,。;;、\s]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+    );
   }
 
   /**
    * 清理产品名称
    */
   private static cleanProductName(name: string): string {
-    return name
-      .replace(/[型号|规格|品牌|系列|款式|款式|种类|类型]/g, '')
-      // 移除容量单位
-      .replace(/\d+(\.\d+)?\s*(立方|立方米|m³|m3)\b/gi, '')
-      // 移除长度单位（如果在型号被移除后还残留）
-      .replace(/\d+(\.\d+)?\s*(mm|mm|cm|厘米|m|米)\b/gi, '')
-      .replace(/[，,。.;;、]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
+    return (
+      name
+        .replace(/[型号|规格|品牌|系列|款式|款式|种类|类型]/g, '')
+        // 移除容量单位
+        .replace(/\d+(\.\d+)?\s*(立方|立方米|m³|m3)\b/gi, '')
+        // 移除长度单位（如果在型号被移除后还残留）
+        .replace(/\d+(\.\d+)?\s*(mm|mm|cm|厘米|m|米)\b/gi, '')
+        .replace(/[，,。.;;、]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+    );
   }
 
   /**

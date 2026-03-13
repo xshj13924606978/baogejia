@@ -82,7 +82,7 @@ export default function Sidebar() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [filter, setFilter] = useState<'all' | 'starred' | 'archived'>('all');
 
-  const filteredConversations = conversations.filter(conv => {
+  const filteredConversations = conversations.filter((conv) => {
     if (filter === 'starred') return conv.isStarred;
     if (filter === 'archived') return conv.isArchived;
     return !conv.isArchived;
@@ -111,18 +111,18 @@ export default function Sidebar() {
       timestamp: new Date(),
     };
     setConversations([newConversation, ...conversations]);
-    
+
     // 跳转到新对话页面
     router.push(`/chat/${newId}`);
-    
+
     // 触发全局事件，通知 ChatArea 刷新
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('new-conversation', { detail: { id: newId } }));
     }
-    
+
     toast({
-      title: "新对话已创建",
-      description: "开始您的报价咨询",
+      title: '新对话已创建',
+      description: '开始您的报价咨询',
       duration: 2000,
     });
   };
@@ -138,15 +138,15 @@ export default function Sidebar() {
 
   const confirmDelete = () => {
     if (deleteId) {
-      setConversations(conversations.filter(c => c.id !== deleteId));
+      setConversations(conversations.filter((c) => c.id !== deleteId));
       toast({
-        title: "删除成功",
-        description: "对话已删除",
+        title: '删除成功',
+        description: '对话已删除',
         duration: 2000,
       });
       setDeleteId(null);
       setShowDeleteDialog(false);
-      
+
       // 如果删除的是当前对话，跳转到首页
       if (window.location.pathname.includes(`/chat/${deleteId}`)) {
         router.push('/');
@@ -155,23 +155,23 @@ export default function Sidebar() {
   };
 
   const handleArchive = (id: string) => {
-    setConversations(conversations.map(c => 
-      c.id === id ? { ...c, isArchived: !c.isArchived } : c
-    ));
+    setConversations(
+      conversations.map((c) => (c.id === id ? { ...c, isArchived: !c.isArchived } : c))
+    );
     toast({
-      title: "操作成功",
-      description: "对话已归档",
+      title: '操作成功',
+      description: '对话已归档',
       duration: 2000,
     });
   };
 
   const handleStar = (id: string) => {
-    setConversations(conversations.map(c => 
-      c.id === id ? { ...c, isStarred: !c.isStarred } : c
-    ));
+    setConversations(
+      conversations.map((c) => (c.id === id ? { ...c, isStarred: !c.isStarred } : c))
+    );
     toast({
-      title: "操作成功",
-      description: "已更新收藏状态",
+      title: '操作成功',
+      description: '已更新收藏状态',
       duration: 2000,
     });
   };
@@ -183,11 +183,9 @@ export default function Sidebar() {
 
   const saveRename = (id: string) => {
     if (editTitle.trim()) {
-      setConversations(conversations.map(c => 
-        c.id === id ? { ...c, title: editTitle } : c
-      ));
+      setConversations(conversations.map((c) => (c.id === id ? { ...c, title: editTitle } : c)));
       toast({
-        title: "重命名成功",
+        title: '重命名成功',
         duration: 2000,
       });
     }
@@ -210,9 +208,7 @@ export default function Sidebar() {
 
         {/* 对话历史标题和筛选 */}
         <div className="px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
-          <h3 className="font-medium text-sm text-gray-500 dark:text-gray-400">
-            对话历史
-          </h3>
+          <h3 className="font-medium text-sm text-gray-500 dark:text-gray-400">对话历史</h3>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
@@ -300,9 +296,7 @@ export default function Sidebar() {
                           <MessageSquare className="h-4 w-4 mt-0.5 text-gray-400 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1">
-                              <span className="font-medium text-sm truncate">
-                                {conv.title}
-                              </span>
+                              <span className="font-medium text-sm truncate">{conv.title}</span>
                               {conv.isStarred && (
                                 <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
                               )}
@@ -329,7 +323,9 @@ export default function Sidebar() {
                             <DropdownMenuLabel>对话操作</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleStar(conv.id)}>
-                              <Star className={`h-4 w-4 mr-2 ${conv.isStarred ? 'fill-yellow-400' : ''}`} />
+                              <Star
+                                className={`h-4 w-4 mr-2 ${conv.isStarred ? 'fill-yellow-400' : ''}`}
+                              />
                               {conv.isStarred ? '取消收藏' : '收藏'}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleArchive(conv.id)}>
@@ -341,7 +337,7 @@ export default function Sidebar() {
                               重命名
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-red-600"
                               onClick={() => handleDelete(conv.id)}
                             >
@@ -361,7 +357,7 @@ export default function Sidebar() {
 
         {/* 底部 - 新建对话按钮 */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-          <Button 
+          <Button
             className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
             onClick={handleNewChat}
           >
@@ -376,9 +372,7 @@ export default function Sidebar() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>
-              此操作无法撤销，对话将被永久删除。
-            </AlertDialogDescription>
+            <AlertDialogDescription>此操作无法撤销，对话将被永久删除。</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>

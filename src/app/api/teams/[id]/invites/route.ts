@@ -5,10 +5,7 @@ import { InviteMemberRequest } from '@/types/team';
 /**
  * 邀请成员
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: teamId } = await params;
     const userId = request.headers.get('x-user-id') || 'demo_user_1';
@@ -48,10 +45,7 @@ export async function POST(
 /**
  * 接受邀请
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: teamId } = await params;
     const userId = request.headers.get('x-user-id') || 'demo_user_1';

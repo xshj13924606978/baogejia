@@ -93,7 +93,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   const router = useRouter();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // 对话框状态
   const [showPaymentPanel, setShowPaymentPanel] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
@@ -107,28 +107,28 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   const [showSupplierDialog, setShowSupplierDialog] = useState(false);
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [showTermsDialog, setShowTermsDialog] = useState(false);
-  
+
   // 编辑状态
   const [editingProfile, setEditingProfile] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(false);
   const [editingTerms, setEditingTerms] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  
+
   // 密码表单状态
   const [passwordForm, setPasswordForm] = useState({
     oldPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [changingPassword, setChangingPassword] = useState(false);
-  
+
   // 生成随机key防止自动填充
   const [passwordFormKey, setPasswordFormKey] = useState(Math.random().toString(36));
-  
+
   // 邀请记录弹窗状态
   const [showInviteRecordsDialog, setShowInviteRecordsDialog] = useState(false);
-  
+
   // 表单数据 - 从user加载初始值
   const [profileForm, setProfileForm] = useState({
     name: '',
@@ -136,7 +136,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     phone: '',
     company: '',
     address: '',
-    avatar: ''
+    avatar: '',
   });
 
   // 当密码弹窗打开时重置key
@@ -156,7 +156,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
         phone: user.phone || '',
         company: user.company || '',
         address: user.address || '',
-        avatar: user.avatar || ''
+        avatar: user.avatar || '',
       });
     }
   }, [user]);
@@ -169,7 +169,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     address: '上海市浦东新区xx路123号',
     bankName: '中国建设银行上海分行',
     bankAccount: '3100 1234 5678 9012 345',
-    taxNumber: '91310115MA1H123456'
+    taxNumber: '91310115MA1H123456',
   });
 
   const [customerForm, setCustomerForm] = useState({
@@ -178,7 +178,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     contactPerson: '李工',
     phone: '13912345678',
     email: 'ligong@example.com',
-    address: '江苏省苏州市工业园区'
+    address: '江苏省苏州市工业园区',
   });
 
   const [termsForm, setTermsForm] = useState({
@@ -189,7 +189,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     taxRate: 13,
     shipping: 0,
     installation: 0,
-    otherFees: 0
+    otherFees: 0,
   });
 
   // 设置状态
@@ -202,14 +202,35 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     display: {
       darkMode: 'auto' as 'auto' | 'light' | 'dark',
       language: 'zh-CN',
-    }
+    },
   });
 
   // 通知数据
   const [notifications, setNotifications] = useState([
-    { id: 1, title: '报价单已生成', message: '您的搅拌设备报价单已生成', time: '5分钟前', read: false, icon: '📄' },
-    { id: 2, title: '积分到账', message: '邀请好友获得50积分', time: '1小时前', read: false, icon: '🎁' },
-    { id: 3, title: '文件解析完成', message: '上传的PDF文件已解析完成', time: '2小时前', read: true, icon: '📁' },
+    {
+      id: 1,
+      title: '报价单已生成',
+      message: '您的搅拌设备报价单已生成',
+      time: '5分钟前',
+      read: false,
+      icon: '📄',
+    },
+    {
+      id: 2,
+      title: '积分到账',
+      message: '邀请好友获得50积分',
+      time: '1小时前',
+      read: false,
+      icon: '🎁',
+    },
+    {
+      id: 3,
+      title: '文件解析完成',
+      message: '上传的PDF文件已解析完成',
+      time: '2小时前',
+      read: true,
+      icon: '📁',
+    },
     { id: 4, title: '系统通知', message: '新版本功能上线', time: '昨天', read: true, icon: '✨' },
   ]);
 
@@ -222,13 +243,41 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
   // 最近记录数据
   const [recentRecords, setRecentRecords] = useState([
-    { id: 1, name: '搅拌设备报价单.pdf', type: 'pdf', action: 'download', time: '2024-02-26 14:30', size: '2.3 MB' },
-    { id: 2, name: '泵类采购方案.docx', type: 'docx', action: 'preview', time: '2024-02-25 09:15', size: '1.1 MB' },
-    { id: 3, name: '产品目录.xlsx', type: 'xlsx', action: 'upload', time: '2024-02-24 16:45', size: '3.2 MB' },
-    { id: 4, name: '技术规范.pdf', type: 'pdf', action: 'share', time: '2024-02-23 11:20', size: '4.5 MB' },
+    {
+      id: 1,
+      name: '搅拌设备报价单.pdf',
+      type: 'pdf',
+      action: 'download',
+      time: '2024-02-26 14:30',
+      size: '2.3 MB',
+    },
+    {
+      id: 2,
+      name: '泵类采购方案.docx',
+      type: 'docx',
+      action: 'preview',
+      time: '2024-02-25 09:15',
+      size: '1.1 MB',
+    },
+    {
+      id: 3,
+      name: '产品目录.xlsx',
+      type: 'xlsx',
+      action: 'upload',
+      time: '2024-02-24 16:45',
+      size: '3.2 MB',
+    },
+    {
+      id: 4,
+      name: '技术规范.pdf',
+      type: 'pdf',
+      action: 'share',
+      time: '2024-02-23 11:20',
+      size: '4.5 MB',
+    },
   ]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const getGradientByInitial = (initial: string) => {
     const gradients = [
@@ -245,30 +294,33 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
   // 复制到剪贴板
   const copyToClipboard = (text: string, message: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast({
-        title: "复制成功",
-        description: message,
-        duration: 2000,
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        toast({
+          title: '复制成功',
+          description: message,
+          duration: 2000,
+        });
+      })
+      .catch(() => {
+        toast({
+          title: '复制失败',
+          description: '请手动复制',
+          variant: 'destructive',
+          duration: 2000,
+        });
       });
-    }).catch(() => {
-      toast({
-        title: "复制失败",
-        description: "请手动复制",
-        variant: "destructive",
-        duration: 2000,
-      });
-    });
   };
 
   // 下载文件
   const handleDownload = (fileName: string, fileType: string) => {
     toast({
-      title: "下载中",
+      title: '下载中',
       description: `正在下载 ${fileName}`,
       duration: 2000,
     });
-    
+
     setTimeout(() => {
       const content = `这是${fileName}的示例内容`;
       const blob = new Blob([content], { type: 'application/octet-stream' });
@@ -280,9 +332,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       toast({
-        title: "下载完成",
+        title: '下载完成',
         description: `${fileName} 已下载`,
         duration: 2000,
       });
@@ -292,11 +344,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   // 预览文件
   const handlePreview = (fileName: string) => {
     toast({
-      title: "预览",
+      title: '预览',
       description: `正在打开 ${fileName}`,
       duration: 2000,
     });
-    
+
     setTimeout(() => {
       const previewWindow = window.open('', '_blank');
       if (previewWindow) {
@@ -321,11 +373,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   // 上传文件
   const handleUpload = (fileName: string) => {
     toast({
-      title: "上传",
+      title: '上传',
       description: `正在上传 ${fileName}`,
       duration: 2000,
     });
-    
+
     setTimeout(() => {
       const input = document.createElement('input');
       input.type = 'file';
@@ -334,7 +386,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
         const file = (e.target as HTMLInputElement).files?.[0];
         if (file) {
           toast({
-            title: "上传成功",
+            title: '上传成功',
             description: `${file.name} 已上传`,
             duration: 2000,
           });
@@ -347,13 +399,15 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   // 分享文件
   const handleShare = (fileName: string) => {
     if (navigator.share) {
-      navigator.share({
-        title: '分享文件',
-        text: fileName,
-        url: window.location.href,
-      }).catch(() => {
-        copyToClipboard(fileName, '文件名称已复制');
-      });
+      navigator
+        .share({
+          title: '分享文件',
+          text: fileName,
+          url: window.location.href,
+        })
+        .catch(() => {
+          copyToClipboard(fileName, '文件名称已复制');
+        });
     } else {
       copyToClipboard(fileName, '文件名称已复制');
     }
@@ -364,8 +418,8 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     setEditingSupplier(false);
     setShowSupplierDialog(false);
     toast({
-      title: "保存成功",
-      description: "供应商信息已更新",
+      title: '保存成功',
+      description: '供应商信息已更新',
       duration: 2000,
     });
   };
@@ -375,8 +429,8 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     setEditingCustomer(false);
     setShowCustomerDialog(false);
     toast({
-      title: "保存成功",
-      description: "客户信息已更新",
+      title: '保存成功',
+      description: '客户信息已更新',
       duration: 2000,
     });
   };
@@ -386,18 +440,18 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     setEditingTerms(false);
     setShowTermsDialog(false);
     toast({
-      title: "保存成功",
-      description: "商务条款已更新",
+      title: '保存成功',
+      description: '商务条款已更新',
       duration: 2000,
     });
   };
 
   // 标记所有通知为已读
   const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    setNotifications(notifications.map((n) => ({ ...n, read: true })));
     toast({
-      title: "操作成功",
-      description: "所有通知已标记为已读",
+      title: '操作成功',
+      description: '所有通知已标记为已读',
       duration: 2000,
     });
   };
@@ -426,11 +480,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       notifications: {
         ...settings.notifications,
         [key]: !settings.notifications[key],
-      }
+      },
     });
     toast({
-      title: "设置已更新",
-      description: "通知设置已保存",
+      title: '设置已更新',
+      description: '通知设置已保存',
       duration: 2000,
     });
   };
@@ -444,9 +498,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       display: {
         ...settings.display,
         darkMode: nextMode,
-      }
+      },
     });
-    
+
     if (nextMode === 'dark') {
       document.documentElement.classList.add('dark');
     } else if (nextMode === 'light') {
@@ -458,9 +512,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
         document.documentElement.classList.remove('dark');
       }
     }
-    
+
     toast({
-      title: "显示模式已更新",
+      title: '显示模式已更新',
       description: `已切换为${nextMode === 'auto' ? '自动' : nextMode === 'light' ? '浅色' : '深色'}模式`,
       duration: 2000,
     });
@@ -475,10 +529,10 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       display: {
         ...settings.display,
         language: nextLang,
-      }
+      },
     });
     toast({
-      title: "语言已更新",
+      title: '语言已更新',
       description: nextLang === 'zh-CN' ? '已切换为简体中文' : 'Switched to English',
       duration: 2000,
     });
@@ -487,24 +541,24 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   // 数据管理功能
   const handleExportData = () => {
     toast({
-      title: "导出数据",
-      description: "正在准备导出数据...",
+      title: '导出数据',
+      description: '正在准备导出数据...',
       duration: 2000,
     });
-    
+
     setTimeout(() => {
       const dataStr = JSON.stringify({ user, settings, notifications, recentRecords }, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-      const exportFileDefaultName = `baogejia-export-${new Date().toISOString().slice(0,10)}.json`;
-      
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+      const exportFileDefaultName = `baogejia-export-${new Date().toISOString().slice(0, 10)}.json`;
+
       const linkElement = document.createElement('a');
       linkElement.setAttribute('href', dataUri);
       linkElement.setAttribute('download', exportFileDefaultName);
       linkElement.click();
-      
+
       toast({
-        title: "导出成功",
-        description: "数据已导出",
+        title: '导出成功',
+        description: '数据已导出',
         duration: 2000,
       });
     }, 1500);
@@ -518,15 +572,15 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         toast({
-          title: "导入数据",
+          title: '导入数据',
           description: `正在导入 ${file.name}`,
           duration: 2000,
         });
-        
+
         setTimeout(() => {
           toast({
-            title: "导入成功",
-            description: "数据已导入",
+            title: '导入成功',
+            description: '数据已导入',
             duration: 2000,
           });
         }, 1500);
@@ -537,21 +591,21 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
   const handleClearCache = () => {
     toast({
-      title: "清除缓存",
-      description: "正在清除缓存...",
+      title: '清除缓存',
+      description: '正在清除缓存...',
       duration: 2000,
     });
-    
+
     setTimeout(() => {
       localStorage.clear();
       sessionStorage.clear();
-      
+
       toast({
-        title: "缓存已清除",
-        description: "页面将刷新",
+        title: '缓存已清除',
+        description: '页面将刷新',
         duration: 2000,
       });
-      
+
       setTimeout(() => {
         window.location.reload();
       }, 2000);
@@ -563,9 +617,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     // 验证密码
     if (!passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
       toast({
-        title: "请填写完整",
-        description: "所有密码字段都必须填写",
-        variant: "destructive",
+        title: '请填写完整',
+        description: '所有密码字段都必须填写',
+        variant: 'destructive',
         duration: 3000,
       });
       return;
@@ -573,9 +627,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast({
-        title: "密码不匹配",
-        description: "新密码和确认密码不一致",
-        variant: "destructive",
+        title: '密码不匹配',
+        description: '新密码和确认密码不一致',
+        variant: 'destructive',
         duration: 3000,
       });
       return;
@@ -583,9 +637,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
     if (passwordForm.newPassword.length < 6) {
       toast({
-        title: "密码太短",
-        description: "新密码长度至少为6位",
-        variant: "destructive",
+        title: '密码太短',
+        description: '新密码长度至少为6位',
+        variant: 'destructive',
         duration: 3000,
       });
       return;
@@ -594,29 +648,29 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     setChangingPassword(true);
     try {
       const success = await changePassword(passwordForm.oldPassword, passwordForm.newPassword);
-      
+
       if (success) {
         toast({
-          title: "修改成功",
-          description: "密码已更新，请使用新密码重新登录",
+          title: '修改成功',
+          description: '密码已更新，请使用新密码重新登录',
           duration: 3000,
         });
         setShowPasswordDialog(false);
         setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
       } else {
         toast({
-          title: "修改失败",
-          description: "当前密码错误",
-          variant: "destructive",
+          title: '修改失败',
+          description: '当前密码错误',
+          variant: 'destructive',
           duration: 3000,
         });
       }
     } catch (error) {
       console.error('修改密码失败:', error);
       toast({
-        title: "修改失败",
-        description: "请稍后重试",
-        variant: "destructive",
+        title: '修改失败',
+        description: '请稍后重试',
+        variant: 'destructive',
         duration: 3000,
       });
     } finally {
@@ -661,9 +715,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
   if (!user) {
     return (
-      <Button 
-        variant="default" 
-        size="sm" 
+      <Button
+        variant="default"
+        size="sm"
         className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
         onClick={() => handleNavigation('/login')}
       >
@@ -672,11 +726,14 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     );
   }
 
-  const initials = user.name
-    ?.split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase() || user.email?.[0].toUpperCase() || 'U';
+  const initials =
+    user.name
+      ?.split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase() ||
+    user.email?.[0].toUpperCase() ||
+    'U';
 
   const gradientClass = getGradientByInitial(initials);
 
@@ -685,12 +742,15 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       <>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2 h-auto hover:bg-transparent">
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 px-2 h-auto hover:bg-transparent"
+            >
               <Avatar className="h-8 w-8 ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-950 ring-blue-100 dark:ring-blue-900">
-                {user.avatar ? (
-                  <AvatarImage src={user.avatar} />
-                ) : null}
-                <AvatarFallback className={`bg-gradient-to-br ${gradientClass} text-white text-sm font-medium`}>
+                {user.avatar ? <AvatarImage src={user.avatar} /> : null}
+                <AvatarFallback
+                  className={`bg-gradient-to-br ${gradientClass} text-white text-sm font-medium`}
+                >
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -700,125 +760,168 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             </Button>
           </DropdownMenuTrigger>
-          
+
           <DropdownMenuContent align="end" className="w-72 max-h-[80vh] overflow-y-auto mt-1">
             <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
               我的账户
             </DropdownMenuLabel>
-            
+
             <DropdownMenuGroup>
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowProfileDialog(true)}>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setShowProfileDialog(true)}
+              >
                 <User className="mr-2 h-4 w-4" />
                 <span>个人资料</span>
               </DropdownMenuItem>
-              
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowPasswordDialog(true)}>
+
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setShowPasswordDialog(true)}
+              >
                 <Lock className="mr-2 h-4 w-4" />
                 <span>修改密码</span>
               </DropdownMenuItem>
-              
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowPointsDialog(true)}>
+
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setShowPointsDialog(true)}
+              >
                 <CreditCard className="mr-2 h-4 w-4" />
                 <span>积分明细</span>
                 <Badge variant="secondary" className="ml-auto bg-amber-50 text-amber-700 border-0">
                   1000
                 </Badge>
               </DropdownMenuItem>
-              
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowInviteDialog(true)}>
+
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setShowInviteDialog(true)}
+              >
                 <Gift className="mr-2 h-4 w-4" />
                 <span>邀请好友</span>
               </DropdownMenuItem>
-              
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowNotificationsDialog(true)}>
+
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setShowNotificationsDialog(true)}
+              >
                 <Bell className="mr-2 h-4 w-4" />
                 <span>通知中心</span>
                 {unreadCount > 0 && (
-                  <Badge className="ml-auto bg-red-50 text-red-700 border-0 text-xs">{unreadCount}</Badge>
+                  <Badge className="ml-auto bg-red-50 text-red-700 border-0 text-xs">
+                    {unreadCount}
+                  </Badge>
                 )}
               </DropdownMenuItem>
             </DropdownMenuGroup>
-            
+
             <DropdownMenuSeparator />
-            
+
             <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
               商务信息
             </DropdownMenuLabel>
-            
+
             <DropdownMenuGroup>
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowSupplierDialog(true)}>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setShowSupplierDialog(true)}
+              >
                 <Building2 className="mr-2 h-4 w-4" />
                 <span>供应方信息</span>
               </DropdownMenuItem>
-              
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowCustomerDialog(true)}>
+
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setShowCustomerDialog(true)}
+              >
                 <Users className="mr-2 h-4 w-4" />
                 <span>客户管理</span>
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem className="cursor-pointer" onClick={() => setShowTermsDialog(true)}>
                 <FileText className="mr-2 h-4 w-4" />
                 <span>商务条款</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
-            
+
             <DropdownMenuSeparator />
-            
+
             <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
               数据与统计
             </DropdownMenuLabel>
-            
+
             <DropdownMenuGroup>
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowPaymentPanel(!showPaymentPanel)}>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setShowPaymentPanel(!showPaymentPanel)}
+              >
                 <TrendingUp className="mr-2 h-4 w-4" />
                 <span>厂商支付排行</span>
-                <ChevronDown className={`ml-auto h-4 w-4 transition-transform duration-200 ${
-                  showPaymentPanel ? 'rotate-180' : ''
-                }`} />
+                <ChevronDown
+                  className={`ml-auto h-4 w-4 transition-transform duration-200 ${
+                    showPaymentPanel ? 'rotate-180' : ''
+                  }`}
+                />
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem className="cursor-pointer" onClick={() => setShowStatsDialog(true)}>
                 <BarChart3 className="mr-2 h-4 w-4" />
                 <span>数据统计</span>
               </DropdownMenuItem>
-              
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowRecordsDialog(true)}>
+
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setShowRecordsDialog(true)}
+              >
                 <History className="mr-2 h-4 w-4" />
                 <span>最近记录</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
-            
+
             <DropdownMenuSeparator />
-            
+
             <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
               系统管理
             </DropdownMenuLabel>
-            
+
             <DropdownMenuGroup>
-              <DropdownMenuItem className="cursor-pointer" onClick={() => handleNavigation('/admin')}>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => handleNavigation('/admin')}
+              >
                 <LayoutDashboard className="mr-2 h-4 w-4" />
                 <span>管理后台</span>
               </DropdownMenuItem>
-              
-              <DropdownMenuItem className="cursor-pointer" onClick={() => handleNavigation('/admin/users')}>
+
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => handleNavigation('/admin/users')}
+              >
                 <Users className="mr-2 h-4 w-4" />
                 <span>用户管理</span>
               </DropdownMenuItem>
-              
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowSettingsDialog(true)}>
+
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setShowSettingsDialog(true)}
+              >
                 <Settings className="mr-2 h-4 w-4" />
                 <span>设置</span>
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem className="cursor-pointer" onClick={handleHelp}>
                 <HelpCircle className="mr-2 h-4 w-4" />
                 <span>帮助</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
-            
+
             <DropdownMenuSeparator />
-            
-            <DropdownMenuItem className="cursor-pointer text-red-600 hover:text-red-700" onClick={handleLogout}>
+
+            <DropdownMenuItem
+              className="cursor-pointer text-red-600 hover:text-red-700"
+              onClick={handleLogout}
+            >
               <LogOut className="mr-2 h-4 w-4" />
               <span>退出登录</span>
             </DropdownMenuItem>
@@ -826,56 +929,60 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
         </DropdownMenu>
 
         {/* 共享的个人资料弹窗 */}
-        <ProfileDialog 
-          open={showProfileDialog} 
-          onOpenChange={setShowProfileDialog}
-        />
+        <ProfileDialog open={showProfileDialog} onOpenChange={setShowProfileDialog} />
 
         {/* 修改密码弹窗 - 使用key防止自动填充 */}
         <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
           <DialogContent className="sm:max-w-[500px]" key={passwordFormKey}>
             <DialogHeader>
               <DialogTitle>修改密码</DialogTitle>
-              <DialogDescription>
-                请输入新密码，密码长度至少6位
-              </DialogDescription>
+              <DialogDescription>请输入新密码，密码长度至少6位</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">当前密码</label>
-                <Input 
+                <Input
                   type="password"
-                  value={passwordForm.oldPassword} 
-                  onChange={(e) => setPasswordForm({...passwordForm, oldPassword: e.target.value})}
+                  value={passwordForm.oldPassword}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, oldPassword: e.target.value })
+                  }
                   placeholder="请输入当前密码"
                   autoComplete="off"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">新密码</label>
-                <Input 
+                <Input
                   type="password"
-                  value={passwordForm.newPassword} 
-                  onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                  value={passwordForm.newPassword}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, newPassword: e.target.value })
+                  }
                   placeholder="请输入新密码"
                   autoComplete="off"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">确认新密码</label>
-                <Input 
+                <Input
                   type="password"
-                  value={passwordForm.confirmPassword} 
-                  onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
+                  }
                   placeholder="请再次输入新密码"
                   autoComplete="off"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => {
-                  setShowPasswordDialog(false);
-                  setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
-                }}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowPasswordDialog(false);
+                    setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+                  }}
+                >
                   取消
                 </Button>
                 <Button onClick={handleChangePassword} disabled={changingPassword}>
@@ -893,9 +1000,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
             <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>厂商支付排行</DialogTitle>
-                <DialogDescription>
-                  按支付金额排序的厂商排行榜
-                </DialogDescription>
+                <DialogDescription>按支付金额排序的厂商排行榜</DialogDescription>
               </DialogHeader>
               <div className="py-4">
                 <ManufacturerPaymentPanel />
@@ -1008,7 +1113,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                   <label className="text-sm font-medium">邀请码</label>
                   <div className="flex gap-2 mt-1">
                     <Input value="ABC123XYZ" readOnly className="bg-gray-50" />
-                    <Button variant="outline" size="icon" onClick={() => copyToClipboard('ABC123XYZ', '邀请码已复制')}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => copyToClipboard('ABC123XYZ', '邀请码已复制')}
+                    >
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
@@ -1017,8 +1126,18 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div>
                   <label className="text-sm font-medium">邀请链接</label>
                   <div className="flex gap-2 mt-1">
-                    <Input value="https://baogejia.com/invite/ABC123XYZ" readOnly className="bg-gray-50 text-xs" />
-                    <Button variant="outline" size="icon" onClick={() => copyToClipboard('https://baogejia.com/invite/ABC123XYZ', '邀请链接已复制')}>
+                    <Input
+                      value="https://baogejia.com/invite/ABC123XYZ"
+                      readOnly
+                      className="bg-gray-50 text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() =>
+                        copyToClipboard('https://baogejia.com/invite/ABC123XYZ', '邀请链接已复制')
+                      }
+                    >
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
@@ -1026,11 +1145,18 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               </div>
 
               <div className="flex gap-2">
-                <Button className="flex-1 bg-gradient-to-r from-pink-600 to-purple-600" onClick={() => handleShareInvite('https://baogejia.com/invite/ABC123XYZ')}>
+                <Button
+                  className="flex-1 bg-gradient-to-r from-pink-600 to-purple-600"
+                  onClick={() => handleShareInvite('https://baogejia.com/invite/ABC123XYZ')}
+                >
                   <Share2 className="h-4 w-4 mr-2" />
                   分享
                 </Button>
-                <Button variant="outline" className="flex-1" onClick={() => setShowInviteRecordsDialog(true)}>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowInviteRecordsDialog(true)}
+                >
                   <Users className="h-4 w-4 mr-2" />
                   邀请记录
                 </Button>
@@ -1041,21 +1167,27 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-yellow-100 text-yellow-700 flex items-center justify-center text-xs">1</span>
+                      <span className="w-5 h-5 rounded-full bg-yellow-100 text-yellow-700 flex items-center justify-center text-xs">
+                        1
+                      </span>
                       <span className="text-sm">张三</span>
                     </div>
                     <span className="text-sm font-medium">15人</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-xs">2</span>
+                      <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-xs">
+                        2
+                      </span>
                       <span className="text-sm">李四</span>
                     </div>
                     <span className="text-sm font-medium">12人</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center text-xs">3</span>
+                      <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center text-xs">
+                        3
+                      </span>
                       <span className="text-sm">王五</span>
                     </div>
                     <span className="text-sm font-medium">8人</span>
@@ -1076,10 +1208,15 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 {inviteRecords.map((record) => (
-                  <div key={record.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                  <div
+                    key={record.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                  >
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-blue-100 text-blue-700">{record.name[0]}</AvatarFallback>
+                        <AvatarFallback className="bg-blue-100 text-blue-700">
+                          {record.name[0]}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="text-sm font-medium">{record.name}</p>
@@ -1087,7 +1224,13 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                       </div>
                     </div>
                     <div className="text-right">
-                      <Badge className={record.status === '已注册' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+                      <Badge
+                        className={
+                          record.status === '已注册'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-gray-100 text-gray-700'
+                        }
+                      >
                         {record.status}
                       </Badge>
                       {record.points > 0 && (
@@ -1121,11 +1264,17 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {notifications.map((item) => (
-                  <div key={item.id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                    !item.read ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'
-                  }`} onClick={() => {
-                    setNotifications(notifications.map(n => n.id === item.id ? { ...n, read: true } : n));
-                  }}>
+                  <div
+                    key={item.id}
+                    className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                      !item.read ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'
+                    }`}
+                    onClick={() => {
+                      setNotifications(
+                        notifications.map((n) => (n.id === item.id ? { ...n, read: true } : n))
+                      );
+                    }}
+                  >
                     <span className="text-lg">{item.icon}</span>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
@@ -1176,12 +1325,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <div className="border-t pt-4">
                 <h4 className="text-sm font-medium mb-3">月度趋势</h4>
                 <div className="h-32 flex items-end justify-between gap-2">
-                  <div className="w-8 bg-blue-100 rounded-t" style={{height: '40px'}} />
-                  <div className="w-8 bg-blue-200 rounded-t" style={{height: '60px'}} />
-                  <div className="w-8 bg-blue-300 rounded-t" style={{height: '80px'}} />
-                  <div className="w-8 bg-blue-400 rounded-t" style={{height: '100px'}} />
-                  <div className="w-8 bg-blue-500 rounded-t" style={{height: '120px'}} />
-                  <div className="w-8 bg-blue-600 rounded-t" style={{height: '140px'}} />
+                  <div className="w-8 bg-blue-100 rounded-t" style={{ height: '40px' }} />
+                  <div className="w-8 bg-blue-200 rounded-t" style={{ height: '60px' }} />
+                  <div className="w-8 bg-blue-300 rounded-t" style={{ height: '80px' }} />
+                  <div className="w-8 bg-blue-400 rounded-t" style={{ height: '100px' }} />
+                  <div className="w-8 bg-blue-500 rounded-t" style={{ height: '120px' }} />
+                  <div className="w-8 bg-blue-600 rounded-t" style={{ height: '140px' }} />
                 </div>
                 <div className="flex justify-between mt-2 text-xs text-gray-500">
                   <span>1月</span>
@@ -1206,11 +1355,16 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 {recentRecords.map((record) => (
-                  <div key={record.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                  <div
+                    key={record.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                  >
                     <div className="flex items-center gap-3 flex-1">
                       {record.type === 'pdf' && <FileText className="h-5 w-5 text-red-500" />}
                       {record.type === 'docx' && <FileText className="h-5 w-5 text-blue-500" />}
-                      {record.type === 'xlsx' && <FileSpreadsheet className="h-5 w-5 text-green-500" />}
+                      {record.type === 'xlsx' && (
+                        <FileSpreadsheet className="h-5 w-5 text-green-500" />
+                      )}
                       <div className="flex-1">
                         <p className="text-sm font-medium">{record.name}</p>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -1224,7 +1378,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                       {record.action === 'download' && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8" onClick={() => handleDownload(record.name, record.type)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8"
+                              onClick={() => handleDownload(record.name, record.type)}
+                            >
                               <Download className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -1234,7 +1393,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                       {record.action === 'preview' && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8" onClick={() => handlePreview(record.name)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8"
+                              onClick={() => handlePreview(record.name)}
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -1244,7 +1408,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                       {record.action === 'upload' && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8" onClick={() => handleUpload(record.name)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8"
+                              onClick={() => handleUpload(record.name)}
+                            >
                               <Upload className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -1254,7 +1423,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                       {record.action === 'share' && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8" onClick={() => handleShare(record.name)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8"
+                              onClick={() => handleShare(record.name)}
+                            >
                               <Share2 className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -1265,7 +1439,13 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                   </div>
                 ))}
               </div>
-              <Button variant="outline" className="w-full mt-2" onClick={() => toast({ title: "查看全部", description: "正在加载更多记录...", duration: 2000 })}>
+              <Button
+                variant="outline"
+                className="w-full mt-2"
+                onClick={() =>
+                  toast({ title: '查看全部', description: '正在加载更多记录...', duration: 2000 })
+                }
+              >
                 查看全部记录
               </Button>
             </div>
@@ -1283,12 +1463,17 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <div className="flex justify-end">
                 {!editingSupplier ? (
                   <Button variant="outline" size="sm" onClick={() => setEditingSupplier(true)}>
-                    <Edit2 className="h-3 w-3 mr-2" />编辑
+                    <Edit2 className="h-3 w-3 mr-2" />
+                    编辑
                   </Button>
                 ) : (
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setEditingSupplier(false)}>取消</Button>
-                    <Button size="sm" onClick={handleSaveSupplier}>保存</Button>
+                    <Button variant="outline" size="sm" onClick={() => setEditingSupplier(false)}>
+                      取消
+                    </Button>
+                    <Button size="sm" onClick={handleSaveSupplier}>
+                      保存
+                    </Button>
                   </div>
                 )}
               </div>
@@ -1297,7 +1482,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">公司名称</label>
                   {editingSupplier ? (
-                    <Input value={supplierForm.companyName} onChange={(e) => setSupplierForm({...supplierForm, companyName: e.target.value})} />
+                    <Input
+                      value={supplierForm.companyName}
+                      onChange={(e) =>
+                        setSupplierForm({ ...supplierForm, companyName: e.target.value })
+                      }
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{supplierForm.companyName}</p>
                   )}
@@ -1305,7 +1495,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">联系人</label>
                   {editingSupplier ? (
-                    <Input value={supplierForm.contactPerson} onChange={(e) => setSupplierForm({...supplierForm, contactPerson: e.target.value})} />
+                    <Input
+                      value={supplierForm.contactPerson}
+                      onChange={(e) =>
+                        setSupplierForm({ ...supplierForm, contactPerson: e.target.value })
+                      }
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{supplierForm.contactPerson}</p>
                   )}
@@ -1313,7 +1508,10 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">电话</label>
                   {editingSupplier ? (
-                    <Input value={supplierForm.phone} onChange={(e) => setSupplierForm({...supplierForm, phone: e.target.value})} />
+                    <Input
+                      value={supplierForm.phone}
+                      onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{supplierForm.phone}</p>
                   )}
@@ -1321,7 +1519,10 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">邮箱</label>
                   {editingSupplier ? (
-                    <Input value={supplierForm.email} onChange={(e) => setSupplierForm({...supplierForm, email: e.target.value})} />
+                    <Input
+                      value={supplierForm.email}
+                      onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{supplierForm.email}</p>
                   )}
@@ -1329,7 +1530,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="col-span-2 space-y-2">
                   <label className="text-sm font-medium">地址</label>
                   {editingSupplier ? (
-                    <Input value={supplierForm.address} onChange={(e) => setSupplierForm({...supplierForm, address: e.target.value})} />
+                    <Input
+                      value={supplierForm.address}
+                      onChange={(e) =>
+                        setSupplierForm({ ...supplierForm, address: e.target.value })
+                      }
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{supplierForm.address}</p>
                   )}
@@ -1337,7 +1543,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">开户银行</label>
                   {editingSupplier ? (
-                    <Input value={supplierForm.bankName} onChange={(e) => setSupplierForm({...supplierForm, bankName: e.target.value})} />
+                    <Input
+                      value={supplierForm.bankName}
+                      onChange={(e) =>
+                        setSupplierForm({ ...supplierForm, bankName: e.target.value })
+                      }
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{supplierForm.bankName}</p>
                   )}
@@ -1345,7 +1556,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">银行账号</label>
                   {editingSupplier ? (
-                    <Input value={supplierForm.bankAccount} onChange={(e) => setSupplierForm({...supplierForm, bankAccount: e.target.value})} />
+                    <Input
+                      value={supplierForm.bankAccount}
+                      onChange={(e) =>
+                        setSupplierForm({ ...supplierForm, bankAccount: e.target.value })
+                      }
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{supplierForm.bankAccount}</p>
                   )}
@@ -1353,7 +1569,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="col-span-2 space-y-2">
                   <label className="text-sm font-medium">税号</label>
                   {editingSupplier ? (
-                    <Input value={supplierForm.taxNumber} onChange={(e) => setSupplierForm({...supplierForm, taxNumber: e.target.value})} />
+                    <Input
+                      value={supplierForm.taxNumber}
+                      onChange={(e) =>
+                        setSupplierForm({ ...supplierForm, taxNumber: e.target.value })
+                      }
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{supplierForm.taxNumber}</p>
                   )}
@@ -1371,9 +1592,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <Users className="h-5 w-5 text-green-500" />
                 客户资料管理
               </DialogTitle>
-              <DialogDescription>
-                选择已有客户或添加新客户
-              </DialogDescription>
+              <DialogDescription>选择已有客户或添加新客户</DialogDescription>
             </DialogHeader>
             <CustomerPanel />
           </DialogContent>
@@ -1390,12 +1609,17 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <div className="flex justify-end">
                 {!editingTerms ? (
                   <Button variant="outline" size="sm" onClick={() => setEditingTerms(true)}>
-                    <Edit2 className="h-3 w-3 mr-2" />编辑
+                    <Edit2 className="h-3 w-3 mr-2" />
+                    编辑
                   </Button>
                 ) : (
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setEditingTerms(false)}>取消</Button>
-                    <Button size="sm" onClick={handleSaveTerms}>保存</Button>
+                    <Button variant="outline" size="sm" onClick={() => setEditingTerms(false)}>
+                      取消
+                    </Button>
+                    <Button size="sm" onClick={handleSaveTerms}>
+                      保存
+                    </Button>
                   </div>
                 )}
               </div>
@@ -1404,7 +1628,13 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">税率 (%)</label>
                   {editingTerms ? (
-                    <Input type="number" value={termsForm.taxRate} onChange={(e) => setTermsForm({...termsForm, taxRate: parseFloat(e.target.value)})} />
+                    <Input
+                      type="number"
+                      value={termsForm.taxRate}
+                      onChange={(e) =>
+                        setTermsForm({ ...termsForm, taxRate: parseFloat(e.target.value) })
+                      }
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{termsForm.taxRate}%</p>
                   )}
@@ -1412,7 +1642,13 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">运费 (元)</label>
                   {editingTerms ? (
-                    <Input type="number" value={termsForm.shipping} onChange={(e) => setTermsForm({...termsForm, shipping: parseFloat(e.target.value)})} />
+                    <Input
+                      type="number"
+                      value={termsForm.shipping}
+                      onChange={(e) =>
+                        setTermsForm({ ...termsForm, shipping: parseFloat(e.target.value) })
+                      }
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">¥{termsForm.shipping}</p>
                   )}
@@ -1420,7 +1656,13 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">安装费 (元)</label>
                   {editingTerms ? (
-                    <Input type="number" value={termsForm.installation} onChange={(e) => setTermsForm({...termsForm, installation: parseFloat(e.target.value)})} />
+                    <Input
+                      type="number"
+                      value={termsForm.installation}
+                      onChange={(e) =>
+                        setTermsForm({ ...termsForm, installation: parseFloat(e.target.value) })
+                      }
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">¥{termsForm.installation}</p>
                   )}
@@ -1428,7 +1670,13 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">其他费用 (元)</label>
                   {editingTerms ? (
-                    <Input type="number" value={termsForm.otherFees} onChange={(e) => setTermsForm({...termsForm, otherFees: parseFloat(e.target.value)})} />
+                    <Input
+                      type="number"
+                      value={termsForm.otherFees}
+                      onChange={(e) =>
+                        setTermsForm({ ...termsForm, otherFees: parseFloat(e.target.value) })
+                      }
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">¥{termsForm.otherFees}</p>
                   )}
@@ -1436,7 +1684,10 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="col-span-2 space-y-2">
                   <label className="text-sm font-medium">付款方式</label>
                   {editingTerms ? (
-                    <Input value={termsForm.payment} onChange={(e) => setTermsForm({...termsForm, payment: e.target.value})} />
+                    <Input
+                      value={termsForm.payment}
+                      onChange={(e) => setTermsForm({ ...termsForm, payment: e.target.value })}
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{termsForm.payment}</p>
                   )}
@@ -1444,7 +1695,10 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">质保期</label>
                   {editingTerms ? (
-                    <Input value={termsForm.warranty} onChange={(e) => setTermsForm({...termsForm, warranty: e.target.value})} />
+                    <Input
+                      value={termsForm.warranty}
+                      onChange={(e) => setTermsForm({ ...termsForm, warranty: e.target.value })}
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{termsForm.warranty}</p>
                   )}
@@ -1452,7 +1706,10 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">交货期</label>
                   {editingTerms ? (
-                    <Input value={termsForm.delivery} onChange={(e) => setTermsForm({...termsForm, delivery: e.target.value})} />
+                    <Input
+                      value={termsForm.delivery}
+                      onChange={(e) => setTermsForm({ ...termsForm, delivery: e.target.value })}
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{termsForm.delivery}</p>
                   )}
@@ -1460,7 +1717,10 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="col-span-2 space-y-2">
                   <label className="text-sm font-medium">报价有效期</label>
                   {editingTerms ? (
-                    <Input value={termsForm.validity} onChange={(e) => setTermsForm({...termsForm, validity: e.target.value})} />
+                    <Input
+                      value={termsForm.validity}
+                      onChange={(e) => setTermsForm({ ...termsForm, validity: e.target.value })}
+                    />
                   ) : (
                     <p className="text-sm p-2 bg-gray-50 rounded">{termsForm.validity}</p>
                   )}
@@ -1482,19 +1742,34 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <h4 className="text-sm font-medium">通知设置</h4>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">新消息通知</span>
-                  <Button variant={settings.notifications.message ? "default" : "outline"} size="sm" className="h-7" onClick={() => handleNotificationChange('message')}>
+                  <Button
+                    variant={settings.notifications.message ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7"
+                    onClick={() => handleNotificationChange('message')}
+                  >
                     {settings.notifications.message ? '开启' : '关闭'}
                   </Button>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">报价单更新提醒</span>
-                  <Button variant={settings.notifications.quote ? "default" : "outline"} size="sm" className="h-7" onClick={() => handleNotificationChange('quote')}>
+                  <Button
+                    variant={settings.notifications.quote ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7"
+                    onClick={() => handleNotificationChange('quote')}
+                  >
                     {settings.notifications.quote ? '开启' : '关闭'}
                   </Button>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">积分变动通知</span>
-                  <Button variant={settings.notifications.points ? "default" : "outline"} size="sm" className="h-7" onClick={() => handleNotificationChange('points')}>
+                  <Button
+                    variant={settings.notifications.points ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7"
+                    onClick={() => handleNotificationChange('points')}
+                  >
                     {settings.notifications.points ? '开启' : '关闭'}
                   </Button>
                 </div>
@@ -1504,14 +1779,27 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <h4 className="text-sm font-medium mb-3">显示设置</h4>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">暗色模式</span>
-                  <Button variant="outline" size="sm" className="h-7" onClick={handleDarkModeChange}>
-                    {settings.display.darkMode === 'auto' ? '自动' : 
-                     settings.display.darkMode === 'light' ? '浅色' : '深色'}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7"
+                    onClick={handleDarkModeChange}
+                  >
+                    {settings.display.darkMode === 'auto'
+                      ? '自动'
+                      : settings.display.darkMode === 'light'
+                        ? '浅色'
+                        : '深色'}
                   </Button>
                 </div>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-sm">语言</span>
-                  <Button variant="outline" size="sm" className="h-7" onClick={handleLanguageChange}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7"
+                    onClick={handleLanguageChange}
+                  >
                     {settings.display.language === 'zh-CN' ? '简体中文' : 'English'}
                   </Button>
                 </div>
@@ -1520,14 +1808,32 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <div className="border-t pt-3">
                 <h4 className="text-sm font-medium mb-3">数据管理</h4>
                 <div className="space-y-2">
-                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleExportData}>
-                    <Download className="h-4 w-4 mr-2" />导出数据
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={handleExportData}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    导出数据
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleImportData}>
-                    <Upload className="h-4 w-4 mr-2" />导入数据
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={handleImportData}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    导入数据
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start text-red-600" onClick={handleClearCache}>
-                    <AlertCircle className="h-4 w-4 mr-2" />清除缓存
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-red-600"
+                    onClick={handleClearCache}
+                  >
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    清除缓存
                   </Button>
                 </div>
               </div>

@@ -51,8 +51,10 @@ except Exception as e:
       if (eqIndex > 0) {
         const key = line.substring(0, eqIndex);
         let value = line.substring(eqIndex + 1);
-        if ((value.startsWith("'") && value.endsWith("'")) ||
-            (value.startsWith('"') && value.endsWith('"'))) {
+        if (
+          (value.startsWith("'") && value.endsWith("'")) ||
+          (value.startsWith('"') && value.endsWith('"'))
+        ) {
           value = value.slice(1, -1);
         }
         if (!process.env[key]) {

@@ -5,10 +5,7 @@ import { UpdateTeamRequest } from '@/types/team';
 /**
  * 获取团队详情
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: teamId } = await params;
     const userId = request.headers.get('x-user-id') || 'demo_user_1';
@@ -44,10 +41,7 @@ export async function GET(
 /**
  * 更新团队信息
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: teamId } = await params;
     const userId = request.headers.get('x-user-id') || 'demo_user_1';

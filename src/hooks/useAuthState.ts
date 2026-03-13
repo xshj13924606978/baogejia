@@ -11,7 +11,8 @@ export function useAuthState() {
     if (typeof window === 'undefined') return;
 
     // 生成唯一的标签页ID
-    const tabId = sessionStorage.getItem('tab_id') || 
+    const tabId =
+      sessionStorage.getItem('tab_id') ||
       'tab-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     sessionStorage.setItem('tab_id', tabId);
 
@@ -24,7 +25,7 @@ export function useAuthState() {
           logout();
         }
       }
-      
+
       if (e.key === 'auth_login' && e.newValue) {
         const { tabId: loginTabId } = JSON.parse(e.newValue);
         // 如果是其他标签页登录，刷新当前页面以同步状态
@@ -36,10 +37,13 @@ export function useAuthState() {
 
     // 广播登录事件
     const broadcastLogin = () => {
-      localStorage.setItem('auth_login', JSON.stringify({
-        tabId,
-        timestamp: Date.now()
-      }));
+      localStorage.setItem(
+        'auth_login',
+        JSON.stringify({
+          tabId,
+          timestamp: Date.now(),
+        })
+      );
       // 清除记录，避免重复触发
       setTimeout(() => {
         localStorage.removeItem('auth_login');
@@ -48,10 +52,13 @@ export function useAuthState() {
 
     // 广播登出事件
     const broadcastLogout = () => {
-      localStorage.setItem('auth_logout', JSON.stringify({
-        tabId,
-        timestamp: Date.now()
-      }));
+      localStorage.setItem(
+        'auth_logout',
+        JSON.stringify({
+          tabId,
+          timestamp: Date.now(),
+        })
+      );
       // 清除记录，避免重复触发
       setTimeout(() => {
         localStorage.removeItem('auth_logout');

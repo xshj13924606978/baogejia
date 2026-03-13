@@ -68,9 +68,7 @@ export default function ProfilePanel() {
             </div>
           </div>
 
-          <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700">
-            保存修改
-          </Button>
+          <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700">保存修改</Button>
         </CardContent>
       </Card>
     </div>

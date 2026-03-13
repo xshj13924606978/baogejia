@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -17,13 +17,14 @@ interface User {
   createdAt?: string;
   lastLogin?: string;
   password?: string; // 添加 password 字段用于内部验证
-  
+
   // 用户等级相关
-  level?: number;        // 用户等级
+  level?: number; // 用户等级
   currentPoints?: number; // 当前积分
-  tokenBalance?: number;  // Token余额
+  tokenBalance?: number; // Token余额
   levelExpiryDate?: string; // 等级有效期
-  levelConfig?: {        // 等级配置
+  levelConfig?: {
+    // 等级配置
     name: string;
     requiredPoints: number;
     permissions: string[];
@@ -33,7 +34,7 @@ interface User {
     can_view_contact: boolean;
     can_view_phone: boolean;
   };
-  
+
   // 第三方绑定
   wechat?: {
     openId: string;
@@ -74,7 +75,7 @@ interface UserContextType {
   loading: boolean;
   isLoading: boolean; // 添加 isLoading 属性
   error: string | null;
-  
+
   // 登录方式
   sendPhoneCode: (phone: string) => Promise<{ success: boolean; error?: string }>;
   phoneLogin: (phone: string, code: string) => Promise<AuthResponse>;
@@ -83,41 +84,57 @@ interface UserContextType {
   emailCodeLogin: (email: string, code: string) => Promise<AuthResponse>;
   passwordLogin: (account: string, password: string) => Promise<AuthResponse>; // 新增：统一密码登录
   sendEmailCode: (email: string) => Promise<{ success: boolean; error?: string; code?: string }>;
-  sendEmailVerification: (email: string) => Promise<{ success: boolean; error?: string; code?: string }>;
+  sendEmailVerification: (
+    email: string
+  ) => Promise<{ success: boolean; error?: string; code?: string }>;
   verifyEmail: (email: string, code: string) => Promise<boolean>;
-  
+
   // 第三方登录
   thirdPartyLogin: (provider: string) => Promise<void>;
-  handleThirdPartyCallback: (provider: string, code: string, state: string) => Promise<AuthResponse>;
-  
+  handleThirdPartyCallback: (
+    provider: string,
+    code: string,
+    state: string
+  ) => Promise<AuthResponse>;
+
   // 账号绑定管理
-  bindEmail: (email: string, password?: string, code?: string) => Promise<{ success: boolean; error?: string }>;
+  bindEmail: (
+    email: string,
+    password?: string,
+    code?: string
+  ) => Promise<{ success: boolean; error?: string }>;
   bindPhone: (phone: string, code: string) => Promise<{ success: boolean; error?: string }>;
   bindWechat: () => Promise<void>;
   unbindWechat: () => Promise<boolean>;
   unbindEmail: () => Promise<boolean>;
   unbindPhone: () => Promise<boolean>;
-  
+
   // 头像上传
   uploadAvatar: (file: File) => Promise<{ success: boolean; url?: string; error?: string }>;
-  
+
   // 设备管理
   logoutAllDevices: () => Promise<boolean>;
-  
+
   // 账号注销
   deleteAccount: (password: string) => Promise<boolean>;
-  
+
   // 其他方法
   logout: () => void;
   updateUser: (userData: Partial<User>) => Promise<boolean>;
   refreshUser: () => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>;
   resetPassword: (email: string) => Promise<boolean>;
-  
+
   // 企业应用
-  submitEnterpriseApplication: (data: any) => Promise<{ success: boolean; applicationId?: string; error?: string }>;
+  submitEnterpriseApplication: (
+    data: any
+  ) => Promise<{ success: boolean; applicationId?: string; error?: string }>;
   getEnterpriseStatus: (applicationId: string) => Promise<any>;
-  enterpriseLogin: (enterpriseId: string, employeeId: string, token: string) => Promise<{ success: boolean; error?: string }>;
+  enterpriseLogin: (
+    enterpriseId: string,
+    employeeId: string,
+    token: string
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -167,11 +184,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const findUserInDB = (identifier: string): any | null => {
     try {
       const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS_DB) || '[]');
-      return users.find((u: any) => 
-        u.email === identifier || 
-        u.phone === identifier ||
-        u.id === identifier
-      ) || null;
+      return (
+        users.find(
+          (u: any) => u.email === identifier || u.phone === identifier || u.id === identifier
+        ) || null
+      );
     } catch (error) {
       console.error('[UserContext] 查找用户失败:', error);
       return null;
@@ -218,7 +235,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem(STORAGE_KEYS.TOKEN);
         router.push('/login');
       }
-      
+
       if (e.key === STORAGE_KEYS.LOGOUT_ALL_EVENT) {
         console.log('[UserContext] 检测到登出所有设备');
         setUser(null);
@@ -226,7 +243,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem(STORAGE_KEYS.TOKEN);
         router.push('/login?reason=logout_all');
       }
-      
+
       if (e.key === STORAGE_KEYS.ACCOUNT_DELETED_EVENT) {
         console.log('[UserContext] 检测到账号已注销');
         setUser(null);
@@ -234,7 +251,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem(STORAGE_KEYS.TOKEN);
         router.push('/login?reason=account_deleted');
       }
-      
+
       if (e.key === STORAGE_KEYS.PASSWORD_CHANGE_EVENT && e.newValue) {
         console.log('[UserContext] 检测到密码修改事件');
         setUser(null);
@@ -274,7 +291,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           emailVerified: true,
           phoneVerified: true,
           createdAt: new Date().toISOString(),
-        }
+        },
       ];
       localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(defaultUsers));
       console.log('[UserContext] 默认用户已创建');
@@ -282,27 +299,29 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // 发送邮箱验证码（用于登录）
-  const sendEmailCode = async (email: string): Promise<{ success: boolean; error?: string; code?: string }> => {
+  const sendEmailCode = async (
+    email: string
+  ): Promise<{ success: boolean; error?: string; code?: string }> => {
     if (!validateEmail(email)) {
       return { success: false, error: '邮箱格式不正确' };
     }
-    
+
     const code = generateCode();
-    
+
     const codes = JSON.parse(localStorage.getItem(STORAGE_KEYS.EMAIL_LOGIN_CODES) || '{}');
     codes[email] = {
       code,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
     localStorage.setItem(STORAGE_KEYS.EMAIL_LOGIN_CODES, JSON.stringify(codes));
-    
+
     console.log('═══════════════════════════════════════════');
     console.log('        邮箱登录验证码');
     console.log('═══════════════════════════════════════════');
     console.log(`邮箱: ${email}`);
     console.log(`验证码: ${code}`);
     console.log('═══════════════════════════════════════════');
-    
+
     return { success: true, code };
   };
 
@@ -310,24 +329,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const emailCodeLogin = async (email: string, code: string): Promise<AuthResponse> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       if (!validateEmail(email)) {
         return { success: false, error: '邮箱格式不正确' };
       }
-      
+
       const codes = JSON.parse(localStorage.getItem(STORAGE_KEYS.EMAIL_LOGIN_CODES) || '{}');
       const stored = codes[email];
-      
+
       if (!stored || stored.code !== code || stored.timestamp < Date.now() - 5 * 60 * 1000) {
         return { success: false, error: '验证码错误或已过期' };
       }
-      
+
       delete codes[email];
       localStorage.setItem(STORAGE_KEYS.EMAIL_LOGIN_CODES, JSON.stringify(codes));
-      
+
       let user = findUserInDB(email);
-      
+
       if (!user) {
         // 新邮箱，创建新用户
         const newUser = {
@@ -341,14 +360,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         saveUserToDB(newUser);
         user = newUser;
       }
-      
+
       localStorage.setItem(STORAGE_KEYS.LAST_EMAIL, email);
-      
+
       const { password: _, ...userWithoutPassword } = user;
       setUser(userWithoutPassword);
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
       localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
-      
+
       return { success: true, user: userWithoutPassword };
     } catch (err) {
       return { success: false, error: '登录失败' };
@@ -358,34 +377,36 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 发送邮箱验证码（用于验证）
-  const sendEmailVerification = async (email: string): Promise<{ success: boolean; error?: string; code?: string }> => {
+  const sendEmailVerification = async (
+    email: string
+  ): Promise<{ success: boolean; error?: string; code?: string }> => {
     if (!validateEmail(email)) {
       return { success: false, error: '邮箱格式不正确' };
     }
-    
+
     const code = generateCode();
-    
+
     try {
       if (typeof window === 'undefined') {
         return { success: false, error: '无法存储验证码' };
       }
-      
+
       const existingCodesStr = localStorage.getItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES);
       let codes: Record<string, { code: string; timestamp: number }> = {};
       if (existingCodesStr) {
         codes = JSON.parse(existingCodesStr);
       }
-      
+
       codes[email] = {
         code,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-      
+
       localStorage.setItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES, JSON.stringify(codes));
-      
+
       const savedCodes = localStorage.getItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES);
       console.log('[UserContext] 验证码存储结果:', savedCodes);
-      
+
       console.log('═══════════════════════════════════════════');
       console.log('            邮箱验证码');
       console.log('═══════════════════════════════════════════');
@@ -393,7 +414,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       console.log(`验证码: ${code}`);
       console.log(`存储键: ${STORAGE_KEYS.EMAIL_VERIFICATION_CODES}`);
       console.log('═══════════════════════════════════════════');
-      
+
       return { success: true, code };
     } catch (error) {
       console.error('[UserContext] 存储验证码失败:', error);
@@ -404,25 +425,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // 验证邮箱
   const verifyEmail = async (email: string, code: string): Promise<boolean> => {
     console.log('[UserContext] 验证邮箱:', { email, code });
-    
+
     try {
       if (typeof window === 'undefined') {
         return false;
       }
-      
+
       const codesStr = localStorage.getItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES);
       console.log('[UserContext] 从 localStorage 读取验证码:', codesStr);
-      
+
       if (!codesStr) {
         console.log('[UserContext] 没有找到验证码存储');
         return false;
       }
-      
+
       const codes = JSON.parse(codesStr);
       const stored = codes[email];
-      
+
       console.log('[UserContext] 存储的验证码:', stored);
-      
+
       if (stored && stored.code === code) {
         if (stored.timestamp < Date.now() - 5 * 60 * 1000) {
           console.log('[UserContext] 验证码已过期');
@@ -430,18 +451,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES, JSON.stringify(codes));
           return false;
         }
-        
+
         console.log('[UserContext] 验证码正确，删除已使用的验证码');
         delete codes[email];
         localStorage.setItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES, JSON.stringify(codes));
-        
+
         const verified = JSON.parse(localStorage.getItem(STORAGE_KEYS.VERIFIED_EMAILS) || '{}');
         verified[email] = true;
         localStorage.setItem(STORAGE_KEYS.VERIFIED_EMAILS, JSON.stringify(verified));
-        
+
         return true;
       }
-      
+
       console.log('[UserContext] 验证码不存在或错误');
       return false;
     } catch (error) {
@@ -455,23 +476,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!validatePhone(phone)) {
       return { success: false, error: '手机号格式不正确' };
     }
-    
+
     const code = generateCode();
-    
+
     const codes = JSON.parse(localStorage.getItem(STORAGE_KEYS.PHONE_CODES) || '{}');
     codes[phone] = {
       code,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
     localStorage.setItem(STORAGE_KEYS.PHONE_CODES, JSON.stringify(codes));
-    
+
     console.log('===========================================');
     console.log('📱 手机验证码');
     console.log('-------------------------------------------');
     console.log(`手机号: ${phone}`);
     console.log(`验证码: ${code}`);
     console.log('===========================================');
-    
+
     return { success: true };
   };
 
@@ -479,15 +500,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const verifyPhone = async (phone: string, code: string): Promise<boolean> => {
     const codes = JSON.parse(localStorage.getItem(STORAGE_KEYS.PHONE_CODES) || '{}');
     const stored = codes[phone];
-    
+
     if (stored && stored.code === code && stored.timestamp > Date.now() - 5 * 60 * 1000) {
       delete codes[phone];
       localStorage.setItem(STORAGE_KEYS.PHONE_CODES, JSON.stringify(codes));
-      
+
       const verified = JSON.parse(localStorage.getItem(STORAGE_KEYS.VERIFIED_PHONES) || '{}');
       verified[phone] = true;
       localStorage.setItem(STORAGE_KEYS.VERIFIED_PHONES, JSON.stringify(verified));
-      
+
       return true;
     }
     return false;
@@ -497,19 +518,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const phoneLogin = async (phone: string, code: string): Promise<AuthResponse> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       if (!validatePhone(phone)) {
         return { success: false, error: '手机号格式不正确' };
       }
-      
+
       const verified = await verifyPhone(phone, code);
       if (!verified) {
         return { success: false, error: '验证码错误' };
       }
-      
+
       let user = findUserInDB(phone);
-      
+
       if (!user) {
         // 新手机号，创建新用户
         const newUser = {
@@ -523,14 +544,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         saveUserToDB(newUser);
         user = newUser;
       }
-      
+
       localStorage.setItem(STORAGE_KEYS.LAST_PHONE, phone);
-      
+
       const { password: _, ...userWithoutPassword } = user;
       setUser(userWithoutPassword);
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
       localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
-      
+
       return { success: true, user: userWithoutPassword };
     } catch (err) {
       return { success: false, error: '登录失败' };
@@ -540,24 +561,28 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 邮箱注册（带密码）
-  const emailRegister = async (email: string, password: string, name: string): Promise<AuthResponse> => {
+  const emailRegister = async (
+    email: string,
+    password: string,
+    name: string
+  ): Promise<AuthResponse> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       if (!validateEmail(email)) {
         return { success: false, error: '邮箱格式不正确' };
       }
-      
+
       if (!password || password.length < 6) {
         return { success: false, error: '密码至少6位' };
       }
-      
+
       const existingUser = findUserInDB(email);
       if (existingUser) {
         return { success: false, error: '该邮箱已被注册，请直接登录' };
       }
-      
+
       const newUser = {
         id: 'user-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
         email,
@@ -566,15 +591,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         role: 'user',
         emailVerified: false,
         createdAt: new Date().toISOString(),
-        avatar: ''
+        avatar: '',
       };
-      
+
       saveUserToDB(newUser);
-      
+
       return {
         success: true,
         user: { ...newUser, password: undefined },
-        requiresTwoFactor: true
+        requiresTwoFactor: true,
       };
     } catch (err) {
       return { success: false, error: '注册失败' };
@@ -592,16 +617,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const passwordLogin = async (account: string, password: string): Promise<AuthResponse> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // 验证账号格式（可以是邮箱或手机号）
       const isEmail = validateEmail(account);
       const isPhone = validatePhone(account);
-      
+
       if (!isEmail && !isPhone) {
         return { success: false, error: '请输入正确的邮箱或手机号' };
       }
-      
+
       // 调用后端登录API
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -610,33 +635,38 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({ username: account, password }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         console.log('[passwordLogin] 登录失败:', data.error);
         return { success: false, error: data.error || '登录失败' };
       }
-      
+
       if (!data.success) {
         console.log('[passwordLogin] 登录返回失败:', data.error);
         return { success: false, error: data.error || '登录失败' };
       }
-      
+
       // 保存最后登录的账号
       if (isEmail) {
         localStorage.setItem(STORAGE_KEYS.LAST_EMAIL, account);
       } else if (isPhone) {
         localStorage.setItem(STORAGE_KEYS.LAST_PHONE, account);
       }
-      
+
       // 保存用户信息
       const userData = data.user;
-      console.log('[passwordLogin] 保存用户信息到 localStorage:', userData.id, userData.email, userData.role);
+      console.log(
+        '[passwordLogin] 保存用户信息到 localStorage:',
+        userData.id,
+        userData.email,
+        userData.role
+      );
       setUser(userData);
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
       localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
-      
+
       return { success: true, user: userData };
     } catch (err) {
       console.error('[passwordLogin] Error:', err);
@@ -647,15 +677,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   // ==================== 第三方登录 ====================
-  
+
   const thirdPartyLogin = async (provider: string): Promise<void> => {
     setLoading(true);
     try {
-      const redirectUri = encodeURIComponent(`${window.location.origin}/api/auth/callback/${provider}`);
+      const redirectUri = encodeURIComponent(
+        `${window.location.origin}/api/auth/callback/${provider}`
+      );
       const state = Math.random().toString(36).substring(7);
-      
+
       localStorage.setItem('oauth_state', state);
-      
+
       let authUrl = '';
       switch (provider) {
         case 'wechat':
@@ -671,7 +703,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_CLIENT_ID&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile&state=${state}`;
           break;
       }
-      
+
       if (authUrl) {
         window.location.href = authUrl;
       }
@@ -682,48 +714,50 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleThirdPartyCallback = async (provider: string, code: string, state: string): Promise<AuthResponse> => {
+  const handleThirdPartyCallback = async (
+    provider: string,
+    code: string,
+    state: string
+  ): Promise<AuthResponse> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const savedState = localStorage.getItem('oauth_state');
       if (savedState !== state) {
         return { success: false, error: '无效的state参数' };
       }
-      
+
       const thirdPartyUser = {
         provider,
         providerId: 'third-' + Date.now(),
         name: provider + '用户',
         avatar: '',
-        email: `user@${provider}.com`
+        email: `user@${provider}.com`,
       };
-      
+
       const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS_DB) || '[]');
-      const existingUser = users.find((u: any) => 
-        u[provider]?.id === thirdPartyUser.providerId
-      );
-      
+      const existingUser = users.find((u: any) => u[provider]?.id === thirdPartyUser.providerId);
+
       if (existingUser) {
         const { password: _, ...userWithoutPassword } = existingUser;
         setUser(userWithoutPassword);
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
         localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
-        
+
         return { success: true, user: userWithoutPassword };
       } else if (user) {
         const updatedUser = { ...user } as any;
         updatedUser[provider] = {
           id: thirdPartyUser.providerId,
           name: thirdPartyUser.name,
-          boundAt: new Date().toISOString()
+          boundAt: new Date().toISOString(),
         };
-        
+
         saveUserToDB(updatedUser);
         setUser(updatedUser);
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
-        
+
         return { success: true, user: updatedUser };
       } else {
         return {
@@ -735,11 +769,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             role: 'user',
             [provider]: {
               id: thirdPartyUser.providerId,
-              boundAt: new Date().toISOString()
-            }
+              boundAt: new Date().toISOString(),
+            },
           },
           requiresBinding: true,
-          bindingType: provider as 'email' | 'phone' | 'wechat' | 'github' | 'google' | 'qq'
+          bindingType: provider as 'email' | 'phone' | 'wechat' | 'github' | 'google' | 'qq',
         };
       }
     } catch (err) {
@@ -752,17 +786,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // ==================== 账号绑定管理 ====================
 
   // 绑定邮箱
-  const bindEmail = async (email: string, password?: string, code?: string): Promise<{ success: boolean; error?: string }> => {
+  const bindEmail = async (
+    email: string,
+    password?: string,
+    code?: string
+  ): Promise<{ success: boolean; error?: string }> => {
     if (!user || !user.id) return { success: false, error: '用户未登录' };
-    
+
     console.log('[UserContext] 绑定邮箱开始:', { email, hasPassword: !!password, hasCode: !!code });
-    
+
     // 检查邮箱是否已被其他账号使用
     const existingUser = findUserInDB(email);
     if (existingUser && existingUser.id !== user.id) {
       return { success: false, error: '该邮箱已被其他账号绑定' };
     }
-    
+
     // 如果提供了验证码，验证验证码
     if (code) {
       console.log('[UserContext] 验证验证码:', code);
@@ -772,66 +810,69 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: '验证码错误或已过期' };
       }
     }
-    
+
     // 获取当前用户数据
     const dbUser = findUserById(user.id);
     if (!dbUser) return { success: false, error: '用户不存在' };
-    
+
     // 更新用户数据
-    const updatedUser = { 
-      ...dbUser, 
-      email, 
-      emailVerified: true 
+    const updatedUser = {
+      ...dbUser,
+      email,
+      emailVerified: true,
     };
-    
+
     // 如果提供了密码，同时设置密码（用于密码登录）
     if (password) {
       // 重要：只设置密码，不清除其他数据
       updatedUser.password = password;
       console.log('[UserContext] 设置密码用于邮箱登录');
     }
-    
+
     // 保存到数据库
     saveUserToDB(updatedUser);
-    
+
     // 更新当前用户状态（移除密码）
     const { password: _, ...userWithoutPassword } = updatedUser;
     setUser(userWithoutPassword);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
-    
+
     console.log('[UserContext] 邮箱绑定成功:', email);
-    
+
     return { success: true };
   };
 
   // 绑定手机
-  const bindPhone = async (phone: string, code: string): Promise<{ success: boolean; error?: string }> => {
+  const bindPhone = async (
+    phone: string,
+    code: string
+  ): Promise<{ success: boolean; error?: string }> => {
     if (!user || !user.id) return { success: false, error: '用户未登录' };
-    
+
     if (!validatePhone(phone)) {
       return { success: false, error: '手机号格式不正确' };
     }
-    
+
     const verified = await verifyPhone(phone, code);
     if (!verified) {
       return { success: false, error: '验证码错误' };
     }
-    
+
     const existingUser = findUserInDB(phone);
     if (existingUser && existingUser.id !== user.id) {
       return { success: false, error: '该手机号已被其他账号绑定' };
     }
-    
+
     const dbUser = findUserById(user.id);
     if (!dbUser) return { success: false, error: '用户不存在' };
-    
+
     const updatedUser = { ...dbUser, phone, phoneVerified: true };
     saveUserToDB(updatedUser);
-    
+
     const { password: _, ...userWithoutPassword } = updatedUser;
     setUser(userWithoutPassword);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
-    
+
     return { success: true };
   };
 
@@ -841,73 +882,75 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const unbindWechat = async (): Promise<boolean> => {
     if (!user || !user.id || !user.wechat) return false;
-    
+
     const dbUser = findUserById(user.id);
     if (!dbUser) return false;
-    
+
     const updatedUser = { ...dbUser };
     delete updatedUser.wechat;
-    
+
     saveUserToDB(updatedUser);
-    
+
     const { password: _, ...userWithoutPassword } = updatedUser;
     setUser(userWithoutPassword);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
-    
+
     return true;
   };
 
   const unbindEmail = async (): Promise<boolean> => {
     if (!user || !user.id || !user.email) return false;
-    
+
     // 检查是否有其他绑定方式
     if (!user.phone && !user.wechat) {
       return false;
     }
-    
+
     const dbUser = findUserById(user.id);
     if (!dbUser) return false;
-    
+
     const updatedUser = { ...dbUser };
     delete updatedUser.email;
     delete updatedUser.password;
     delete updatedUser.emailVerified;
-    
+
     saveUserToDB(updatedUser);
-    
+
     const { password: _, ...userWithoutPassword } = updatedUser;
     setUser(userWithoutPassword);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
-    
+
     return true;
   };
 
   const unbindPhone = async (): Promise<boolean> => {
     if (!user || !user.id || !user.phone) return false;
-    
+
     if (!user.email && !user.wechat) {
       return false;
     }
-    
+
     const dbUser = findUserById(user.id);
     if (!dbUser) return false;
-    
+
     const updatedUser = { ...dbUser };
     delete updatedUser.phone;
     delete updatedUser.phoneVerified;
-    
+
     saveUserToDB(updatedUser);
-    
+
     const { password: _, ...userWithoutPassword } = updatedUser;
     setUser(userWithoutPassword);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
-    
+
     return true;
   };
 
   // ==================== 头像上传 ====================
 
-  const uploadAvatar = async (file: File): Promise<{ success: boolean; url?: string; error?: string }> => {
+  const uploadAvatar = async (
+    file: File
+  ): Promise<{ success: boolean; url?: string; error?: string }> => {
     if (!user || !user.id) {
       return { success: false, error: '用户未登录' };
     }
@@ -922,32 +965,32 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const reader = new FileReader();
-      
+
       return new Promise((resolve) => {
         reader.onload = async (e) => {
           const avatarUrl = e.target?.result as string;
-          
+
           const dbUser = findUserById(user.id);
           if (!dbUser) {
             resolve({ success: false, error: '用户不存在' });
             return;
           }
-          
+
           const updatedUser = { ...dbUser, avatar: avatarUrl };
           saveUserToDB(updatedUser);
-          
+
           const { password: _, ...userWithoutPassword } = updatedUser;
           setUser(userWithoutPassword);
           localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
-          
+
           console.log('[UserContext] 头像上传成功');
           resolve({ success: true, url: avatarUrl });
         };
-        
+
         reader.onerror = () => {
           resolve({ success: false, error: '图片读取失败' });
         };
-        
+
         reader.readAsDataURL(file);
       });
     } catch (error) {
@@ -960,18 +1003,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const logoutAllDevices = async (): Promise<boolean> => {
     if (!user || !user.id) return false;
-    
+
     const newToken = 'token-' + Date.now();
     localStorage.setItem(STORAGE_KEYS.TOKEN, newToken);
-    
-    localStorage.setItem(STORAGE_KEYS.LOGOUT_ALL_EVENT, JSON.stringify({
-      userId: user.id,
-      timestamp: Date.now()
-    }));
+
+    localStorage.setItem(
+      STORAGE_KEYS.LOGOUT_ALL_EVENT,
+      JSON.stringify({
+        userId: user.id,
+        timestamp: Date.now(),
+      })
+    );
     setTimeout(() => {
       localStorage.removeItem(STORAGE_KEYS.LOGOUT_ALL_EVENT);
     }, 100);
-    
+
     return true;
   };
 
@@ -979,28 +1025,31 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const deleteAccount = async (password: string): Promise<boolean> => {
     if (!user || !user.id) return false;
-    
+
     const dbUser = findUserById(user.id);
     if (dbUser?.password && dbUser.password !== password) {
       return false;
     }
-    
+
     const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS_DB) || '[]');
     const filtered = users.filter((u: any) => u.id !== user.id);
     localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(filtered));
-    
-    localStorage.setItem(STORAGE_KEYS.ACCOUNT_DELETED_EVENT, JSON.stringify({
-      userId: user.id,
-      timestamp: Date.now()
-    }));
+
+    localStorage.setItem(
+      STORAGE_KEYS.ACCOUNT_DELETED_EVENT,
+      JSON.stringify({
+        userId: user.id,
+        timestamp: Date.now(),
+      })
+    );
     setTimeout(() => {
       localStorage.removeItem(STORAGE_KEYS.ACCOUNT_DELETED_EVENT);
     }, 100);
-    
+
     localStorage.removeItem(STORAGE_KEYS.USER);
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     setUser(null);
-    
+
     return true;
   };
 
@@ -1010,72 +1059,75 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(STORAGE_KEYS.USER);
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     setUser(null);
-    
+
     localStorage.setItem(STORAGE_KEYS.LOGOUT_EVENT, Date.now().toString());
     setTimeout(() => {
       localStorage.removeItem(STORAGE_KEYS.LOGOUT_EVENT);
     }, 100);
-    
+
     router.push('/login');
   };
 
   const changePassword = async (oldPassword: string, newPassword: string): Promise<boolean> => {
     if (!user || !user.id) return false;
-    
+
     const dbUser = findUserById(user.id);
     if (!dbUser) return false;
-    
+
     if (dbUser.password && dbUser.password !== oldPassword) {
       return false;
     }
-    
+
     saveUserToDB({ ...dbUser, password: newPassword });
-    
-    localStorage.setItem(STORAGE_KEYS.PASSWORD_CHANGE_EVENT, JSON.stringify({
-      userId: user.id,
-      timestamp: Date.now()
-    }));
+
+    localStorage.setItem(
+      STORAGE_KEYS.PASSWORD_CHANGE_EVENT,
+      JSON.stringify({
+        userId: user.id,
+        timestamp: Date.now(),
+      })
+    );
     setTimeout(() => {
       localStorage.removeItem(STORAGE_KEYS.PASSWORD_CHANGE_EVENT);
     }, 100);
-    
+
     localStorage.removeItem(STORAGE_KEYS.USER);
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     setUser(null);
-    
+
     return true;
   };
 
   // 更新用户资料
   const updateUser = async (userData: Partial<User>): Promise<boolean> => {
     if (!user || !user.id) return false;
-    
+
     const dbUser = findUserById(user.id);
     if (!dbUser) return false;
-    
+
     const updatedUser = { ...dbUser, ...userData };
     const saved = saveUserToDB(updatedUser);
-    
+
     if (saved) {
       const { password: _, ...userWithoutPassword } = updatedUser;
       setUser(userWithoutPassword);
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
       return true;
     }
-    
+
     return false;
   };
 
   const refreshUser = useCallback(async () => {
     if (!user || !user.id) return;
-    
+
     setLoading(true);
     try {
       // 从localStorage获取用户信息
       const dbUser = findUserById(user.id);
       if (dbUser) {
         const { password: _, ...userWithoutPassword } = dbUser;
-        
+
         // 尝试从API获取用户余额和等级信息
         try {
           const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
@@ -1083,10 +1135,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             // 获取用户等级信息
             const levelResponse = await fetch('/api/user/level', {
               headers: {
-                'Authorization': `Bearer ${token}`
-              }
+                Authorization: `Bearer ${token}`,
+              },
             });
-            
+
             if (levelResponse.ok) {
               const levelData = await levelResponse.json();
               if (levelData.success && levelData.data) {
@@ -1095,14 +1147,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 userWithoutPassword.levelConfig = levelData.data.levelConfig;
               }
             }
-            
+
             // 获取用户余额信息
             const balanceResponse = await fetch('/api/user/billing/balance', {
               headers: {
-                'Authorization': `Bearer ${token}`
-              }
+                Authorization: `Bearer ${token}`,
+              },
             });
-            
+
             if (balanceResponse.ok) {
               const balanceData = await balanceResponse.json();
               if (balanceData.success && balanceData.data && balanceData.data.balance) {
@@ -1115,7 +1167,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           console.error('[UserContext] 获取API数据失败:', apiError);
           // API调用失败不影响基本功能，继续使用localStorage数据
         }
-        
+
         setUser(userWithoutPassword);
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
       }
@@ -1133,13 +1185,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // ==================== 企业应用 ====================
 
   // 提交企业认证申请
-  const submitEnterpriseApplication = async (data: any): Promise<{ success: boolean; applicationId?: string; error?: string }> => {
+  const submitEnterpriseApplication = async (
+    data: any
+  ): Promise<{ success: boolean; applicationId?: string; error?: string }> => {
     try {
       setLoading(true);
-      
+
       // 模拟提交到后端API
       const applicationId = `ENT-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-      
+
       // 保存申请记录到localStorage（实际应该调用API）
       const applications = JSON.parse(localStorage.getItem('enterprise_applications') || '[]');
       const newApplication = {
@@ -1147,22 +1201,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         ...data,
         status: 'pending',
         submittedAt: new Date().toISOString(),
-        userId: user?.id
+        userId: user?.id,
       };
       applications.push(newApplication);
       localStorage.setItem('enterprise_applications', JSON.stringify(applications));
-      
+
       console.log('[UserContext] 企业申请已提交:', applicationId);
-      
+
       return {
         success: true,
-        applicationId
+        applicationId,
       };
     } catch (error) {
       console.error('[UserContext] 提交企业申请失败:', error);
       return {
         success: false,
-        error: '提交失败，请稍后重试'
+        error: '提交失败，请稍后重试',
       };
     } finally {
       setLoading(false);
@@ -1175,63 +1229,67 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       // 从localStorage获取申请记录（实际应该调用API）
       const applications = JSON.parse(localStorage.getItem('enterprise_applications') || '[]');
       const application = applications.find((app: any) => app.id === applicationId);
-      
+
       if (!application) {
         return {
           status: 'not_found',
-          message: '未找到该申请'
+          message: '未找到该申请',
         };
       }
-      
+
       return application;
     } catch (error) {
       console.error('[UserContext] 获取企业状态失败:', error);
       return {
         status: 'error',
-        message: '获取状态失败'
+        message: '获取状态失败',
       };
     }
   };
 
   // 企业登录
-  const enterpriseLogin = async (enterpriseId: string, employeeId: string, token: string): Promise<{ success: boolean; error?: string }> => {
+  const enterpriseLogin = async (
+    enterpriseId: string,
+    employeeId: string,
+    token: string
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);
-      
+
       // 模拟企业登录验证（实际应该调用API）
       // 这里只是模拟，实际需要验证企业ID和员工ID的合法性
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // 检查企业是否存在（模拟）
       const enterpriseData = JSON.parse(localStorage.getItem('enterprise_data') || '{}');
       if (!enterpriseData[enterpriseId]) {
         return {
           success: false,
-          error: '企业不存在或已禁用'
+          error: '企业不存在或已禁用',
         };
       }
-      
+
       console.log('[UserContext] 企业登录成功:', { enterpriseId, employeeId });
-      
+
       // 更新用户角色为企业用户
       if (user) {
         const updatedUser = {
           ...user,
           role: 'enterprise',
-          enterpriseId
+          enterpriseId,
         };
         setUser(updatedUser);
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
       }
-      
+
       return {
-        success: true
+        success: true,
       };
     } catch (error) {
       console.error('[UserContext] 企业登录失败:', error);
       return {
         success: false,
-        error: '登录失败，请稍后重试'
+        error: '登录失败，请稍后重试',
       };
     } finally {
       setLoading(false);
@@ -1246,8 +1304,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const localUser = localStorage.getItem(STORAGE_KEYS.USER);
         if (localUser) {
           const parsedUser = JSON.parse(localUser);
-          console.log('[UserContext] 从localStorage加载用户:', parsedUser.id, parsedUser.email, parsedUser.role);
-          
+          console.log(
+            '[UserContext] 从localStorage加载用户:',
+            parsedUser.id,
+            parsedUser.email,
+            parsedUser.role
+          );
+
           // 直接使用 localStorage 中保存的用户信息，不再依赖本地数据库
           // 这样可以避免本地数据库与实际数据库不一致的问题
           setUser(parsedUser);
@@ -1255,7 +1318,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           console.log('[UserContext] localStorage中无用户信息');
         }
       } catch (error) {
-        console.error("[UserContext] 加载用户失败:", error);
+        console.error('[UserContext] 加载用户失败:', error);
       } finally {
         setLoading(false);
       }
@@ -1268,7 +1331,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     loading,
     isLoading: loading, // 添加 isLoading 别名
     error,
-    
+
     // 登录方式
     sendPhoneCode,
     phoneLogin,
@@ -1279,11 +1342,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     sendEmailCode,
     sendEmailVerification,
     verifyEmail,
-    
+
     // 第三方登录
     thirdPartyLogin,
     handleThirdPartyCallback,
-    
+
     // 账号绑定管理
     bindEmail,
     bindPhone,
@@ -1291,40 +1354,36 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     unbindWechat,
     unbindEmail,
     unbindPhone,
-    
+
     // 头像上传
     uploadAvatar,
-    
+
     // 设备管理
     logoutAllDevices,
-    
+
     // 账号注销
     deleteAccount,
-    
+
     // 其他方法
     logout,
     updateUser,
     refreshUser,
     changePassword,
     resetPassword,
-    
+
     // 企业应用
     submitEnterpriseApplication,
     getEnterpriseStatus,
-    enterpriseLogin
+    enterpriseLogin,
   };
 
-  return (
-    <UserContext.Provider value={value}>
-      {children}
-    </UserContext.Provider>
-  );
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
 export function useUser() {
   const context = useContext(UserContext);
   if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider");
+    throw new Error('useUser must be used within a UserProvider');
   }
   return context;
 }

@@ -1,12 +1,12 @@
 /**
  * 智能对话处理器
- * 
+ *
  * 核心理念：
  * 1. 完全移除固定意图检测（IntentDetector）
  * 2. 使用 LLM 进行真正的语义理解
  * 3. 动态理解用户意图并生成响应
  * 4. 灵活处理各种场景（问候、方案、报价、技术咨询等）
- * 
+ *
  * 对比传统方案：
  * ❌ 传统：固定意图 → 关键词匹配 → 预设回复
  * ✅ 智能方案：用户输入 → LLM语义理解 → 动态响应
@@ -56,15 +56,26 @@ export class SmartChatProcessor {
    * 检测价格查询意图并提取产品信息
    * 使用智能提取器，支持各种用户表达方式
    */
-  private async detectPriceQuery(userInput: string): Promise<{ 
-    isPriceQuery: boolean; 
-    productName?: string; 
+  private async detectPriceQuery(userInput: string): Promise<{
+    isPriceQuery: boolean;
+    productName?: string;
     model?: string;
     extraction?: ExtractedProduct;
   }> {
     // 价格查询关键词
-    const priceKeywords = ['多少钱', '价格', '单价', '售价', '报价', '成本', '费用', '询问', '查询', '想知道'];
-    const hasPriceKeyword = priceKeywords.some(keyword => userInput.includes(keyword));
+    const priceKeywords = [
+      '多少钱',
+      '价格',
+      '单价',
+      '售价',
+      '报价',
+      '成本',
+      '费用',
+      '询问',
+      '查询',
+      '想知道',
+    ];
+    const hasPriceKeyword = priceKeywords.some((keyword) => userInput.includes(keyword));
 
     if (!hasPriceKeyword) {
       return { isPriceQuery: false };
@@ -86,7 +97,7 @@ export class SmartChatProcessor {
       isPriceQuery: true,
       productName: extraction.productName,
       model: extraction.model,
-      extraction
+      extraction,
     };
   }
 
@@ -151,7 +162,7 @@ export class SmartChatProcessor {
 
       return {
         priceData: priceResult,
-        contextInfo
+        contextInfo,
       };
     } catch (error) {
       console.error('[SmartChatProcessor] 价格查询失败:', error);
@@ -164,11 +175,11 @@ export class SmartChatProcessor {
    */
   private getPriceSourceText(source: string): string {
     const sourceMap: Record<string, string> = {
-      'database': '产品知识库（已验证）',
-      'knowledge': '历史报价/案例',
-      'market': '市场参考价',
-      'estimate': '类别估算',
-      'default': '默认兜底',
+      database: '产品知识库（已验证）',
+      knowledge: '历史报价/案例',
+      market: '市场参考价',
+      estimate: '类别估算',
+      default: '默认兜底',
     };
     return sourceMap[source] || source;
   }
@@ -205,11 +216,9 @@ export class SmartChatProcessor {
         console.log('[SmartChatProcessor] 开始处理文件上传持久化...');
         try {
           // 创建 File 对象
-          const file = new File(
-            [processedInput.rawContent],
-            processedInput.metadata.fileName,
-            { type: processedInput.metadata.mimeType || 'application/octet-stream' }
-          );
+          const file = new File([processedInput.rawContent], processedInput.metadata.fileName, {
+            type: processedInput.metadata.mimeType || 'application/octet-stream',
+          });
 
           // 处理文件上传
           const uploadResult = await fileUploadProcessor.processUpload(
@@ -301,13 +310,13 @@ export class SmartChatProcessor {
       const messages = [
         { role: 'system', content: systemPrompt },
         ...historyText,
-        { role: 'user', content: userInput }
+        { role: 'user', content: userInput },
       ] as Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
-      
+
       console.log('[SmartChatProcessor] 发送给 LLM 的消息数:', messages.length);
       console.log('[SmartChatProcessor] System Prompt 长度:', systemPrompt.length);
       console.log('[SmartChatProcessor] User Input:', userInput);
-      
+
       const aiResponse = await callDeepSeekChat({
         messages: messages,
         temperature: 0.7,
@@ -328,8 +337,8 @@ export class SmartChatProcessor {
         metadata: {
           inputType: processedInput?.type || 'text',
           confidence: parsedResponse.confidence || 0.9,
-          extractedEntities: parsedResponse.entities
-        }
+          extractedEntities: parsedResponse.entities,
+        },
       };
     } catch (error) {
       console.error('[SmartChatProcessor] LLM 调用失败:', error);
@@ -717,12 +726,14 @@ export class SmartChatProcessor {
   /**
    * 格式化对话历史
    */
-  private formatHistoryForLLM(history: ConversationContext['history']): Array<{ role: 'user' | 'assistant'; content: string }> {
+  private formatHistoryForLLM(
+    history: ConversationContext['history']
+  ): Array<{ role: 'user' | 'assistant'; content: string }> {
     // 只保留最近的10轮对话，避免上下文过长
     const recentHistory = history.slice(-10);
-    return recentHistory.map(msg => ({
+    return recentHistory.map((msg) => ({
       role: msg.role,
-      content: msg.content
+      content: msg.content,
     }));
   }
 
@@ -740,14 +751,14 @@ export class SmartChatProcessor {
   } {
     // 简单解析：将整个响应作为内容
     // 实际可以根据需要解析结构化数据
-    
+
     const content = llmResponse.trim();
-    
+
     // 提取建议的问题（可选）
     const followUpQuestions: string[] = [];
     const followUpMatch = content.match(/(?:为了|请告诉我|请问)[^？]*？/g);
     if (followUpMatch) {
-      followUpMatch.forEach(match => {
+      followUpMatch.forEach((match) => {
         const question = match.trim();
         if (question.length > 5 && question.length < 100) {
           followUpQuestions.push(question);
@@ -758,7 +769,7 @@ export class SmartChatProcessor {
     // 提取建议的操作（可选）
     const suggestions: string[] = [];
     const suggestionKeywords = ['生成', '提供', '查询', '对比', '分析', '设计'];
-    suggestionKeywords.forEach(keyword => {
+    suggestionKeywords.forEach((keyword) => {
       const regex = new RegExp(`(您)?我?可以(为您)?${keyword}[^。，]*`, 'g');
       const matches = content.match(regex);
       if (matches) {
@@ -773,7 +784,7 @@ export class SmartChatProcessor {
       requiresFollowUp: followUpQuestions.length > 0,
       followUpQuestions: followUpQuestions.slice(0, 3),
       confidence: 0.9, // LLM 直接生成的响应置信度较高
-      entities: {}
+      entities: {},
     };
   }
 
@@ -802,14 +813,14 @@ export class SmartChatProcessor {
   private getOrCreateContext(conversationId?: string): ConversationContext {
     if (!conversationId) {
       return {
-        history: []
+        history: [],
       };
     }
 
     if (!this.conversations.has(conversationId)) {
       this.conversations.set(conversationId, {
         conversationId,
-        history: []
+        history: [],
       });
     }
 
@@ -819,19 +830,15 @@ export class SmartChatProcessor {
   /**
    * 更新对话上下文
    */
-  private updateContext(
-    context: ConversationContext,
-    userInput: string,
-    response: string
-  ): void {
+  private updateContext(context: ConversationContext, userInput: string, response: string): void {
     context.history.push({
       role: 'user',
-      content: userInput
+      content: userInput,
     });
 
     context.history.push({
       role: 'assistant',
-      content: response
+      content: response,
     });
 
     // 更新最后讨论的主题
@@ -872,8 +879,8 @@ export class SmartChatProcessor {
       content: `抱歉，我暂时无法处理您的请求。请稍后重试或联系技术支持。\n\n您输入的内容：${userInput}`,
       metadata: {
         inputType: 'text',
-        confidence: 0.3
-      }
+        confidence: 0.3,
+      },
     };
   }
 

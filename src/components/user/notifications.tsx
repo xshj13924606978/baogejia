@@ -47,9 +47,7 @@ export default function Notifications({ user, onUnreadChange }: NotificationsPro
         body: JSON.stringify({ notification_id: id }),
       });
       if (res.ok) {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-        );
+        setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
         setUnreadCount((prev) => Math.max(0, prev - 1));
         onUnreadChange?.(Math.max(0, unreadCount - 1));
       }
@@ -135,17 +133,10 @@ export default function Notifications({ user, onUnreadChange }: NotificationsPro
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5 text-blue-600" />
           <span className="font-medium">消息通知</span>
-          {unreadCount > 0 && (
-            <Badge className="bg-red-500">{unreadCount} 条未读</Badge>
-          )}
+          {unreadCount > 0 && <Badge className="bg-red-500">{unreadCount} 条未读</Badge>}
         </div>
         {unreadCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={markAllAsRead}
-            className="text-xs"
-          >
+          <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs">
             全部已读
           </Button>
         )}
@@ -168,9 +159,7 @@ export default function Notifications({ user, onUnreadChange }: NotificationsPro
               <Card
                 key={notify.id}
                 className={`cursor-pointer hover:shadow-md transition-all ${
-                  !notify.is_read
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-gray-50'
+                  !notify.is_read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'
                 }`}
                 onClick={() => !notify.is_read && markAsRead(notify.id)}
               >
@@ -181,9 +170,7 @@ export default function Notifications({ user, onUnreadChange }: NotificationsPro
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-sm">
-                              {notify.title}
-                            </span>
+                            <span className="font-medium text-sm">{notify.title}</span>
                             {getTypeBadge(notify.type)}
                           </div>
                           <div className="text-xs text-gray-600 mt-1 line-clamp-2">

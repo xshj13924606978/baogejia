@@ -1,6 +1,6 @@
 /**
  * 数据分析库
- * 
+ *
  * 提供用户行为追踪、转化漏斗分析、留存分析和收入统计功能
  */
 
@@ -45,11 +45,11 @@ export interface EventData {
  * 转化漏斗步骤
  */
 export enum FunnelStep {
-  VISIT = 'visit',           // 访问
-  SIGN_UP = 'sign_up',       // 注册
-  UPLOAD = 'upload',         // 上传
-  QUOTE = 'quote',           // 报价
-  PAYMENT = 'payment',       // 付费
+  VISIT = 'visit', // 访问
+  SIGN_UP = 'sign_up', // 注册
+  UPLOAD = 'upload', // 上传
+  QUOTE = 'quote', // 报价
+  PAYMENT = 'payment', // 付费
 }
 
 /**
@@ -201,7 +201,7 @@ export class Analytics {
         FunnelStep.QUOTE,
         FunnelStep.PAYMENT,
       ];
-      
+
       const currentIndex = stepOrder.indexOf(userData.funnelStep);
       const newIndex = stepOrder.indexOf(step);
 
@@ -220,7 +220,7 @@ export class Analytics {
     const today = new Date(event.timestamp);
     today.setHours(0, 0, 0, 0);
 
-    let revenueData = this.revenue.find(r => {
+    let revenueData = this.revenue.find((r) => {
       const d = new Date(r.date);
       d.setHours(0, 0, 0, 0);
       return d.getTime() === today.getTime();
@@ -266,7 +266,7 @@ export class Analytics {
     ];
 
     return steps.map((step, index) => {
-      const count = filteredUsers.filter(u => {
+      const count = filteredUsers.filter((u) => {
         const stepOrder = [
           FunnelStep.VISIT,
           FunnelStep.SIGN_UP,
@@ -278,7 +278,8 @@ export class Analytics {
         return userIndex >= index;
       }).length;
 
-      const previousCount = index === 0 ? count : this.getFunnelStepCount(steps[index - 1], filteredUsers);
+      const previousCount =
+        index === 0 ? count : this.getFunnelStepCount(steps[index - 1], filteredUsers);
       const conversionRate = index === 0 ? 100 : (count / previousCount) * 100;
       const dropOffRate = index === 0 ? 0 : 100 - conversionRate;
 
@@ -303,7 +304,7 @@ export class Analytics {
       FunnelStep.PAYMENT,
     ];
     const index = stepOrder.indexOf(step);
-    return users.filter(u => {
+    return users.filter((u) => {
       const userIndex = stepOrder.indexOf(u.funnelStep);
       return userIndex >= index;
     }).length;
@@ -318,7 +319,9 @@ export class Analytics {
     // 按日期分组新增用户
     const newUserDates = new Map<number, Date>();
     this.users.forEach((user) => {
-      const firstEvent = this.events.find(e => e.userId === user.userId && e.eventType === EventType.SIGN_UP);
+      const firstEvent = this.events.find(
+        (e) => e.userId === user.userId && e.eventType === EventType.SIGN_UP
+      );
       if (firstEvent) {
         const date = new Date(firstEvent.timestamp);
         date.setHours(0, 0, 0, 0);
@@ -348,7 +351,7 @@ export class Analytics {
       data.day0++;
 
       // 计算各日留存
-      const userEvents = this.events.filter(e => e.userId === userId);
+      const userEvents = this.events.filter((e) => e.userId === userId);
       userEvents.forEach((event) => {
         const eventDate = new Date(event.timestamp);
         const diffDays = Math.floor((eventDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
@@ -374,7 +377,7 @@ export class Analytics {
    */
   getRevenueData(startDate?: Date, endDate?: Date): RevenueData[] {
     if (startDate && endDate) {
-      return this.revenue.filter(r => r.date >= startDate && r.date <= endDate);
+      return this.revenue.filter((r) => r.date >= startDate && r.date <= endDate);
     }
     return this.revenue;
   }
@@ -395,16 +398,19 @@ export class Analytics {
    */
   getStats(startDate?: Date, endDate?: Date): AnalyticsStats {
     const filteredUsers = this.getFilteredUsers(startDate, endDate);
-    const totalRevenue = this.getRevenueData(startDate, endDate).reduce((sum, r) => sum + r.revenue, 0);
+    const totalRevenue = this.getRevenueData(startDate, endDate).reduce(
+      (sum, r) => sum + r.revenue,
+      0
+    );
 
     return {
       totalUsers: filteredUsers.length,
-      activeUsers: filteredUsers.filter(u => {
+      activeUsers: filteredUsers.filter((u) => {
         const now = new Date();
         const daysSinceActive = (now.getTime() - u.lastActive.getTime()) / (1000 * 60 * 60 * 24);
         return daysSinceActive <= 7;
       }).length,
-      newUsers: filteredUsers.filter(u => u.funnelStep === FunnelStep.SIGN_UP).length,
+      newUsers: filteredUsers.filter((u) => u.funnelStep === FunnelStep.SIGN_UP).length,
       totalRevenue,
       conversionRate: this.calculateOverallConversionRate(),
       averageSessionDuration: this.calculateAverageSessionDuration(),
@@ -420,8 +426,8 @@ export class Analytics {
       return Array.from(this.users.values());
     }
 
-    return Array.from(this.users.values()).filter(user => {
-      const userEvents = this.events.filter(e => e.userId === user.userId);
+    return Array.from(this.users.values()).filter((user) => {
+      const userEvents = this.events.filter((e) => e.userId === user.userId);
       if (userEvents.length === 0) return false;
 
       const firstEvent = userEvents[0];
@@ -439,8 +445,8 @@ export class Analytics {
    */
   private calculateOverallConversionRate(): number {
     const funnel = this.calculateFunnel();
-    const visitCount = funnel.find(f => f.step === FunnelStep.VISIT)?.count || 0;
-    const paymentCount = funnel.find(f => f.step === FunnelStep.PAYMENT)?.count || 0;
+    const visitCount = funnel.find((f) => f.step === FunnelStep.VISIT)?.count || 0;
+    const paymentCount = funnel.find((f) => f.step === FunnelStep.PAYMENT)?.count || 0;
 
     return visitCount > 0 ? (paymentCount / visitCount) * 100 : 0;
   }
@@ -468,15 +474,15 @@ export class Analytics {
     let events = this.events;
 
     if (startDate) {
-      events = events.filter(e => e.timestamp >= startDate);
+      events = events.filter((e) => e.timestamp >= startDate);
     }
 
     if (endDate) {
-      events = events.filter(e => e.timestamp <= endDate);
+      events = events.filter((e) => e.timestamp <= endDate);
     }
 
     if (userId) {
-      events = events.filter(e => e.userId === userId);
+      events = events.filter((e) => e.userId === userId);
     }
 
     return events.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
@@ -487,9 +493,11 @@ export class Analytics {
    */
   getPageViewStats(startDate?: Date, endDate?: Date): Map<string, number> {
     const pageViews = new Map<string, number>();
-    const events = this.getEvents(startDate, endDate).filter(e => e.eventType === EventType.PAGE_VIEW);
+    const events = this.getEvents(startDate, endDate).filter(
+      (e) => e.eventType === EventType.PAGE_VIEW
+    );
 
-    events.forEach(event => {
+    events.forEach((event) => {
       const page = event.page || 'unknown';
       const count = pageViews.get(page) || 0;
       pageViews.set(page, count + 1);

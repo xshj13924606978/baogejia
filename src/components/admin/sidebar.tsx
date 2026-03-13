@@ -10,44 +10,46 @@ export default function AdminSidebar() {
     {
       name: '仪表盘',
       icon: '📊',
-      path: '/admin'
+      path: '/admin',
     },
     {
       name: '用户管理',
       icon: '👥',
-      path: '/admin/users'
+      path: '/admin/users',
     },
     {
       name: '产品价格库',
       icon: '📦',
-      path: '/admin/products'
+      path: '/admin/products',
     },
     {
       name: '内容审核',
       icon: '📋',
-      path: '/admin/audit'
+      path: '/admin/audit',
     },
     {
       name: '数据统计',
       icon: '📈',
-      path: '/admin/stats'
+      path: '/admin/stats',
     },
     {
       name: '系统配置',
       icon: '⚙️',
-      path: '/admin/settings'
-    }
+      path: '/admin/settings',
+    },
   ];
 
   return (
     <div className="w-64 bg-white border-r h-screen flex flex-col">
       <div className="p-4 border-b">
         <h2 className="text-lg font-bold">⚙️ 管理后台</h2>
-        <div className="text-xs text-gray-500 mt-1">v{process.env.NEXT_PUBLIC_VERSION || '1.0.0'}</div>
+        <div className="text-xs text-gray-500 mt-1">
+          v{process.env.NEXT_PUBLIC_VERSION || '1.0.0'}
+        </div>
       </div>
-      
+
       <div className="p-3 flex-1 overflow-auto">
-        {menus.map(menu => (
+        {menus.map((menu) => (
           <Link
             key={menu.path}
             href={menu.path}

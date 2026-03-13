@@ -32,7 +32,13 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Search,
@@ -295,11 +301,12 @@ export default function UsersPage() {
   ];
 
   // 筛选用户
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.department?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.department?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = selectedRole === 'all' || user.role === selectedRole;
     const matchesType = selectedType === 'all' || user.userType === selectedType;
     const matchesStatus = selectedStatus === 'all' || user.status === selectedStatus;
@@ -308,19 +315,19 @@ export default function UsersPage() {
 
   // 获取角色标签颜色
   const getRoleColor = (role: string) => {
-    const option = roleOptions.find(opt => opt.value === role);
+    const option = roleOptions.find((opt) => opt.value === role);
     return option?.color || 'bg-gray-500';
   };
 
   // 获取状态标签样式
   const getStatusStyle = (status: string) => {
-    const option = statusOptions.find(opt => opt.value === status);
+    const option = statusOptions.find((opt) => opt.value === status);
     return option?.color || 'bg-gray-100 text-gray-800';
   };
 
   // 获取状态标签文字
   const getStatusLabel = (status: string) => {
-    const option = statusOptions.find(opt => opt.value === status);
+    const option = statusOptions.find((opt) => opt.value === status);
     return option?.label || status;
   };
 
@@ -340,8 +347,8 @@ export default function UsersPage() {
   // 处理添加用户
   const handleAddUser = () => {
     toast({
-      title: "用户已添加",
-      description: "新用户已成功添加到系统",
+      title: '用户已添加',
+      description: '新用户已成功添加到系统',
       duration: 2000,
     });
     setShowAddDialog(false);
@@ -362,7 +369,7 @@ export default function UsersPage() {
   // 处理邀请记录
   const handleViewInvites = (user: User) => {
     toast({
-      title: "邀请记录",
+      title: '邀请记录',
       description: `该用户邀请了 ${Math.floor(Math.random() * 10)} 人`,
       duration: 2000,
     });
@@ -371,10 +378,10 @@ export default function UsersPage() {
   // 统计信息
   const stats = {
     total: users.length,
-    active: users.filter(u => u.status === 'active').length,
-    pending: users.filter(u => u.status === 'pending').length,
-    enterprise: users.filter(u => u.userType === 'enterprise').length,
-    vip: users.filter(u => u.role === 'vip').length,
+    active: users.filter((u) => u.status === 'active').length,
+    pending: users.filter((u) => u.status === 'pending').length,
+    enterprise: users.filter((u) => u.userType === 'enterprise').length,
+    vip: users.filter((u) => u.role === 'vip').length,
     totalPoints: users.reduce((sum, u) => sum + u.points, 0),
   };
 
@@ -500,7 +507,7 @@ export default function UsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部角色</SelectItem>
-                  {roleOptions.map(option => (
+                  {roleOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -513,7 +520,7 @@ export default function UsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部类型</SelectItem>
-                  {typeOptions.map(option => (
+                  {typeOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.icon} {option.label}
                     </SelectItem>
@@ -526,7 +533,7 @@ export default function UsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部状态</SelectItem>
-                  {statusOptions.map(option => (
+                  {statusOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -576,8 +583,11 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {user.userType === 'enterprise' ? '🏢 企业' : 
-                       user.userType === 'manufacturer' ? '🏭 厂家' : '👤 个人'}
+                      {user.userType === 'enterprise'
+                        ? '🏢 企业'
+                        : user.userType === 'manufacturer'
+                          ? '🏭 厂家'
+                          : '👤 个人'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -593,7 +603,9 @@ export default function UsersPage() {
                   <TableCell>
                     <div>
                       {user.company && <p className="text-sm">{user.company}</p>}
-                      {user.department && <p className="text-xs text-gray-500">{user.department}</p>}
+                      {user.department && (
+                        <p className="text-xs text-gray-500">{user.department}</p>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -696,9 +708,7 @@ export default function UsersPage() {
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>添加新用户</DialogTitle>
-            <DialogDescription>
-              填写用户信息，系统将根据用户类型自动分配权限
-            </DialogDescription>
+            <DialogDescription>填写用户信息，系统将根据用户类型自动分配权限</DialogDescription>
           </DialogHeader>
           <Tabs defaultValue="personal" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
@@ -833,9 +843,7 @@ export default function UsersPage() {
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
               取消
             </Button>
-            <Button onClick={handleAddUser}>
-              添加用户
-            </Button>
+            <Button onClick={handleAddUser}>添加用户</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

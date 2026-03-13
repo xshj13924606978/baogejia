@@ -192,15 +192,9 @@ export default function InviteFriends({ user }: any) {
             </button>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <button className="py-1.5 bg-green-500 text-white rounded text-xs">
-              微信
-            </button>
-            <button className="py-1.5 bg-blue-500 text-white rounded text-xs">
-              QQ
-            </button>
-            <button className="py-1.5 bg-gray-500 text-white rounded text-xs">
-              更多
-            </button>
+            <button className="py-1.5 bg-green-500 text-white rounded text-xs">微信</button>
+            <button className="py-1.5 bg-blue-500 text-white rounded text-xs">QQ</button>
+            <button className="py-1.5 bg-gray-500 text-white rounded text-xs">更多</button>
           </div>
         </div>
       )}
@@ -225,9 +219,7 @@ export default function InviteFriends({ user }: any) {
               复制链接
             </button>
           </div>
-          <div className="text-xs text-gray-500">
-            扫码或保存图片分享给好友
-          </div>
+          <div className="text-xs text-gray-500">扫码或保存图片分享给好友</div>
         </div>
       )}
 
@@ -240,8 +232,8 @@ export default function InviteFriends({ user }: any) {
               posterStyle === 'simple'
                 ? 'bg-gradient-to-br from-blue-600 to-purple-600'
                 : posterStyle === 'festival'
-                ? 'bg-gradient-to-br from-red-500 to-pink-500'
-                : 'bg-gradient-to-br from-gray-700 to-gray-900'
+                  ? 'bg-gradient-to-br from-red-500 to-pink-500'
+                  : 'bg-gradient-to-br from-gray-700 to-gray-900'
             }`}
           >
             <div className="absolute top-2 right-2 w-16 h-16 bg-white p-1 rounded">
@@ -252,8 +244,8 @@ export default function InviteFriends({ user }: any) {
               {posterStyle === 'simple'
                 ? '让报价更简单'
                 : posterStyle === 'festival'
-                ? '邀请好友 共享红利'
-                : '专业报价 高效管理'}
+                  ? '邀请好友 共享红利'
+                  : '专业报价 高效管理'}
             </div>
             <div className="flex items-center gap-2 mb-2">
               <div className="w-8 h-8 bg-white text-blue-600 rounded-full flex items-center justify-center">
@@ -261,9 +253,7 @@ export default function InviteFriends({ user }: any) {
               </div>
               <div className="text-xs">邀请您加入</div>
             </div>
-            <div className="text-xs bg-white bg-opacity-20 p-2 rounded">
-              扫码注册 领取30积分
-            </div>
+            <div className="text-xs bg-white bg-opacity-20 p-2 rounded">扫码注册 领取30积分</div>
           </div>
 
           {/* 操作按钮 */}
@@ -274,9 +264,7 @@ export default function InviteFriends({ user }: any) {
             >
               🎨 生成海报
             </button>
-            <button className="py-1.5 bg-green-500 text-white rounded text-sm">
-              📤 快速分享
-            </button>
+            <button className="py-1.5 bg-green-500 text-white rounded text-sm">📤 快速分享</button>
           </div>
         </div>
       )}
@@ -301,9 +289,7 @@ export default function InviteFriends({ user }: any) {
               生成新口令
             </button>
           </div>
-          <div className="text-xs text-gray-500">
-            好友在注册时输入此口令即可绑定关系
-          </div>
+          <div className="text-xs text-gray-500">好友在注册时输入此口令即可绑定关系</div>
         </div>
       )}
 
@@ -319,9 +305,7 @@ export default function InviteFriends({ user }: any) {
                 <div className="text-xs text-gray-500">未绑定</div>
               </div>
             </div>
-            <button className="px-3 py-1 bg-green-500 text-white rounded text-xs">
-              立即绑定
-            </button>
+            <button className="px-3 py-1 bg-green-500 text-white rounded text-xs">立即绑定</button>
           </div>
 
           <div className="flex items-center justify-between p-2 bg-white rounded">
@@ -332,9 +316,7 @@ export default function InviteFriends({ user }: any) {
                 <div className="text-xs text-gray-500">未绑定</div>
               </div>
             </div>
-            <button className="px-3 py-1 bg-blue-500 text-white rounded text-xs">
-              立即绑定
-            </button>
+            <button className="px-3 py-1 bg-blue-500 text-white rounded text-xs">立即绑定</button>
           </div>
 
           <div className="flex items-center justify-between p-2 bg-white rounded">
@@ -345,9 +327,7 @@ export default function InviteFriends({ user }: any) {
                 <div className="text-xs text-green-600">已绑定 138****8888</div>
               </div>
             </div>
-            <button className="px-3 py-1 bg-gray-500 text-white rounded text-xs">
-              更换
-            </button>
+            <button className="px-3 py-1 bg-gray-500 text-white rounded text-xs">更换</button>
           </div>
 
           <div className="flex items-center justify-between p-2 bg-white rounded">
@@ -358,14 +338,10 @@ export default function InviteFriends({ user }: any) {
                 <div className="text-xs text-green-600">已绑定 user@example.com</div>
               </div>
             </div>
-            <button className="px-3 py-1 bg-gray-500 text-white rounded text-xs">
-              更换
-            </button>
+            <button className="px-3 py-1 bg-gray-500 text-white rounded text-xs">更换</button>
           </div>
         </div>
-        <div className="text-xs text-gray-500 mt-2">
-          绑定后邀请关系永久有效，好友注册自动关联
-        </div>
+        <div className="text-xs text-gray-500 mt-2">绑定后邀请关系永久有效，好友注册自动关联</div>
       </div>
 
       {/* 邀请排行榜 */}
@@ -408,28 +384,23 @@ export default function InviteFriends({ user }: any) {
           </div>
         </div>
         <div className="space-y-1 text-sm">
-          {rankings[rankPeriod as keyof typeof rankings].map(
-            (item: any, idx: number) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between p-1"
-              >
-                <div className="flex items-center gap-2">
-                  {idx === 0 ? (
-                    <span className="w-5 text-center text-yellow-600">🥇</span>
-                  ) : idx === 1 ? (
-                    <span className="w-5 text-center text-gray-400">🥈</span>
-                  ) : idx === 2 ? (
-                    <span className="w-5 text-center text-amber-700">🥉</span>
-                  ) : (
-                    <span className="w-5 text-center">{idx + 1}</span>
-                  )}
-                  <span>{item.name}</span>
-                </div>
-                <span className="text-blue-600">{item.count}人</span>
+          {rankings[rankPeriod as keyof typeof rankings].map((item: any, idx: number) => (
+            <div key={idx} className="flex items-center justify-between p-1">
+              <div className="flex items-center gap-2">
+                {idx === 0 ? (
+                  <span className="w-5 text-center text-yellow-600">🥇</span>
+                ) : idx === 1 ? (
+                  <span className="w-5 text-center text-gray-400">🥈</span>
+                ) : idx === 2 ? (
+                  <span className="w-5 text-center text-amber-700">🥉</span>
+                ) : (
+                  <span className="w-5 text-center">{idx + 1}</span>
+                )}
+                <span>{item.name}</span>
               </div>
-            )
-          )}
+              <span className="text-blue-600">{item.count}人</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -438,10 +409,7 @@ export default function InviteFriends({ user }: any) {
         <h4 className="text-sm font-medium mb-2">📋 最新邀请</h4>
         <div className="space-y-2">
           {invites.map((invite, idx) => (
-            <div
-              key={idx}
-              className="flex items-center justify-between p-2 bg-gray-50 rounded"
-            >
+            <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded">
               <div className="flex items-center gap-2">
                 <span className="text-xl">{invite.avatar}</span>
                 <div>
@@ -455,8 +423,8 @@ export default function InviteFriends({ user }: any) {
                     invite.level === 1
                       ? 'bg-blue-100 text-blue-700'
                       : invite.level === 2
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-purple-100 text-purple-700'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-purple-100 text-purple-700'
                   }`}
                 >
                   {invite.level}级

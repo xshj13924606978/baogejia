@@ -13,21 +13,26 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  User, Bot, RotateCw, FileText, 
-  Sparkles, FileSpreadsheet, File as FileIcon, Image as ImageIcon,
-  FileText as FileTextIcon, FileSpreadsheet as FileSpreadsheetIcon,
-  RefreshCw, Printer, Copy, Edit2
+import {
+  User,
+  Bot,
+  RotateCw,
+  FileText,
+  Sparkles,
+  FileSpreadsheet,
+  File as FileIcon,
+  Image as ImageIcon,
+  FileText as FileTextIcon,
+  FileSpreadsheet as FileSpreadsheetIcon,
+  RefreshCw,
+  Printer,
+  Copy,
+  Edit2,
 } from 'lucide-react';
 import QuoteTable from '@/components/quote-table';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 // 暂时禁用 markdown-it 以避免模块解析问题
 // import MarkdownIt from 'markdown-it';
 // @ts-ignore - 使用 CommonJS require 避免 pnpm 符号链接问题
@@ -44,7 +49,7 @@ if (typeof window !== 'undefined') {
     flowchart: {
       useMaxWidth: true,
       htmlLabels: true,
-      curve: 'basis'
+      curve: 'basis',
     },
     themeVariables: {
       primaryColor: '#3b82f6',
@@ -52,8 +57,8 @@ if (typeof window !== 'undefined') {
       primaryBorderColor: '#1e40af',
       lineColor: '#64748b',
       secondaryColor: '#e0f2fe',
-      tertiaryColor: '#f8fafc'
-    }
+      tertiaryColor: '#f8fafc',
+    },
   });
 }
 
@@ -103,7 +108,12 @@ const addSectionNumbers = (html: string): string => {
 
   // 第一步：识别所有H1，确定哪些是文档标题，哪些是一级章节
   const h1Matches = Array.from(html.matchAll(h1Regex));
-  const chapterInfo: { index: number; isDocTitle: boolean; isChapter: boolean; chapterNum: number }[] = [];
+  const chapterInfo: {
+    index: number;
+    isDocTitle: boolean;
+    isChapter: boolean;
+    chapterNum: number;
+  }[] = [];
 
   let chapterCount = 0;
   h1Matches.forEach((match, index) => {
@@ -112,11 +122,12 @@ const addSectionNumbers = (html: string): string => {
     // 判断是否是文档标题
     // 规则：必须是第一个H1，并且内容不包含"一"、"二"、"三"等章节编号
     // 如果H1内容包含中文编号或数字编号，说明它是一级章节，不是文档标题
-    const isDocTitle = index === 0 &&
-                        !/^[一二三四五六七八九十]+[、\.]/.test(content) &&
-                        !/^\d+[、\.]/.test(content) &&
-                        !/第[一二三四五六七八九十]+章/.test(content) &&
-                        !/^[一二三四五六七八九十]+、/.test(content);
+    const isDocTitle =
+      index === 0 &&
+      !/^[一二三四五六七八九十]+[、\.]/.test(content) &&
+      !/^\d+[、\.]/.test(content) &&
+      !/第[一二三四五六七八九十]+章/.test(content) &&
+      !/^[一二三四五六七八九十]+、/.test(content);
 
     const isChapter = !isDocTitle;
 
@@ -128,13 +139,29 @@ const addSectionNumbers = (html: string): string => {
       index,
       isDocTitle,
       isChapter,
-      chapterNum: isChapter ? chapterCount : 0
+      chapterNum: isChapter ? chapterCount : 0,
     });
   });
 
   // 第二步：处理H1标题
   const h1Counters = { count: 0 };
-  const chineseNumbers = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五'];
+  const chineseNumbers = [
+    '一',
+    '二',
+    '三',
+    '四',
+    '五',
+    '六',
+    '七',
+    '八',
+    '九',
+    '十',
+    '十一',
+    '十二',
+    '十三',
+    '十四',
+    '十五',
+  ];
 
   html = html.replace(h1Regex, (match, content) => {
     h1Counters.count++;
@@ -303,28 +330,28 @@ const parseMarkdownToHtml = (text: string): string => {
   const suggestionPatterns = [
     // 匹配带分隔符的后续建议（如 "--- 后续建议"）
     /\n\s*(?:---|\*\*|\*?|\●|\○|\■)\s*(?:后续建议|后续说明|后续说明：|后续建议：|补充说明|补充说明：|后续步骤建议|后续步骤|后续服务建议|后续支持|后续支持：)\s*\n[\s\S]*$/gi,
-    
+
     // 匹配列表项形式的后续建议（如 "* 后续建议"）
     /\n\s*(?:\*|\-|\d+\.)\s*后续建议[:：]?\s*\n[\s\S]*$/gi,
     /\n\s*(?:\*|\-|\d+\.)\s*后续步骤建议[:：]?\s*\n[\s\S]*$/gi,
     /\n\s*(?:\*|\-|\d+\.)\s*后续服务建议[:：]?\s*\n[\s\S]*$/gi,
-    
+
     // 匹配粗体标记的后续建议（如 "**后续建议**"）
     /\n\s*\*\*后续建议\*\*[\s\S]*$/gi,
     /\n\s*\*\*后续步骤建议\*\*[\s\S]*$/gi,
     /\n\s*\*\*后续服务\*\*[\s\S]*$/gi,
-    
+
     // 匹配以"如需"或"可为您"开始的建议性内容
     /\n\s*(?:如需|可为您|如您需要|如果您)\s*(?:更精确|修订|生成|提供|制作|帮助)[\s\S]*$/gi,
-    
+
     // 匹配"后续"开头的标题
     /\n\s*(?:#|##|###)\s*后续[建议|说明|步骤|服务|支持]+.*?\n[\s\S]*$/gi,
-    
+
     // 匹配包含"设备采购清单"或"实施进度计划表"的段落（通常是后续建议的内容）
     /\n\s*(?:\*|\-|\d+\.)\s*可为您生成(?:设备采购清单|项目实施进度计划表|施工进度计划表|采购清单|进度计划表)[\s\S]*$/gi,
-    
+
     // 兜底：匹配任何包含"后续"关键字且在文档末尾的段落
-    /\n\s*(?:\*|\-|\d+\.|\w+)\s*(?:后续|下一步|后续步骤|后续支持)\s*[:：]?\s*[\s\S]*$/gi
+    /\n\s*(?:\*|\-|\d+\.|\w+)\s*(?:后续|下一步|后续步骤|后续支持)\s*[:：]?\s*[\s\S]*$/gi,
   ];
 
   for (const pattern of suggestionPatterns) {
@@ -336,24 +363,24 @@ const parseMarkdownToHtml = (text: string): string => {
 
   // 0.2 删除多余的星号，但保留Markdown格式标记
   // 策略：分步骤清理，彻底删除所有不是用于格式的星号
-  
+
   // 第一步：保护和恢复粗体标记
   html = html.replace(/\*\*([^*]+)\*\*/g, (match, content) => {
     // 使用唯一的占位符，避免与正常文本冲突
     return `<<<BOLD_START>>>${content}<<<BOLD_END>>>`;
   });
-  
+
   // 第二步：保护和恢复斜体标记
   html = html.replace(/\*([^*]+)\*/g, (match, content) => {
     return `<<<ITALIC_START>>>${content}<<<ITALIC_END>>>`;
   });
-  
+
   // 第三步：删除所有剩余的星号（包括前导、后导、中间的孤立星号）
   html = html.replace(/\*/g, '');
-  
+
   // 第四步：恢复粗体标记
   html = html.replace(/<<<BOLD_START>>>(.+?)<<<BOLD_END>>>/g, '**$1**');
-  
+
   // 第五步：恢复斜体标记
   html = html.replace(/<<<ITALIC_START>>>(.+?)<<<ITALIC_END>>>/g, '*$1*');
 
@@ -380,7 +407,7 @@ const parseMarkdownToHtml = (text: string): string => {
     }
     return match;
   });
-  
+
   // 5. 去除表格对齐符号行（:---, :--:, --:）
   // 匹配包含 :---, :--:, --: 等对齐符号的行，包括各种格式变体
   // 例如：
@@ -392,7 +419,7 @@ const parseMarkdownToHtml = (text: string): string => {
   // | :--- | :---: | ---: |
   // | :--- | --- | --- |
   html = html.replace(/^\|?\s*:?-{3,}[:?\s|:]+\|?\s*$/gm, '');
-  
+
   // 处理主标题（# 标题）
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
 
@@ -410,10 +437,10 @@ const parseMarkdownToHtml = (text: string): string => {
 
   // 处理粗体（**文本**）- 优化：避免过度加粗
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  
+
   // 处理斜体（*文本*）- 禁用：减少斜体使用，保持文档清晰
   // html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  
+
   // 处理表格（| 列1 | 列2 |）
   // 优化：正确处理单元格中的<br>标签和换行符，并确保列宽足够
   const tableRegex = /\|(.+)\|\n((?:\|.+\|\n?)+)/g;
@@ -421,106 +448,116 @@ const parseMarkdownToHtml = (text: string): string => {
     // 处理表头 - 获取表头列数
     const headers = headerRow.split('|').filter((h: string) => h.trim());
     const numColumns = headers.length;
-    const headerHtml = headers.map((h: string) => {
-      let headerText = h.trim();
-      // 将Markdown中的<br>转换为HTML的<br/>
-      headerText = headerText.replace(/<br>/gi, '<br/>');
-      // 计算列宽百分比（最小15%，防止内容重叠）
-      const colWidth = Math.max(15, Math.floor(100 / numColumns));
-      return `<th style="width: ${colWidth}%">${headerText}</th>`;
-    }).join('');
+    const headerHtml = headers
+      .map((h: string) => {
+        let headerText = h.trim();
+        // 将Markdown中的<br>转换为HTML的<br/>
+        headerText = headerText.replace(/<br>/gi, '<br/>');
+        // 计算列宽百分比（最小15%，防止内容重叠）
+        const colWidth = Math.max(15, Math.floor(100 / numColumns));
+        return `<th style="width: ${colWidth}%">${headerText}</th>`;
+      })
+      .join('');
 
     // 处理表体 - 正确处理单元格中的换行
     const rows = bodyRows.trim().split('\n');
-    const bodyHtml = rows.map((row: string) => {
-      const trimmedRow = row.trim();
-      
-      // 过滤掉对齐符号行（如 |:---|:---| 或 | :--- | :---: | ---: |）
-      if (/^\|?\s*:?-{3,}[:?\s|:]+\|?\s*$/.test(trimmedRow)) return '';
+    const bodyHtml = rows
+      .map((row: string) => {
+        const trimmedRow = row.trim();
 
-      // 去除首尾的|，然后按|分割
-      const rowContent = row.trim();
-      const cells = rowContent.split('|')
-        .map((c: string) => c.trim())
-        .filter((c: string, idx: number) => idx > 0 && idx <= numColumns); // 保留正确数量的列
+        // 过滤掉对齐符号行（如 |:---|:---| 或 | :--- | :---: | ---: |）
+        if (/^\|?\s*:?-{3,}[:?\s|:]+\|?\s*$/.test(trimmedRow)) return '';
 
-      // 如果列数不对，尝试合并
-      if (cells.length > numColumns) {
-        // 将多余的列合并到最后一列
-        const validCells = cells.slice(0, numColumns - 1);
-        const lastCell = cells.slice(numColumns - 1).join('<br/>');
-        validCells.push(lastCell);
-        cells.length = 0;
-        cells.push(...validCells);
-      } else if (cells.length < numColumns) {
-        // 填充空列
-        while (cells.length < numColumns) {
-          cells.push('');
+        // 去除首尾的|，然后按|分割
+        const rowContent = row.trim();
+        const cells = rowContent
+          .split('|')
+          .map((c: string) => c.trim())
+          .filter((c: string, idx: number) => idx > 0 && idx <= numColumns); // 保留正确数量的列
+
+        // 如果列数不对，尝试合并
+        if (cells.length > numColumns) {
+          // 将多余的列合并到最后一列
+          const validCells = cells.slice(0, numColumns - 1);
+          const lastCell = cells.slice(numColumns - 1).join('<br/>');
+          validCells.push(lastCell);
+          cells.length = 0;
+          cells.push(...validCells);
+        } else if (cells.length < numColumns) {
+          // 填充空列
+          while (cells.length < numColumns) {
+            cells.push('');
+          }
         }
-      }
 
-      // 处理每个单元格的内容
-      const processedCells = cells.map((c: string, idx: number) => {
-        let cellText = c.trim();
-        // 保留单元格中的<br>标签，并确保使用<br/>
-        cellText = cellText.replace(/<br>/gi, '<br/>');
-        // 将换行符也转换为<br/>
-        cellText = cellText.replace(/\n/g, '<br/>');
-        // 计算列宽百分比
-        const colWidth = Math.max(15, Math.floor(100 / numColumns));
-        return `<td style="width: ${colWidth}%; word-wrap: break-word; word-break: break-all;">${cellText}</td>`;
-      });
+        // 处理每个单元格的内容
+        const processedCells = cells.map((c: string, idx: number) => {
+          let cellText = c.trim();
+          // 保留单元格中的<br>标签，并确保使用<br/>
+          cellText = cellText.replace(/<br>/gi, '<br/>');
+          // 将换行符也转换为<br/>
+          cellText = cellText.replace(/\n/g, '<br/>');
+          // 计算列宽百分比
+          const colWidth = Math.max(15, Math.floor(100 / numColumns));
+          return `<td style="width: ${colWidth}%; word-wrap: break-word; word-break: break-all;">${cellText}</td>`;
+        });
 
-      return `<tr>${processedCells.map((c: string) => c).join('')}</tr>`;
-    }).filter((row: string) => row).join('');
+        return `<tr>${processedCells.map((c: string) => c).join('')}</tr>`;
+      })
+      .filter((row: string) => row)
+      .join('');
 
     return `<table style="width: 100%; table-layout: fixed; border-collapse: collapse;"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
   });
-  
+
   // 处理列表项（- 项目）
   html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-  
+
   // 处理数字列表（1. 项目）
   html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-  
+
   // 处理连续的列表项，包裹在 ul 中
   html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => {
     return `<ul>${match}</ul>`;
   });
-  
+
   // 处理普通段落 - 优化：更智能地识别是否需要添加p标签
-  html = html.split('\n\n').map(para => {
-    const trimmedPara = para.trim();
+  html = html
+    .split('\n\n')
+    .map((para) => {
+      const trimmedPara = para.trim();
 
-    // 如果为空，返回空字符串
-    if (!trimmedPara) return '';
+      // 如果为空，返回空字符串
+      if (!trimmedPara) return '';
 
-    // 检查是否已经包含HTML块级标签
-    const hasBlockTag = /^(<h[1-6]|<table|<ul|<ol|<div|<blockquote|<pre|<hr)/i.test(trimmedPara);
+      // 检查是否已经包含HTML块级标签
+      const hasBlockTag = /^(<h[1-6]|<table|<ul|<ol|<div|<blockquote|<pre|<hr)/i.test(trimmedPara);
 
-    // 如果已经有块级标签，直接返回
-    if (hasBlockTag) {
-      return para;
-    }
+      // 如果已经有块级标签，直接返回
+      if (hasBlockTag) {
+        return para;
+      }
 
-    // 如果是列表项，也直接返回（已经在前面处理过）
-    if (trimmedPara.startsWith('<li')) {
-      return para;
-    }
+      // 如果是列表项，也直接返回（已经在前面处理过）
+      if (trimmedPara.startsWith('<li')) {
+        return para;
+      }
 
-    // 否则包裹在p标签中
-    return `<p>${trimmedPara}</p>`;
-  }).filter(para => para.trim()).join('\n');
+      // 否则包裹在p标签中
+      return `<p>${trimmedPara}</p>`;
+    })
+    .filter((para) => para.trim())
+    .join('\n');
 
   // 清理：移除多余的换行和空格，确保HTML结构清晰
   html = html.replace(/\n{3,}/g, '\n\n'); // 多个连续换行替换为两个
   html = html.replace(/>\s+</g, '><'); // 移除标签之间的空白
-  
+
   // 最终清理1：移除任何可能残留的对齐符号行内容
   // 移除只包含对齐符号的文本节点
   html = html.replace(/<p>\s*:?-{3,}:?\s*<\/p>/gi, '');
   html = html.replace(/<p>\s*[\s|:-]+\s*<\/p>/gi, '');
-  
+
   // 移除表格中可能存在的对齐符号行（转换为HTML后的形式）
   html = html.replace(/<tr>\s*(<td[^>]*>[\s|:-]*<\/td>\s*)+\s*<\/tr>/gi, '');
 
@@ -553,14 +590,14 @@ const fixTableStructure = (htmlContent: string): string => {
 
   // 1. 提取所有表格
   const tableRegex = /<table\b([^>]*)>([\s\S]*?)<\/table>/gi;
-  const tables: Array<{original: string; attrs: string; body: string}> = [];
+  const tables: Array<{ original: string; attrs: string; body: string }> = [];
   let match;
-  
+
   while ((match = tableRegex.exec(htmlContent)) !== null) {
     tables.push({
       original: match[0],
       attrs: match[1],
-      body: match[2]
+      body: match[2],
     });
   }
 
@@ -575,22 +612,22 @@ const fixTableStructure = (htmlContent: string): string => {
   // 2. 清理每个表格中的重复汇总行
   const cleanedTables = tables.map((table, index) => {
     console.log(`[修复] 处理表格${index}`);
-    
+
     // 检查表格是否包含所有汇总项
-    const hasAllSummaries = 
+    const hasAllSummaries =
       table.body.includes('设备小计') &&
       table.body.includes('运费') &&
       table.body.includes('小计') &&
       table.body.includes('增值税') &&
       table.body.includes('合计金额') &&
       table.body.includes('大写金额');
-    
+
     console.log(`[修复] 表格${index}包含所有汇总项: ${hasAllSummaries}`);
-    
+
     if (hasAllSummaries) {
       // 方法：找到"设备小计"开始的位置和"大写金额"结束的位置
       // 提取完整的汇总行
-      
+
       // 找到"设备小计"在body中的位置
       const subtotalStart = table.body.indexOf('设备小计');
       if (subtotalStart === -1) {
@@ -598,26 +635,26 @@ const fixTableStructure = (htmlContent: string): string => {
         return {
           original: table.original,
           attrs: table.attrs,
-          body: table.body
+          body: table.body,
         };
       }
-      
+
       // 找到从设备小计开始，向后找最后一个">"，这通常是tr标签的结束
       // 然后找到这个tr标签的开始
       const beforeSubtotal = table.body.substring(0, subtotalStart);
       const lastTrStart = beforeSubtotal.lastIndexOf('<tr');
-      
+
       if (lastTrStart === -1) {
         console.log('[修复] 未找到tr标签开始，跳过');
         return {
           original: table.original,
           attrs: table.attrs,
-          body: table.body
+          body: table.body,
         };
       }
-      
+
       console.log(`[修复] 找到tr标签开始位置: ${lastTrStart}`);
-      
+
       // 找到"大写金额"在body中的位置（从lastTrStart开始）
       const amountEnd = table.body.indexOf('大写金额', lastTrStart);
       if (amountEnd === -1) {
@@ -625,10 +662,10 @@ const fixTableStructure = (htmlContent: string): string => {
         return {
           original: table.original,
           attrs: table.attrs,
-          body: table.body
+          body: table.body,
         };
       }
-      
+
       // 找到包含大写金额的tr标签的结束位置
       // 从amountEnd开始，找"</tr>"
       const trEnd = table.body.indexOf('</tr>', amountEnd);
@@ -637,42 +674,41 @@ const fixTableStructure = (htmlContent: string): string => {
         return {
           original: table.original,
           attrs: table.attrs,
-          body: table.body
+          body: table.body,
         };
       }
-      
+
       // 提取完整的汇总行（包含所有<tr>标签）
       const summaryRows = table.body.substring(lastTrStart, trEnd + 5); // +5 是因为"</tr>"的长度
       console.log(`[修复] 提取汇总行，长度: ${summaryRows.length}`);
       console.log(`[修复] 汇总行开头: ${summaryRows.substring(0, 50)}...`);
-      
+
       // 移除所有旧的汇总行（从lastTrStart到trEnd之后）
-      let cleanedBody = table.body.substring(0, lastTrStart) + 
-                       table.body.substring(trEnd + 5);
-      
+      let cleanedBody = table.body.substring(0, lastTrStart) + table.body.substring(trEnd + 5);
+
       // 将汇总行添加到末尾
       cleanedBody = cleanedBody + summaryRows;
-      
+
       console.log(`[修复] 清理后body长度: ${cleanedBody.length} (原始: ${table.body.length})`);
-      
+
       return {
         original: table.original,
         attrs: table.attrs,
-        body: cleanedBody
+        body: cleanedBody,
       };
     }
-    
+
     // 如果没有所有汇总项，直接返回原始表格
     return {
       original: table.original,
       attrs: table.attrs,
-      body: table.body
+      body: table.body,
     };
   });
 
   // 3. 重建HTML
   let result = htmlContent;
-  
+
   // 替换每个表格为清理后的版本
   for (const table of cleanedTables) {
     const cleanedTable = `<table${table.attrs}>${table.body}</table>`;
@@ -790,10 +826,10 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
   const handlePrint = () => {
     console.log('[打印] 开始打印');
     if (!iframeRef.current || !contentRef.current) return;
-    
+
     const iframe = iframeRef.current;
     const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-    
+
     if (!iframeDoc) {
       console.log('[打印] 无法获取iframe内容');
       return;
@@ -832,7 +868,7 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
             </body>
           </html>
         `);
-        
+
         printWindow.document.close();
         printWindow.focus();
         setTimeout(() => printWindow.print(), 500);
@@ -844,10 +880,11 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
   };
 
   // 检查是否是完整HTML
-  const isFullHTML = htmlContent.includes('<!DOCTYPE html') || 
-                     htmlContent.includes('<html') || 
-                     htmlContent.includes('<style>') ||
-                     htmlContent.includes('<table');
+  const isFullHTML =
+    htmlContent.includes('<!DOCTYPE html') ||
+    htmlContent.includes('<html') ||
+    htmlContent.includes('<style>') ||
+    htmlContent.includes('<table');
 
   console.log('[IframeHTMLContainer] 内容长度:', htmlContent.length);
   console.log('[IframeHTMLContainer] 包含 <!DOCTYPE html:', htmlContent.includes('<!DOCTYPE html'));
@@ -868,12 +905,7 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
           📄 报价单
         </span>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrint}
-            className="text-xs gap-1"
-          >
+          <Button variant="outline" size="sm" onClick={handlePrint} className="text-xs gap-1">
             <Printer className="h-3 w-3" />
             打印/导出PDF
           </Button>
@@ -887,14 +919,14 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
           </Button>
         </div>
       </div>
-      
+
       {isExpanded && (
         <iframe
           ref={iframeRef}
           className="w-full border rounded-lg bg-white"
-          style={{ 
+          style={{
             height: `${iframeHeight}px`,
-            minHeight: '300px'
+            minHeight: '300px',
           }}
           title="报价单"
           sandbox="allow-same-origin allow-scripts allow-modals allow-popups"
@@ -1010,16 +1042,10 @@ const SimpleMarkdown = ({ content, isStreaming }: { content: string; isStreaming
   );
 
   // 5. 为段落添加适当间距
-  html = html.replace(
-    /<p([^>]*)>/g,
-    '<p class="leading-7 my-4"$1>'
-  );
+  html = html.replace(/<p([^>]*)>/g, '<p class="leading-7 my-4"$1>');
 
   // 6. 为列表项添加适当间距
-  html = html.replace(
-    /<li([^>]*)>/g,
-    '<li class="my-2"$1>'
-  );
+  html = html.replace(/<li([^>]*)>/g, '<li class="my-2"$1>');
 
   // 检查是否包含 mermaid 代码块
   const hasMermaid = /```mermaid\n([\s\S]*?)\n```/.test(content);
@@ -1053,14 +1079,8 @@ const SimpleMarkdown = ({ content, isStreaming }: { content: string; isStreaming
         /<h4([^>]*)>([\s\S]*?)<\/h4>/g,
         '<h4 class="scroll-m-20 border-l-2 border-primary/40 pl-12 py-2 my-4 text-lg font-semibold tracking-tight text-slate-600"$1>$2</h4>'
       );
-      processedHtml = processedHtml.replace(
-        /<p([^>]*)>/g,
-        '<p class="leading-7 my-4"$1>'
-      );
-      processedHtml = processedHtml.replace(
-        /<li([^>]*)>/g,
-        '<li class="my-2"$1>'
-      );
+      processedHtml = processedHtml.replace(/<p([^>]*)>/g, '<p class="leading-7 my-4"$1>');
+      processedHtml = processedHtml.replace(/<li([^>]*)>/g, '<li class="my-2"$1>');
 
       return (
         <div className="space-y-6">
@@ -1127,11 +1147,9 @@ const EditDialog = ({ open, onOpenChange, initialContent, onSave }: EditDialogPr
       <DialogContent className="sm:max-w-3xl flex flex-col max-h-[85vh]">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>编辑消息内容</DialogTitle>
-          <DialogDescription>
-            修改消息内容后点击保存，内容将更新到对话框中
-          </DialogDescription>
+          <DialogDescription>修改消息内容后点击保存，内容将更新到对话框中</DialogDescription>
         </DialogHeader>
-        
+
         <div className="flex-1 min-h-0 my-4 overflow-hidden">
           <Textarea
             value={content}
@@ -1143,13 +1161,10 @@ const EditDialog = ({ open, onOpenChange, initialContent, onSave }: EditDialogPr
         </div>
 
         <DialogFooter className="flex-shrink-0">
-          <Button 
-            variant="outline" 
-            onClick={handleCancel}
-          >
+          <Button variant="outline" onClick={handleCancel}>
             取消
           </Button>
-          <Button 
+          <Button
             onClick={handleSave}
             disabled={!content.trim()}
             className="bg-blue-600 hover:bg-blue-700"
@@ -1162,14 +1177,14 @@ const EditDialog = ({ open, onOpenChange, initialContent, onSave }: EditDialogPr
   );
 };
 
-export default function ChatMessage({ 
-  message, 
-  onRegenerate, 
+export default function ChatMessage({
+  message,
+  onRegenerate,
   supplierInfo,
   onUpdateProductPrice,
   onUpdateProductQuantity,
   onIntentSelection,
-  onEdit
+  onEdit,
 }: ChatMessageProps) {
   const { toast } = useToast();
   const [selectedIntent, setSelectedIntent] = useState<'quote' | 'proposal' | 'both' | null>(null);
@@ -1177,9 +1192,11 @@ export default function ChatMessage({
 
   const getFileIcon = (fileType: string) => {
     if (fileType.includes('image')) return <ImageIcon className="h-4 w-4" />;
-    if (fileType.includes('spreadsheet') || fileType.includes('excel')) return <FileSpreadsheetIcon className="h-4 w-4" />;
+    if (fileType.includes('spreadsheet') || fileType.includes('excel'))
+      return <FileSpreadsheetIcon className="h-4 w-4" />;
     if (fileType.includes('pdf')) return <FileTextIcon className="h-4 w-4" />;
-    if (fileType.includes('word') || fileType.includes('document')) return <FileTextIcon className="h-4 w-4" />;
+    if (fileType.includes('word') || fileType.includes('document'))
+      return <FileTextIcon className="h-4 w-4" />;
     return <FileIcon className="h-4 w-4" />;
   };
 
@@ -1193,11 +1210,10 @@ export default function ChatMessage({
   };
 
   const isQuoteMessage = (): boolean => {
-    return !!(message.quoteData || 
-      (message.content && (
-        message.content.includes('报价单') || 
-        message.content.includes('<table')
-      ))
+    return !!(
+      message.quoteData ||
+      (message.content &&
+        (message.content.includes('报价单') || message.content.includes('<table')))
     );
   };
 
@@ -1216,16 +1232,16 @@ export default function ChatMessage({
     try {
       await navigator.clipboard.writeText(content);
       toast({
-        title: "复制成功",
-        description: "内容已复制到剪贴板",
-        variant: "default",
+        title: '复制成功',
+        description: '内容已复制到剪贴板',
+        variant: 'default',
       });
     } catch (error) {
       console.error('Failed to copy:', error);
       toast({
-        title: "复制失败",
-        description: "无法复制内容",
-        variant: "destructive",
+        title: '复制失败',
+        description: '无法复制内容',
+        variant: 'destructive',
       });
     }
   };
@@ -1234,16 +1250,16 @@ export default function ChatMessage({
   const handleEdit = () => {
     console.log('[编辑] 点击编辑按钮');
     console.log('[编辑] onEdit 是否存在:', !!onEdit);
-    
+
     if (onEdit) {
       console.log('[编辑] 打开编辑对话框');
       setIsEditDialogOpen(true);
     } else {
       console.warn('[编辑] 编辑功能需要父组件提供 onEdit 回调');
       toast({
-        title: "编辑功能暂不可用",
-        description: "请先在父组件中实现 onEdit 回调",
-        variant: "destructive",
+        title: '编辑功能暂不可用',
+        description: '请先在父组件中实现 onEdit 回调',
+        variant: 'destructive',
       });
     }
   };
@@ -1253,7 +1269,7 @@ export default function ChatMessage({
     console.log('[编辑] 保存编辑内容');
     console.log('[编辑] 原内容:', message.content);
     console.log('[编辑] 新内容:', newContent);
-    
+
     onEdit?.(message.id, newContent);
   };
 
@@ -1275,10 +1291,10 @@ export default function ChatMessage({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
+
     toast({
-      title: "下载成功",
-      description: "文本文件已下载",
+      title: '下载成功',
+      description: '文本文件已下载',
       duration: 2000,
     });
   };
@@ -1288,24 +1304,24 @@ export default function ChatMessage({
    */
   const downloadAsWord = () => {
     const content = message.content;
-    
+
     // 将Markdown转换为HTML
     const parsedContent = parseMarkdownToHtml(content);
-    
+
     const currentDate = new Date().toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
-    
+
     // 提取项目标题（第一个 h1 标签）
     const titleMatch = parsedContent.match(/<h1[^>]*>(.+?)<\/h1>/);
     let projectTitle = titleMatch ? titleMatch[1] : '技术方案';
-    
+
     // 提取竖排文字（智能关键词提取）
     const rawTitle = projectTitle.replace(/<[^>]*>/g, '');
     let verticalText = '';
-    
+
     // 提取关键词
     const keywords = ['技术方案', '报价方案', '报价单'];
     for (const keyword of keywords) {
@@ -1316,29 +1332,32 @@ export default function ChatMessage({
         break;
       }
     }
-    
+
     // 如果没有找到关键词，默认为"技术方案"，并从主标题移除
     if (!verticalText) {
       verticalText = '技术方案';
       // 从主标题中移除"技术方案"
       projectTitle = projectTitle.replace(/技术方案/g, '').trim();
     }
-    
+
     // 移除正文中的第一个h1标签（避免重复显示）
     let contentWithoutFirstH1 = parsedContent.replace(/<h1[^>]*>.+?<\/h1>/, '');
-    
+
     // 移除正文中可能存在的"技术方案"重复标题（h2或h3标签）
-    contentWithoutFirstH1 = contentWithoutFirstH1.replace(/<h[23][^>]*>(技术方案|报价方案|报价单)[^<]*<\/h[23]>/, '');
-    
+    contentWithoutFirstH1 = contentWithoutFirstH1.replace(
+      /<h[23][^>]*>(技术方案|报价方案|报价单)[^<]*<\/h[23]>/,
+      ''
+    );
+
     // 生成竖排文字（每个字符一行）- Word兼容性更好
     const verticalTextWithBreak = verticalText.split('').join('<br>');
-    
+
     // 获取供应方信息
     const supplierName = supplierInfo?.companyName || '未填写';
     const contactPerson = supplierInfo?.contactPerson || '未填写';
     const contactPhone = supplierInfo?.phone || '未填写';
     const contactEmail = supplierInfo?.email || '未填写';
-    
+
     // 将Markdown转换为更美观的HTML
     const htmlContent = `
 <!DOCTYPE html>
@@ -1714,7 +1733,7 @@ export default function ChatMessage({
   </div>
 </body>
 </html>`;
-    
+
     const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -1724,10 +1743,10 @@ export default function ChatMessage({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
+
     toast({
-      title: "下载成功",
-      description: "Word文档已下载",
+      title: '下载成功',
+      description: 'Word文档已下载',
       duration: 2000,
     });
   };
@@ -1739,32 +1758,32 @@ export default function ChatMessage({
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       toast({
-        title: "下载失败",
-        description: "请允许弹出窗口",
-        variant: "destructive",
+        title: '下载失败',
+        description: '请允许弹出窗口',
+        variant: 'destructive',
         duration: 3000,
       });
       return;
     }
-    
+
     const content = message.content;
-    
+
     // 将Markdown转换为HTML
     let parsedContent = parseMarkdownToHtml(content);
-    
+
     // 移除正文中的第一个 h1 标题，避免重复显示
     parsedContent = parsedContent.replace(/<h1[^>]*>.+?<\/h1>/, '');
-    
+
     const currentDate = new Date().toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
-    
+
     // 提取PDF专用标题（独立于Word的逻辑）
     const titleMatch = content.match(/^#\s+(.+)$/m);
     let pdfMainTitle = titleMatch ? titleMatch[1].trim() : '技术方案';
-    
+
     // 从主标题中移除"技术方案"等关键词，避免重复显示
     const pdfKeywords = ['技术方案', '报价方案', '报价单'];
     for (const keyword of pdfKeywords) {
@@ -1773,18 +1792,18 @@ export default function ChatMessage({
         break;
       }
     }
-    
+
     const pdfVerticalText = '技术方案'; // PDF固定显示"技术方案"竖排文字
-    
+
     // 获取供应方信息
     const supplierName = supplierInfo?.companyName || '未填写';
     const contactPerson = supplierInfo?.contactPerson || '未填写';
     const contactPhone = supplierInfo?.phone || '未填写';
     const contactEmail = supplierInfo?.email || '未填写';
-    
+
     // 竖排文字直接使用writing-mode，不需要手动添加<br>
     const pdfVerticalTextWithBreak = pdfVerticalText;
-    
+
     const printContent = `
 <!DOCTYPE html>
 <html>
@@ -2251,13 +2270,13 @@ export default function ChatMessage({
   </script>
 </body>
 </html>`;
-    
+
     printWindow.document.write(printContent);
     printWindow.document.close();
-    
+
     toast({
-      title: "准备下载PDF",
-      description: "打印窗口已打开，请选择「另存为PDF」保存",
+      title: '准备下载PDF',
+      description: '打印窗口已打开，请选择「另存为PDF」保存',
       duration: 5000,
     });
   };
@@ -2276,7 +2295,7 @@ export default function ChatMessage({
   // 渲染用户消息 - 修复布局和添加按钮
   const renderUserMessage = () => {
     const files = getFiles();
-    
+
     return (
       <div className="flex items-start gap-3 flex-row-reverse">
         <Avatar className="h-8 w-8 flex-shrink-0">
@@ -2298,11 +2317,11 @@ export default function ChatMessage({
               ))}
             </div>
           )}
-          
+
           <div className="bg-blue-50 text-slate-900 rounded-lg p-3 text-left">
             <SimpleMarkdown content={message.content} />
           </div>
-          
+
           {/* 添加按钮区域 - 新增 onClick 事件 */}
           <div className="flex items-center gap-2 justify-end">
             <TooltipProvider>
@@ -2319,7 +2338,7 @@ export default function ChatMessage({
                 </TooltipTrigger>
                 <TooltipContent>复制</TooltipContent>
               </Tooltip>
-              
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -2335,10 +2354,8 @@ export default function ChatMessage({
               </Tooltip>
             </TooltipProvider>
           </div>
-          
-          <div className="text-xs text-slate-500">
-            {formatTime(message.timestamp)}
-          </div>
+
+          <div className="text-xs text-slate-500">{formatTime(message.timestamp)}</div>
         </div>
       </div>
     );
@@ -2352,12 +2369,13 @@ export default function ChatMessage({
     const isTemporary = message.isTemporary;
     const action = message.action;
     const intent = message.metadata?.intent;
-    
+
     // 判断是否是详细方案（包含方案相关关键词或metadata中有detailed_proposal意图）
-    const isDetailedProposal = 
+    const isDetailedProposal =
       intent === 'detailed_proposal' ||
-      (message.content && (message.content.includes('技术方案') || message.content.includes('项目概述')));
-    
+      (message.content &&
+        (message.content.includes('技术方案') || message.content.includes('项目概述')));
+
     console.log('[ChatMessage] ========== 渲染助手消息 ==========');
     console.log('[ChatMessage] 消息ID:', message.id);
     console.log('[ChatMessage] 意图:', intent);
@@ -2366,7 +2384,7 @@ export default function ChatMessage({
     console.log('[ChatMessage] 内容长度:', message.content?.length);
     console.log('[ChatMessage] 内容预览:', message.content?.substring(0, 100));
     console.log('[ChatMessage] metadata:', message.metadata);
-    
+
     if (action === 'ASK_INTENT' && files.length > 0) {
       return (
         <div className="flex items-start gap-3">
@@ -2377,7 +2395,7 @@ export default function ChatMessage({
           </Avatar>
           <div className="flex-1 min-w-0 space-y-3">
             <SimpleMarkdown content={message.content} />
-            
+
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
@@ -2396,15 +2414,13 @@ export default function ChatMessage({
                 生成方案
               </Button>
             </div>
-            
-            <div className="text-xs text-slate-500">
-              {formatTime(message.timestamp)}
-            </div>
+
+            <div className="text-xs text-slate-500">{formatTime(message.timestamp)}</div>
           </div>
         </div>
       );
     }
-    
+
     if (isTemporary) {
       return (
         <div className="flex items-start gap-3">
@@ -2422,9 +2438,16 @@ export default function ChatMessage({
         </div>
       );
     }
-    
-    console.log('[ChatMessage] 选择渲染组件:', isDetailedProposal ? 'SimpleMarkdown (详细方案)' : (hasQuote ? 'IframeHTMLContainer (报价单)' : 'SimpleMarkdown (普通)'));
-    
+
+    console.log(
+      '[ChatMessage] 选择渲染组件:',
+      isDetailedProposal
+        ? 'SimpleMarkdown (详细方案)'
+        : hasQuote
+          ? 'IframeHTMLContainer (报价单)'
+          : 'SimpleMarkdown (普通)'
+    );
+
     return (
       <div className="flex items-start gap-3">
         <Avatar className="h-8 w-8 flex-shrink-0">
@@ -2432,35 +2455,37 @@ export default function ChatMessage({
             <Bot className="h-4 w-4" />
           </AvatarFallback>
         </Avatar>
-        
+
         <div className="flex-1 min-w-0 space-y-3">
           {/* 根据内容类型选择渲染方式 */}
-          {isDetailedProposal ? (
-            /* 详细方案使用 SimpleMarkdown 渲染 */
-            (() => {
-              console.log('[ChatMessage] 渲染详细方案');
-              return <SimpleMarkdown content={message.content} isStreaming={message.isStreaming} />;
-            })()
-          ) : hasQuote ? (
-            /* 报价单使用 IframeHTMLContainer 渲染 */
-            (() => {
-              console.log('[ChatMessage] 渲染报价单');
-              return <IframeHTMLContainer htmlContent={message.content} />;
-            })()
-          ) : (
-            /* 普通消息使用 SimpleMarkdown 渲染 */
-            (() => {
-              console.log('[ChatMessage] 渲染普通消息');
-              return <SimpleMarkdown content={message.content} isStreaming={message.isStreaming} />;
-            })()
-          )}
-          
+          {isDetailedProposal
+            ? /* 详细方案使用 SimpleMarkdown 渲染 */
+              (() => {
+                console.log('[ChatMessage] 渲染详细方案');
+                return (
+                  <SimpleMarkdown content={message.content} isStreaming={message.isStreaming} />
+                );
+              })()
+            : hasQuote
+              ? /* 报价单使用 IframeHTMLContainer 渲染 */
+                (() => {
+                  console.log('[ChatMessage] 渲染报价单');
+                  return <IframeHTMLContainer htmlContent={message.content} />;
+                })()
+              : /* 普通消息使用 SimpleMarkdown 渲染 */
+                (() => {
+                  console.log('[ChatMessage] 渲染普通消息');
+                  return (
+                    <SimpleMarkdown content={message.content} isStreaming={message.isStreaming} />
+                  );
+                })()}
+
           {hasQuote && quoteData && !isDetailedProposal && (
             <div className="mt-4">
               <QuoteTable
                 data={quoteData}
                 supplierInfo={supplierInfo}
-                onUpdateProductPrice={(index, price) => 
+                onUpdateProductPrice={(index, price) =>
                   onUpdateProductPrice?.(message.id, index, price)
                 }
                 onUpdateProductQuantity={(index, quantity) =>
@@ -2469,7 +2494,7 @@ export default function ChatMessage({
               />
             </div>
           )}
-          
+
           <div className="flex items-center gap-2 mt-2">
             {/* 复制按钮 */}
             <TooltipProvider>
@@ -2562,7 +2587,7 @@ export default function ChatMessage({
                 </Tooltip>
               </TooltipProvider>
             )}
-            
+
             <span className="text-xs text-slate-400 ml-auto flex-shrink-0">
               {formatTime(message.timestamp)}
             </span>
@@ -2575,14 +2600,14 @@ export default function ChatMessage({
   return (
     <div
       className={cn(
-        "py-4 px-4 md:px-6 w-full",
+        'py-4 px-4 md:px-6 w-full',
         message.role === 'user' ? 'bg-white' : 'bg-slate-50'
       )}
     >
       <div className="max-w-5xl mx-auto w-full">
         {message.role === 'user' ? renderUserMessage() : renderAssistantMessage()}
       </div>
-      
+
       {/* 编辑对话框 */}
       <EditDialog
         open={isEditDialogOpen}

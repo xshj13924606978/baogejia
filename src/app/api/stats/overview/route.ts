@@ -11,19 +11,13 @@ export async function GET(request: NextRequest) {
     // 权限检查
     const userStr = request.cookies.get('user')?.value;
     if (!userStr) {
-      return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
     const user = JSON.parse(userStr);
-    
+
     if (!hasPermission(user.role, 'canViewStats')) {
-      return NextResponse.json(
-        { error: '没有权限查看统计' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: '没有权限查看统计' }, { status: 403 });
     }
 
     const today = new Date();
@@ -44,59 +38,57 @@ export async function GET(request: NextRequest) {
       totalKnowledge,
       knowledgeToday,
       totalProducts,
-      productsToday
+      productsToday,
     ] = await Promise.all([
       // 总用户数
       supabase.from('users').select('*', { count: 'exact', head: true }),
-      
+
       // 今日新增用户
       supabase
         .from('users')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', todayStart)
         .lte('created_at', todayEnd),
-      
+
       // 总报价数
       supabase.from('quotes').select('*', { count: 'exact', head: true }),
-      
+
       // 今日报价数
       supabase
         .from('quotes')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', todayStart)
         .lte('created_at', todayEnd),
-      
+
       // 总上传数
       supabase.from('user_uploads').select('*', { count: 'exact', head: true }),
-      
+
       // 今日上传数
       supabase
         .from('user_uploads')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', todayStart)
         .lte('created_at', todayEnd),
-      
+
       // 总知识库条目
-      supabase
-        .from('knowledge_entries')
-        .select('*', { count: 'exact', head: true }),
-      
+      supabase.from('knowledge_entries').select('*', { count: 'exact', head: true }),
+
       // 今日知识库条目
       supabase
         .from('knowledge_entries')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', todayStart)
         .lte('created_at', todayEnd),
-      
+
       // 总产品数
       supabase.from('products').select('*', { count: 'exact', head: true }),
-      
+
       // 今日新增产品
       supabase
         .from('products')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', todayStart)
-        .lte('created_at', todayEnd)
+        .lte('created_at', todayEnd),
     ]);
 
     // 获取昨日数据用于计算增长率
@@ -105,37 +97,37 @@ export async function GET(request: NextRequest) {
       quotesYesterday,
       uploadsYesterday,
       knowledgeYesterday,
-      productsYesterday
+      productsYesterday,
     ] = await Promise.all([
       supabase
         .from('users')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', yesterdayStart)
         .lte('created_at', yesterdayEnd),
-      
+
       supabase
         .from('quotes')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', yesterdayStart)
         .lte('created_at', yesterdayEnd),
-      
+
       supabase
         .from('user_uploads')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', yesterdayStart)
         .lte('created_at', yesterdayEnd),
-      
+
       supabase
         .from('knowledge_entries')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', yesterdayStart)
         .lte('created_at', yesterdayEnd),
-      
+
       supabase
         .from('products')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', yesterdayStart)
-        .lte('created_at', yesterdayEnd)
+        .lte('created_at', yesterdayEnd),
     ]);
 
     // 计算增长率
@@ -148,28 +140,28 @@ export async function GET(request: NextRequest) {
       users: {
         total: totalUsers.count || 0,
         today: newUsersToday.count || 0,
-        growth: calculateGrowth(newUsersToday.count || 0, usersYesterday.count || 0)
+        growth: calculateGrowth(newUsersToday.count || 0, usersYesterday.count || 0),
       },
       quotes: {
         total: totalQuotes.count || 0,
         today: quotesToday.count || 0,
-        growth: calculateGrowth(quotesToday.count || 0, quotesYesterday.count || 0)
+        growth: calculateGrowth(quotesToday.count || 0, quotesYesterday.count || 0),
       },
       uploads: {
         total: totalUploads.count || 0,
         today: uploadsToday.count || 0,
-        growth: calculateGrowth(uploadsToday.count || 0, uploadsYesterday.count || 0)
+        growth: calculateGrowth(uploadsToday.count || 0, uploadsYesterday.count || 0),
       },
       knowledge: {
         total: totalKnowledge.count || 0,
         today: knowledgeToday.count || 0,
-        growth: calculateGrowth(knowledgeToday.count || 0, knowledgeYesterday.count || 0)
+        growth: calculateGrowth(knowledgeToday.count || 0, knowledgeYesterday.count || 0),
       },
       products: {
         total: totalProducts.count || 0,
         today: productsToday.count || 0,
-        growth: calculateGrowth(productsToday.count || 0, productsYesterday.count || 0)
-      }
+        growth: calculateGrowth(productsToday.count || 0, productsYesterday.count || 0),
+      },
     };
 
     console.log('[Stats Overview] 统计结果:', stats);
@@ -177,9 +169,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: stats,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error('[Stats Overview] 统计查询失败:', error);
     return NextResponse.json(

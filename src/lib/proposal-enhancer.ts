@@ -1,12 +1,12 @@
 /**
  * 智能方案增强器
- * 
+ *
  * 功能：
  * 1. 增强技术方案的专业性、完整性和可实施性
  * 2. 使用 DeepSeek 智能生成技术细节和操作指导
  * 3. 使用 Coze 工具获取市场数据和技术资料
  * 4. 提供多维度的方案优化建议
- * 
+ *
  * 增强维度：
  * - 技术参数细化
  * - 工艺流程优化
@@ -27,18 +27,20 @@ import { Logger } from './logger';
 // ============================================================================
 
 export interface ProposalContext {
-  projectType: string;           // 项目类型：生活污水、工业废水等
-  capacity: number;               // 处理规模（吨/天）
-  influentQuality?: {             // 进水水质
-    cod?: number;                 // COD (mg/L)
-    bod5?: number;                // BOD5 (mg/L)
-    ss?: number;                  // SS (mg/L)
-    nh3n?: number;                // NH3-N (mg/L)
-    tn?: number;                  // TN (mg/L)
-    tp?: number;                  // TP (mg/L)
-    ph?: number;                  // pH
+  projectType: string; // 项目类型：生活污水、工业废水等
+  capacity: number; // 处理规模（吨/天）
+  influentQuality?: {
+    // 进水水质
+    cod?: number; // COD (mg/L)
+    bod5?: number; // BOD5 (mg/L)
+    ss?: number; // SS (mg/L)
+    nh3n?: number; // NH3-N (mg/L)
+    tn?: number; // TN (mg/L)
+    tp?: number; // TP (mg/L)
+    ph?: number; // pH
   };
-  effluentStandards?: {           // 出水标准
+  effluentStandards?: {
+    // 出水标准
     cod?: number;
     bod5?: number;
     ss?: number;
@@ -46,10 +48,10 @@ export interface ProposalContext {
     tn?: number;
     tp?: number;
   };
-  processType?: string;           // 工艺类型：A/O、MBR、SBR等
-  location?: string;              // 项目地点
-  budget?: number;                // 预算（万元）
-  requirements?: string[];        // 特殊要求
+  processType?: string; // 工艺类型：A/O、MBR、SBR等
+  location?: string; // 项目地点
+  budget?: number; // 预算（万元）
+  requirements?: string[]; // 特殊要求
 }
 
 export interface TechnicalParameter {
@@ -71,7 +73,7 @@ export interface ProcessStep {
     specs?: string;
   }>;
   parameters?: TechnicalParameter[];
-  duration?: number;              // 停留时间（小时）
+  duration?: number; // 停留时间（小时）
   notes?: string;
 }
 
@@ -82,26 +84,26 @@ export interface EquipmentConfig {
   model?: string;
   quantity: number;
   specs?: string;
-  power?: number;                 // 功率 (kW)
-  price?: number;                 // 价格（元）
+  power?: number; // 功率 (kW)
+  price?: number; // 价格（元）
   remarks?: string;
 }
 
 export interface CostAnalysis {
   capitalCost: {
-    equipmentCost: number;        // 设备费用
-    civilWorkCost: number;        // 土建费用
-    installationCost: number;     // 安装费用
-    otherCost: number;            // 其他费用
-    total: number;                // 总投资
+    equipmentCost: number; // 设备费用
+    civilWorkCost: number; // 土建费用
+    installationCost: number; // 安装费用
+    otherCost: number; // 其他费用
+    total: number; // 总投资
   };
   operatingCost: {
-    powerCost: number;            // 电费
-    chemicalCost: number;         // 药剂费
-    laborCost: number;            // 人工费
-    maintenanceCost: number;      // 维护费
-    total: number;                // 年运营成本
-    unitCost: number;             // 吨水成本
+    powerCost: number; // 电费
+    chemicalCost: number; // 药剂费
+    laborCost: number; // 人工费
+    maintenanceCost: number; // 维护费
+    total: number; // 年运营成本
+    unitCost: number; // 吨水成本
   };
 }
 
@@ -116,11 +118,11 @@ export interface ImplementationGuide {
 }
 
 export interface OperationAdvice {
-  startup: string;                // 启动指导
-  routineOperation: string;       // 日常操作
-  maintenance: string;            // 维护建议
-  troubleshooting: string;        // 故障排查
-  safetyMeasures: string;         // 安全措施
+  startup: string; // 启动指导
+  routineOperation: string; // 日常操作
+  maintenance: string; // 维护建议
+  troubleshooting: string; // 故障排查
+  safetyMeasures: string; // 安全措施
 }
 
 export interface RiskAssessment {
@@ -134,24 +136,24 @@ export interface RiskAssessment {
 }
 
 export interface EnhancedProposal {
-  originalProposal: string;       // 原始方案
-  enhancedProposal: string;       // 增强后的方案
-  
+  originalProposal: string; // 原始方案
+  enhancedProposal: string; // 增强后的方案
+
   // 技术细节
   technicalParameters: TechnicalParameter[];
   processFlow: ProcessStep[];
   equipmentConfig: EquipmentConfig[];
-  
+
   // 成本分析
   costAnalysis?: CostAnalysis;
-  
+
   // 实施指导
   implementationGuide: ImplementationGuide;
   operationAdvice: OperationAdvice;
-  
+
   // 风险评估
   riskAssessment: RiskAssessment;
-  
+
   // 优化建议
   optimizationSuggestions: Array<{
     category: string;
@@ -159,7 +161,7 @@ export interface EnhancedProposal {
     benefit: string;
     priority: 'high' | 'medium' | 'low';
   }>;
-  
+
   // 元数据
   enhancementLevel: 'basic' | 'standard' | 'comprehensive';
   confidence: number;
@@ -171,14 +173,14 @@ export interface EnhancedProposal {
 }
 
 export interface EnhancementOptions {
-  enableTechnicalParams?: boolean;    // 启用技术参数细化
+  enableTechnicalParams?: boolean; // 启用技术参数细化
   enableProcessOptimization?: boolean; // 启用工艺流程优化
   enableEquipmentOptimization?: boolean; // 启用设备配置优化
-  enableCostAnalysis?: boolean;       // 启用成本分析
+  enableCostAnalysis?: boolean; // 启用成本分析
   enableImplementationGuide?: boolean; // 启用实施指导
-  enableOperationAdvice?: boolean;    // 启用运营建议
-  enableRiskAssessment?: boolean;     // 启用风险评估
-  enableMarketData?: boolean;         // 启用市场数据查询
+  enableOperationAdvice?: boolean; // 启用运营建议
+  enableRiskAssessment?: boolean; // 启用风险评估
+  enableMarketData?: boolean; // 启用市场数据查询
   enhancementLevel?: 'basic' | 'standard' | 'comprehensive';
 }
 
@@ -237,22 +239,22 @@ export class ProposalEnhancer {
       enableTechnicalParams
         ? this.enhanceTechnicalParameters(context, originalProposal)
         : Promise.resolve([]),
-      
+
       // 工艺流程优化
       enableProcessOptimization
         ? this.enhanceProcessFlow(context, originalProposal)
         : Promise.resolve([]),
-      
+
       // 设备配置优化
       enableEquipmentOptimization
         ? this.enhanceEquipmentConfig(context, originalProposal, enableMarketData)
         : Promise.resolve([]),
-      
+
       // 实施指导
       enableImplementationGuide
         ? this.generateImplementationGuide(context)
         : Promise.resolve({ phase: '', steps: [] }),
-      
+
       // 运营建议
       enableOperationAdvice
         ? this.generateOperationAdvice(context)
@@ -263,12 +265,10 @@ export class ProposalEnhancer {
             troubleshooting: '',
             safetyMeasures: '',
           }),
-      
+
       // 风险评估
-      enableRiskAssessment
-        ? this.generateRiskAssessment(context)
-        : Promise.resolve({ risks: [] }),
-      
+      enableRiskAssessment ? this.generateRiskAssessment(context) : Promise.resolve({ risks: [] }),
+
       // 优化建议
       this.generateOptimizationSuggestions(context, originalProposal),
     ]);
@@ -379,9 +379,9 @@ ${proposal}
         maxTokens: 2048,
       });
 
-      const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/) ||
-                       response.text.match(/\[[\s\S]*\]/);
-      
+      const jsonMatch =
+        response.text.match(/```json\s*([\s\S]*?)\s*```/) || response.text.match(/\[[\s\S]*\]/);
+
       if (jsonMatch) {
         const params = JSON.parse(jsonMatch[1] || jsonMatch[0]);
         return params.filter((p: any) => p.name && p.value);
@@ -457,9 +457,9 @@ ${proposal}
         maxTokens: 2048,
       });
 
-      const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/) ||
-                       response.text.match(/\[[\s\S]*\]/);
-      
+      const jsonMatch =
+        response.text.match(/```json\s*([\s\S]*?)\s*```/) || response.text.match(/\[[\s\S]*\]/);
+
       if (jsonMatch) {
         const steps = JSON.parse(jsonMatch[1] || jsonMatch[0]);
         return steps.filter((s: any) => s.step && s.name);
@@ -547,9 +547,9 @@ ${proposal}
         maxTokens: 16384,
       });
 
-      const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/) ||
-                       response.text.match(/\[[\s\S]*\]/);
-      
+      const jsonMatch =
+        response.text.match(/```json\s*([\s\S]*?)\s*```/) || response.text.match(/\[[\s\S]*\]/);
+
       if (jsonMatch) {
         const equipment = JSON.parse(jsonMatch[1] || jsonMatch[0]);
         return equipment.filter((e: any) => e.id && e.name && e.quantity > 0);
@@ -578,17 +578,17 @@ ${proposal}
 
       // 计算设备总费用
       const equipmentCost = equipmentConfig.reduce((sum, e) => sum + (e.price || 0), 0);
-      
+
       // 基于行业经验估算其他费用
-      const civilWorkCost = Math.round(equipmentCost * 0.4);  // 土建费用约占40%
+      const civilWorkCost = Math.round(equipmentCost * 0.4); // 土建费用约占40%
       const installationCost = Math.round(equipmentCost * 0.15); // 安装费用约占15%
-      const otherCost = Math.round(equipmentCost * 0.1);     // 其他费用约占10%
+      const otherCost = Math.round(equipmentCost * 0.1); // 其他费用约占10%
       const totalCapitalCost = equipmentCost + civilWorkCost + installationCost + otherCost;
 
       // 运营成本估算
-      const powerCost = Math.round(context.capacity * 0.5 * 365);  // 电费估算
+      const powerCost = Math.round(context.capacity * 0.5 * 365); // 电费估算
       const chemicalCost = Math.round(context.capacity * 0.3 * 365); // 药剂费估算
-      const laborCost = Math.round(context.capacity * 0.2 * 365);   // 人工费估算
+      const laborCost = Math.round(context.capacity * 0.2 * 365); // 人工费估算
       const maintenanceCost = Math.round(totalCapitalCost * 0.02); // 维护费约占投资2%
       const totalOperatingCost = powerCost + chemicalCost + laborCost + maintenanceCost;
       const unitCost = Math.round(totalOperatingCost / (context.capacity * 365));
@@ -613,8 +613,21 @@ ${proposal}
     } catch (error) {
       Logger.error('[ProposalEnhancer] 成本分析生成失败:', error);
       return {
-        capitalCost: { equipmentCost: 0, civilWorkCost: 0, installationCost: 0, otherCost: 0, total: 0 },
-        operatingCost: { powerCost: 0, chemicalCost: 0, laborCost: 0, maintenanceCost: 0, total: 0, unitCost: 0 },
+        capitalCost: {
+          equipmentCost: 0,
+          civilWorkCost: 0,
+          installationCost: 0,
+          otherCost: 0,
+          total: 0,
+        },
+        operatingCost: {
+          powerCost: 0,
+          chemicalCost: 0,
+          laborCost: 0,
+          maintenanceCost: 0,
+          total: 0,
+          unitCost: 0,
+        },
       };
     }
   }
@@ -664,9 +677,9 @@ ${proposal}
         maxTokens: 2048,
       });
 
-      const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/) ||
-                       response.text.match(/\{[\s\S]*\}/);
-      
+      const jsonMatch =
+        response.text.match(/```json\s*([\s\S]*?)\s*```/) || response.text.match(/\{[\s\S]*\}/);
+
       if (jsonMatch) {
         return JSON.parse(jsonMatch[1] || jsonMatch[0]);
       }
@@ -681,9 +694,7 @@ ${proposal}
   /**
    * 生成运营建议
    */
-  private async generateOperationAdvice(
-    context: ProposalContext
-  ): Promise<OperationAdvice> {
+  private async generateOperationAdvice(context: ProposalContext): Promise<OperationAdvice> {
     Logger.info('[ProposalEnhancer] 生成运营建议');
 
     try {
@@ -719,9 +730,9 @@ ${proposal}
         maxTokens: 2048,
       });
 
-      const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/) ||
-                       response.text.match(/\{[\s\S]*\}/);
-      
+      const jsonMatch =
+        response.text.match(/```json\s*([\s\S]*?)\s*```/) || response.text.match(/\{[\s\S]*\}/);
+
       if (jsonMatch) {
         return JSON.parse(jsonMatch[1] || jsonMatch[0]);
       }
@@ -742,9 +753,7 @@ ${proposal}
   /**
    * 生成风险评估
    */
-  private async generateRiskAssessment(
-    context: ProposalContext
-  ): Promise<RiskAssessment> {
+  private async generateRiskAssessment(context: ProposalContext): Promise<RiskAssessment> {
     Logger.info('[ProposalEnhancer] 生成风险评估');
 
     try {
@@ -792,9 +801,9 @@ ${proposal}
         maxTokens: 2048,
       });
 
-      const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/) ||
-                       response.text.match(/\{[\s\S]*\}/);
-      
+      const jsonMatch =
+        response.text.match(/```json\s*([\s\S]*?)\s*```/) || response.text.match(/\{[\s\S]*\}/);
+
       if (jsonMatch) {
         return JSON.parse(jsonMatch[1] || jsonMatch[0]);
       }
@@ -812,12 +821,14 @@ ${proposal}
   private async generateOptimizationSuggestions(
     context: ProposalContext,
     proposal: string
-  ): Promise<Array<{
-    category: string;
-    description: string;
-    benefit: string;
-    priority: 'high' | 'medium' | 'low';
-  }>> {
+  ): Promise<
+    Array<{
+      category: string;
+      description: string;
+      benefit: string;
+      priority: 'high' | 'medium' | 'low';
+    }>
+  > {
     Logger.info('[ProposalEnhancer] 生成优化建议');
 
     try {
@@ -865,9 +876,9 @@ ${proposal}
         maxTokens: 2048,
       });
 
-      const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/) ||
-                       response.text.match(/\[[\s\S]*\]/);
-      
+      const jsonMatch =
+        response.text.match(/```json\s*([\s\S]*?)\s*```/) || response.text.match(/\[[\s\S]*\]/);
+
       if (jsonMatch) {
         const suggestions = JSON.parse(jsonMatch[1] || jsonMatch[0]);
         return suggestions.filter((s: any) => s.category && s.description);
@@ -900,7 +911,7 @@ ${proposal}
     // 添加技术参数部分
     if (technicalParams.length > 0) {
       enhanced += '\n\n## 📊 技术参数\n\n';
-      
+
       const categories = {
         influuent: '进水水质参数',
         process: '工艺运行参数',
@@ -909,12 +920,12 @@ ${proposal}
       };
 
       Object.entries(categories).forEach(([key, label]) => {
-        const params = technicalParams.filter(p => p.category === key);
+        const params = technicalParams.filter((p) => p.category === key);
         if (params.length > 0) {
           enhanced += `### ${label}\n\n`;
           enhanced += '| 参数名称 | 数值 | 单位 | 说明 |\n';
           enhanced += '|---------|------|------|------|\n';
-          params.forEach(p => {
+          params.forEach((p) => {
             enhanced += `| ${p.name} | ${p.value} | ${p.unit || '-'} | ${p.description || '-'} |\n`;
           });
           enhanced += '\n';
@@ -925,17 +936,17 @@ ${proposal}
     // 添加工艺流程部分
     if (processFlow.length > 0) {
       enhanced += '\n## 🔄 工艺流程\n\n';
-      processFlow.forEach(step => {
+      processFlow.forEach((step) => {
         enhanced += `### 步骤 ${step.step}: ${step.name}\n\n`;
         enhanced += `${step.description}\n\n`;
-        
+
         if (step.duration) {
           enhanced += `**停留时间**: ${step.duration} 小时\n\n`;
         }
 
         if (step.equipment && step.equipment.length > 0) {
           enhanced += '**设备配置**:\n\n';
-          step.equipment.forEach(eq => {
+          step.equipment.forEach((eq) => {
             enhanced += `- ${eq.name} (数量: ${eq.quantity}`;
             if (eq.model) enhanced += `, 型号: ${eq.model}`;
             if (eq.specs) enhanced += `, 规格: ${eq.specs}`;
@@ -948,7 +959,7 @@ ${proposal}
           enhanced += '**运行参数**:\n\n';
           enhanced += '| 参数 | 数值 | 单位 | 说明 |\n';
           enhanced += '|------|------|------|------|\n';
-          step.parameters.forEach(p => {
+          step.parameters.forEach((p) => {
             enhanced += `| ${p.name} | ${p.value} | ${p.unit || '-'} | ${p.description || '-'} |\n`;
           });
           enhanced += '\n';
@@ -963,9 +974,9 @@ ${proposal}
     // 添加设备配置部分
     if (equipmentConfig.length > 0) {
       enhanced += '\n## ⚙️ 设备配置清单\n\n';
-      
+
       const categories = {} as Record<string, EquipmentConfig[]>;
-      equipmentConfig.forEach(e => {
+      equipmentConfig.forEach((e) => {
         if (!categories[e.category]) {
           categories[e.category] = [];
         }
@@ -991,7 +1002,7 @@ ${proposal}
     // 添加成本分析部分
     if (costAnalysis) {
       enhanced += '\n## 💰 成本分析\n\n';
-      
+
       enhanced += '### 投资成本\n\n';
       enhanced += '| 项目 | 金额（万元） | 占比 |\n';
       enhanced += '|------|-------------|------|\n';
@@ -1018,12 +1029,12 @@ ${proposal}
     if (implementationGuide && implementationGuide.steps.length > 0) {
       enhanced += '\n## 📋 实施指导\n\n';
       enhanced += `### ${implementationGuide.phase}\n\n`;
-      implementationGuide.steps.forEach(step => {
+      implementationGuide.steps.forEach((step) => {
         enhanced += `#### ${step.task}\n\n`;
         enhanced += `**工期**: ${step.duration}\n\n`;
         if (step.requirements && step.requirements.length > 0) {
           enhanced += '**要求**:\n\n';
-          step.requirements.forEach(req => {
+          step.requirements.forEach((req) => {
             enhanced += `- ${req}\n`;
           });
           enhanced += '\n';
@@ -1049,8 +1060,9 @@ ${proposal}
       enhanced += '\n## ⚠️ 风险评估\n\n';
       enhanced += '| 风险类别 | 风险描述 | 发生概率 | 影响程度 | 应对措施 |\n';
       enhanced += '|---------|---------|---------|---------|---------|\n';
-      riskAssessment.risks.forEach(risk => {
-        const probEmoji = risk.probability === 'high' ? '🔴' : risk.probability === 'medium' ? '🟡' : '🟢';
+      riskAssessment.risks.forEach((risk) => {
+        const probEmoji =
+          risk.probability === 'high' ? '🔴' : risk.probability === 'medium' ? '🟡' : '🟢';
         const impactEmoji = risk.impact === 'high' ? '🔴' : risk.impact === 'medium' ? '🟡' : '🟢';
         enhanced += `| ${risk.category} | ${risk.description} | ${probEmoji} ${risk.probability} | ${impactEmoji} ${risk.impact} | ${risk.mitigation} |\n`;
       });

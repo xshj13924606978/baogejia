@@ -18,15 +18,15 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     } else {
-      return NextResponse.json(
-        { error: 'Invalid format' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid format' }, { status: 400 });
     }
   } catch (error) {
     console.error('[Export] Export error:', error);
     return NextResponse.json(
-      { error: 'Failed to export quote', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Failed to export quote',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 }
     );
   }
@@ -40,16 +40,12 @@ function getQuoteTitle(data: any): string {
 
   // 获取主要产品类别（如果有）
   const categories = new Set(
-    products
-      .map((p: any) => p.category)
-      .filter((c: any) => c && c !== '未分类')
+    products.map((p: any) => p.category).filter((c: any) => c && c !== '未分类')
   );
 
   // 获取主要品牌（如果有）
   const brands = new Set(
-    products
-      .map((p: any) => p.brand)
-      .filter((b: any) => b && b.trim() !== '')
+    products.map((p: any) => p.brand).filter((b: any) => b && b.trim() !== '')
   );
 
   // 计算总价
@@ -194,10 +190,10 @@ function generateExcel(data: any) {
 
     // 标题行（单独一行，居中）
     quoteData.push([quoteTitle]);
-    
+
     // 报价单编号行
     quoteData.push(['报价单编号', data.quoteNumber]);
-    
+
     // 空行
     quoteData.push(['']);
 
@@ -255,14 +251,14 @@ function generateExcel(data: any) {
 
     // 设置列宽
     worksheet['!cols'] = [
-      { wch: 8 },   // 序号/标签
-      { wch: 25 },  // 产品名称/值
-      { wch: 15 },  // 规格型号
-      { wch: 10 },  // 品牌
-      { wch: 6 },   // 单位
-      { wch: 8 },   // 数量
-      { wch: 12 },  // 单价
-      { wch: 12 },  // 总价
+      { wch: 8 }, // 序号/标签
+      { wch: 25 }, // 产品名称/值
+      { wch: 15 }, // 规格型号
+      { wch: 10 }, // 品牌
+      { wch: 6 }, // 单位
+      { wch: 8 }, // 数量
+      { wch: 12 }, // 单价
+      { wch: 12 }, // 总价
     ];
 
     // 合并单元格 - 标题合并到整行
@@ -274,7 +270,7 @@ function generateExcel(data: any) {
     if (worksheet['A1']) {
       worksheet['A1'].s = {
         font: { bold: true, sz: 14 },
-        alignment: { horizontal: 'center' }
+        alignment: { horizontal: 'center' },
       };
     }
 
@@ -286,7 +282,7 @@ function generateExcel(data: any) {
       if (worksheet[cellKey]) {
         worksheet[cellKey].s = {
           font: { bold: true },
-          alignment: { horizontal: 'center' }
+          alignment: { horizontal: 'center' },
         };
       }
     });
@@ -318,7 +314,7 @@ function generatePDF(data: any): Response {
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'a4',
     });
 
     // 加载中文字体
@@ -330,13 +326,13 @@ function generatePDF(data: any): Response {
     doc.setFont('font_0');
 
     // 配色方案（与前端完全一致）
-    const primaryBlue: [number, number, number] = [10, 74, 122];      // #0a4a7a
-    const accentGreen: [number, number, number] = [44, 140, 153];     // #2c8c99
-    const accentOrange: [number, number, number] = [249, 168, 37];    // #f9a825
-    const amountRed: [number, number, number] = [211, 47, 47];        // #d32f2f
-    const slate100: [number, number, number] = [241, 245, 249];      // #f1f5f9
-    const slate400: [number, number, number] = [148, 163, 184];      // #94a3b8
-    const yellowBg: [number, number, number] = [255, 243, 205];      // #fff3cd
+    const primaryBlue: [number, number, number] = [10, 74, 122]; // #0a4a7a
+    const accentGreen: [number, number, number] = [44, 140, 153]; // #2c8c99
+    const accentOrange: [number, number, number] = [249, 168, 37]; // #f9a825
+    const amountRed: [number, number, number] = [211, 47, 47]; // #d32f2f
+    const slate100: [number, number, number] = [241, 245, 249]; // #f1f5f9
+    const slate400: [number, number, number] = [148, 163, 184]; // #94a3b8
+    const yellowBg: [number, number, number] = [255, 243, 205]; // #fff3cd
 
     const quoteTitle = getQuoteTitle(data);
     const totalTitle = getTotalTitle(data);
@@ -369,8 +365,12 @@ function generatePDF(data: any): Response {
     doc.setFont('font_0', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(200, 200, 200);
-    const quoteDate = projectFields.find((f: any) => f.label === '报价日期')?.value || new Date().toLocaleDateString('zh-CN');
-    doc.text(`报价单号：${data.quoteNumber} | 日期：${quoteDate}`, pageWidth / 2, 26, { align: 'center' });
+    const quoteDate =
+      projectFields.find((f: any) => f.label === '报价日期')?.value ||
+      new Date().toLocaleDateString('zh-CN');
+    doc.text(`报价单号：${data.quoteNumber} | 日期：${quoteDate}`, pageWidth / 2, 26, {
+      align: 'center',
+    });
 
     yPos = 40;
 
@@ -529,14 +529,18 @@ function generatePDF(data: any): Response {
     // 小计
     doc.text('小计', margin + 5, yPos + 8);
     doc.setTextColor(15, 23, 42);
-    doc.text(`¥${feeSummary.subtotal.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, { align: 'right' });
+    doc.text(`¥${feeSummary.subtotal.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, {
+      align: 'right',
+    });
     yPos += 8;
 
     // 税费
     doc.setTextColor(71, 85, 105);
     doc.text(`税费（${feeConfig.taxRate}%）`, margin + 5, yPos + 8);
     doc.setTextColor(15, 23, 42);
-    doc.text(`¥${feeSummary.taxAmount.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, { align: 'right' });
+    doc.text(`¥${feeSummary.taxAmount.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, {
+      align: 'right',
+    });
     yPos += 8;
 
     // 运费
@@ -544,7 +548,9 @@ function generatePDF(data: any): Response {
       doc.setTextColor(71, 85, 105);
       doc.text('运费', margin + 5, yPos + 8);
       doc.setTextColor(15, 23, 42);
-      doc.text(`¥${feeSummary.shippingFee.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, { align: 'right' });
+      doc.text(`¥${feeSummary.shippingFee.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, {
+        align: 'right',
+      });
       yPos += 8;
     }
 
@@ -553,7 +559,9 @@ function generatePDF(data: any): Response {
       doc.setTextColor(71, 85, 105);
       doc.text('安装调试费', margin + 5, yPos + 8);
       doc.setTextColor(15, 23, 42);
-      doc.text(`¥${feeSummary.installationFee.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, { align: 'right' });
+      doc.text(`¥${feeSummary.installationFee.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, {
+        align: 'right',
+      });
       yPos += 8;
     }
 
@@ -562,7 +570,9 @@ function generatePDF(data: any): Response {
       doc.setTextColor(71, 85, 105);
       doc.text('其他费用', margin + 5, yPos + 8);
       doc.setTextColor(15, 23, 42);
-      doc.text(`¥${feeSummary.otherFee.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, { align: 'right' });
+      doc.text(`¥${feeSummary.otherFee.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, {
+        align: 'right',
+      });
       yPos += 8;
     }
 
@@ -573,7 +583,9 @@ function generatePDF(data: any): Response {
     doc.text(`${totalTitle}（含税）`, margin + 5, yPos + 10);
     doc.setTextColor(...amountRed);
     doc.setFontSize(16);
-    doc.text(`¥${feeSummary.totalAmount.toFixed(2)}`, pageWidth - margin - 5, yPos + 10, { align: 'right' });
+    doc.text(`¥${feeSummary.totalAmount.toFixed(2)}`, pageWidth - margin - 5, yPos + 10, {
+      align: 'right',
+    });
     yPos += 12;
 
     // 大写金额（黄色背景）
@@ -799,7 +811,12 @@ function generatePDF(data: any): Response {
     doc.text('仅供参考', sealX, sealY + 8, { align: 'center' });
 
     // 添加水印
-    addWatermark(doc, data.customerInfo?.name || data.projectFields?.find((f: any) => f.label === '客户名称')?.value || '');
+    addWatermark(
+      doc,
+      data.customerInfo?.name ||
+        data.projectFields?.find((f: any) => f.label === '客户名称')?.value ||
+        ''
+    );
 
     const pdfBytes = doc.output('arraybuffer');
     const buffer = Buffer.from(pdfBytes);

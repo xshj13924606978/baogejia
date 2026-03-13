@@ -5,10 +5,7 @@ import { ShareQuoteRequest } from '@/types/team';
 /**
  * 获取团队共享的报价单
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: teamId } = await params;
     const userId = request.headers.get('x-user-id') || 'demo_user_1';
@@ -34,10 +31,7 @@ export async function GET(
 /**
  * 共享报价单到团队
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: teamId } = await params;
     const userId = request.headers.get('x-user-id') || 'demo_user_1';

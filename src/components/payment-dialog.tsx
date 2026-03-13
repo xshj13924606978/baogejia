@@ -32,9 +32,7 @@ export default function PaymentDialog({
   user,
   onConfirm,
 }: PaymentDialogProps) {
-  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>(
-    PaymentMethod.WECHAT_JSAPI
-  );
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>(PaymentMethod.WECHAT_JSAPI);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,17 +101,11 @@ export default function PaymentDialog({
             <div className="flex items-center justify-between mt-2">
               {item.price ? (
                 <>
-                  <div className="text-2xl font-bold text-orange-600">
-                    ¥{item.price}
-                  </div>
-                  <div className="text-sm text-gray-500 line-through">
-                    {item.points}积分
-                  </div>
+                  <div className="text-2xl font-bold text-orange-600">¥{item.price}</div>
+                  <div className="text-sm text-gray-500 line-through">{item.points}积分</div>
                 </>
               ) : (
-                <div className="text-2xl font-bold text-orange-600">
-                  {item.points}积分
-                </div>
+                <div className="text-2xl font-bold text-orange-600">{item.points}积分</div>
               )}
             </div>
           </div>
@@ -121,9 +113,7 @@ export default function PaymentDialog({
           {/* 提示信息 */}
           {canExchangeByPoints ? (
             <Alert>
-              <AlertDescription>
-                您的积分充足，可以直接兑换
-              </AlertDescription>
+              <AlertDescription>您的积分充足，可以直接兑换</AlertDescription>
             </Alert>
           ) : (
             <Alert variant="destructive">
@@ -156,9 +146,7 @@ export default function PaymentDialog({
                         <Label htmlFor={method.value} className="font-medium cursor-pointer">
                           {method.icon} {method.label}
                         </Label>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {method.desc}
-                        </div>
+                        <div className="text-xs text-gray-500 mt-1">{method.desc}</div>
                       </div>
                     </div>
                   ))}
@@ -175,12 +163,7 @@ export default function PaymentDialog({
 
           {/* 操作按钮 */}
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={onClose}
-              disabled={processing}
-            >
+            <Button variant="outline" className="flex-1" onClick={onClose} disabled={processing}>
               取消
             </Button>
             <Button
@@ -188,7 +171,11 @@ export default function PaymentDialog({
               onClick={canExchangeByPoints ? undefined : handleConfirm}
               disabled={processing || (canExchangeByPoints && !item.price)}
             >
-              {processing ? '处理中...' : canExchangeByPoints && !item.price ? '请使用积分兑换' : '确认支付'}
+              {processing
+                ? '处理中...'
+                : canExchangeByPoints && !item.price
+                  ? '请使用积分兑换'
+                  : '确认支付'}
             </Button>
           </div>
         </div>

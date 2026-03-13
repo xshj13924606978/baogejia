@@ -14,26 +14,35 @@ export async function POST(request: NextRequest) {
     console.log('[Import API] 接收到的数据:', {
       productCount: Array.isArray(productData) ? productData.length : 0,
       hasFieldMapping: !!fieldMapping,
-      fieldMapping: fieldMapping ? JSON.stringify(fieldMapping, null, 2) : '无'
+      fieldMapping: fieldMapping ? JSON.stringify(fieldMapping, null, 2) : '无',
     });
 
     if (!Array.isArray(productData)) {
       console.error('[Import API] ❌ 产品数据格式不正确，必须是数组');
-      return NextResponse.json({
-        success: false,
-        error: '产品数据格式不正确，必须是数组',
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: '产品数据格式不正确，必须是数组',
+        },
+        { status: 400 }
+      );
     }
 
     if (productData.length === 0) {
       console.error('[Import API] ❌ 产品数据为空');
-      return NextResponse.json({
-        success: false,
-        error: '产品数据为空',
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: '产品数据为空',
+        },
+        { status: 400 }
+      );
     }
 
-    console.log('[Import API] Excel 原始数据示例 (前3条):', JSON.stringify(productData.slice(0, 3), null, 2));
+    console.log(
+      '[Import API] Excel 原始数据示例 (前3条):',
+      JSON.stringify(productData.slice(0, 3), null, 2)
+    );
 
     let successCount = 0;
     let errorCount = 0;
@@ -53,7 +62,7 @@ export async function POST(request: NextRequest) {
         .eq('is_required', true);
 
       if (fieldConfigs && fieldConfigs.length > 0) {
-        requiredFields = fieldConfigs.map(c => c.field_key);
+        requiredFields = fieldConfigs.map((c) => c.field_key);
       }
       console.log('[Import API] 必填字段:', requiredFields);
     } catch (error) {
@@ -65,7 +74,9 @@ export async function POST(request: NextRequest) {
     // 批量插入产品
     for (let i = 0; i < productData.length; i++) {
       const item = productData[i];
-      console.log(`[Import API] ========== 处理第 ${i + 1}/${productData.length} 条数据 ==========`);
+      console.log(
+        `[Import API] ========== 处理第 ${i + 1}/${productData.length} 条数据 ==========`
+      );
 
       try {
         let product: Record<string, any>;
@@ -74,7 +85,7 @@ export async function POST(request: NextRequest) {
         if (fieldMapping && typeof fieldMapping === 'object') {
           console.log('[Import API] 使用自定义字段映射:', JSON.stringify(fieldMapping, null, 2));
           product = {};
-          Object.keys(fieldMapping).forEach(systemField => {
+          Object.keys(fieldMapping).forEach((systemField) => {
             const excelHeader = fieldMapping[systemField];
             if (excelHeader && item[excelHeader] !== undefined) {
               product[systemField] = item[excelHeader];
@@ -94,8 +105,10 @@ export async function POST(request: NextRequest) {
             contact_person: item['联系人'] || item['contact_person'] || '',
             contact_phone: item['联系电话'] || item['电话'] || item['contact_phone'] || '',
             unit: item['单位'] || item['unit'] || '',
-            cost_price: parseFloat(item['成本'] || item['成本价(元)'] || item['cost_price'] || '0') || 0,
-            min_price: parseFloat(item['最低售价'] || item['最低售价(元)'] || item['min_price'] || '0') || 0,
+            cost_price:
+              parseFloat(item['成本'] || item['成本价(元)'] || item['cost_price'] || '0') || 0,
+            min_price:
+              parseFloat(item['最低售价'] || item['最低售价(元)'] || item['min_price'] || '0') || 0,
             price: parseFloat(item['指导价'] || item['价格'] || item['price'] || '0') || 0,
             stock: parseInt(item['库存'] || item['stock'] || '0') || 0,
             category: item['分类'] || item['category'] || '',
@@ -105,7 +118,9 @@ export async function POST(request: NextRequest) {
         }
 
         // 验证必填字段
-        const missingFields = requiredFields.filter(field => !product[field] || product[field] === '' || product[field] === 0);
+        const missingFields = requiredFields.filter(
+          (field) => !product[field] || product[field] === '' || product[field] === 0
+        );
         if (missingFields.length > 0) {
           const errorMsg = `产品 "${product.product_name || '未知'}" 缺少必填字段: ${missingFields.join('、')}`;
           console.error(`[Import API] ❌ ${errorMsg}`);
@@ -137,10 +152,19 @@ export async function POST(request: NextRequest) {
           description: product.description || item['描述'] || item['description'] || '',
           image_url: product.image_url || item['图片'] || item['image_url'] || null,
           contact_person: product.contact_person || item['联系人'] || item['contact_person'] || '',
-          contact_phone: product.contact_phone || item['联系电话'] || item['电话'] || item['contact_phone'] || '',
+          contact_phone:
+            product.contact_phone ||
+            item['联系电话'] ||
+            item['电话'] ||
+            item['contact_phone'] ||
+            '',
           cost_price: product.cost_price || item['成本'] || item['cost_price'] || 0,
           min_price: product.min_price || item['最低售价'] || item['min_price'] || 0,
-          parameter_description: product.parameter_description || item['参数描述'] || item['parameter_description'] || '',
+          parameter_description:
+            product.parameter_description ||
+            item['参数描述'] ||
+            item['parameter_description'] ||
+            '',
           brand: product.brand || item['品牌'] || item['brand'] || '',
           unit: product.unit || item['单位'] || item['unit'] || '',
         };
@@ -149,7 +173,7 @@ export async function POST(request: NextRequest) {
 
         // 查重检查：根据名称和型号判断是否存在
         console.log(`[Import API] 查重检查: name="${dbProduct.name}", model="${dbProduct.model}"`);
-        
+
         // 只根据 name 和 model 查重，因为数据库可能没有 supplier 字段
         const { data: existingProduct, error: checkError } = await db
           .from('products')
@@ -173,7 +197,7 @@ export async function POST(request: NextRequest) {
           duplicateCount++;
           duplicateProducts.push({
             existing: existingProduct,
-            attempted: dbProduct
+            attempted: dbProduct,
           });
           errors.push(duplicateMsg);
           continue;
@@ -182,7 +206,10 @@ export async function POST(request: NextRequest) {
         console.log('[Import API] ✅ 查重通过，准备插入数据库');
 
         // 插入数据库
-        const { data: insertedData, error: insertError } = await db.from('products').insert(dbProduct).select();
+        const { data: insertedData, error: insertError } = await db
+          .from('products')
+          .insert(dbProduct)
+          .select();
 
         if (insertError) {
           console.error('[Import API] ❌ 插入失败:', insertError);
@@ -221,18 +248,18 @@ export async function POST(request: NextRequest) {
 
       if (!verifyError && allProducts) {
         console.log('[Import API] ✅ 验证成功，数据库中总产品数:', allProducts.length);
-        
+
         // 统计本次导入的产品
-        const recentProducts = allProducts.filter(p => {
+        const recentProducts = allProducts.filter((p) => {
           if (p.created_at) {
             const productTime = new Date(p.created_at).getTime();
             return productTime >= startTime;
           }
           return false;
         });
-        
+
         console.log('[Import API] 本次导入新增产品数:', recentProducts.length);
-        recentProducts.forEach(p => {
+        recentProducts.forEach((p) => {
           console.log(`  - ID: ${p.id}, 名称: ${p.name}, 型号: ${p.model}, 价格: ${p.price}`);
         });
       }
@@ -249,15 +276,18 @@ export async function POST(request: NextRequest) {
       errors,
       insertedProducts,
       duplicateProducts,
-      duration
+      duration,
     });
   } catch (error) {
     console.error('[Import API] ❌ 导入产品失败:', error);
     console.error('[Import API] 错误堆栈:', error instanceof Error ? error.stack : error);
-    return NextResponse.json({
-      success: false,
-      error: '导入产品失败',
-      details: error instanceof Error ? error.message : '未知错误'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: '导入产品失败',
+        details: error instanceof Error ? error.message : '未知错误',
+      },
+      { status: 500 }
+    );
   }
 }

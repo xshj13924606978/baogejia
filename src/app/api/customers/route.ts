@@ -9,14 +9,13 @@ export async function GET(request: NextRequest) {
 
     const supabase = getSupabaseClient();
 
-    let query = supabase
-      .from('customers')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let query = supabase.from('customers').select('*').order('created_at', { ascending: false });
 
     // 搜索功能
     if (search) {
-      query = query.or(`company_name.ilike.%${search}%,project_name.ilike.%${search}%,contact_person.ilike.%${search}%,phone.ilike.%${search}%`);
+      query = query.or(
+        `company_name.ilike.%${search}%,project_name.ilike.%${search}%,contact_person.ilike.%${search}%,phone.ilike.%${search}%`
+      );
     }
 
     const { data: customers, error } = await query;
@@ -26,10 +25,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ customers: customers || [] });
   } catch (error: any) {
     console.error('获取客户列表失败:', error);
-    return NextResponse.json(
-      { error: error.message || '获取客户列表失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || '获取客户列表失败' }, { status: 500 });
   }
 }
 
@@ -91,10 +87,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ customer }, { status: 201 });
   } catch (error: any) {
     console.error('添加客户失败:', error);
-    return NextResponse.json(
-      { error: error.message || '添加客户失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || '添加客户失败' }, { status: 500 });
   }
 }
 
@@ -110,20 +103,14 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = getSupabaseClient();
 
-    const { error } = await supabase
-      .from('customers')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('customers').delete().eq('id', id);
 
     if (error) throw error;
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('删除客户失败:', error);
-    return NextResponse.json(
-      { error: error.message || '删除客户失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || '删除客户失败' }, { status: 500 });
   }
 }
 
@@ -193,9 +180,6 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ customer });
   } catch (error: any) {
     console.error('更新客户失败:', error);
-    return NextResponse.json(
-      { error: error.message || '更新客户失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || '更新客户失败' }, { status: 500 });
   }
 }

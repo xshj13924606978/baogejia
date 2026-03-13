@@ -9,10 +9,13 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const body = await request.json();
 
     if (isNaN(id)) {
-      return NextResponse.json({
-        success: false,
-        error: '无效的产品ID',
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: '无效的产品ID',
+        },
+        { status: 400 }
+      );
     }
 
     const db = getSupabaseClient();
@@ -39,10 +42,13 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     if (error) {
       console.error('更新产品失败:', error);
-      return NextResponse.json({
-        success: false,
-        error: error.message,
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -52,10 +58,13 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     });
   } catch (error) {
     console.error('更新产品失败:', error);
-    return NextResponse.json({
-      success: false,
-      error: '更新产品失败',
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: '更新产品失败',
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -66,10 +75,13 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     const id = parseInt(params.id);
 
     if (isNaN(id)) {
-      return NextResponse.json({
-        success: false,
-        error: '无效的产品ID',
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: '无效的产品ID',
+        },
+        { status: 400 }
+      );
     }
 
     const db = getSupabaseClient();
@@ -78,10 +90,13 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
     if (error) {
       console.error('删除产品失败:', error);
-      return NextResponse.json({
-        success: false,
-        error: error.message,
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -90,9 +105,12 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     });
   } catch (error) {
     console.error('删除产品失败:', error);
-    return NextResponse.json({
-      success: false,
-      error: '删除产品失败',
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: '删除产品失败',
+      },
+      { status: 500 }
+    );
   }
 }

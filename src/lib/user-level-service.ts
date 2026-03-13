@@ -135,7 +135,7 @@ export interface PermissionTemplateResult {
 
 /**
  * 用户等级服务类
- * 
+ *
  * 功能：
  * - 获取用户当前等级
  * - 获取等级配置
@@ -185,7 +185,13 @@ export class UserLevelService {
       // 4. 计算升级进度
       const prevLevelPoints = levelConfig.required_points;
       const progress = nextLevelConfig
-        ? Math.min(100, Math.max(0, ((currentPoints - prevLevelPoints) / (nextLevelPoints - prevLevelPoints)) * 100))
+        ? Math.min(
+            100,
+            Math.max(
+              0,
+              ((currentPoints - prevLevelPoints) / (nextLevelPoints - prevLevelPoints)) * 100
+            )
+          )
         : 100;
 
       return {
@@ -195,7 +201,7 @@ export class UserLevelService {
         level_name: levelConfig.name,
         role: levelConfig.role,
         progress: Math.round(progress),
-        config: levelConfig
+        config: levelConfig,
       };
     } catch (error) {
       console.error('[UserLevelService] 获取用户等级异常:', error);
@@ -258,7 +264,11 @@ export class UserLevelService {
    * @param description 描述
    * @returns 是否升级
    */
-  async addPoints(userId: string | number, points: number, description: string = ''): Promise<{ success: boolean; upgraded: boolean; newLevel?: number }> {
+  async addPoints(
+    userId: string | number,
+    points: number,
+    description: string = ''
+  ): Promise<{ success: boolean; upgraded: boolean; newLevel?: number }> {
     try {
       console.log('[UserLevelService] 添加积分:', { userId, points, description });
 
@@ -272,17 +282,18 @@ export class UserLevelService {
       const newPoints = currentLevelInfo.current_points + points;
 
       // 2. 更新或插入用户等级记录
-      const { error: upsertError } = await this.supabase
-        .from('user_levels')
-        .upsert({
+      const { error: upsertError } = await this.supabase.from('user_levels').upsert(
+        {
           user_id: Number(userId),
           level: currentLevelInfo.level,
           current_points: Math.max(0, newPoints),
           next_level_points: currentLevelInfo.next_level_points,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        });
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id',
+        }
+      );
 
       if (upsertError) {
         console.error('[UserLevelService] 更新用户等级失败:', upsertError);
@@ -291,14 +302,12 @@ export class UserLevelService {
 
       // 3. 记录积分变化（可选）
       if (points !== 0) {
-        await this.supabase
-          .from('point_records')
-          .insert({
-            user_id: Number(userId),
-            points,
-            type: points > 0 ? 'level' : 'consumption',
-            description: description || (points > 0 ? '积分增加' : '积分消费')
-          });
+        await this.supabase.from('point_records').insert({
+          user_id: Number(userId),
+          points,
+          type: points > 0 ? 'level' : 'consumption',
+          description: description || (points > 0 ? '积分增加' : '积分消费'),
+        });
       }
 
       // 4. 检查是否需要升级
@@ -307,7 +316,7 @@ export class UserLevelService {
       return {
         success: true,
         upgraded: upgradeResult.upgraded,
-        newLevel: upgradeResult.newLevel
+        newLevel: upgradeResult.newLevel,
       };
     } catch (error) {
       console.error('[UserLevelService] 添加积分异常:', error);
@@ -321,7 +330,10 @@ export class UserLevelService {
    * @param currentPoints 当前积分
    * @returns 升级结果
    */
-  async checkLevelUp(userId: string | number, currentPoints?: number): Promise<{ upgraded: boolean; newLevel?: number }> {
+  async checkLevelUp(
+    userId: string | number,
+    currentPoints?: number
+  ): Promise<{ upgraded: boolean; newLevel?: number }> {
     try {
       // 如果没有提供当前积分，重新获取
       if (currentPoints === undefined) {
@@ -370,7 +382,7 @@ export class UserLevelService {
         .from('user_levels')
         .update({
           level: nextLevel.level,
-          level_up_at: new Date().toISOString()
+          level_up_at: new Date().toISOString(),
         })
         .eq('user_id', userId);
 
@@ -380,19 +392,17 @@ export class UserLevelService {
       }
 
       // 4. 记录升级历史
-      await this.supabase
-        .from('level_upgrade_history')
-        .insert({
-          user_id: Number(userId),
-          from_level: currentLevel,
-          to_level: nextLevel.level,
-          points_at_upgrade: currentPoints
-        });
+      await this.supabase.from('level_upgrade_history').insert({
+        user_id: Number(userId),
+        from_level: currentLevel,
+        to_level: nextLevel.level,
+        points_at_upgrade: currentPoints,
+      });
 
       console.log('[UserLevelService] 升级成功:', {
         userId,
         from: currentLevel,
-        to: nextLevel.level
+        to: nextLevel.level,
       });
 
       return { upgraded: true, newLevel: nextLevel.level };
@@ -466,17 +476,18 @@ export class UserLevelService {
         return false;
       }
 
-      const { error } = await this.supabase
-        .from('user_levels')
-        .upsert({
+      const { error } = await this.supabase.from('user_levels').upsert(
+        {
           user_id: Number(userId),
           level,
           current_points: levelConfig.required_points,
           next_level_points: levelConfig.required_points,
-          level_up_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        });
+          level_up_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id',
+        }
+      );
 
       if (error) {
         console.error('[UserLevelService] 设置用户等级失败:', error);
@@ -597,15 +608,13 @@ export class UserLevelService {
       }
 
       // 记录修改历史
-      await this.supabase
-        .from('level_permission_history')
-        .insert({
-          level,
-          admin_id: adminId,
-          changes: JSON.stringify(changes),
-          reason,
-          created_at: new Date().toISOString(),
-        });
+      await this.supabase.from('level_permission_history').insert({
+        level,
+        admin_id: adminId,
+        changes: JSON.stringify(changes),
+        reason,
+        created_at: new Date().toISOString(),
+      });
 
       console.log('[UserLevelService] 等级权限更新成功:', { level, adminId });
       return true;
@@ -671,7 +680,7 @@ export class UserLevelService {
   async getLevelPermissionHistory(level: number): Promise<PermissionHistory[]> {
     try {
       console.log('[UserLevelService] 查询等级历史记录, level:', level);
-      
+
       // 先查询基础数据（不关联表）
       const { data, error } = await this.supabase
         .from('level_permission_history')
@@ -679,10 +688,10 @@ export class UserLevelService {
         .eq('level', level)
         .order('created_at', { ascending: false });
 
-      console.log('[UserLevelService] 查询结果:', { 
-        hasData: !!data, 
+      console.log('[UserLevelService] 查询结果:', {
+        hasData: !!data,
         dataLength: data?.length || 0,
-        error 
+        error,
       });
 
       if (error || !data) {
@@ -691,7 +700,7 @@ export class UserLevelService {
       }
 
       // 获取所有管理员ID
-      const adminIds = [...new Set(data.map(item => item.admin_id))];
+      const adminIds = [...new Set(data.map((item) => item.admin_id))];
       console.log('[UserLevelService] 管理员ID列表:', adminIds);
 
       // 查询管理员信息
@@ -706,7 +715,7 @@ export class UserLevelService {
           adminMap = admins.reduce((acc: any, admin: any) => {
             acc[admin.id] = {
               username: admin.username,
-              email: admin.email
+              email: admin.email,
             };
             return acc;
           }, {});
@@ -724,7 +733,7 @@ export class UserLevelService {
           adminName: admin?.username || admin?.email || '系统',
         };
       });
-      
+
       console.log('[UserLevelService] 格式化后的历史记录数量:', formattedData.length);
       return formattedData;
     } catch (error) {
@@ -966,7 +975,7 @@ export class UserLevelService {
       const allLevels = await this.getAllLevels();
 
       // 找到下一个等级
-      const nextLevel = allLevels.find(l => l.level > currentLevel);
+      const nextLevel = allLevels.find((l) => l.level > currentLevel);
       if (!nextLevel) {
         return null;
       }
@@ -1036,7 +1045,7 @@ export class UserLevelService {
     try {
       // 预定义模板
       const templates: Record<string, any> = {
-        'strict': {
+        strict: {
           fieldPermissions: {
             can_view_cost_price: false,
             can_view_min_price: false,
@@ -1051,7 +1060,7 @@ export class UserLevelService {
             max_chat_messages: 50,
           },
         },
-        'moderate': {
+        moderate: {
           fieldPermissions: {
             can_view_cost_price: false,
             can_view_min_price: true,
@@ -1066,7 +1075,7 @@ export class UserLevelService {
             max_chat_messages: 200,
           },
         },
-        'generous': {
+        generous: {
           fieldPermissions: {
             can_view_cost_price: true,
             can_view_min_price: true,

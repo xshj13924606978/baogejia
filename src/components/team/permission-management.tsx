@@ -100,10 +100,8 @@ export function PermissionManagement({ teamId }: PermissionManagementProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="text-sm text-gray-600 mb-4">
-              不同角色在团队中的权限配置如下：
-            </div>
-            
+            <div className="text-sm text-gray-600 mb-4">不同角色在团队中的权限配置如下：</div>
+
             {/* 表头 */}
             <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-700 border-b pb-2">
               <div className="col-span-1">权限项目</div>
@@ -119,7 +117,7 @@ export function PermissionManagement({ teamId }: PermissionManagementProps) {
                 className="grid grid-cols-4 gap-4 items-center py-3 border-b last:border-0 hover:bg-gray-50 transition-colors"
               >
                 <div className="col-span-1 text-sm">{permission.label}</div>
-                
+
                 <div className="col-span-1 flex justify-center">
                   {permissions?.[TeamRole.ADMIN][permission.key] ? (
                     <Check className="h-5 w-5 text-green-600" />
@@ -127,7 +125,7 @@ export function PermissionManagement({ teamId }: PermissionManagementProps) {
                     <X className="h-5 w-5 text-gray-400" />
                   )}
                 </div>
-                
+
                 <div className="col-span-1 flex justify-center">
                   {permissions?.[TeamRole.MEMBER][permission.key] ? (
                     <Check className="h-5 w-5 text-green-600" />
@@ -135,7 +133,7 @@ export function PermissionManagement({ teamId }: PermissionManagementProps) {
                     <X className="h-5 w-5 text-gray-400" />
                   )}
                 </div>
-                
+
                 <div className="col-span-1 flex justify-center">
                   {permissions?.[TeamRole.GUEST][permission.key] ? (
                     <Check className="h-5 w-5 text-green-600" />

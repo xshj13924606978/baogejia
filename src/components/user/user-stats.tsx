@@ -129,10 +129,7 @@ export default function UserStats({ user }: UserStatsProps) {
   };
 
   const levelInfo = getLevelInfo(user.points || 0);
-  const progressPercent = Math.min(
-    ((user.points || 0) / levelInfo.nextPoints) * 100,
-    100
-  );
+  const progressPercent = Math.min(((user.points || 0) / levelInfo.nextPoints) * 100, 100);
 
   return (
     <div className="space-y-4">
@@ -145,8 +142,7 @@ export default function UserStats({ user }: UserStatsProps) {
               <div>
                 <div className="font-bold text-purple-700">Lv{levelInfo.level}</div>
                 <div className="text-xs text-purple-600">
-                  距离 Lv{levelInfo.level + 1} 还需{' '}
-                  {levelInfo.nextPoints - (user.points || 0)} 积分
+                  距离 Lv{levelInfo.level + 1} 还需 {levelInfo.nextPoints - (user.points || 0)} 积分
                 </div>
               </div>
             </div>
@@ -166,36 +162,28 @@ export default function UserStats({ user }: UserStatsProps) {
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <CardContent className="p-3">
             <div className="text-xs text-blue-600">邀请人数</div>
-            <div className="text-xl font-bold text-blue-700">
-              {stats.inviteCount}
-            </div>
+            <div className="text-xl font-bold text-blue-700">{stats.inviteCount}</div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
           <CardContent className="p-3">
             <div className="text-xs text-green-600">上传次数</div>
-            <div className="text-xl font-bold text-green-700">
-              {stats.uploadCount}
-            </div>
+            <div className="text-xl font-bold text-green-700">{stats.uploadCount}</div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
           <CardContent className="p-3">
             <div className="text-xs text-purple-600">报价次数</div>
-            <div className="text-xl font-bold text-purple-700">
-              {stats.quoteCount}
-            </div>
+            <div className="text-xl font-bold text-purple-700">{stats.quoteCount}</div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
           <CardContent className="p-3">
             <div className="text-xs text-orange-600">被查看</div>
-            <div className="text-xl font-bold text-orange-700">
-              {stats.viewCount}
-            </div>
+            <div className="text-xl font-bold text-orange-700">{stats.viewCount}</div>
           </CardContent>
         </Card>
       </div>
@@ -206,15 +194,11 @@ export default function UserStats({ user }: UserStatsProps) {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs text-yellow-600">贡献值</div>
-              <div className="text-2xl font-bold text-yellow-700">
-                {stats.contribution}
-              </div>
+              <div className="text-2xl font-bold text-yellow-700">{stats.contribution}</div>
             </div>
             <div className="text-right">
               <div className="text-xs text-red-600">全站排名</div>
-              <div className="text-2xl font-bold text-red-700">
-                #{stats.rank}
-              </div>
+              <div className="text-2xl font-bold text-red-700">#{stats.rank}</div>
             </div>
           </div>
         </CardContent>
@@ -235,17 +219,13 @@ export default function UserStats({ user }: UserStatsProps) {
                       className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t"
                       style={{ height: `${height}px` }}
                     />
-                    <div className="text-[10px] text-gray-500 mt-1">
-                      D{i + 1}
-                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">D{i + 1}</div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="text-center text-gray-400 text-sm py-4">
-              暂无数据
-            </div>
+            <div className="text-center text-gray-400 text-sm py-4">暂无数据</div>
           )}
         </CardContent>
       </Card>
@@ -267,12 +247,12 @@ export default function UserStats({ user }: UserStatsProps) {
                 <div className="text-center">
                   <div className="text-2xl mb-1">{achievement.icon}</div>
                   <div className="text-xs font-medium">{achievement.name}</div>
-                  <div className="text-[10px] text-gray-500">
-                    {achievement.desc}
-                  </div>
+                  <div className="text-[10px] text-gray-500">{achievement.desc}</div>
                   <div className="mt-1 text-[10px]">
                     <span className={achievement.unlocked ? 'text-green-600' : 'text-gray-400'}>
-                      {achievement.unlocked ? '已解锁' : `${achievement.progress}/${achievement.target}`}
+                      {achievement.unlocked
+                        ? '已解锁'
+                        : `${achievement.progress}/${achievement.target}`}
                     </span>
                   </div>
                 </div>

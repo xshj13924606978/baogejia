@@ -21,7 +21,7 @@ async function analyzeErrors() {
     const { stdout, stderr } = await execAsync('npx tsc --noEmit');
 
     // 解析错误输出
-    const errorLines = stderr.split('\n').filter(line => line.includes('error TS'));
+    const errorLines = stderr.split('\n').filter((line) => line.includes('error TS'));
 
     const errors: TypeError[] = [];
     const errorCounts: Record<string, number> = {};
@@ -38,7 +38,7 @@ async function analyzeErrors() {
           line: parseInt(lineStr),
           column: parseInt(colStr),
           code,
-          message: message.trim()
+          message: message.trim(),
         });
 
         errorCounts[code] = (errorCounts[code] || 0) + 1;
@@ -59,7 +59,7 @@ async function analyzeErrors() {
 
     console.log('\n📁 按文件统计:');
     const fileCounts: Record<string, number> = {};
-    errors.forEach(e => {
+    errors.forEach((e) => {
       fileCounts[e.file] = (fileCounts[e.file] || 0) + 1;
     });
 
@@ -74,7 +74,7 @@ async function analyzeErrors() {
       total: errors.length,
       byType: errorCounts,
       byFile: fileCounts,
-      errors: errors
+      errors: errors,
     };
 
     fs.writeFileSync(
@@ -83,7 +83,6 @@ async function analyzeErrors() {
     );
 
     console.log('\n✅ 详细报告已保存到: typescript-errors.json');
-
   } catch (error) {
     console.error('分析失败:', error);
   }

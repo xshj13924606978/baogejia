@@ -10,10 +10,7 @@ export async function POST(request: NextRequest) {
     const { userId, eventType, page, properties } = body;
 
     if (!userId || !eventType) {
-      return NextResponse.json(
-        { error: '缺少必要参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
     // 记录事件
@@ -33,10 +30,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Analytics] 记录事件失败:', error);
-    return NextResponse.json(
-      { error: '记录事件失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '记录事件失败' }, { status: 500 });
   }
 }
 
@@ -65,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      events: events.map(e => ({
+      events: events.map((e) => ({
         ...e,
         timestamp: e.timestamp.toISOString(),
       })),
@@ -73,9 +67,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Analytics] 获取事件列表失败:', error);
-    return NextResponse.json(
-      { error: '获取事件列表失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '获取事件列表失败' }, { status: 500 });
   }
 }

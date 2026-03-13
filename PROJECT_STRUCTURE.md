@@ -1,4 +1,5 @@
 # 《报个价》项目模块结构梳理
+
 ## 为统一权限管理系统做准备
 
 > 生成时间：2026-03-12
@@ -9,6 +10,7 @@
 ## 一、项目整体架构
 
 ### 1.1 技术栈
+
 - **框架**：Next.js 16 (App Router)
 - **语言**：TypeScript 5
 - **UI组件**：shadcn/ui (基于 Radix UI)
@@ -45,6 +47,7 @@ src/
 ### 2.1 管理后台模块 (src/app/admin/)
 
 #### 2.1.1 模块列表
+
 ```
 admin/
 ├── analytics/           # 数据分析模块
@@ -58,6 +61,7 @@ admin/
 ```
 
 #### 2.1.2 权限需求
+
 - 所有页面都需要管理员权限（super_admin 或 admin）
 - 部分高级功能（如角色修改、权限配置）仅限超级管理员
 
@@ -66,6 +70,7 @@ admin/
 ### 2.2 API 路由模块 (src/app/api/)
 
 #### 2.2.1 管理员 API (api/admin/)
+
 ```
 api/admin/
 ├── api-permissions/           # API 权限管理
@@ -101,6 +106,7 @@ api/admin/
 ```
 
 #### 2.2.2 业务功能 API
+
 ```
 api/
 ├── analytics/               # 数据分析
@@ -175,6 +181,7 @@ api/
 ### 2.3 业务组件模块 (src/components/)
 
 #### 2.3.1 管理后台组件
+
 ```
 components/admin/
 ├── levels/                  # 等级管理组件
@@ -184,6 +191,7 @@ components/admin/
 ```
 
 #### 2.3.2 业务功能组件
+
 ```
 components/
 ├── admin-audit-panel.tsx   # 审计面板
@@ -213,6 +221,7 @@ components/
 ### 2.4 业务服务模块 (src/lib/)
 
 #### 2.4.1 核心服务
+
 ```
 lib/
 ├── ai-service-selector.ts       # AI 服务选择器
@@ -261,6 +270,7 @@ lib/
 #### 3.1.1 核心权限表
 
 **1. users 表** - 用户基础信息
+
 ```sql
 - id: UUID (主键)
 - email: VARCHAR
@@ -274,6 +284,7 @@ lib/
 ```
 
 **2. user_roles 表** - 用户角色映射
+
 ```sql
 - user_id: UUID (外键 → users.id)
 - role: VARCHAR (角色：free, premium, vip, enterprise_admin, super_admin)
@@ -281,6 +292,7 @@ lib/
 ```
 
 **3. level_configs 表** - 等级配置
+
 ```sql
 - level: INTEGER (等级 1-5)
 - name: VARCHAR (等级名称)
@@ -305,6 +317,7 @@ lib/
 ```
 
 **4. level_definitions 表** - 等级默认定义
+
 ```sql
 - id: INTEGER (主键)
 - level: INTEGER (等级)
@@ -318,6 +331,7 @@ lib/
 ```
 
 **5. level_permission_history 表** - 权限修改历史
+
 ```sql
 - id: INTEGER (主键)
 - level: INTEGER (等级)
@@ -328,6 +342,7 @@ lib/
 ```
 
 **6. modules 表** - 模块定义
+
 ```sql
 - id: INTEGER (主键)
 - module_code: VARCHAR (模块代码)
@@ -339,6 +354,7 @@ lib/
 ```
 
 **7. api_permissions 表** - API 权限规则
+
 ```sql
 - id: INTEGER (主键)
 - api_path: VARCHAR (API路径)
@@ -354,6 +370,7 @@ lib/
 #### 3.1.2 辅助表
 
 **8. user_quotas 表** - 用户配额
+
 ```sql
 - id: UUID (主键)
 - user_id: UUID (外键 → users.id)
@@ -367,6 +384,7 @@ lib/
 ```
 
 **9. audit_log 表** - 审计日志
+
 ```sql
 - id: UUID (主键)
 - user_id: UUID (操作用户)
@@ -385,16 +403,19 @@ lib/
 #### 3.2.1 三层权限体系
 
 **第一层：角色权限 (Role-based)**
+
 - 基础角色：user, admin, super_admin
 - 业务角色：free, premium, vip, enterprise_admin
 - 用途：控制用户身份和基础访问权限
 
 **第二层：等级权限 (Level-based)**
+
 - 等级体系：1-5 级
 - 每个等级对应不同的权限配置
 - 用途：细粒度控制业务功能访问
 
 **第三层：资源权限 (Resource-based)**
+
 - 字段权限：控制特定字段的查看/编辑
 - 模块权限：控制特定模块的访问
 - 配额限制：控制资源使用量
@@ -417,6 +438,7 @@ lib/
 #### 3.3.1 等级配置示例
 
 **等级 1 - 免费用户 (free)**
+
 ```json
 {
   "level": 1,
@@ -440,6 +462,7 @@ lib/
 ```
 
 **等级 2 - 普通会员 (premium)**
+
 ```json
 {
   "level": 2,
@@ -463,6 +486,7 @@ lib/
 ```
 
 **等级 5 - 超级会员 (super_admin)**
+
 ```json
 {
   "level": 5,
@@ -506,6 +530,7 @@ lib/
 ### 4.1 用户等级服务 (user-level-service.ts)
 
 **核心功能**：
+
 - 获取用户等级信息
 - 等级升级逻辑
 - 权限检查
@@ -515,6 +540,7 @@ lib/
 - 权限变更预览
 
 **关键方法**：
+
 ```typescript
 - getUserLevel(userId: number): Promise<UserLevelInfo>
 - upgradeUserLevel(userId: number, reason: string): Promise<UpgradeResult>
@@ -528,11 +554,13 @@ lib/
 ### 4.2 审计日志服务 (audit-log-service.ts)
 
 **核心功能**：
+
 - 记录用户操作
 - 记录权限变更
 - 记录敏感操作
 
 **关键方法**：
+
 ```typescript
 - logAction(userId: number, action: string, resource: string, details: any): Promise<void>
 - getUserAuditLogs(userId: number, limit?: number): Promise<AuditLog[]>
@@ -542,11 +570,13 @@ lib/
 ### 4.3 认证工具 (auth-utils.ts)
 
 **核心功能**：
+
 - 获取当前用户
 - 解析用户令牌
 - 客户端用户获取
 
 **关键方法**：
+
 ```typescript
 - getCurrentUser(request: NextRequest): Promise<User | null>
 - getClientUser(): User | null
@@ -560,6 +590,7 @@ lib/
 
 **检查位置**：所有 API 路由入口
 **检查内容**：
+
 1. 用户是否登录
 2. 用户角色是否满足要求
 3. 用户等级是否达到最低要求
@@ -567,18 +598,19 @@ lib/
 5. 资源配额是否足够
 
 **示例代码**：
+
 ```typescript
 export async function GET(request: NextRequest) {
   // 1. 获取当前用户
   const currentUser = await getCurrentUser(request);
   if (!currentUser) return NextResponse.json({ error: '未登录' }, { status: 401 });
-  
+
   // 2. 检查角色
   const userRole = await getUserRole(currentUser.id);
   if (userRole.role !== 'admin' && userRole.role !== 'super_admin') {
     return NextResponse.json({ error: '权限不足' }, { status: 403 });
   }
-  
+
   // 3. 检查 API 权限
   const hasPermission = await userLevelService.checkApiPermission(
     currentUser.id,
@@ -588,7 +620,7 @@ export async function GET(request: NextRequest) {
   if (!hasPermission) {
     return NextResponse.json({ error: '权限不足' }, { status: 403 });
   }
-  
+
   // 4. 执行业务逻辑
   // ...
 }
@@ -598,21 +630,23 @@ export async function GET(request: NextRequest) {
 
 **检查位置**：管理后台页面
 **检查内容**：
+
 1. 用户是否登录
 2. 用户是否为管理员
 
 **示例代码**：
+
 ```typescript
 // src/app/admin/layout.tsx
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
-  
+
   const userRole = await getUserRole(user.id);
   if (userRole.role !== 'admin' && userRole.role !== 'super_admin') {
     redirect('/');
   }
-  
+
   return <AdminSidebar>{children}</AdminSidebar>;
 }
 ```
@@ -621,17 +655,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
 **检查位置**：敏感数据访问
 **检查内容**：
+
 1. 字段权限（成本价、厂家信息等）
 2. 资源所有权
 
 **示例代码**：
+
 ```typescript
 // 获取产品详情时过滤敏感字段
 async function getProductDetails(productId: string, userId: number) {
   const product = await supabase.from('products').select('*').eq('id', productId).single();
-  
+
   const userLevel = await userLevelService.getUserLevel(userId);
-  
+
   // 根据用户等级过滤字段
   if (!userLevel.config.fieldPermissions.can_view_cost_price) {
     delete product.price;
@@ -639,7 +675,7 @@ async function getProductDetails(productId: string, userId: number) {
   if (!userLevel.config.fieldPermissions.can_view_manufacturer) {
     delete product.manufacturer;
   }
-  
+
   return product;
 }
 ```
@@ -651,6 +687,7 @@ async function getProductDetails(productId: string, userId: number) {
 ### 6.1 等级管理
 
 **功能列表**：
+
 - 查看所有等级配置
 - 编辑等级配置
 - 批量更新等级配置
@@ -659,6 +696,7 @@ async function getProductDetails(productId: string, userId: number) {
 - 权限变更预览
 
 **相关文件**：
+
 - 页面：`src/app/admin/levels/`
 - 组件：`src/components/admin/levels/`
 - API：`src/app/api/admin/levels/`
@@ -666,6 +704,7 @@ async function getProductDetails(productId: string, userId: number) {
 ### 6.2 用户管理
 
 **功能列表**：
+
 - 查看用户列表
 - 修改用户角色
 - 修改用户积分
@@ -673,37 +712,44 @@ async function getProductDetails(productId: string, userId: number) {
 - 查看用户等级
 
 **相关文件**：
+
 - 页面：`src/app/admin/users/`
 - API：`src/app/api/admin/users/`
 
 ### 6.3 API 权限管理
 
 **功能列表**：
+
 - 查看 API 权限规则
 - 创建 API 权限规则
 - 更新 API 权限规则
 - 删除 API 权限规则
 
 **相关文件**：
+
 - API：`src/app/api/admin/api-permissions/`
 
 ### 6.4 模块管理
 
 **功能列表**：
+
 - 查看所有模块
 - 管理模块配置
 
 **相关文件**：
+
 - API：`src/app/api/admin/modules/`
 
 ### 6.5 权限统计
 
 **功能列表**：
+
 - 等级分布统计
 - 权限使用热力图
 - 权限变更统计
 
 **相关文件**：
+
 - API：`src/app/api/admin/stats/`
 
 ---
@@ -711,31 +757,37 @@ async function getProductDetails(productId: string, userId: number) {
 ## 七、权限系统存在的问题
 
 ### 7.1 权限检查分散
+
 - **问题**：权限检查逻辑分散在每个 API 路由中
 - **影响**：代码重复，难以维护
 - **改进建议**：统一权限检查中间件
 
 ### 7.2 权限配置不统一
+
 - **问题**：部分权限硬编码，部分从数据库读取
 - **影响**：配置不一致，难以管理
 - **改进建议**：统一权限配置来源
 
 ### 7.3 缺少权限缓存
+
 - **问题**：每次请求都查询数据库获取用户权限
 - **影响**：性能较差
 - **改进建议**：添加权限缓存机制
 
 ### 7.4 缺少细粒度权限
+
 - **问题**：只有等级权限，缺少资源权限
 - **影响**：无法实现更精细的权限控制
 - **改进建议**：实现 RBAC 或 ABAC 模型
 
 ### 7.5 缺少权限审计
+
 - **问题**：权限变更记录不完整
 - **影响**：难以追踪权限滥用
 - **改进建议**：完善权限审计日志
 
 ### 7.6 前端权限控制不足
+
 - **问题**：前端没有统一的权限检查机制
 - **影响**：用户体验不一致
 - **改进建议**：实现前端权限组件和 Hook
@@ -793,14 +845,14 @@ interface PermissionService {
   hasPermission(userId: number, permission: string): Promise<boolean>;
   hasRole(userId: number, role: string): Promise<boolean>;
   hasLevel(userId: number, minLevel: number): Promise<boolean>;
-  
+
   // API 权限检查
   checkApiPermission(
     userId: number,
     apiPath: string,
     method: string
   ): Promise<ApiPermissionCheckResult>;
-  
+
   // 资源权限检查
   checkResourcePermission(
     userId: number,
@@ -808,14 +860,10 @@ interface PermissionService {
     resourceId: string,
     action: string
   ): Promise<boolean>;
-  
+
   // 配额检查
-  checkQuota(
-    userId: number,
-    quotaType: string,
-    amount: number
-  ): Promise<QuotaCheckResult>;
-  
+  checkQuota(userId: number, quotaType: string, amount: number): Promise<QuotaCheckResult>;
+
   // 权限缓存
   clearUserPermissionCache(userId: number): Promise<void>;
 }
@@ -829,12 +877,12 @@ export function withPermission(permission: string) {
   return async (request: NextRequest) => {
     const user = await getCurrentUser(request);
     if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
-    
+
     const hasPermission = await permissionService.hasPermission(user.id, permission);
     if (!hasPermission) {
       return NextResponse.json({ error: '权限不足' }, { status: 403 });
     }
-    
+
     return NextResponse.next();
   };
 }
@@ -858,11 +906,11 @@ interface PermissionGuardProps {
 export function PermissionGuard({ permission, fallback, children }: PermissionGuardProps) {
   const { user } = useAuth();
   const [hasPermission, setHasPermission] = useState<boolean>(false);
-  
+
   useEffect(() => {
     checkPermission(user?.id, permission).then(setHasPermission);
   }, [user, permission]);
-  
+
   if (!hasPermission) return <>{fallback}</>;
   return <>{children}</>;
 }
@@ -878,6 +926,7 @@ export function PermissionGuard({ permission, fallback, children }: PermissionGu
 #### 8.4.1 新增表
 
 **permissions 表** - 权限定义
+
 ```sql
 CREATE TABLE permissions (
   id SERIAL PRIMARY KEY,
@@ -891,6 +940,7 @@ CREATE TABLE permissions (
 ```
 
 **role_permissions 表** - 角色权限关联
+
 ```sql
 CREATE TABLE role_permissions (
   id SERIAL PRIMARY KEY,
@@ -903,6 +953,7 @@ CREATE TABLE role_permissions (
 ```
 
 **user_permissions 表** - 用户权限关联（特殊权限）
+
 ```sql
 CREATE TABLE user_permissions (
   id SERIAL PRIMARY KEY,
@@ -918,6 +969,7 @@ CREATE TABLE user_permissions (
 #### 8.4.2 优化现有表
 
 **level_configs 表** - 增加字段
+
 ```sql
 ALTER TABLE level_configs ADD COLUMN permission_codes TEXT[];
 ```
@@ -927,26 +979,31 @@ ALTER TABLE level_configs ADD COLUMN permission_codes TEXT[];
 ## 九、实施计划
 
 ### 第一阶段：基础设施搭建 (Week 1-2)
+
 1. 创建权限服务层（PermissionService）
 2. 实现权限缓存机制
 3. 设计并创建新的权限表
 
 ### 第二阶段：中间件实现 (Week 2-3)
+
 1. 实现 API 权限中间件
 2. 实现页面权限守卫
 3. 实现前端权限组件
 
 ### 第三阶段：迁移现有功能 (Week 3-4)
+
 1. 迁移 API 路由权限检查
 2. 迁移页面权限检查
 3. 迁移数据层权限检查
 
 ### 第四阶段：功能完善 (Week 4-5)
+
 1. 实现权限审计
 2. 实现权限管理界面
 3. 完善文档和测试
 
 ### 第五阶段：测试和优化 (Week 5-6)
+
 1. 功能测试
 2. 性能测试
 3. 安全测试
@@ -959,16 +1016,19 @@ ALTER TABLE level_configs ADD COLUMN permission_codes TEXT[];
 ### 10.1 关键文件清单
 
 #### 权限相关
+
 - `src/lib/user-level-service.ts` - 用户等级服务（核心）
 - `src/lib/audit-log-service.ts` - 审计日志服务
 - `src/lib/auth-utils.ts` - 认证工具
 
 #### 管理后台
+
 - `src/app/admin/levels/` - 等级管理
 - `src/app/admin/users/` - 用户管理
 - `src/components/admin/levels/` - 等级管理组件
 
 #### API 路由
+
 - `src/app/api/admin/levels/` - 等级 API
 - `src/app/api/admin/users/` - 用户 API
 - `src/app/api/admin/permissions/` - 权限 API
@@ -978,6 +1038,7 @@ ALTER TABLE level_configs ADD COLUMN permission_codes TEXT[];
 ### 10.2 数据库迁移脚本
 
 **权限系统表创建脚本**：
+
 ```sql
 -- 创建权限定义表
 CREATE TABLE IF NOT EXISTS permissions (
@@ -1015,28 +1076,33 @@ CREATE TABLE IF NOT EXISTS user_permissions (
 ### 10.3 权限代码清单
 
 **基础权限**：
+
 - `user.view` - 查看用户
 - `user.edit` - 编辑用户
 - `user.delete` - 删除用户
 - `user.manage` - 管理用户
 
 **产品权限**：
+
 - `product.search` - 搜索产品
 - `product.view` - 查看产品详情
 - `product.edit` - 编辑产品
 - `product.export` - 导出产品
 
 **报价权限**：
+
 - `quote.create` - 创建报价
 - `quote.view` - 查看报价
 - `quote.edit` - 编辑报价
 - `quote.export` - 导出报价
 
 **成本权限**：
+
 - `cost_price.view` - 查看成本价
 - `cost_price.edit` - 编辑成本价
 
 **管理员权限**：
+
 - `admin.*` - 所有管理员权限
 - `admin.levels.*` - 等级管理
 - `admin.users.*` - 用户管理
@@ -1049,6 +1115,7 @@ CREATE TABLE IF NOT EXISTS user_permissions (
 本项目是一个多层次的权限系统，包含角色权限、等级权限和资源权限。权限检查逻辑分散在各个层级，需要统一管理以降低复杂度。
 
 通过实施统一权限管理系统，可以实现：
+
 1. 统一的权限检查逻辑
 2. 更好的权限缓存机制
 3. 更细粒度的权限控制

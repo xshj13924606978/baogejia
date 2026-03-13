@@ -67,12 +67,9 @@ export class TeamService {
   /**
    * 创建团队
    */
-  static async createTeam(
-    ownerId: string,
-    data: CreateTeamRequest
-  ): Promise<Team> {
+  static async createTeam(ownerId: string, data: CreateTeamRequest): Promise<Team> {
     const teamId = `team_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    
+
     const team: Team = {
       id: teamId,
       name: data.name,
@@ -115,9 +112,9 @@ export class TeamService {
    */
   static async getUserTeams(userId: string): Promise<Team[]> {
     const userTeams: Team[] = [];
-    
+
     for (const [teamId, members] of teamMembers.entries()) {
-      const isMember = members.some(m => m.userId === userId);
+      const isMember = members.some((m) => m.userId === userId);
       if (isMember) {
         const team = teams.get(teamId);
         if (team) {
@@ -140,7 +137,7 @@ export class TeamService {
 
     // 验证用户是否是团队成员
     const members = teamMembers.get(teamId) || [];
-    const isMember = members.some(m => m.userId === userId);
+    const isMember = members.some((m) => m.userId === userId);
     if (!isMember) {
       return null;
     }
@@ -170,7 +167,7 @@ export class TeamService {
     };
 
     teams.set(teamId, updatedTeam);
-    
+
     // 记录活动
     if (data.name || data.description) {
       this.recordActivity(teamId, userId, '更新了团队信息', teamId, 'team');
@@ -207,7 +204,7 @@ export class TeamService {
 
     // 验证用户权限
     const members = teamMembers.get(teamId) || [];
-    const isMember = members.some(m => m.userId === userId);
+    const isMember = members.some((m) => m.userId === userId);
     if (!isMember) {
       return [];
     }
@@ -230,7 +227,7 @@ export class TeamService {
 
     // 验证用户权限
     const members = teamMembers.get(teamId) || [];
-    const currentUser = members.find(m => m.userId === userId);
+    const currentUser = members.find((m) => m.userId === userId);
     if (!currentUser || currentUser.role !== TeamRole.ADMIN) {
       throw new Error('无权限邀请成员');
     }
@@ -241,14 +238,14 @@ export class TeamService {
 
     for (const email of data.emails) {
       // 检查是否已经是成员
-      const isAlreadyMember = members.some(m => m.email === email);
+      const isAlreadyMember = members.some((m) => m.email === email);
       if (isAlreadyMember) {
         continue;
       }
 
       // 检查是否已有待处理的邀请
       const hasPendingInvite = existingInvites.some(
-        i => i.inviteeEmail === email && i.status === 'pending'
+        (i) => i.inviteeEmail === email && i.status === 'pending'
       );
       if (hasPendingInvite) {
         continue;
@@ -292,7 +289,7 @@ export class TeamService {
     let teamId: string | null = null;
 
     for (const [tid, invites] of teamInvites.entries()) {
-      const invite = invites.find(i => i.id === inviteId);
+      const invite = invites.find((i) => i.id === inviteId);
       if (invite) {
         foundInvite = invite;
         teamId = tid;
@@ -357,7 +354,7 @@ export class TeamService {
     }
 
     const members = teamMembers.get(teamId) || [];
-    const memberIndex = members.findIndex(m => m.userId === data.userId);
+    const memberIndex = members.findIndex((m) => m.userId === data.userId);
 
     if (memberIndex === -1) {
       return null;
@@ -392,10 +389,9 @@ export class TeamService {
 
     // 只有管理员可以移除成员，且不能移除创建者
     const members = teamMembers.get(teamId) || [];
-    const currentUser = members.find(m => m.userId === userId);
-    
-    if (!currentUser || 
-        (currentUser.role !== TeamRole.ADMIN && userId !== targetUserId)) {
+    const currentUser = members.find((m) => m.userId === userId);
+
+    if (!currentUser || (currentUser.role !== TeamRole.ADMIN && userId !== targetUserId)) {
       return false;
     }
 
@@ -403,7 +399,7 @@ export class TeamService {
       return false;
     }
 
-    const newMembers = members.filter(m => m.userId !== targetUserId);
+    const newMembers = members.filter((m) => m.userId !== targetUserId);
     teamMembers.set(teamId, newMembers);
     team.memberCount = newMembers.length;
 
@@ -416,12 +412,9 @@ export class TeamService {
   /**
    * 获取用户权限
    */
-  static async getUserPermissions(
-    teamId: string,
-    userId: string
-  ): Promise<TeamPermissions | null> {
+  static async getUserPermissions(teamId: string, userId: string): Promise<TeamPermissions | null> {
     const members = teamMembers.get(teamId) || [];
-    const member = members.find(m => m.userId === userId);
+    const member = members.find((m) => m.userId === userId);
 
     if (!member) {
       return null;
@@ -440,7 +433,7 @@ export class TeamService {
     data: CreateCommentRequest
   ): Promise<Comment> {
     const commentId = `comment_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    
+
     const comment: Comment = {
       id: commentId,
       targetId: data.targetId,
@@ -462,7 +455,7 @@ export class TeamService {
     // 如果有父评论，更新父评论的回复列表
     if (data.parentId) {
       for (const [targetId, commentList] of comments.entries()) {
-        const parentComment = commentList.find(c => c.id === data.parentId);
+        const parentComment = commentList.find((c) => c.id === data.parentId);
         if (parentComment) {
           if (!parentComment.replies) {
             parentComment.replies = [];
@@ -481,9 +474,9 @@ export class TeamService {
    */
   static async getComments(targetId: string): Promise<Comment[]> {
     const targetComments = comments.get(targetId) || [];
-    
+
     // 只返回顶级评论（没有parentId的）
-    return targetComments.filter(c => !c.parentId);
+    return targetComments.filter((c) => !c.parentId);
   }
 
   /**
@@ -495,7 +488,7 @@ export class TeamService {
     data: UpdateCommentRequest
   ): Promise<Comment | null> {
     for (const [targetId, commentList] of comments.entries()) {
-      const comment = commentList.find(c => c.id === commentId);
+      const comment = commentList.find((c) => c.id === commentId);
       if (comment && comment.userId === userId) {
         comment.content = data.content;
         comment.updatedAt = new Date();
@@ -511,23 +504,23 @@ export class TeamService {
    */
   static async deleteComment(commentId: string, userId: string): Promise<boolean> {
     for (const [targetId, commentList] of comments.entries()) {
-      const index = commentList.findIndex(c => c.id === commentId);
+      const index = commentList.findIndex((c) => c.id === commentId);
       if (index !== -1) {
         const comment = commentList[index];
         if (comment.userId === userId) {
           commentList.splice(index, 1);
           comments.set(targetId, commentList);
-          
+
           // 删除所有回复
           if (comment.replies) {
             for (const reply of comment.replies) {
-              const replyIndex = commentList.findIndex(c => c.id === reply.id);
+              const replyIndex = commentList.findIndex((c) => c.id === reply.id);
               if (replyIndex !== -1) {
                 commentList.splice(replyIndex, 1);
               }
             }
           }
-          
+
           return true;
         }
       }
@@ -539,12 +532,9 @@ export class TeamService {
   /**
    * 共享报价单
    */
-  static async shareQuote(
-    userId: string,
-    data: ShareQuoteRequest
-  ): Promise<SharedQuote> {
+  static async shareQuote(userId: string, data: ShareQuoteRequest): Promise<SharedQuote> {
     const sharedQuoteId = `shared_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    
+
     const sharedQuote: SharedQuote = {
       id: sharedQuoteId,
       quoteId: data.quoteId,
@@ -574,7 +564,7 @@ export class TeamService {
     }
 
     const members = teamMembers.get(teamId) || [];
-    const isMember = members.some(m => m.userId === userId);
+    const isMember = members.some((m) => m.userId === userId);
     if (!isMember) {
       return [];
     }
@@ -592,7 +582,7 @@ export class TeamService {
     }
 
     const members = teamMembers.get(teamId) || [];
-    const isMember = members.some(m => m.userId === userId);
+    const isMember = members.some((m) => m.userId === userId);
     if (!isMember) {
       return null;
     }
@@ -603,17 +593,17 @@ export class TeamService {
     // 统计活跃成员（7天内活跃）
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const activeMembers = members.filter(m => 
-      m.lastActiveAt && new Date(m.lastActiveAt) > weekAgo
+    const activeMembers = members.filter(
+      (m) => m.lastActiveAt && new Date(m.lastActiveAt) > weekAgo
     ).length;
 
     return {
       totalMembers: members.length,
       activeMembers,
       totalQuotes: sharedQuotes.get(teamId)?.length || 0,
-      totalComments: Array.from(comments.values()).flat().filter(
-        c => c.targetType === 'quote' || c.targetType === 'proposal'
-      ).length,
+      totalComments: Array.from(comments.values())
+        .flat()
+        .filter((c) => c.targetType === 'quote' || c.targetType === 'proposal').length,
       recentActivity: recentActivities,
     };
   }

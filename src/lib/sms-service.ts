@@ -40,7 +40,7 @@ class SmsService {
     const response = await fetch('/api/sms/aliyun', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, code })
+      body: JSON.stringify({ phone, code }),
     });
     const result = await response.json();
     return result.success;
@@ -51,7 +51,7 @@ class SmsService {
     const response = await fetch('/api/sms/tencent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, code })
+      body: JSON.stringify({ phone, code }),
     });
     const result = await response.json();
     return result.success;

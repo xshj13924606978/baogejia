@@ -151,7 +151,7 @@ export class ServerProcessUtils {
     }
 
     await this.execCommand(`pdftotext -layout "${pdfPath}" "${outputPath}"`);
-    
+
     if (fs.existsSync(outputPath)) {
       return fs.readFileSync(outputPath, 'utf-8');
     }
@@ -164,11 +164,13 @@ export class ServerProcessUtils {
   static async ocrImage(imagePath: string, outputPath: string): Promise<string> {
     const hasTesseract = await this.checkCommand('tesseract');
     if (!hasTesseract) {
-      throw new Error('tesseract 未安装，请执行: sudo apt-get install tesseract-ocr tesseract-ocr-chi-sim');
+      throw new Error(
+        'tesseract 未安装，请执行: sudo apt-get install tesseract-ocr tesseract-ocr-chi-sim'
+      );
     }
 
     await this.execCommand(`tesseract "${imagePath}" "${outputPath}" -l chi_sim+eng`);
-    
+
     const resultFile = `${outputPath}.txt`;
     if (fs.existsSync(resultFile)) {
       return fs.readFileSync(resultFile, 'utf-8');
@@ -183,7 +185,7 @@ export class ServerProcessUtils {
 export class ServerDatabaseUtils {
   // 跟踪已输出的错误，避免重复输出
   private static loggedErrors: Set<string> = new Set();
-  
+
   private static shouldLogError(error: any): boolean {
     const errorKey = `${error.code}-${error.message}`;
     if (this.loggedErrors.has(errorKey)) {
@@ -205,10 +207,10 @@ export class ServerDatabaseUtils {
    */
   static async searchProducts(productName: string, brand: string = '', model: string = '') {
     const db = this.getDb();
-    
+
     // 清理和规范化搜索关键词
     const searchTerms: string[] = [];
-    
+
     // 提取核心产品名称（去掉规格参数）
     let coreName = productName
       .replace(/[φΦ]/g, '')
@@ -218,12 +220,12 @@ export class ServerDatabaseUtils {
       .replace(/[（）()]/g, '')
       .replace(/[、，,;；]/g, ' ')
       .trim();
-    
+
     // 如果清理后太短，使用原名称
     if (coreName.length < 2) {
       coreName = productName;
     }
-    
+
     searchTerms.push(coreName);
 
     if (brand && brand.length > 1) {
@@ -236,13 +238,11 @@ export class ServerDatabaseUtils {
 
     console.log('[ServerDatabase] 搜索词:', searchTerms);
 
-    let query = db
-      .from('products')
-      .select('*');
+    let query = db.from('products').select('*');
 
     // 构建OR条件
     const orConditions = [];
-    
+
     for (const term of searchTerms) {
       if (term.length > 1) {
         orConditions.push(`name.ilike.%${term}%`);
@@ -255,9 +255,7 @@ export class ServerDatabaseUtils {
       query = query.or(orConditions.join(','));
     }
 
-    const { data, error } = await query
-      .order('verified', { ascending: false })
-      .limit(10);
+    const { data, error } = await query.order('verified', { ascending: false }).limit(10);
 
     if (error) {
       // 只在第一次遇到此错误时输出，避免重复
@@ -279,7 +277,7 @@ export class ServerDatabaseUtils {
         }
         return { ...product, score };
       });
-      
+
       scored.sort((a, b) => b.score - a.score);
       return scored.slice(0, 5);
     }
@@ -290,9 +288,16 @@ export class ServerDatabaseUtils {
   /**
    * 保存上传记录
    */
-  static async saveUploadRecord(userId: string, fileName: string, fileKey: string, fileSize: number, fileType: string, publicUrl: string) {
+  static async saveUploadRecord(
+    userId: string,
+    fileName: string,
+    fileKey: string,
+    fileSize: number,
+    fileType: string,
+    publicUrl: string
+  ) {
     const db = this.getDb();
-    
+
     const { data, error } = await db
       .from('user_uploads')
       .insert({
@@ -303,7 +308,7 @@ export class ServerDatabaseUtils {
         file_type: fileType,
         public_url: publicUrl,
         status: 'uploaded',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -320,7 +325,7 @@ export class ServerDatabaseUtils {
    */
   static async saveQuote(userId: string, quoteData: any) {
     const db = this.getDb();
-    
+
     const { data, error } = await db
       .from('quotes')
       .insert({
@@ -334,7 +339,7 @@ export class ServerDatabaseUtils {
         customer_info: quoteData.customerInfo,
         terms: quoteData.terms,
         status: 'draft',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -351,7 +356,7 @@ export class ServerDatabaseUtils {
    */
   static async getUserUploads(userId: string, limit: number = 50) {
     const db = this.getDb();
-    
+
     const { data, error } = await db
       .from('user_uploads')
       .select('*')

@@ -60,12 +60,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const comment = await TeamService.createComment(
-      userId,
-      userName,
-      userAvatar,
-      body
-    );
+    const comment = await TeamService.createComment(userId, userName, userAvatar, body);
 
     return NextResponse.json({
       success: true,

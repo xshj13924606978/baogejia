@@ -125,9 +125,7 @@ export default function TeamPage() {
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>创建新团队</DialogTitle>
-                <DialogDescription>
-                  创建一个团队来与您的团队成员协作
-                </DialogDescription>
+                <DialogDescription>创建一个团队来与您的团队成员协作</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -178,12 +176,8 @@ export default function TeamPage() {
           <Card className="text-center py-12">
             <CardContent>
               <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                还没有团队
-              </h3>
-              <p className="text-gray-600 mb-6">
-                创建一个团队来开始协作
-              </p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">还没有团队</h3>
+              <p className="text-gray-600 mb-6">创建一个团队来开始协作</p>
               <Button onClick={() => setShowCreateDialog(true)}>
                 <Plus className="h-5 w-5 mr-2" />
                 创建第一个团队
@@ -219,13 +213,8 @@ export default function TeamPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span>
-                      创建于 {new Date(team.createdAt).toLocaleDateString('zh-CN')}
-                    </span>
-                    <Link
-                      href={`/team/${team.id}`}
-                      className="text-blue-600 hover:text-blue-700"
-                    >
+                    <span>创建于 {new Date(team.createdAt).toLocaleDateString('zh-CN')}</span>
+                    <Link href={`/team/${team.id}`} className="text-blue-600 hover:text-blue-700">
                       查看详情 →
                     </Link>
                   </div>

@@ -24,42 +24,68 @@ interface Message {
 
 interface SocketEvents {
   // 连接事件
-  'connect': () => void;
-  'disconnect': (reason: string) => void;
-  'connect_error': (error: Error) => void;
-  
+  connect: () => void;
+  disconnect: (reason: string) => void;
+  connect_error: (error: Error) => void;
+
   // 认证事件
-  'authenticate': (userId: string) => void;
-  
+  authenticate: (userId: string) => void;
+
   // 用户状态事件
   'user:online': (data: { userId: string; onlineCount: number }) => void;
   'user:offline': (data: { userId: string; onlineCount: number }) => void;
   'users:online': (data: { userIds: string[]; count: number }) => void;
-  'user:joined': (data: { userId: string; socketId: string; conversationId: number | string }) => void;
-  'user:left': (data: { userId: string; socketId: string; conversationId: number | string }) => void;
-  
+  'user:joined': (data: {
+    userId: string;
+    socketId: string;
+    conversationId: number | string;
+  }) => void;
+  'user:left': (data: {
+    userId: string;
+    socketId: string;
+    conversationId: number | string;
+  }) => void;
+
   // 对话房间事件
   'join:conversation': (conversationId: number | string) => void;
   'leave:conversation': (conversationId: number | string) => void;
-  
+
   // 消息事件
-  'message:send': (data: { conversationId: number | string; message: Message; tempId?: string }) => void;
+  'message:send': (data: {
+    conversationId: number | string;
+    message: Message;
+    tempId?: string;
+  }) => void;
   'message:sent': (data: Message & { tempId?: string }) => void;
   'message:received': (data: Message & { tempId?: string }) => void;
-  'message:read': (data: { messageId: string; userId: string; conversationId: number | string; readAt: string }) => void;
+  'message:read': (data: {
+    messageId: string;
+    userId: string;
+    conversationId: number | string;
+    readAt: string;
+  }) => void;
   'message:error': (data: { error: string; tempId?: string }) => void;
-  
+
   // 输入状态事件
   'typing:start': (data: { conversationId: number | string; userName?: string }) => void;
   'typing:stop': (data: { conversationId: number | string }) => void;
-  'typing:started': (data: { userId: string; userName: string; conversationId: number | string; timestamp: string }) => void;
-  'typing:stopped': (data: { userId: string; conversationId: number | string; timestamp: string }) => void;
-  
+  'typing:started': (data: {
+    userId: string;
+    userName: string;
+    conversationId: number | string;
+    timestamp: string;
+  }) => void;
+  'typing:stopped': (data: {
+    userId: string;
+    conversationId: number | string;
+    timestamp: string;
+  }) => void;
+
   // 心跳事件
-  'ping': (callback: (data: { time: number; onlineUsers: number }) => void) => void;
-  
+  ping: (callback: (data: { time: number; onlineUsers: number }) => void) => void;
+
   // 错误事件
-  'error': (data: { message: string }) => void;
+  error: (data: { message: string }) => void;
 }
 
 class SocketClient {
@@ -79,7 +105,8 @@ class SocketClient {
 
     this.connectionPromise = new Promise((resolve, reject) => {
       try {
-        const socketUrl = process.env.NEXT_PUBLIC_APP_URL || 
+        const socketUrl =
+          process.env.NEXT_PUBLIC_APP_URL ||
           (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
 
         console.log('[SocketClient] Connecting to:', socketUrl);
@@ -99,13 +126,13 @@ class SocketClient {
         this.socket.on('connect', () => {
           console.log('[SocketClient] Connected to server, ID:', this.socket?.id);
           this.reconnectAttempts = 0;
-          
+
           // 发送认证信息
           if (userId) {
             this.userId = userId;
             this.socket?.emit('authenticate', userId);
           }
-          
+
           // 触发所有连接监听器
           this.emitToListeners('connect');
           resolve(this.socket!);
@@ -115,7 +142,7 @@ class SocketClient {
         this.socket.on('connect_error', (error) => {
           console.error('[SocketClient] Connection error:', error.message);
           this.reconnectAttempts++;
-          
+
           if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             console.log('[SocketClient] Max reconnection attempts reached');
             this.disconnect();
@@ -127,20 +154,19 @@ class SocketClient {
         this.socket.on('disconnect', (reason) => {
           console.log('[SocketClient] Disconnected:', reason);
           this.connectionPromise = null;
-          
+
           if (reason === 'io server disconnect') {
             // 服务器主动断开，尝试重连
             setTimeout(() => {
               this.socket?.connect();
             }, this.reconnectDelay);
           }
-          
+
           this.emitToListeners('disconnect', reason);
         });
 
         // 转发所有事件到监听器
         this.setupEventForwarding();
-
       } catch (error) {
         console.error('[SocketClient] Connection setup error:', error);
         this.connectionPromise = null;
@@ -157,15 +183,24 @@ class SocketClient {
 
     // 定义需要转发的系统事件
     const systemEvents = [
-      'connect', 'disconnect', 'connect_error',
-      'user:online', 'user:offline', 'users:online',
-      'user:joined', 'user:left',
-      'message:sent', 'message:received', 'message:read', 'message:error',
-      'typing:started', 'typing:stopped',
-      'error'
+      'connect',
+      'disconnect',
+      'connect_error',
+      'user:online',
+      'user:offline',
+      'users:online',
+      'user:joined',
+      'user:left',
+      'message:sent',
+      'message:received',
+      'message:read',
+      'message:error',
+      'typing:started',
+      'typing:stopped',
+      'error',
     ];
 
-    systemEvents.forEach(event => {
+    systemEvents.forEach((event) => {
       this.socket!.on(event, (...args) => {
         this.emitToListeners(event, ...args);
       });
@@ -176,7 +211,7 @@ class SocketClient {
   private emitToListeners(event: string, ...args: any[]) {
     const callbacks = this.listeners.get(event);
     if (callbacks) {
-      callbacks.forEach(callback => {
+      callbacks.forEach((callback) => {
         try {
           callback(...args);
         } catch (error) {
@@ -213,30 +248,24 @@ class SocketClient {
   }
 
   // 通用发送方法
-  emit<K extends keyof SocketEvents>(
-    event: K,
-    ...args: Parameters<SocketEvents[K]>
-  ): boolean {
+  emit<K extends keyof SocketEvents>(event: K, ...args: Parameters<SocketEvents[K]>): boolean {
     if (!this.socket?.connected) {
       console.warn(`[SocketClient] Cannot emit ${event}: not connected`);
       return false;
     }
-    
+
     this.socket.emit(event as string, ...args);
     return true;
   }
 
   // 通用监听方法
-  on<K extends keyof SocketEvents>(
-    event: K,
-    callback: SocketEvents[K]
-  ): () => void {
+  on<K extends keyof SocketEvents>(event: K, callback: SocketEvents[K]): () => void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
-    
+
     this.listeners.get(event)!.add(callback as Function);
-    
+
     // 返回取消监听的函数
     return () => {
       const callbacks = this.listeners.get(event);
@@ -250,10 +279,7 @@ class SocketClient {
   }
 
   // 移除监听
-  off<K extends keyof SocketEvents>(
-    event: K,
-    callback?: SocketEvents[K]
-  ) {
+  off<K extends keyof SocketEvents>(event: K, callback?: SocketEvents[K]) {
     if (callback) {
       const callbacks = this.listeners.get(event);
       if (callbacks) {
@@ -289,7 +315,7 @@ class SocketClient {
       messageId,
       userId: this.userId,
       conversationId,
-      readAt: new Date().toISOString()
+      readAt: new Date().toISOString(),
     });
   }
 
@@ -327,9 +353,9 @@ export function useSocket(userId?: string) {
 
   useEffect(() => {
     const client = socketRef.current;
-    
+
     // 连接 Socket
-    client.connect(userId).catch(error => {
+    client.connect(userId).catch((error) => {
       console.error('Failed to connect socket:', error);
     });
 
@@ -355,9 +381,9 @@ export function useSocket(userId?: string) {
 
     const unsubscribeUserOnline = client.on('user:online', (data) => {
       setOnlineCount(data.onlineCount);
-      setOnlineUsers(prev => {
+      setOnlineUsers((prev) => {
         // 检查是否已存在
-        if (prev.find(u => u.userId === data.userId)) {
+        if (prev.find((u) => u.userId === data.userId)) {
           return prev;
         }
         return [...prev, { userId: data.userId, status: 'online' }];
@@ -366,7 +392,7 @@ export function useSocket(userId?: string) {
 
     const unsubscribeUserOffline = client.on('user:offline', (data) => {
       setOnlineCount(data.onlineCount);
-      setOnlineUsers(prev => prev.filter(user => user.userId !== data.userId));
+      setOnlineUsers((prev) => prev.filter((user) => user.userId !== data.userId));
     });
 
     // 清理函数
@@ -376,7 +402,7 @@ export function useSocket(userId?: string) {
       unsubscribeUsersOnline();
       unsubscribeUserOnline();
       unsubscribeUserOffline();
-      
+
       // 注意：不要断开连接，保持单例
     };
   }, [userId]);
@@ -390,13 +416,12 @@ export function useSocket(userId?: string) {
     return socketRef.current.leaveConversation(conversationId);
   }, []);
 
-  const sendMessage = useCallback((
-    conversationId: number | string, 
-    message: Message, 
-    tempId?: string
-  ) => {
-    return socketRef.current.sendMessage(conversationId, message, tempId);
-  }, []);
+  const sendMessage = useCallback(
+    (conversationId: number | string, message: Message, tempId?: string) => {
+      return socketRef.current.sendMessage(conversationId, message, tempId);
+    },
+    []
+  );
 
   const markMessageRead = useCallback((messageId: string, conversationId: number | string) => {
     return socketRef.current.markMessageRead(messageId, conversationId);
@@ -414,17 +439,11 @@ export function useSocket(userId?: string) {
     return socketRef.current.ping();
   }, []);
 
-  const on = useCallback(<K extends keyof SocketEvents>(
-    event: K, 
-    callback: SocketEvents[K]
-  ) => {
+  const on = useCallback(<K extends keyof SocketEvents>(event: K, callback: SocketEvents[K]) => {
     return socketRef.current.on(event, callback);
   }, []);
 
-  const off = useCallback(<K extends keyof SocketEvents>(
-    event: K,
-    callback?: SocketEvents[K]
-  ) => {
+  const off = useCallback(<K extends keyof SocketEvents>(event: K, callback?: SocketEvents[K]) => {
     return socketRef.current.off(event, callback);
   }, []);
 
@@ -441,6 +460,6 @@ export function useSocket(userId?: string) {
     stopTyping,
     ping,
     on,
-    off
+    off,
   };
 }

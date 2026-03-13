@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Users, 
+import {
+  Users,
   Save,
   RefreshCw,
   Building,
@@ -14,7 +14,7 @@ import {
   MapPin,
   CreditCard,
   DollarSign,
-  FileText
+  FileText,
 } from 'lucide-react';
 import { useQuote } from '@/contexts/QuoteContext';
 import { Input } from '@/components/ui/input';
@@ -70,7 +70,7 @@ export default function CustomerPanel() {
   const handleSave = () => {
     try {
       console.log('[CustomerPanel] 保存客户信息:', formData);
-      
+
       updateCustomerInfo({
         name: formData.name,
         projectName: formData.projectName,
@@ -85,12 +85,12 @@ export default function CustomerPanel() {
         creditLimit: formData.creditLimit,
         notes: formData.notes,
       });
-      
+
       toast({
         title: '保存成功',
         description: '客户信息已更新到报价单',
       });
-      
+
       console.log('[CustomerPanel] 保存成功');
     } catch (error) {
       console.error('[CustomerPanel] 保存失败:', error);
@@ -118,7 +118,7 @@ export default function CustomerPanel() {
       creditLimit: 0,
       notes: '',
     });
-    
+
     toast({
       title: '已清空',
       description: '客户信息已清空',
@@ -146,7 +146,7 @@ export default function CustomerPanel() {
       creditLimit: customer.creditLimit || 0,
       notes: customer.notes || '',
     });
-    
+
     toast({
       title: '已加载客户信息',
       description: `${customer.companyName} 的信息已加载`,
@@ -178,9 +178,7 @@ export default function CustomerPanel() {
             <Building className="h-5 w-5 text-green-500" />
             客户信息
           </CardTitle>
-          <CardDescription>
-            填写客户基本信息和财务信息
-          </CardDescription>
+          <CardDescription>填写客户基本信息和财务信息</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="basic" className="w-full">
@@ -188,7 +186,7 @@ export default function CustomerPanel() {
               <TabsTrigger value="basic">基本信息</TabsTrigger>
               <TabsTrigger value="financial">财务信息</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="basic" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -198,20 +196,20 @@ export default function CustomerPanel() {
                   </Label>
                   <Input
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="XX工程有限公司"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-xs">项目名称</Label>
                   <Input
                     value={formData.projectName}
-                    onChange={(e) => setFormData({...formData, projectName: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
                     placeholder="污水处理设备采购项目"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-xs flex items-center gap-2">
                     <User className="h-3 w-3" />
@@ -219,11 +217,11 @@ export default function CustomerPanel() {
                   </Label>
                   <Input
                     value={formData.contactPerson}
-                    onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
                     placeholder="张经理"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-xs flex items-center gap-2">
                     <Phone className="h-3 w-3" />
@@ -231,11 +229,11 @@ export default function CustomerPanel() {
                   </Label>
                   <Input
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="13912345678"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-xs flex items-center gap-2">
                     <Mail className="h-3 w-3" />
@@ -243,11 +241,11 @@ export default function CustomerPanel() {
                   </Label>
                   <Input
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="contact@example.com"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-xs flex items-center gap-2">
                     <MapPin className="h-3 w-3" />
@@ -255,13 +253,13 @@ export default function CustomerPanel() {
                   </Label>
                   <Input
                     value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     placeholder="XX省XX市XX区XX路XX号"
                   />
                 </div>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="financial" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -271,11 +269,11 @@ export default function CustomerPanel() {
                   </Label>
                   <Input
                     value={formData.bankName}
-                    onChange={(e) => setFormData({...formData, bankName: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
                     placeholder="中国建设银行XX分行"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-xs flex items-center gap-2">
                     <DollarSign className="h-3 w-3" />
@@ -283,11 +281,11 @@ export default function CustomerPanel() {
                   </Label>
                   <Input
                     value={formData.bankAccount}
-                    onChange={(e) => setFormData({...formData, bankAccount: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, bankAccount: e.target.value })}
                     placeholder="6222 0000 0000 0000"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-xs flex items-center gap-2">
                     <FileText className="h-3 w-3" />
@@ -295,36 +293,38 @@ export default function CustomerPanel() {
                   </Label>
                   <Input
                     value={formData.taxNumber}
-                    onChange={(e) => setFormData({...formData, taxNumber: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
                     placeholder="91310000XXXXXXXXXX"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-xs">付款方式</Label>
                   <Input
                     value={formData.paymentTerms}
-                    onChange={(e) => setFormData({...formData, paymentTerms: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
                     placeholder="月结30天"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-xs">信用额度</Label>
                   <Input
                     type="number"
                     value={formData.creditLimit}
-                    onChange={(e) => setFormData({...formData, creditLimit: parseFloat(e.target.value) || 0})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, creditLimit: parseFloat(e.target.value) || 0 })
+                    }
                     placeholder="100000"
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-xs">备注</Label>
                 <Textarea
                   value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="其他备注信息..."
                   rows={3}
                 />

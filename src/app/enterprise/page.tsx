@@ -15,12 +15,12 @@ export default function EnterprisePage() {
   const router = useRouter();
   const { toast } = useToast();
   const { submitEnterpriseApplication, getEnterpriseStatus, enterpriseLogin } = useUser();
-  
+
   const [activeTab, setActiveTab] = useState('apply');
   const [loading, setLoading] = useState(false);
   const [applicationId, setApplicationId] = useState('');
   const [status, setStatus] = useState<any>(null);
-  
+
   // 表单数据
   const [formData, setFormData] = useState({
     companyName: '',
@@ -28,44 +28,49 @@ export default function EnterprisePage() {
     contactPerson: '',
     contactPhone: '',
     contactEmail: '',
-    companyAddress: ''
+    companyAddress: '',
   });
 
   // 处理输入变化
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   // 提交认证申请
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // 验证表单
-    if (!formData.companyName || !formData.businessLicense || !formData.contactPerson || !formData.contactPhone) {
+    if (
+      !formData.companyName ||
+      !formData.businessLicense ||
+      !formData.contactPerson ||
+      !formData.contactPhone
+    ) {
       toast({
-        title: "请填写完整信息",
-        variant: "destructive",
+        title: '请填写完整信息',
+        variant: 'destructive',
         duration: 3000,
       });
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       const result = await submitEnterpriseApplication({
         ...formData,
-        licenseImage: 'mock-license.jpg' // 模拟营业执照图片
+        licenseImage: 'mock-license.jpg', // 模拟营业执照图片
       });
-      
+
       if (result.success && result.applicationId) {
         setApplicationId(result.applicationId);
         toast({
-          title: "申请已提交",
-          description: "我们将在1-2个工作日内完成审核",
+          title: '申请已提交',
+          description: '我们将在1-2个工作日内完成审核',
           duration: 5000,
         });
         setActiveTab('status');
@@ -75,18 +80,18 @@ export default function EnterprisePage() {
         }, 1000);
       } else {
         toast({
-          title: "提交失败",
-          description: result.error || "请稍后重试",
-          variant: "destructive",
+          title: '提交失败',
+          description: result.error || '请稍后重试',
+          variant: 'destructive',
           duration: 3000,
         });
       }
     } catch (error) {
       console.error('提交失败:', error);
       toast({
-        title: "提交失败",
-        description: "请稍后重试",
-        variant: "destructive",
+        title: '提交失败',
+        description: '请稍后重试',
+        variant: 'destructive',
         duration: 3000,
       });
     } finally {
@@ -99,13 +104,13 @@ export default function EnterprisePage() {
     const checkId = id || applicationId;
     if (!checkId) {
       toast({
-        title: "请输入申请编号",
-        variant: "destructive",
+        title: '请输入申请编号',
+        variant: 'destructive',
         duration: 2000,
       });
       return;
     }
-    
+
     setLoading(true);
     const result = await getEnterpriseStatus(checkId);
     setStatus(result);
@@ -116,43 +121,43 @@ export default function EnterprisePage() {
   const handleEnterpriseLogin = async () => {
     if (!applicationId) {
       toast({
-        title: "请输入企业ID",
-        variant: "destructive",
+        title: '请输入企业ID',
+        variant: 'destructive',
         duration: 3000,
       });
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       const result = await enterpriseLogin(
         applicationId,
         'employee-001',
         'mock-token-employee-001'
       );
-      
+
       if (result.success) {
         toast({
-          title: "登录成功",
-          description: "欢迎进入企业管理后台",
+          title: '登录成功',
+          description: '欢迎进入企业管理后台',
           duration: 2000,
         });
         router.push('/admin');
       } else {
         toast({
-          title: "登录失败",
-          description: result.error || "请检查企业信息",
-          variant: "destructive",
+          title: '登录失败',
+          description: result.error || '请检查企业信息',
+          variant: 'destructive',
           duration: 3000,
         });
       }
     } catch (error) {
       console.error('登录失败:', error);
       toast({
-        title: "登录失败",
-        description: "请稍后重试",
-        variant: "destructive",
+        title: '登录失败',
+        description: '请稍后重试',
+        variant: 'destructive',
         duration: 3000,
       });
     } finally {
@@ -164,11 +169,7 @@ export default function EnterprisePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12 px-4">
       <div className="max-w-3xl mx-auto">
         {/* 返回按钮 */}
-        <Button
-          variant="ghost"
-          className="mb-4"
-          onClick={() => router.push('/login')}
-        >
+        <Button variant="ghost" className="mb-4" onClick={() => router.push('/login')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           返回登录
         </Button>
@@ -181,11 +182,9 @@ export default function EnterprisePage() {
               </div>
             </div>
             <CardTitle className="text-3xl">企业服务</CardTitle>
-            <CardDescription>
-              企业认证后开通团队管理后台，享受更多专业服务
-            </CardDescription>
+            <CardDescription>企业认证后开通团队管理后台，享受更多专业服务</CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -198,7 +197,7 @@ export default function EnterprisePage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">基本信息</h3>
-                    
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium">公司名称</label>
                       <Input
@@ -209,7 +208,7 @@ export default function EnterprisePage() {
                         required
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium">营业执照号</label>
                       <Input
@@ -220,20 +219,22 @@ export default function EnterprisePage() {
                         required
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium">营业执照照片</label>
                       <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-blue-500 cursor-pointer transition-colors">
                         <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                         <p className="text-sm text-gray-500">点击上传营业执照照片</p>
-                        <p className="text-xs text-gray-400 mt-1">支持 jpg、png 格式，文件大小不超过 5MB</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          支持 jpg、png 格式，文件大小不超过 5MB
+                        </p>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">联系人信息</h3>
-                    
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium">联系人姓名</label>
                       <Input
@@ -244,7 +245,7 @@ export default function EnterprisePage() {
                         required
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium">联系电话</label>
                       <Input
@@ -255,7 +256,7 @@ export default function EnterprisePage() {
                         required
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium">联系邮箱</label>
                       <Input
@@ -266,7 +267,7 @@ export default function EnterprisePage() {
                         placeholder="请输入联系邮箱"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium">公司地址</label>
                       <Textarea
@@ -296,11 +297,7 @@ export default function EnterprisePage() {
                         onChange={(e) => setApplicationId(e.target.value)}
                         placeholder="请输入申请编号"
                       />
-                      <Button
-                        variant="outline"
-                        onClick={() => checkStatus()}
-                        disabled={loading}
-                      >
+                      <Button variant="outline" onClick={() => checkStatus()} disabled={loading}>
                         查询
                       </Button>
                     </div>
@@ -334,13 +331,25 @@ export default function EnterprisePage() {
 
                       {status.application && (
                         <div className="text-sm text-gray-600 dark:text-gray-400 space-y-2 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                          <p><span className="font-medium">公司名称：</span>{status.application.companyName}</p>
-                          <p><span className="font-medium">提交时间：</span>{new Date(status.application.submittedAt).toLocaleString()}</p>
+                          <p>
+                            <span className="font-medium">公司名称：</span>
+                            {status.application.companyName}
+                          </p>
+                          <p>
+                            <span className="font-medium">提交时间：</span>
+                            {new Date(status.application.submittedAt).toLocaleString()}
+                          </p>
                           {status.application.approvedAt && (
-                            <p><span className="font-medium">审核时间：</span>{new Date(status.application.approvedAt).toLocaleString()}</p>
+                            <p>
+                              <span className="font-medium">审核时间：</span>
+                              {new Date(status.application.approvedAt).toLocaleString()}
+                            </p>
                           )}
                           {status.application.rejectReason && (
-                            <p className="text-red-500"><span className="font-medium">拒绝原因：</span>{status.application.rejectReason}</p>
+                            <p className="text-red-500">
+                              <span className="font-medium">拒绝原因：</span>
+                              {status.application.rejectReason}
+                            </p>
                           )}
                         </div>
                       )}

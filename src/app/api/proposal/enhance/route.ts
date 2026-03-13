@@ -1,13 +1,18 @@
 /**
  * 方案增强 API 接口
- * 
+ *
  * 提供以下接口：
  * - POST /api/proposal/enhance - 增强技术方案
  * - GET /api/proposal/enhance/status - 获取增强器状态
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { proposalEnhancer, ProposalContext, EnhancementOptions, EnhancedProposal } from '@/lib/proposal-enhancer';
+import {
+  proposalEnhancer,
+  ProposalContext,
+  EnhancementOptions,
+  EnhancedProposal,
+} from '@/lib/proposal-enhancer';
 import { Logger } from '@/lib/logger';
 
 // ============================================================================

@@ -7,10 +7,7 @@ export async function POST(request: NextRequest) {
     const { username, password } = await request.json();
 
     if (!username || !password) {
-      return NextResponse.json(
-        { error: '用户名和密码不能为空' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '用户名和密码不能为空' }, { status: 400 });
     }
 
     const supabase = getSupabaseClient();
@@ -25,18 +22,12 @@ export async function POST(request: NextRequest) {
 
     if (error || !user) {
       console.error('[Login] 查询用户失败:', error);
-      return NextResponse.json(
-        { error: '用户名或密码错误' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '用户名或密码错误' }, { status: 401 });
     }
 
     // 验证密码（直接比对明文，因为现有用户使用明文）
     if (user.password !== password) {
-      return NextResponse.json(
-        { error: '用户名或密码错误' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '用户名或密码错误' }, { status: 401 });
     }
 
     // 获取用户等级信息
@@ -59,7 +50,18 @@ export async function POST(request: NextRequest) {
     // 返回用户信息（不包含密码）
     const { password: _, ...userWithoutPassword } = user;
 
-    console.log('【登录成功】用户ID:', user.id, '用户名:', user.username, '邮箱:', user.email, '角色:', user.role, '等级:', levelData?.level || 1);
+    console.log(
+      '【登录成功】用户ID:',
+      user.id,
+      '用户名:',
+      user.username,
+      '邮箱:',
+      user.email,
+      '角色:',
+      user.role,
+      '等级:',
+      levelData?.level || 1
+    );
 
     return NextResponse.json({
       success: true,
@@ -67,14 +69,11 @@ export async function POST(request: NextRequest) {
         ...userWithoutPassword,
         level: levelData?.level || 1,
         currentPoints: levelData?.current_points || 0,
-        nextLevelPoints: levelData?.next_level_points || 1000
-      }
+        nextLevelPoints: levelData?.next_level_points || 1000,
+      },
     });
   } catch (error) {
     console.error('[Login] 登录请求失败:', error);
-    return NextResponse.json(
-      { error: '登录失败，请稍后重试' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '登录失败，请稍后重试' }, { status: 500 });
   }
 }

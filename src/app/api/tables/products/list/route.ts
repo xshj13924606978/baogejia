@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       keyword,
       page,
       limit,
-      hasKeyword: !!keyword
+      hasKeyword: !!keyword,
     });
 
     const db = getSupabaseClient();
@@ -39,23 +39,28 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('[Product List API] ❌ 查询数据库失败:', error);
       console.error('[Product List API] 错误详情:', JSON.stringify(error, null, 2));
-      return NextResponse.json({
-        success: false,
-        error: error.message,
-        data: [],
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          data: [],
+        },
+        { status: 500 }
+      );
     }
 
     console.log('[Product List API] ✅ 数据库查询成功');
     console.log('[Product List API] 查询结果:', {
       count: data?.length || 0,
       total: count || 0,
-      firstItem: data?.[0] ? {
-        id: data[0].id,
-        name: data[0].name,
-        model: data[0].model,
-        price: data[0].price
-      } : null
+      firstItem: data?.[0]
+        ? {
+            id: data[0].id,
+            name: data[0].name,
+            model: data[0].model,
+            price: data[0].price,
+          }
+        : null,
     });
 
     // 转换为前端需要的格式
@@ -86,7 +91,7 @@ export async function GET(request: NextRequest) {
       success: true,
       count: formattedProducts.length,
       total: count || 0,
-      duration: `${duration}ms`
+      duration: `${duration}ms`,
     });
 
     return NextResponse.json({
@@ -94,15 +99,18 @@ export async function GET(request: NextRequest) {
       data: formattedProducts,
       total: formattedProducts.length,
       count: count || 0,
-      duration
+      duration,
     });
   } catch (error) {
     console.error('[Product List API] ❌ 请求异常:', error);
     console.error('[Product List API] 错误堆栈:', error instanceof Error ? error.stack : error);
-    return NextResponse.json({
-      success: false,
-      error: '获取产品列表失败',
-      data: [],
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: '获取产品列表失败',
+        data: [],
+      },
+      { status: 500 }
+    );
   }
 }

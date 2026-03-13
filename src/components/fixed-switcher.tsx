@@ -11,8 +11,12 @@ export default function FixedSwitcher() {
 
   // 获取文件摘要
   const getFileSummary = () => {
-    const excelCount = files.filter((f: any) => f.type?.includes('sheet') || f.productCount > 0).length;
-    const docCount = files.filter((f: any) => f.type?.includes('pdf') || f.type?.includes('image')).length;
+    const excelCount = files.filter(
+      (f: any) => f.type?.includes('sheet') || f.productCount > 0
+    ).length;
+    const docCount = files.filter(
+      (f: any) => f.type?.includes('pdf') || f.type?.includes('image')
+    ).length;
     const totalProducts = files.reduce((sum: number, f: any) => sum + (f.productCount || 0), 0);
     return { excelCount, docCount, totalProducts };
   };
@@ -34,22 +38,25 @@ export default function FixedSwitcher() {
 
   // 获取选项样式
   const getButtonStyle = (choice: string) => {
-    const baseStyle = 'flex-1 px-4 py-3 rounded-lg transition-all duration-200 flex items-center justify-between';
+    const baseStyle =
+      'flex-1 px-4 py-3 rounded-lg transition-all duration-200 flex items-center justify-between';
 
     if (choice === currentChoice) {
-      const colors = {
-        'quote': 'bg-blue-500 text-white shadow-md',
-        'proposal': 'bg-green-500 text-white shadow-md',
-        'both': 'bg-purple-500 text-white shadow-md',
-      }[choice] || 'bg-gray-500 text-white';
+      const colors =
+        {
+          quote: 'bg-blue-500 text-white shadow-md',
+          proposal: 'bg-green-500 text-white shadow-md',
+          both: 'bg-purple-500 text-white shadow-md',
+        }[choice] || 'bg-gray-500 text-white';
       return `${baseStyle} ${colors}`;
     }
 
-    const colors = {
-      'quote': 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200',
-      'proposal': 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200',
-      'both': 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200',
-    }[choice] || 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200';
+    const colors =
+      {
+        quote: 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200',
+        proposal: 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200',
+        both: 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200',
+      }[choice] || 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200';
 
     return `${baseStyle} ${colors} ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`;
   };
@@ -60,7 +67,9 @@ export default function FixedSwitcher() {
       <div className="flex items-center gap-4 mb-3 text-sm text-gray-600">
         <span>📁 {files.length}个文件</span>
         {summary.excelCount > 0 && (
-          <span>📊 {summary.excelCount}个表格 ({summary.totalProducts}个产品)</span>
+          <span>
+            📊 {summary.excelCount}个表格 ({summary.totalProducts}个产品)
+          </span>
         )}
         {summary.docCount > 0 && <span>📄 {summary.docCount}个文档</span>}
       </div>
@@ -75,7 +84,9 @@ export default function FixedSwitcher() {
           <span className="flex items-center gap-2">
             <span>📊</span> 生成报价单
           </span>
-          {currentChoice === 'quote' && <span className="bg-white bg-opacity-20 text-xs px-2 py-1 rounded-full">当前</span>}
+          {currentChoice === 'quote' && (
+            <span className="bg-white bg-opacity-20 text-xs px-2 py-1 rounded-full">当前</span>
+          )}
         </button>
 
         <button
@@ -86,7 +97,9 @@ export default function FixedSwitcher() {
           <span className="flex items-center gap-2">
             <span>📝</span> 生成方案
           </span>
-          {currentChoice === 'proposal' && <span className="bg-white bg-opacity-20 text-xs px-2 py-1 rounded-full">当前</span>}
+          {currentChoice === 'proposal' && (
+            <span className="bg-white bg-opacity-20 text-xs px-2 py-1 rounded-full">当前</span>
+          )}
         </button>
 
         <button
@@ -97,7 +110,9 @@ export default function FixedSwitcher() {
           <span className="flex items-center gap-2">
             <span>📑</span> 生成方案（内含报价）
           </span>
-          {currentChoice === 'both' && <span className="bg-white bg-opacity-20 text-xs px-2 py-1 rounded-full">当前</span>}
+          {currentChoice === 'both' && (
+            <span className="bg-white bg-opacity-20 text-xs px-2 py-1 rounded-full">当前</span>
+          )}
         </button>
       </div>
 

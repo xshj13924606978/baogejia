@@ -3,7 +3,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWebSocket as useSocket } from '@/hooks/useWebSocket';
 import { cn } from '@/lib/utils';
-import { X, Bell, Info, AlertCircle, CheckCircle, AlertTriangle, Trash2, CheckCheck } from 'lucide-react';
+import {
+  X,
+  Bell,
+  Info,
+  AlertCircle,
+  CheckCircle,
+  AlertTriangle,
+  Trash2,
+  CheckCheck,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -44,9 +53,8 @@ export function NotificationPanel({
   const [showPanel, setShowPanel] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const currentUserId = typeof window !== 'undefined'
-    ? JSON.parse(localStorage.getItem('user') || '{}')?.id
-    : userId;
+  const currentUserId =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : userId;
 
   const { markNotificationAsRead } = useSocket({
     userId: currentUserId,
@@ -133,11 +141,7 @@ export function NotificationPanel({
 
   const handleMarkAsRead = (notificationId: number) => {
     setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === notificationId
-          ? { ...n, isRead: true, readAt: new Date() }
-          : n
-      )
+      prev.map((n) => (n.id === notificationId ? { ...n, isRead: true, readAt: new Date() } : n))
     );
     setUnreadCount((prev) => Math.max(0, prev - 1));
 
@@ -146,9 +150,7 @@ export function NotificationPanel({
   };
 
   const handleMarkAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, isRead: true, readAt: new Date() }))
-    );
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true, readAt: new Date() })));
     setUnreadCount(0);
   };
 
@@ -196,10 +198,7 @@ export function NotificationPanel({
       {/* 通知按钮 */}
       <button
         onClick={() => setShowPanel(!showPanel)}
-        className={cn(
-          'relative p-2 rounded-lg hover:bg-gray-100 transition-colors',
-          className
-        )}
+        className={cn('relative p-2 rounded-lg hover:bg-gray-100 transition-colors', className)}
         aria-label="通知"
       >
         <Bell className="w-6 h-6 text-gray-700" />
@@ -247,11 +246,7 @@ export function NotificationPanel({
                     清空
                   </Button>
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowPanel(false)}
-                >
+                <Button variant="ghost" size="icon" onClick={() => setShowPanel(false)}>
                   <X className="w-4 h-4 text-gray-500" />
                 </Button>
               </div>
@@ -260,9 +255,7 @@ export function NotificationPanel({
             {/* 通知列表 */}
             <div className="flex-1 overflow-y-auto p-2">
               {notifications.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  暂无通知
-                </div>
+                <div className="text-center py-8 text-gray-500">暂无通知</div>
               ) : (
                 displayNotifications.map((notification) => (
                   <div
@@ -282,13 +275,9 @@ export function NotificationPanel({
                     }}
                   >
                     <div className="flex gap-3">
-                      <div className="flex-shrink-0">
-                        {getNotificationIcon(notification.type)}
-                      </div>
+                      <div className="flex-shrink-0">{getNotificationIcon(notification.type)}</div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm text-gray-900">
-                          {notification.title}
-                        </div>
+                        <div className="text-sm text-gray-900">{notification.title}</div>
                         <div className="text-xs text-gray-600 mt-1 line-clamp-2">
                           {notification.content}
                         </div>
@@ -351,10 +340,12 @@ export function NotificationBadge({
   const displayCount = count > maxCount ? `${maxCount}+` : count;
 
   return (
-    <span className={cn(
-      'inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full',
-      className
-    )}>
+    <span
+      className={cn(
+        'inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full',
+        className
+      )}
+    >
       {displayCount}
     </span>
   );
@@ -379,11 +370,7 @@ export function NotificationList({
   const displayNotifications = notifications.slice(0, maxDisplayCount);
 
   if (displayNotifications.length === 0) {
-    return (
-      <div className={cn('text-center py-8 text-gray-500', className)}>
-        暂无通知
-      </div>
-    );
+    return <div className={cn('text-center py-8 text-gray-500', className)}>暂无通知</div>;
   }
 
   return (
@@ -399,26 +386,25 @@ export function NotificationList({
         >
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 mt-0.5">
-              {notification.type === 'success' && <CheckCircle className="w-5 h-5 text-green-500" />}
-              {notification.type === 'warning' && <AlertTriangle className="w-5 h-5 text-yellow-500" />}
+              {notification.type === 'success' && (
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              )}
+              {notification.type === 'warning' && (
+                <AlertTriangle className="w-5 h-5 text-yellow-500" />
+              )}
               {notification.type === 'error' && <AlertCircle className="w-5 h-5 text-red-500" />}
               {notification.type === 'info' && <Info className="w-5 h-5 text-blue-500" />}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
-                <h4 className={cn(
-                  'text-sm font-medium',
-                  !notification.isRead && 'font-semibold'
-                )}>
+                <h4 className={cn('text-sm font-medium', !notification.isRead && 'font-semibold')}>
                   {notification.title}
                 </h4>
                 {!notification.isRead && (
                   <span className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500" />
                 )}
               </div>
-              <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                {notification.content}
-              </p>
+              <p className="text-sm text-gray-600 mt-1 line-clamp-2">{notification.content}</p>
               <div className="text-xs text-gray-400 mt-2">
                 {new Date(notification.createdAt).toLocaleString('zh-CN', {
                   year: 'numeric',

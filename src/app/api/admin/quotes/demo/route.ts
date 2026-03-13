@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  withQuoteCreate, 
-  withQuoteView, 
-  withQuoteEdit, 
+import {
+  withQuoteCreate,
+  withQuoteView,
+  withQuoteEdit,
   withQuoteExport,
-  withAnyPermission
+  withAnyPermission,
 } from '@/lib/permission-check';
 
 /**
@@ -27,10 +27,7 @@ export const GET = withQuoteView(async (request: NextRequest, user: any) => {
     const { getSupabaseClient } = await import('@/storage/database/supabase-client');
     const supabase = getSupabaseClient();
 
-    let query = supabase
-      .from('quotes')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let query = supabase.from('quotes').select('*').order('created_at', { ascending: false });
 
     if (status) {
       query = query.eq('status', status);
@@ -47,8 +44,8 @@ export const GET = withQuoteView(async (request: NextRequest, user: any) => {
       data: quotes || [],
       pagination: {
         page,
-        total: quotes?.length || 0
-      }
+        total: quotes?.length || 0,
+      },
     });
   } catch (error: any) {
     console.error('[Quotes Demo API] 获取报价列表失败:', error);
@@ -70,10 +67,7 @@ export const POST = withQuoteCreate(async (request: NextRequest, user: any) => {
 
     // 验证参数
     if (!productName || !quantity || !customerName) {
-      return NextResponse.json(
-        { error: '缺少必要参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
     // 创建报价（业务逻辑）
@@ -87,7 +81,7 @@ export const POST = withQuoteCreate(async (request: NextRequest, user: any) => {
         quantity,
         customer_name: customerName,
         status: 'pending',
-        created_by: user.id
+        created_by: user.id,
       })
       .select()
       .single();
@@ -99,14 +93,11 @@ export const POST = withQuoteCreate(async (request: NextRequest, user: any) => {
     return NextResponse.json({
       success: true,
       message: '报价创建成功',
-      data
+      data,
     });
   } catch (error: any) {
     console.error('[Quotes Demo API] 创建报价失败:', error);
-    return NextResponse.json(
-      { error: '创建报价失败', details: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '创建报价失败', details: error.message }, { status: 500 });
   }
 });
 
@@ -121,10 +112,7 @@ export const PUT = withQuoteEdit(async (request: NextRequest, user: any) => {
 
     // 验证参数
     if (!quoteId || !updates) {
-      return NextResponse.json(
-        { error: '缺少必要参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
     // 更新报价（业务逻辑）
@@ -136,7 +124,7 @@ export const PUT = withQuoteEdit(async (request: NextRequest, user: any) => {
       .update({
         ...updates,
         updated_by: user.id,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', quoteId)
       .select()
@@ -149,14 +137,11 @@ export const PUT = withQuoteEdit(async (request: NextRequest, user: any) => {
     return NextResponse.json({
       success: true,
       message: '报价更新成功',
-      data
+      data,
     });
   } catch (error: any) {
     console.error('[Quotes Demo API] 更新报价失败:', error);
-    return NextResponse.json(
-      { error: '更新报价失败', details: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '更新报价失败', details: error.message }, { status: 500 });
   }
 });
 
@@ -173,20 +158,14 @@ export const DELETE = withAnyPermission(
 
       // 验证参数
       if (!quoteId) {
-        return NextResponse.json(
-          { error: '缺少报价ID' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: '缺少报价ID' }, { status: 400 });
       }
 
       // 删除报价（业务逻辑）
       const { getSupabaseClient } = await import('@/storage/database/supabase-client');
       const supabase = getSupabaseClient();
 
-      const { error } = await supabase
-        .from('quotes')
-        .delete()
-        .eq('id', quoteId);
+      const { error } = await supabase.from('quotes').delete().eq('id', quoteId);
 
       if (error) {
         throw error;
@@ -194,14 +173,11 @@ export const DELETE = withAnyPermission(
 
       return NextResponse.json({
         success: true,
-        message: '报价删除成功'
+        message: '报价删除成功',
       });
     } catch (error: any) {
       console.error('[Quotes Demo API] 删除报价失败:', error);
-      return NextResponse.json(
-        { error: '删除报价失败', details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '删除报价失败', details: error.message }, { status: 500 });
     }
   }
 );
@@ -214,7 +190,7 @@ export async function OPTIONS(request: NextRequest) {
   return withQuoteExport(async (req: NextRequest, user: any) => {
     return NextResponse.json({
       success: true,
-      message: '导出报价功能可用'
+      message: '导出报价功能可用',
     });
   })(request);
 }
@@ -230,20 +206,14 @@ export async function PATCH(request: NextRequest) {
 
       // 验证参数
       if (!quoteIds || !format) {
-        return NextResponse.json(
-          { error: '缺少必要参数' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
       }
 
       // 导出报价（业务逻辑）
       const { getSupabaseClient } = await import('@/storage/database/supabase-client');
       const supabase = getSupabaseClient();
 
-      const { data: quotes, error } = await supabase
-        .from('quotes')
-        .select('*')
-        .in('id', quoteIds);
+      const { data: quotes, error } = await supabase.from('quotes').select('*').in('id', quoteIds);
 
       if (error) {
         throw error;
@@ -256,15 +226,12 @@ export async function PATCH(request: NextRequest) {
         data: {
           format,
           count: quotes?.length || 0,
-          quotes: quotes || []
-        }
+          quotes: quotes || [],
+        },
       });
     } catch (error: any) {
       console.error('[Quotes Demo API] 导出报价失败:', error);
-      return NextResponse.json(
-        { error: '导出报价失败', details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '导出报价失败', details: error.message }, { status: 500 });
     }
   })(request);
 }

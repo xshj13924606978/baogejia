@@ -120,7 +120,7 @@ export default function UserSidebar({ isOpen, onClose, user, onUserUpdate }: Use
             {/* 标签页头部 */}
             <div className="flex-shrink-0 border-b px-4">
               <TabsList className="grid w-full grid-cols-5">
-                {tabs.map(tab => (
+                {tabs.map((tab) => (
                   <TabsTrigger key={tab.id} value={tab.id} className="text-xs">
                     <span className="mr-1">{tab.icon}</span>
                     <span className="hidden sm:inline">{tab.name}</span>

@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     if (binding) {
       // 已绑定，直接登录
-      const user = mockUsers.find(u => u.id === binding.user_id);
+      const user = mockUsers.find((u) => u.id === binding.user_id);
       if (user) {
         return NextResponse.redirect(
           `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000'}/login?success=true&provider=qq`

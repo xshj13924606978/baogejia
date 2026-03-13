@@ -27,11 +27,11 @@ export default function QuotaLibrary() {
       code: '1-1-1',
       name: '人工挖土方(一、二类土)',
       unit: 'm³',
-      basePrice: 45.60,
-      laborCost: 45.60,
+      basePrice: 45.6,
+      laborCost: 45.6,
       materialCost: 0,
       machineCost: 0,
-      updateTime: '2024-01-01'
+      updateTime: '2024-01-01',
     },
     {
       id: '2',
@@ -41,11 +41,11 @@ export default function QuotaLibrary() {
       code: 'GD-001',
       name: '钢筋混凝土搅拌罐安装',
       unit: '台',
-      basePrice: 1250.00,
-      laborCost: 450.00,
-      materialCost: 600.00,
-      machineCost: 200.00,
-      updateTime: '2024-01-01'
+      basePrice: 1250.0,
+      laborCost: 450.0,
+      materialCost: 600.0,
+      machineCost: 200.0,
+      updateTime: '2024-01-01',
     },
     {
       id: '3',
@@ -55,11 +55,11 @@ export default function QuotaLibrary() {
       code: 'HB-003',
       name: '一体化污水处理设备调试',
       unit: '台',
-      basePrice: 800.00,
-      laborCost: 500.00,
-      materialCost: 100.00,
-      machineCost: 200.00,
-      updateTime: '2024-01-01'
+      basePrice: 800.0,
+      laborCost: 500.0,
+      materialCost: 100.0,
+      machineCost: 200.0,
+      updateTime: '2024-01-01',
     },
     {
       id: '4',
@@ -69,19 +69,19 @@ export default function QuotaLibrary() {
       code: 'QY-015',
       name: '提升泵安装（含基础）',
       unit: '台',
-      basePrice: 580.00,
-      laborCost: 200.00,
-      materialCost: 300.00,
-      machineCost: 80.00,
-      updateTime: '2024-01-01'
-    }
+      basePrice: 580.0,
+      laborCost: 200.0,
+      materialCost: 300.0,
+      machineCost: 80.0,
+      updateTime: '2024-01-01',
+    },
   ]);
 
   const [filterType, setFilterType] = useState('all');
   const [filterRegion, setFilterRegion] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredQuotas = quotas.filter(q => {
+  const filteredQuotas = quotas.filter((q) => {
     if (filterType !== 'all' && q.type !== filterType) return false;
     if (filterRegion && q.region !== filterRegion && q.region !== '-') return false;
     if (searchTerm) {
@@ -92,11 +92,16 @@ export default function QuotaLibrary() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case '全国': return 'bg-blue-100 text-blue-700';
-      case '地方': return 'bg-green-100 text-green-700';
-      case '行业': return 'bg-purple-100 text-purple-700';
-      case '企业': return 'bg-orange-100 text-orange-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case '全国':
+        return 'bg-blue-100 text-blue-700';
+      case '地方':
+        return 'bg-green-100 text-green-700';
+      case '行业':
+        return 'bg-purple-100 text-purple-700';
+      case '企业':
+        return 'bg-orange-100 text-orange-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -118,9 +123,7 @@ export default function QuotaLibrary() {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-bold flex items-center gap-2">
           <span>📊</span> 定额库
-          <span className="text-sm font-normal text-gray-500 ml-2">
-            {quotas.length}条定额
-          </span>
+          <span className="text-sm font-normal text-gray-500 ml-2">{quotas.length}条定额</span>
         </h3>
         <div className="flex gap-2">
           <button
@@ -195,7 +198,7 @@ export default function QuotaLibrary() {
             </tr>
           </thead>
           <tbody>
-            {filteredQuotas.map(q => (
+            {filteredQuotas.map((q) => (
               <tr key={q.id} className="border-t hover:bg-gray-50">
                 <td className="px-3 py-2 font-mono">{q.code}</td>
                 <td className="px-3 py-2">{q.name}</td>

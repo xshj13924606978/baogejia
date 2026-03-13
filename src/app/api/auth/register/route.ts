@@ -9,10 +9,7 @@ export async function POST(request: NextRequest) {
     const { username, password, email, phone, role, company, contact } = body;
 
     if (!username || !password) {
-      return NextResponse.json(
-        { error: '用户名和密码不能为空' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '用户名和密码不能为空' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -25,10 +22,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: '用户名已存在' },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: '用户名已存在' }, { status: 409 });
     }
 
     // 创建用户
@@ -46,17 +40,14 @@ export async function POST(request: NextRequest) {
         company,
         contact,
         verified: false,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       })
       .select()
       .single();
 
     if (createError || !user) {
       console.error('[Auth] 注册失败:', createError);
-      return NextResponse.json(
-        { error: '注册失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '注册失败' }, { status: 500 });
     }
 
     // 注册成功后奖励积分
@@ -67,8 +58,8 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           user_id: user.id,
           type: 'register',
-          description: '注册账号奖励'
-        })
+          description: '注册账号奖励',
+        }),
       });
     } catch (pointsError) {
       console.error('[Auth] 注册积分奖励失败:', pointsError);
@@ -82,15 +73,12 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role,
         points: user.points,
-        total_points: user.total_points
+        total_points: user.total_points,
       },
-      message: '注册成功，请等待审核'
+      message: '注册成功，请等待审核',
     });
   } catch (error) {
     console.error('[Auth] 注册请求失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

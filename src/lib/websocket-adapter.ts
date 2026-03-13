@@ -45,7 +45,7 @@ export class WebSocketAdapter {
       this.listeners.set(event, new Set());
     }
     this.listeners.get(event)?.add(callback);
-    
+
     return socketClient.on(event as any, callback as any);
   }
 
@@ -82,5 +82,5 @@ export const websocketService = {
   on: (event: string, callback: Function) => websocket.on(event, callback),
   off: (event: string, callback?: Function) => websocket.off(event, callback),
   isConnected: () => websocket.isConnected(),
-  getUserId: () => websocket.getUserId()
+  getUserId: () => websocket.getUserId(),
 };

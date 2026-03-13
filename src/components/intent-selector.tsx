@@ -8,26 +8,22 @@ interface IntentSelectorProps {
   fileGroupId: string;
   files: any[];
   currentChoice?: string; // 当前选中的选项
-  isLoading?: boolean;     // 是否正在加载
+  isLoading?: boolean; // 是否正在加载
 }
 
 export default function IntentSelector({
   fileGroupId,
   files,
   currentChoice,
-  isLoading
+  isLoading,
 }: IntentSelectorProps) {
   // 根据文件类型获取推荐
   const getRecommendation = () => {
-    const hasExcel = files.some(f =>
-      f.type?.includes('sheet') ||
-      f.type?.includes('excel') ||
-      f.productCount > 0
+    const hasExcel = files.some(
+      (f) => f.type?.includes('sheet') || f.type?.includes('excel') || f.productCount > 0
     );
-    const hasDocs = files.some(f =>
-      f.type?.includes('pdf') ||
-      f.type?.includes('image') ||
-      f.productCount === undefined
+    const hasDocs = files.some(
+      (f) => f.type?.includes('pdf') || f.type?.includes('image') || f.productCount === undefined
     );
 
     if (hasExcel && !hasDocs) return 'quote';
@@ -40,7 +36,8 @@ export default function IntentSelector({
 
   // 按钮样式
   const getButtonStyle = (choice: string) => {
-    const baseStyle = "px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium";
+    const baseStyle =
+      'px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium';
 
     if (isLoading) {
       return `${baseStyle} opacity-50 cursor-not-allowed`;
@@ -76,10 +73,14 @@ export default function IntentSelector({
   // 获取推荐标签文本
   const getRecommendationLabel = () => {
     switch (recommendation) {
-      case 'quote': return '推荐';
-      case 'proposal': return '推荐';
-      case 'both': return '推荐';
-      default: return '推荐';
+      case 'quote':
+        return '推荐';
+      case 'proposal':
+        return '推荐';
+      case 'both':
+        return '推荐';
+      default:
+        return '推荐';
     }
   };
 
@@ -89,10 +90,15 @@ export default function IntentSelector({
         <Button
           variant="ghost"
           onClick={() => {
-            console.log('[IntentSelector] 点击生成报价单按钮, fileGroupId:', fileGroupId, 'currentChoice:', currentChoice);
+            console.log(
+              '[IntentSelector] 点击生成报价单按钮, fileGroupId:',
+              fileGroupId,
+              'currentChoice:',
+              currentChoice
+            );
             // 触发自定义事件通知父组件
             const event = new CustomEvent('intent-select', {
-              detail: { fileGroupId, choice: 'quote' }
+              detail: { fileGroupId, choice: 'quote' },
             });
             console.log('[IntentSelector] 触发 intent-select 事件:', event.detail);
             window.dispatchEvent(event);
@@ -112,7 +118,7 @@ export default function IntentSelector({
           variant="ghost"
           onClick={() => {
             const event = new CustomEvent('intent-select', {
-              detail: { fileGroupId, choice: 'proposal' }
+              detail: { fileGroupId, choice: 'proposal' },
             });
             window.dispatchEvent(event);
           }}
@@ -131,7 +137,7 @@ export default function IntentSelector({
           variant="ghost"
           onClick={() => {
             const event = new CustomEvent('intent-select', {
-              detail: { fileGroupId, choice: 'both' }
+              detail: { fileGroupId, choice: 'both' },
             });
             window.dispatchEvent(event);
           }}

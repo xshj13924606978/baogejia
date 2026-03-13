@@ -30,10 +30,7 @@ export const calculateTaxAmount = (subtotal: number, taxRate: number): number =>
 /**
  * 计算费用汇总
  */
-export const calculateFeeSummary = (
-  products: Product[],
-  feeConfig: FeeConfig
-): FeeSummary => {
+export const calculateFeeSummary = (products: Product[], feeConfig: FeeConfig): FeeSummary => {
   const subtotal = calculateSubtotal(products);
   const taxAmount = calculateTaxAmount(subtotal, feeConfig.taxRate);
 
@@ -44,11 +41,7 @@ export const calculateFeeSummary = (
     installationFee: feeConfig.installationFee,
     otherFee: feeConfig.otherFee,
     totalAmount:
-      subtotal +
-      taxAmount +
-      feeConfig.shippingFee +
-      feeConfig.installationFee +
-      feeConfig.otherFee,
+      subtotal + taxAmount + feeConfig.shippingFee + feeConfig.installationFee + feeConfig.otherFee,
   };
 };
 
@@ -155,18 +148,10 @@ export const getQuoteTitle = (products: any[]): string => {
   if (productCount === 0) return '报价单';
 
   // 获取主要产品类别（如果有）
-  const categories = new Set(
-    products
-      .map(p => p.category)
-      .filter(c => c && c !== '未分类')
-  );
+  const categories = new Set(products.map((p) => p.category).filter((c) => c && c !== '未分类'));
 
   // 获取主要品牌（如果有）
-  const brands = new Set(
-    products
-      .map(p => p.brand)
-      .filter(b => b && b.trim() !== '')
-  );
+  const brands = new Set(products.map((p) => p.brand).filter((b) => b && b.trim() !== ''));
 
   // 计算总价
   const totalAmount = products.reduce((sum, p) => sum + (p.totalPrice || 0), 0);

@@ -8,10 +8,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('user_id');
 
     if (!userId) {
-      return NextResponse.json(
-        { error: '缺少用户ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -23,10 +20,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error || !user) {
-      return NextResponse.json(
-        { error: '用户不存在' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: '用户不存在' }, { status: 404 });
     }
 
     // VIP用户无限次
@@ -65,10 +59,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Quota] 检查配额失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
 
@@ -79,10 +70,7 @@ export async function POST(request: NextRequest) {
     const { user_id, count = 1 } = body;
 
     if (!user_id) {
-      return NextResponse.json(
-        { error: '缺少用户ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -95,10 +83,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error || !user) {
-      return NextResponse.json(
-        { error: '用户不存在' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: '用户不存在' }, { status: 404 });
     }
 
     // VIP用户不扣减配额
@@ -134,10 +119,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (updateError || !updatedUser) {
-      return NextResponse.json(
-        { error: '扣减配额失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '扣减配额失败' }, { status: 500 });
     }
 
     // 更新localStorage中的用户信息
@@ -157,9 +139,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Quota] 扣减配额失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

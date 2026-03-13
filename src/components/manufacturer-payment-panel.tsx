@@ -1,35 +1,35 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  AlertCircle, 
-  TrendingUp, 
-  DollarSign, 
+import {
+  AlertCircle,
+  TrendingUp,
+  DollarSign,
   ShoppingCart,
   ChevronDown,
   ChevronUp,
@@ -43,7 +43,9 @@ interface ManufacturerPaymentPanelProps {
   compact?: boolean;
 }
 
-export default function ManufacturerPaymentPanel({ compact = false }: ManufacturerPaymentPanelProps) {
+export default function ManufacturerPaymentPanel({
+  compact = false,
+}: ManufacturerPaymentPanelProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ManufacturerPaymentResponse['data'] | null>(null);
@@ -55,21 +57,21 @@ export default function ManufacturerPaymentPanel({ compact = false }: Manufactur
     try {
       setLoading(true);
       setError(null);
-      
+
       const url = new URL('/api/manufacturer/payment', window.location.origin);
       if (category && category !== 'all') {
         url.searchParams.set('category', category);
       }
-      
+
       console.log('[Manufacturer] 加载数据:', url.toString());
-      
+
       const response = await fetch(url.toString());
       const result: ManufacturerPaymentResponse = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || '加载失败');
       }
-      
+
       if (result.success && result.data) {
         setData(result.data);
       } else {
@@ -109,13 +111,32 @@ export default function ManufacturerPaymentPanel({ compact = false }: Manufactur
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case 'completed':
-        return <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-0 text-xs">已完成</Badge>;
+        return (
+          <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-0 text-xs">
+            已完成
+          </Badge>
+        );
       case 'processing':
-        return <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-0 text-xs">处理中</Badge>;
+        return (
+          <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-0 text-xs">
+            处理中
+          </Badge>
+        );
       case 'pending':
-        return <Badge variant="outline" className="border-yellow-500 text-yellow-600 text-xs">待处理</Badge>;
+        return (
+          <Badge variant="outline" className="border-yellow-500 text-yellow-600 text-xs">
+            待处理
+          </Badge>
+        );
       case 'failed':
-        return <Badge variant="destructive" className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-0 text-xs">失败</Badge>;
+        return (
+          <Badge
+            variant="destructive"
+            className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-0 text-xs"
+          >
+            失败
+          </Badge>
+        );
       default:
         return null;
     }
@@ -151,10 +172,7 @@ export default function ManufacturerPaymentPanel({ compact = false }: Manufactur
             <AlertTitle className="text-xs">加载失败</AlertTitle>
             <AlertDescription className="text-xs">
               {error}
-              <button 
-                onClick={loadRankings}
-                className="ml-2 text-blue-500 hover:underline text-xs"
-              >
+              <button onClick={loadRankings} className="ml-2 text-blue-500 hover:underline text-xs">
                 重试
               </button>
             </AlertDescription>
@@ -195,7 +213,9 @@ export default function ManufacturerPaymentPanel({ compact = false }: Manufactur
             <div className="grid grid-cols-3 gap-1">
               <div className="bg-primary/5 rounded p-1.5 text-center">
                 <p className="text-[10px] text-muted-foreground">总支付</p>
-                <p className="text-xs font-bold">{formatCompactAmount(data.summary.total_amount)}</p>
+                <p className="text-xs font-bold">
+                  {formatCompactAmount(data.summary.total_amount)}
+                </p>
               </div>
               <div className="bg-primary/5 rounded p-1.5 text-center">
                 <p className="text-[10px] text-muted-foreground">总订单</p>
@@ -209,14 +229,22 @@ export default function ManufacturerPaymentPanel({ compact = false }: Manufactur
 
             <div className="space-y-1 max-h-[200px] overflow-y-auto">
               {data.rankings.slice(0, 5).map((item, index) => (
-                <div key={item.id} className="flex items-center justify-between text-xs py-1 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between text-xs py-1 border-b border-gray-100 dark:border-gray-800 last:border-0"
+                >
                   <div className="flex items-center gap-2">
-                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-                      index === 0 ? 'bg-yellow-100 text-yellow-700' :
-                      index === 1 ? 'bg-gray-100 text-gray-700' :
-                      index === 2 ? 'bg-orange-100 text-orange-700' :
-                      'bg-gray-50 text-gray-600'
-                    }`}>
+                    <span
+                      className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                        index === 0
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : index === 1
+                            ? 'bg-gray-100 text-gray-700'
+                            : index === 2
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-gray-50 text-gray-600'
+                      }`}
+                    >
                       {index + 1}
                     </span>
                     <span className="truncate max-w-[80px]">{item.manufacturer_name}</span>
@@ -248,12 +276,14 @@ export default function ManufacturerPaymentPanel({ compact = false }: Manufactur
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-                <CardDescription>
-                  按支付金额排序的厂商排行榜
-                </CardDescription>
+                <CardDescription>按支付金额排序的厂商排行榜</CardDescription>
               </CardHeader>
               <CardContent>
-                <ManufacturerPaymentFullTable data={data} category={category} setCategory={setCategory} />
+                <ManufacturerPaymentFullTable
+                  data={data}
+                  category={category}
+                  setCategory={setCategory}
+                />
               </CardContent>
             </Card>
           </div>
@@ -274,9 +304,7 @@ function ManufacturerPaymentFullTable({ data, category, setCategory }: any) {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>厂商支付排行</CardTitle>
-            <CardDescription>
-              按支付金额排序的厂商排行榜
-            </CardDescription>
+            <CardDescription>按支付金额排序的厂商排行榜</CardDescription>
           </div>
           <Select value={category} onValueChange={setCategory}>
             <SelectTrigger className="w-[140px]">
@@ -299,18 +327,20 @@ function ManufacturerPaymentFullTable({ data, category, setCategory }: any) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">总支付金额</p>
-                  <p className="text-lg font-bold">{new Intl.NumberFormat('zh-CN', {
-                    style: 'currency',
-                    currency: 'CNY',
-                    minimumFractionDigits: 0,
-                    notation: 'compact',
-                  }).format(data.summary.total_amount)}</p>
+                  <p className="text-lg font-bold">
+                    {new Intl.NumberFormat('zh-CN', {
+                      style: 'currency',
+                      currency: 'CNY',
+                      minimumFractionDigits: 0,
+                      notation: 'compact',
+                    }).format(data.summary.total_amount)}
+                  </p>
                 </div>
                 <DollarSign className="h-5 w-5 text-green-500" />
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
@@ -322,18 +352,20 @@ function ManufacturerPaymentFullTable({ data, category, setCategory }: any) {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">平均支付金额</p>
-                  <p className="text-lg font-bold">{new Intl.NumberFormat('zh-CN', {
-                    style: 'currency',
-                    currency: 'CNY',
-                    minimumFractionDigits: 0,
-                    notation: 'compact',
-                  }).format(data.summary.avg_amount)}</p>
+                  <p className="text-lg font-bold">
+                    {new Intl.NumberFormat('zh-CN', {
+                      style: 'currency',
+                      currency: 'CNY',
+                      minimumFractionDigits: 0,
+                      notation: 'compact',
+                    }).format(data.summary.avg_amount)}
+                  </p>
                 </div>
                 <TrendingUp className="h-5 w-5 text-purple-500" />
               </div>
@@ -359,13 +391,35 @@ function ManufacturerPaymentFullTable({ data, category, setCategory }: any) {
                 const getStatusBadge = (status?: string) => {
                   switch (status) {
                     case 'completed':
-                      return <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-0 text-xs">已完成</Badge>;
+                      return (
+                        <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-0 text-xs">
+                          已完成
+                        </Badge>
+                      );
                     case 'processing':
-                      return <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-0 text-xs">处理中</Badge>;
+                      return (
+                        <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-0 text-xs">
+                          处理中
+                        </Badge>
+                      );
                     case 'pending':
-                      return <Badge variant="outline" className="border-yellow-500 text-yellow-600 text-xs">待处理</Badge>;
+                      return (
+                        <Badge
+                          variant="outline"
+                          className="border-yellow-500 text-yellow-600 text-xs"
+                        >
+                          待处理
+                        </Badge>
+                      );
                     case 'failed':
-                      return <Badge variant="destructive" className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-0 text-xs">失败</Badge>;
+                      return (
+                        <Badge
+                          variant="destructive"
+                          className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-0 text-xs"
+                        >
+                          失败
+                        </Badge>
+                      );
                     default:
                       return null;
                   }
@@ -374,12 +428,17 @@ function ManufacturerPaymentFullTable({ data, category, setCategory }: any) {
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="text-xs">
-                      <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs ${
-                        index === 0 ? 'bg-yellow-100 text-yellow-700' :
-                        index === 1 ? 'bg-gray-100 text-gray-700' :
-                        index === 2 ? 'bg-orange-100 text-orange-700' :
-                        'bg-gray-50 text-gray-600'
-                      }`}>
+                      <span
+                        className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs ${
+                          index === 0
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : index === 1
+                              ? 'bg-gray-100 text-gray-700'
+                              : index === 2
+                                ? 'bg-orange-100 text-orange-700'
+                                : 'bg-gray-50 text-gray-600'
+                        }`}
+                      >
                         {index + 1}
                       </span>
                     </TableCell>
@@ -395,20 +454,20 @@ function ManufacturerPaymentFullTable({ data, category, setCategory }: any) {
                     </TableCell>
                     <TableCell className="text-right text-xs">{item.order_count}</TableCell>
                     <TableCell className="text-right text-xs">
-                      {item.avg_amount ? new Intl.NumberFormat('zh-CN', {
-                        style: 'currency',
-                        currency: 'CNY',
-                        minimumFractionDigits: 0,
-                        notation: 'compact',
-                      }).format(item.avg_amount) : '-'}
+                      {item.avg_amount
+                        ? new Intl.NumberFormat('zh-CN', {
+                            style: 'currency',
+                            currency: 'CNY',
+                            minimumFractionDigits: 0,
+                            notation: 'compact',
+                          }).format(item.avg_amount)
+                        : '-'}
                     </TableCell>
-                    <TableCell className="text-xs">
-                      {getStatusBadge(item.status)}
-                    </TableCell>
+                    <TableCell className="text-xs">{getStatusBadge(item.status)}</TableCell>
                   </TableRow>
                 );
               })}
-              
+
               {data.rankings.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-6 text-xs text-muted-foreground">

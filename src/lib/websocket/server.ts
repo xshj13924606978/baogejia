@@ -9,7 +9,7 @@ const onlineUsers = new Map<number, string>(); // userId -> socketId
 export function getWebSocketServer() {
   if (!io) {
     const httpServer = createServer();
-    
+
     io = new SocketIOServer(httpServer, {
       cors: {
         origin: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:5000',
@@ -24,9 +24,9 @@ export function getWebSocketServer() {
     // 处理连接
     io.on('connection', async (socket) => {
       console.log('[WebSocket] 客户端连接:', socket.id);
-      
+
       const userId = socket.handshake.query.userId as string;
-      
+
       if (!userId) {
         console.warn('[WebSocket] 连接缺少 userId，断开连接');
         socket.disconnect();
@@ -38,13 +38,13 @@ export function getWebSocketServer() {
 
       // 广播用户上线
       io?.emit('user:online', { userId: parseInt(userId) });
-      
+
       // 发送给当前用户：在线用户列表
-      const onlineUserList = Array.from(onlineUsers.keys()).map(uid => ({
+      const onlineUserList = Array.from(onlineUsers.keys()).map((uid) => ({
         user_id: uid,
-        username: `用户${uid}`
+        username: `用户${uid}`,
       }));
-      
+
       socket.emit('online_users', onlineUserList);
 
       // 监听消息已读事件
@@ -52,7 +52,7 @@ export function getWebSocketServer() {
         try {
           const { messageType, messageId } = data;
           console.log(`[WebSocket] 消息已读: ${messageType}:${messageId}`);
-          
+
           // 通知其他用户（如聊天场景）
           socket.broadcast.emit('message:read', {
             userId: parseInt(userId),
@@ -84,7 +84,7 @@ export function getWebSocketServer() {
       // 监听断开连接
       socket.on('disconnect', async () => {
         console.log('[WebSocket] 客户端断开:', socket.id, 'userId:', userId);
-        
+
         // 移除在线状态
         onlineUsers.delete(parseInt(userId));
 
@@ -111,7 +111,7 @@ export function getWebSocketServer() {
 // 推送通知给指定用户
 export async function pushNotification(userId: number, notification: any) {
   const server = getWebSocketServer();
-  
+
   try {
     // 模拟通知数据
     const savedNotification = {
@@ -126,7 +126,7 @@ export async function pushNotification(userId: number, notification: any) {
 
     // 推送到客户端
     server.to(`user_${userId}`).emit('notification', savedNotification);
-    
+
     return savedNotification;
   } catch (error) {
     console.error('[WebSocket] 推送通知失败:', error);
@@ -137,13 +137,13 @@ export async function pushNotification(userId: number, notification: any) {
 // 推送消息给指定用户
 export async function pushMessage(userId: number, messageType: string, message: any) {
   const server = getWebSocketServer();
-  
+
   try {
     server.to(`user_${userId}`).emit('message', {
       type: messageType,
       ...message,
     });
-    
+
     return { success: true };
   } catch (error) {
     console.error('[WebSocket] 推送消息失败:', error);

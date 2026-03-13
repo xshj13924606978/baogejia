@@ -16,7 +16,7 @@ export default function FloatingSwitcher() {
 
   useEffect(() => {
     console.log('[Floating] 状态:', { fileGroupId, currentChoice, isLoading, hasFiles });
-    
+
     if (fileGroupId && hasFiles) {
       setIsVisible(true);
       // 查找输入区域
@@ -31,18 +31,18 @@ export default function FloatingSwitcher() {
     // 查找输入区域
     const textarea = document.querySelector('textarea');
     const inputContainer = document.querySelector('.p-4.bg-white.dark\\:bg-slate-950.border-t');
-    
+
     if (inputContainer) {
       const rect = inputContainer.getBoundingClientRect();
       setPosition({
         top: rect.top - 50, // 在输入框上方50px
-        right: window.innerWidth - rect.right + 10 // 距离右侧10px
+        right: window.innerWidth - rect.right + 10, // 距离右侧10px
       });
     } else if (textarea) {
       const rect = textarea.getBoundingClientRect();
       setPosition({
         top: rect.top - 60,
-        right: window.innerWidth - rect.right + 10
+        right: window.innerWidth - rect.right + 10,
       });
     }
   };
@@ -85,14 +85,16 @@ export default function FloatingSwitcher() {
     if (isLoading) return;
 
     console.log('[Floating] 切换:', { from: currentChoice, to: choice });
-    
-    window.dispatchEvent(new CustomEvent('switch-change', {
-      detail: {
-        fileGroupId,
-        choice
-      }
-    }));
-    
+
+    window.dispatchEvent(
+      new CustomEvent('switch-change', {
+        detail: {
+          fileGroupId,
+          choice,
+        },
+      })
+    );
+
     setTimeout(() => {
       setIsHovered(false);
     }, 200);
@@ -100,10 +102,14 @@ export default function FloatingSwitcher() {
 
   const getCurrentIcon = () => {
     switch (currentChoice) {
-      case 'quote': return '📊';
-      case 'proposal': return '📝';
-      case 'both': return '📑';
-      default: return '⚡';
+      case 'quote':
+        return '📊';
+      case 'proposal':
+        return '📝';
+      case 'both':
+        return '📑';
+      default:
+        return '⚡';
     }
   };
 
@@ -112,14 +118,14 @@ export default function FloatingSwitcher() {
   }
 
   return (
-    <div 
+    <div
       className="fixed z-50 transition-all duration-200"
       style={{
         top: `${position.top}px`,
-        right: `${position.right}px`
+        right: `${position.right}px`,
       }}
     >
-      <div 
+      <div
         className="flex flex-col items-end"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -139,7 +145,7 @@ export default function FloatingSwitcher() {
 
         {/* 悬浮展开菜单 - 在按钮左侧弹出，垂直居中 */}
         {isHovered && (
-          <div 
+          <div
             className="absolute right-12 top-1/2 -translate-y-1/2 animate-in fade-in slide-in-from-right-2 duration-200"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -155,8 +161,8 @@ export default function FloatingSwitcher() {
                   onClick={() => handleChoiceChange('quote')}
                   disabled={isLoading}
                   className={`w-full justify-start gap-0 h-9 text-sm rounded-lg ${
-                    currentChoice === 'quote' 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' 
+                    currentChoice === 'quote'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                   }`}
                 >
@@ -173,8 +179,8 @@ export default function FloatingSwitcher() {
                   onClick={() => handleChoiceChange('proposal')}
                   disabled={isLoading}
                   className={`w-full justify-start gap-0 h-9 text-sm rounded-lg ${
-                    currentChoice === 'proposal' 
-                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300' 
+                    currentChoice === 'proposal'
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                   }`}
                 >
@@ -191,8 +197,8 @@ export default function FloatingSwitcher() {
                   onClick={() => handleChoiceChange('both')}
                   disabled={isLoading}
                   className={`w-full justify-start gap-0 h-9 text-sm rounded-lg ${
-                    currentChoice === 'both' 
-                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300' 
+                    currentChoice === 'both'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                   }`}
                 >

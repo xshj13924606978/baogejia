@@ -17,17 +17,14 @@ export async function POST(request: NextRequest) {
       role: body.role,
       contentLength: body.content?.length || 0,
       hasQuoteData: !!body.quoteData,
-      fileCount: body.files?.length || 0
+      fileCount: body.files?.length || 0,
     });
 
     const { conversationId, role, content, quoteData, files } = body;
 
     if (!conversationId || !role) {
       Logger.error('[Messages] 缺少必要参数', { conversationId, role });
-      return NextResponse.json(
-        { error: '缺少必要参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
     // 先检查对话是否存在，不存在则自动创建
@@ -42,7 +39,7 @@ export async function POST(request: NextRequest) {
     if (checkError || !conversation) {
       // 对话不存在，自动创建
       Logger.info('[Messages] 对话不存在，自动创建', { conversationId });
-      
+
       const now = new Date().toISOString();
       const { data: newConv, error: createError } = await supabase
         .from('conversations')
@@ -52,7 +49,7 @@ export async function POST(request: NextRequest) {
           last_message: content?.substring(0, 100) || '',
           status: 'active',
           updated_at: now,
-          created_at: now
+          created_at: now,
         })
         .select()
         .single();
@@ -64,7 +61,7 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      
+
       conversation = newConv;
       Logger.info('[Messages] 对话创建成功', { conversationId });
     }
@@ -73,13 +70,13 @@ export async function POST(request: NextRequest) {
     const fileData = Array.isArray(files) ? files : [];
 
     // 处理文件数据，确保关键字段存在
-    const processedFiles = fileData.map(file => ({
+    const processedFiles = fileData.map((file) => ({
       id: file.id || `file-${Date.now()}-${Math.random()}`,
       name: file.name || file.fileName || '未知文件',
       size: file.size || '0 B',
       type: file.type || 'application/octet-stream',
       url: file.url || '',
-      fileKey: file.fileKey || ''
+      fileKey: file.fileKey || '',
     }));
 
     // 准备要插入的数据
@@ -89,7 +86,7 @@ export async function POST(request: NextRequest) {
       content: content || '',
       quote_data: quoteData || null,
       file_data: processedFiles,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     };
 
     Logger.debug('[Messages] 插入数据', {
@@ -97,35 +94,25 @@ export async function POST(request: NextRequest) {
       role,
       contentLength: content?.length || 0,
       hasQuoteData: !!quoteData,
-      fileCount: processedFiles.length
+      fileCount: processedFiles.length,
     });
 
-    const { data, error } = await supabase
-      .from('messages')
-      .insert(messageData)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('messages').insert(messageData).select().single();
 
     if (error) {
       Logger.error('[Messages] 插入失败', error);
-      return NextResponse.json(
-        { error: '保存失败', details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '保存失败', details: error.message }, { status: 500 });
     }
 
     Logger.info('[Messages] 保存成功', { messageId: data.id });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      message: data 
+      message: data,
     });
   } catch (error) {
     Logger.error('[Messages] 异常', error);
-    return NextResponse.json(
-      { error: '服务器错误', details: String(error) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误', details: String(error) }, { status: 500 });
   }
 }
 
@@ -135,10 +122,7 @@ export async function GET(request: NextRequest) {
   const conversationId = searchParams.get('conversationId');
 
   if (!conversationId) {
-    return NextResponse.json(
-      { error: '缺少 conversationId 参数' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: '缺少 conversationId 参数' }, { status: 400 });
   }
 
   try {
@@ -155,16 +139,13 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       Logger.error('[Messages] 查询失败', error);
-      return NextResponse.json(
-        { error: '查询失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '查询失败' }, { status: 500 });
     }
 
     // 确保返回的消息中包含文件数据
-    const messages = (data || []).map(msg => ({
+    const messages = (data || []).map((msg) => ({
       ...msg,
-      file_data: msg.file_data || []
+      file_data: msg.file_data || [],
     }));
 
     Logger.debug('[Messages] 返回消息', { conversationId, count: messages.length });
@@ -172,9 +153,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ messages });
   } catch (error) {
     Logger.error('[Messages] 异常', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

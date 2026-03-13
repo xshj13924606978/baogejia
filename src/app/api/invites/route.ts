@@ -9,10 +9,7 @@ export async function POST(request: NextRequest) {
     const { user_id } = body;
 
     if (!user_id) {
-      return NextResponse.json(
-        { error: '缺少用户ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -49,10 +46,7 @@ export async function POST(request: NextRequest) {
 
     if (error || !invite) {
       console.error('[Invite] 创建邀请失败:', error);
-      return NextResponse.json(
-        { error: '创建邀请失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '创建邀请失败' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -62,10 +56,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Invite] 请求失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
 
@@ -76,10 +67,7 @@ export async function GET(request: NextRequest) {
     const user_id = searchParams.get('user_id');
 
     if (!user_id) {
-      return NextResponse.json(
-        { error: '缺少用户ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -94,15 +82,12 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[Invite] 查询失败:', error);
-      return NextResponse.json(
-        { error: '查询失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '查询失败' }, { status: 500 });
     }
 
     // 统计
     const total = invites?.length || 0;
-    const registered = invites?.filter(i => i.status === 'registered').length || 0;
+    const registered = invites?.filter((i) => i.status === 'registered').length || 0;
     const points = invites?.reduce((sum, i) => sum + (i.points_awarded || 0), 0) || 0;
 
     // 获取最新的邀请码
@@ -125,9 +110,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Invite] 请求失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

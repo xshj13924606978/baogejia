@@ -49,10 +49,10 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
   });
   const [showBind, setShowBind] = useState(false);
   const [oauthInfo, setOauthInfo] = useState<any>(null);
-  
+
   // 添加随机key防止自动填充
   const [formKey, setFormKey] = useState(Math.random().toString(36));
-  
+
   // 当登录标签页激活时重置key
   useEffect(() => {
     if (isOpen) {
@@ -327,9 +327,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
       <DialogContent className="sm:max-w-md" key={formKey}>
         <DialogHeader>
           <DialogTitle>欢迎来到报个价</DialogTitle>
-          <DialogDescription>
-            登录后享受智能报价服务
-          </DialogDescription>
+          <DialogDescription>登录后享受智能报价服务</DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="login" className="w-full">
@@ -388,9 +386,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
                   <Separator className="w-full" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    第三方登录
-                  </span>
+                  <span className="bg-background px-2 text-muted-foreground">第三方登录</span>
                 </div>
               </div>
 
@@ -402,19 +398,14 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
                   onClick={handleWechatLogin}
                 >
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="#07C160">
-                    <path d="M8.5,13.5c-0.83,0-1.5-0.67-1.5-1.5s0.67-1.5,1.5-1.5s1.5,0.67,1.5,1.5S9.33,13.5,8.5,13.5z M15.5,13.5c-0.83,0-1.5-0.67-1.5-1.5s0.67-1.5,1.5-1.5s1.5,0.67,1.5,1.5S16.33,13.5,15.5,13.5z"/>
-                    <path d="M12,2C6.48,2,2,6.48,2,12c0,5.52,4.48,10,10,10s10-4.48,10-10C22,6.48,17.52,2,12,2z M12,20c-4.41,0-8-3.59-8-8s3.59-8,8-8s8,3.59,8,8S16.41,20,12,20z"/>
+                    <path d="M8.5,13.5c-0.83,0-1.5-0.67-1.5-1.5s0.67-1.5,1.5-1.5s1.5,0.67,1.5,1.5S9.33,13.5,8.5,13.5z M15.5,13.5c-0.83,0-1.5-0.67-1.5-1.5s0.67-1.5,1.5-1.5s1.5,0.67,1.5,1.5S16.33,13.5,15.5,13.5z" />
+                    <path d="M12,2C6.48,2,2,6.48,2,12c0,5.52,4.48,10,10,10s10-4.48,10-10C22,6.48,17.52,2,12,2z M12,20c-4.41,0-8-3.59-8-8s3.59-8,8-8s8,3.59,8,8S16.41,20,12,20z" />
                   </svg>
                   微信登录
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={handleQQLogin}
-                >
+                <Button type="button" variant="outline" className="flex-1" onClick={handleQQLogin}>
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="#12B7F5">
-                    <path d="M12,2C6.48,2,2,6.48,2,12c0,5.52,4.48,10,10,10s10-4.48,10-10C22,6.48,17.52,2,12,2z M12,20c-4.41,0-8-3.59-8-8s3.59-8,8-8s8,3.59,8,8S16.41,20,12,20z"/>
+                    <path d="M12,2C6.48,2,2,6.48,2,12c0,5.52,4.48,10,10,10s10-4.48,10-10C22,6.48,17.52,2,12,2z M12,20c-4.41,0-8-3.59-8-8s3.59-8,8-8s8,3.59,8,8S16.41,20,12,20z" />
                   </svg>
                   QQ登录
                 </Button>

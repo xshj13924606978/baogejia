@@ -47,9 +47,7 @@ export class AuditLogService {
         metadata: params.metadata as Record<string, unknown>,
       };
 
-      const { error } = await supabase
-        .from('permission_audit_logs')
-        .insert(logData);
+      const { error } = await supabase.from('permission_audit_logs').insert(logData);
 
       if (error) {
         console.error('[AuditLog] 记录审计日志失败:', error);
@@ -222,10 +220,7 @@ export class AuditLogService {
    * @param threshold 阈值（默认：10次/分钟）
    * @returns Promise<boolean> 是否检测到异常
    */
-  static async detectAnomaly(
-    userId: number,
-    threshold: number = 10
-  ): Promise<boolean> {
+  static async detectAnomaly(userId: number, threshold: number = 10): Promise<boolean> {
     try {
       const supabase = getSupabaseClient();
 
@@ -247,7 +242,9 @@ export class AuditLogService {
       const isAnomaly = operationCount > threshold;
 
       if (isAnomaly) {
-        console.warn(`[AuditLog] 检测到异常操作：用户 ${userId} 在1分钟内执行了 ${operationCount} 次操作`);
+        console.warn(
+          `[AuditLog] 检测到异常操作：用户 ${userId} 在1分钟内执行了 ${operationCount} 次操作`
+        );
       }
 
       return isAnomaly;
@@ -280,9 +277,10 @@ export async function auditLog(
   }
 ): Promise<boolean> {
   // 从请求中提取IP和User-Agent
-  const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || request.headers.get('x-real-ip')
-    || 'unknown';
+  const ipAddress =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
   const userAgent = request.headers.get('user-agent') || 'unknown';
 
   return AuditLogService.log({

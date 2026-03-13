@@ -58,17 +58,17 @@ export function EmailBindDialog({ open, onOpenChange, onBound }: EmailBindDialog
 
   const handleBind = async () => {
     if (!email || !validateEmail(email)) {
-      toast({ title: "请输入正确的邮箱", variant: "destructive", duration: 3000 });
+      toast({ title: '请输入正确的邮箱', variant: 'destructive', duration: 3000 });
       return;
     }
 
     if (!password || password.length < 6) {
-      toast({ title: "密码至少6位", variant: "destructive", duration: 3000 });
+      toast({ title: '密码至少6位', variant: 'destructive', duration: 3000 });
       return;
     }
 
     if (password !== confirmPassword) {
-      toast({ title: "两次密码不一致", variant: "destructive", duration: 3000 });
+      toast({ title: '两次密码不一致', variant: 'destructive', duration: 3000 });
       return;
     }
 
@@ -76,32 +76,32 @@ export function EmailBindDialog({ open, onOpenChange, onBound }: EmailBindDialog
 
     try {
       const result = await bindEmail(email, password);
-      
+
       if (result.success) {
         setBindSuccess(true);
         toast({
-          title: "绑定成功",
-          description: "邮箱已绑定到您的账号",
+          title: '绑定成功',
+          description: '邮箱已绑定到您的账号',
           duration: 2000,
         });
-        
+
         setTimeout(() => {
           onBound();
           onOpenChange(false);
         }, 1500);
       } else {
         toast({
-          title: "绑定失败",
-          description: result.error || "请重试",
-          variant: "destructive",
+          title: '绑定失败',
+          description: result.error || '请重试',
+          variant: 'destructive',
           duration: 3000,
         });
       }
     } catch (error) {
       toast({
-        title: "绑定失败",
-        description: "请稍后重试",
-        variant: "destructive",
+        title: '绑定失败',
+        description: '请稍后重试',
+        variant: 'destructive',
         duration: 3000,
       });
     } finally {
@@ -137,9 +137,7 @@ export function EmailBindDialog({ open, onOpenChange, onBound }: EmailBindDialog
             <Mail className="h-5 w-5 text-blue-600" />
             绑定邮箱
           </DialogTitle>
-          <DialogDescription>
-            设置密码后，您可以用「邮箱+密码」方式登录
-          </DialogDescription>
+          <DialogDescription>设置密码后，您可以用「邮箱+密码」方式登录</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -176,9 +174,7 @@ export function EmailBindDialog({ open, onOpenChange, onBound }: EmailBindDialog
             />
           </div>
 
-          <p className="text-xs text-gray-500">
-            设置密码后，您可以用「邮箱+密码」方式登录
-          </p>
+          <p className="text-xs text-gray-500">设置密码后，您可以用「邮箱+密码」方式登录</p>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => onOpenChange(false)}>

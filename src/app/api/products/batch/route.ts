@@ -5,16 +5,13 @@ import * as XLSX from 'xlsx';
 export async function POST(request: NextRequest) {
   try {
     console.log('[Product Batch] ========== 开始批量导入 ==========');
-    
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const userId = formData.get('userId') as string || 'anonymous';
+    const userId = (formData.get('userId') as string) || 'anonymous';
 
     if (!file) {
-      return NextResponse.json(
-        { error: '请上传文件' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '请上传文件' }, { status: 400 });
     }
 
     console.log('[Product Batch] 文件名:', file.name);
@@ -23,10 +20,7 @@ export async function POST(request: NextRequest) {
     // 验证文件类型
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     if (!['xlsx', 'xls', 'csv'].includes(fileExt || '')) {
-      return NextResponse.json(
-        { error: '只支持 Excel 或 CSV 文件' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '只支持 Excel 或 CSV 文件' }, { status: 400 });
     }
 
     // 读取文件内容
@@ -44,10 +38,7 @@ export async function POST(request: NextRequest) {
       workbook = XLSX.read(buffer, { type: 'buffer' });
     } catch (error) {
       console.error('[Product Batch] Excel解析失败:', error);
-      return NextResponse.json(
-        { error: 'Excel文件解析失败，请检查文件格式' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Excel文件解析失败，请检查文件格式' }, { status: 400 });
     }
 
     const sheetName = workbook.SheetNames[0];
@@ -55,10 +46,7 @@ export async function POST(request: NextRequest) {
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
     if (data.length < 2) {
-      return NextResponse.json(
-        { error: '文件内容为空' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '文件内容为空' }, { status: 400 });
     }
 
     // 识别表头
@@ -78,7 +66,8 @@ export async function POST(request: NextRequest) {
       const headerStr = String(header || '').toLowerCase();
       if (headerStr.includes('产品名称') || headerStr.includes('name')) nameIndex = index;
       if (headerStr.includes('型号') || headerStr.includes('model')) modelIndex = index;
-      if (headerStr.includes('价格') || headerStr.includes('price') || headerStr.includes('单价')) priceIndex = index;
+      if (headerStr.includes('价格') || headerStr.includes('price') || headerStr.includes('单价'))
+        priceIndex = index;
       if (headerStr.includes('类别') || headerStr.includes('category')) categoryIndex = index;
       if (headerStr.includes('品牌') || headerStr.includes('brand')) brandIndex = index;
       if (headerStr.includes('单位') || headerStr.includes('unit')) unitIndex = index;
@@ -136,26 +125,24 @@ export async function POST(request: NextRequest) {
         const product: any = {
           name: name,
           price: price,
-          verified: false
+          verified: false,
         };
 
         if (modelIndex !== -1 && row[modelIndex]) product.model = row[modelIndex].toString().trim();
-        if (categoryIndex !== -1 && row[categoryIndex]) product.category = row[categoryIndex].toString().trim();
+        if (categoryIndex !== -1 && row[categoryIndex])
+          product.category = row[categoryIndex].toString().trim();
         if (brandIndex !== -1 && row[brandIndex]) product.brand = row[brandIndex].toString().trim();
         if (unitIndex !== -1 && row[unitIndex]) product.unit = row[unitIndex].toString().trim();
-        if (specsIndex !== -1 && row[specsIndex]) product.specifications = row[specsIndex].toString().trim();
+        if (specsIndex !== -1 && row[specsIndex])
+          product.specifications = row[specsIndex].toString().trim();
 
         // 生成搜索关键词
-        const keywords = [
-          name,
-          product.model || '',
-          product.category || '',
-          product.brand || ''
-        ].filter(k => k).join(' ');
+        const keywords = [name, product.model || '', product.category || '', product.brand || '']
+          .filter((k) => k)
+          .join(' ');
         product.keywords = keywords;
 
         products.push(product);
-
       } catch (error) {
         console.error(`[Product Batch] 第 ${i + 1} 行解析失败:`, error);
         errors.push(`第 ${i + 1} 行：解析失败`);
@@ -165,27 +152,30 @@ export async function POST(request: NextRequest) {
     console.log('[Product Batch] 解析完成，有效产品:', products.length, '错误:', errors.length);
 
     if (products.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: '没有有效数据',
-        errors: errors
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: '没有有效数据',
+          errors: errors,
+        },
+        { status: 400 }
+      );
     }
 
     // 批量插入数据库
     const db = ServerDatabaseUtils.getDb();
-    const { data: inserted, error } = await db
-      .from('products')
-      .insert(products)
-      .select();
+    const { data: inserted, error } = await db.from('products').insert(products).select();
 
     if (error) {
       console.error('[Product Batch] 数据库插入失败:', error);
-      return NextResponse.json({
-        success: false,
-        error: '数据库插入失败',
-        details: error.message
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: '数据库插入失败',
+          details: error.message,
+        },
+        { status: 500 }
+      );
     }
 
     // 清理临时文件
@@ -199,15 +189,14 @@ export async function POST(request: NextRequest) {
       count: inserted?.length || 0,
       errors: errors,
       message: `成功导入 ${inserted?.length || 0} 个产品${errors.length > 0 ? `，${errors.length} 条数据失败` : ''}`,
-      data: inserted
+      data: inserted,
     });
-
   } catch (error) {
     console.error('[Product Batch] 批量导入失败:', error);
     return NextResponse.json(
-      { 
-        error: '批量导入失败', 
-        message: error instanceof Error ? error.message : '未知错误' 
+      {
+        error: '批量导入失败',
+        message: error instanceof Error ? error.message : '未知错误',
       },
       { status: 500 }
     );

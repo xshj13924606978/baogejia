@@ -26,7 +26,7 @@ export default function DrawingLibrary() {
       version: 'V2.0',
       size: '8.5 MB',
       uploadDate: '2026-02-18',
-      description: '主要工艺流程图'
+      description: '主要工艺流程图',
     },
     {
       id: '2',
@@ -36,7 +36,7 @@ export default function DrawingLibrary() {
       version: 'V1.5',
       size: '12.3 MB',
       uploadDate: '2026-02-17',
-      description: '设备布置平面图'
+      description: '设备布置平面图',
     },
     {
       id: '3',
@@ -46,7 +46,7 @@ export default function DrawingLibrary() {
       version: 'V1.0',
       size: '5.2 MB',
       uploadDate: '2026-02-16',
-      description: '设备安装详图'
+      description: '设备安装详图',
     },
     {
       id: '4',
@@ -56,8 +56,8 @@ export default function DrawingLibrary() {
       version: 'V2.1',
       size: '6.8 MB',
       uploadDate: '2026-02-15',
-      description: '管道走向布置图'
-    }
+      description: '管道走向布置图',
+    },
   ]);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,11 +66,13 @@ export default function DrawingLibrary() {
 
   const drawingTypes = ['全部', 'CAD', '工艺流程图', '布置图', '安装图', '其他'];
 
-  const filteredDrawings = drawings.filter(item => {
+  const filteredDrawings = drawings.filter((item) => {
     if (filterType !== 'all' && item.type !== filterType) return false;
     if (searchTerm) {
-      return item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             item.project.toLowerCase().includes(searchTerm.toLowerCase());
+      return (
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.project.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
     return true;
   });
@@ -89,7 +91,7 @@ export default function DrawingLibrary() {
       size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
       uploadDate: new Date().toISOString().split('T')[0],
       description: '通过本地文件上传的图纸',
-      source: 'local'
+      source: 'local',
     };
     setDrawings([...drawings, newDrawing]);
   };
@@ -105,12 +107,17 @@ export default function DrawingLibrary() {
       uploadDate: new Date().toISOString().split('T')[0],
       description: content.substring(0, 200),
       source: 'weblink',
-      sourceUrl: url
+      sourceUrl: url,
     };
     setDrawings([...drawings, newDrawing]);
   };
 
-  const handleCloudFileUpload = (url: string, fileName: string, description: string, extractCode: string) => {
+  const handleCloudFileUpload = (
+    url: string,
+    fileName: string,
+    description: string,
+    extractCode: string
+  ) => {
     const newDrawing: Drawing = {
       id: String(drawings.length + 1),
       name: fileName,
@@ -121,12 +128,18 @@ export default function DrawingLibrary() {
       uploadDate: new Date().toISOString().split('T')[0],
       description: `${description}${extractCode ? ` (提取码: ${extractCode})` : ''}`,
       source: 'clouddrive',
-      sourceUrl: url
+      sourceUrl: url,
     };
     setDrawings([...drawings, newDrawing]);
   };
 
-  const handleCloudFileWithFile = (url: string, fileName: string, description: string, extractCode: string, file: File) => {
+  const handleCloudFileWithFile = (
+    url: string,
+    fileName: string,
+    description: string,
+    extractCode: string,
+    file: File
+  ) => {
     // 直接使用文件上传功能
     handleLocalFileUpload(file);
   };
@@ -142,9 +155,7 @@ export default function DrawingLibrary() {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-bold flex items-center gap-2">
           <span>🖼️</span> 图纸库
-          <span className="text-sm font-normal text-gray-500 ml-2">
-            {drawings.length}张图纸
-          </span>
+          <span className="text-sm font-normal text-gray-500 ml-2">{drawings.length}张图纸</span>
         </h3>
         <div className="flex gap-2">
           <button
@@ -168,7 +179,7 @@ export default function DrawingLibrary() {
 
       {/* 分类标签 */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-        {drawingTypes.map(type => (
+        {drawingTypes.map((type) => (
           <button
             key={type}
             onClick={() => setFilterType(type === '全部' ? 'all' : type)}
@@ -201,7 +212,7 @@ export default function DrawingLibrary() {
 
       {/* 图纸列表 - 网格视图 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredDrawings.map(item => (
+        {filteredDrawings.map((item) => (
           <div key={item.id} className="border rounded-lg p-3 hover:shadow-md transition-shadow">
             <div className="aspect-video bg-gray-100 rounded mb-3 flex items-center justify-center text-4xl">
               📐

@@ -55,19 +55,17 @@ export default function FieldConfigManager({ onClose }: FieldConfigManagerProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           field_key: fieldKey,
-          is_required: !currentValue
-        })
+          is_required: !currentValue,
+        }),
       });
 
       const data = await res.json();
 
       if (data.success) {
         // 更新本地状态
-        setConfigs(prev =>
-          prev.map(config =>
-            config.field_key === fieldKey
-              ? { ...config, is_required: !currentValue }
-              : config
+        setConfigs((prev) =>
+          prev.map((config) =>
+            config.field_key === fieldKey ? { ...config, is_required: !currentValue } : config
           )
         );
       } else {
@@ -87,9 +85,7 @@ export default function FieldConfigManager({ onClose }: FieldConfigManagerProps)
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <CardTitle>字段必填配置</CardTitle>
-            <CardDescription>
-              设置产品价格表单中各字段的必填/选填状态
-            </CardDescription>
+            <CardDescription>设置产品价格表单中各字段的必填/选填状态</CardDescription>
           </div>
           {onClose && (
             <Button variant="outline" onClick={onClose} className="flex-shrink-0">
@@ -100,9 +96,7 @@ export default function FieldConfigManager({ onClose }: FieldConfigManagerProps)
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="text-center py-8 text-muted-foreground">
-            加载中...
-          </div>
+          <div className="text-center py-8 text-muted-foreground">加载中...</div>
         ) : (
           <div className="space-y-3">
             {configs.map((config) => (
@@ -115,19 +109,29 @@ export default function FieldConfigManager({ onClose }: FieldConfigManagerProps)
                     {config.field_label}
                   </Label>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    当前状态: <span className={config.is_required ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                    当前状态:{' '}
+                    <span
+                      className={
+                        config.is_required ? 'text-red-600 font-medium' : 'text-muted-foreground'
+                      }
+                    >
                       {config.is_required ? '必填' : '选填'}
                     </span>
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-                  <Label htmlFor={`field-${config.field_key}`} className="text-sm text-muted-foreground whitespace-nowrap">
+                  <Label
+                    htmlFor={`field-${config.field_key}`}
+                    className="text-sm text-muted-foreground whitespace-nowrap"
+                  >
                     {config.is_required ? '必填' : '选填'}
                   </Label>
                   <Switch
                     id={`field-${config.field_key}`}
                     checked={config.is_required}
-                    onCheckedChange={() => handleToggleRequired(config.field_key, config.is_required)}
+                    onCheckedChange={() =>
+                      handleToggleRequired(config.field_key, config.is_required)
+                    }
                     disabled={saving}
                   />
                 </div>

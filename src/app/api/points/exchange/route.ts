@@ -9,10 +9,7 @@ export async function POST(request: NextRequest) {
     const { user_id, item_id, item_type, item_name, points_cost, duration } = body;
 
     if (!user_id || !item_id || !item_type || !points_cost) {
-      return NextResponse.json(
-        { error: '缺少必要参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -20,10 +17,7 @@ export async function POST(request: NextRequest) {
     // 检查用户积分是否足够
     const currentPoints = await getUserPoints(parseInt(user_id));
     if (currentPoints < points_cost) {
-      return NextResponse.json(
-        { error: '积分不足', currentPoints },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '积分不足', currentPoints }, { status: 400 });
     }
 
     // 消耗积分
@@ -89,9 +83,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[PointsExchange] 请求失败:', error);
     const errorMessage = error instanceof Error ? error.message : '服务器错误';
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -1,15 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  UserPlus,
-  Mail,
-  Crown,
-  Shield,
-  User,
-  MoreVertical,
-  UserMinus,
-} from 'lucide-react';
+import { UserPlus, Mail, Crown, Shield, User, MoreVertical, UserMinus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -80,8 +72,8 @@ export function MemberManagement({ teamId, teamOwnerId }: MemberManagementProps)
   const handleInvite = async () => {
     const emails = inviteEmails
       .split(',')
-      .map(e => e.trim())
-      .filter(e => e.length > 0);
+      .map((e) => e.trim())
+      .filter((e) => e.length > 0);
 
     if (emails.length === 0) {
       alert('请输入至少一个邮箱地址');
@@ -131,9 +123,7 @@ export function MemberManagement({ teamId, teamOwnerId }: MemberManagementProps)
 
       const result = await response.json();
       if (result.success) {
-        setMembers(
-          members.map(m => (m.id === memberId ? { ...m, role: newRole } : m))
-        );
+        setMembers(members.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)));
       } else {
         alert(result.error || '更新角色失败');
       }
@@ -158,7 +148,7 @@ export function MemberManagement({ teamId, teamOwnerId }: MemberManagementProps)
 
       const result = await response.json();
       if (result.success) {
-        setMembers(members.filter(m => m.id !== memberId));
+        setMembers(members.filter((m) => m.id !== memberId));
       } else {
         alert(result.error || '移除成员失败');
       }
@@ -205,9 +195,7 @@ export function MemberManagement({ teamId, teamOwnerId }: MemberManagementProps)
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>邀请成员加入团队</DialogTitle>
-                <DialogDescription>
-                  输入邮箱地址邀请成员加入团队
-                </DialogDescription>
+                <DialogDescription>输入邮箱地址邀请成员加入团队</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -226,10 +214,7 @@ export function MemberManagement({ teamId, teamOwnerId }: MemberManagementProps)
                   <Label htmlFor="role" className="text-right">
                     角色
                   </Label>
-                  <Select
-                    value={inviteRole}
-                    onValueChange={(v) => setInviteRole(v as TeamRole)}
-                  >
+                  <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as TeamRole)}>
                     <SelectTrigger className="col-span-3">
                       <SelectValue />
                     </SelectTrigger>
@@ -256,9 +241,7 @@ export function MemberManagement({ teamId, teamOwnerId }: MemberManagementProps)
           {loading ? (
             <div className="text-center py-8">加载中...</div>
           ) : members.length === 0 ? (
-            <div className="text-center py-8 text-gray-600">
-              暂无成员，点击上方按钮邀请
-            </div>
+            <div className="text-center py-8 text-gray-600">暂无成员，点击上方按钮邀请</div>
           ) : (
             <div className="space-y-4">
               {members.map((member) => (
@@ -278,9 +261,7 @@ export function MemberManagement({ teamId, teamOwnerId }: MemberManagementProps)
                           {member.nickname || `用户${member.userId.substring(0, 6)}`}
                         </span>
                         {getRoleBadge(member.role)}
-                        {member.userId === teamOwnerId && (
-                          <Badge variant="outline">创建者</Badge>
-                        )}
+                        {member.userId === teamOwnerId && <Badge variant="outline">创建者</Badge>}
                       </div>
                       <div className="text-sm text-gray-600 flex items-center mt-1">
                         <Mail className="h-3 w-3 mr-1" />

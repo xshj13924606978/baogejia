@@ -27,6 +27,7 @@
 ### 2. 订单管理
 
 **核心功能**:
+
 - 订单创建
 - 订单查询（列表/详情）
 - 订单取消
@@ -34,6 +35,7 @@
 - 订单过期处理
 
 **订单状态**:
+
 - `pending` - 待支付
 - `paid` - 已支付
 - `cancelled` - 已取消
@@ -44,6 +46,7 @@
 ### 3. 支付流程
 
 **创建订单流程**:
+
 1. 用户选择商品和支付方式
 2. 系统创建订单（订单状态：pending）
 3. 调用支付接口创建支付
@@ -54,6 +57,7 @@
 8. 跳转到支付结果页
 
 **支付回调流程**:
+
 1. 第三方支付平台发送回调通知
 2. 验证签名和数据完整性
 3. 更新订单和支付记录
@@ -62,11 +66,13 @@
 ### 4. 退款功能
 
 **核心功能**:
+
 - 退款申请
 - 退款状态查询
 - 退款成功处理
 
 **退款状态**:
+
 - `pending` - 退款中
 - `success` - 退款成功
 - `failed` - 退款失败
@@ -111,6 +117,7 @@ src/
 **端点**: `GET /api/payment`
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -132,6 +139,7 @@ src/
 **端点**: `POST /api/orders`
 
 **请求体**:
+
 ```json
 {
   "user_id": 1,
@@ -147,6 +155,7 @@ src/
 ```
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -171,6 +180,7 @@ src/
 **端点**: `POST /api/payment`
 
 **请求体**:
+
 ```json
 {
   "order_id": "123456",
@@ -181,6 +191,7 @@ src/
 ```
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -203,6 +214,7 @@ src/
 **端点**: `GET /api/orders?user_id=1&page=1&pageSize=20&status=paid`
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -216,6 +228,7 @@ src/
 **端点**: `GET /api/orders/{id}`
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -228,6 +241,7 @@ src/
 **端点**: `DELETE /api/orders/{id}`
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -240,6 +254,7 @@ src/
 **端点**: `POST /api/orders/{id}/refund`
 
 **请求体**:
+
 ```json
 {
   "reason": "商品不符合预期"
@@ -247,6 +262,7 @@ src/
 ```
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -267,6 +283,7 @@ src/
 **请求**: XML 格式
 
 **响应**: XML 格式
+
 ```xml
 <xml>
   <return_code><![CDATA[SUCCESS]]></return_code>
@@ -537,6 +554,7 @@ console.log('退款申请成功:', data.refund);
 ## 技术支持
 
 如有问题，请联系开发团队或查看：
+
 - [微信支付文档](https://pay.weixin.qq.com/wiki/doc/api/index.html)
 - [支付宝文档](https://opendocs.alipay.com/open)
 

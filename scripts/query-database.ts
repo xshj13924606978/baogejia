@@ -2,7 +2,7 @@ import { supabase } from '../src/lib/supabase-client.js';
 
 async function queryDatabase() {
   console.log('========== 查询数据库中的化粪池产品 ==========');
-  
+
   // 查询所有化粪池产品
   const { data: products, error } = await supabase
     .from('products')
@@ -36,17 +36,19 @@ async function queryDatabase() {
 
   // 测试精确匹配
   console.log('\n========== 测试精确匹配 ==========');
-  
+
   const testCases = [
     { name: '化粪池', model: '3' },
     { name: '化粪池', model: 3 },
     { name: '化粪池', model: '2' },
-    { name: '化粪池', model: 2 }
+    { name: '化粪池', model: 2 },
   ];
 
   for (const testCase of testCases) {
-    console.log(`\n测试: name="${testCase.name}", model="${testCase.model}" (类型: ${typeof testCase.model})`);
-    
+    console.log(
+      `\n测试: name="${testCase.name}", model="${testCase.model}" (类型: ${typeof testCase.model})`
+    );
+
     const { data: matches, error: matchError } = await supabase
       .from('products')
       .select('*')
@@ -59,22 +61,24 @@ async function queryDatabase() {
     } else {
       console.log('  匹配数量:', matches.length);
       matches.forEach((m: any, i: number) => {
-        console.log(`  匹配${i + 1}: name="${m.name}", model="${m.model}" (类型: ${typeof m.model})`);
+        console.log(
+          `  匹配${i + 1}: name="${m.name}", model="${m.model}" (类型: ${typeof m.model})`
+        );
       });
     }
   }
 
   // 测试模糊匹配
   console.log('\n========== 测试模糊匹配 ==========');
-  
+
   const fuzzyTestCases = [
     { name: '化粪池', modelPattern: '%3%' },
-    { name: '化粪池', modelPattern: '%2%' }
+    { name: '化粪池', modelPattern: '%2%' },
   ];
 
   for (const testCase of fuzzyTestCases) {
     console.log(`\n测试: name="${testCase.name}", model LIKE "${testCase.modelPattern}"`);
-    
+
     const { data: matches, error: matchError } = await supabase
       .from('products')
       .select('*')
@@ -87,7 +91,9 @@ async function queryDatabase() {
     } else {
       console.log('  匹配数量:', matches.length);
       matches.forEach((m: any, i: number) => {
-        console.log(`  匹配${i + 1}: name="${m.name}", model="${m.model}" (类型: ${typeof m.model})`);
+        console.log(
+          `  匹配${i + 1}: name="${m.name}", model="${m.model}" (类型: ${typeof m.model})`
+        );
       });
     }
   }

@@ -6,7 +6,11 @@
     "build": "bash ./scripts/build.sh",
     "dev": "bash ./scripts/dev.sh",
     "preinstall": "npx only-allow pnpm",
-    "lint": "eslint",
+    "lint": "eslint --ext .ts,.tsx .",
+    "lint:fix": "eslint --ext .ts,.tsx . --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
+    "code-check": "pnpm run type-check && pnpm run lint && pnpm run format:check",
     "start": "bash ./scripts/start.sh",
     "ts-check": "tsc -p tsconfig.json",
     "type-check": "tsc --noEmit",
@@ -114,11 +118,16 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19",
     "@types/uuid": "^11.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
     "husky": "^9.1.7",
     "lint-staged": "^16.3.3",
     "only-allow": "^1.2.2",
+    "prettier": "^3.8.1",
     "react-dev-inspector": "^2.0.1",
     "shadcn": "latest",
     "tailwindcss": "^4",
@@ -130,7 +139,12 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write",
       "tsc --noEmit --pretty"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
     ]
   },
   "pnpm": {

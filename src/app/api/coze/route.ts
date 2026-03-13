@@ -1,6 +1,6 @@
 /**
  * Coze 工具 API 接口
- * 
+ *
  * 提供以下接口：
  * - GET /api/coze/status - 获取工具状态
  * - POST /api/coze/search-market-price - 搜索市场价格
@@ -10,7 +10,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cozeToolsService, MarketPriceInfo, GeneratedImage, SimilarProduct } from '@/lib/coze-tools';
+import {
+  cozeToolsService,
+  MarketPriceInfo,
+  GeneratedImage,
+  SimilarProduct,
+} from '@/lib/coze-tools';
 import { quoteEnhancer, QuoteEnhancementResult, Product } from '@/lib/quote-enhancer';
 import { Logger } from '@/lib/logger';
 
@@ -26,11 +31,12 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         ...status,
-        message: status.enabled 
-          ? 'Coze工具已启用' 
+        message: status.enabled
+          ? 'Coze工具已启用'
           : 'Coze工具未启用，请在 .env.local 中配置 COZE_API_KEY 并设置 ENABLE_COZE_TOOLS=true',
         configuration: {
-          hasApiKey: !!process.env.COZE_API_KEY && process.env.COZE_API_KEY !== 'your_coze_api_key_here',
+          hasApiKey:
+            !!process.env.COZE_API_KEY && process.env.COZE_API_KEY !== 'your_coze_api_key_here',
           webSearchEnabled: process.env.ENABLE_COZE_WEB_SEARCH === 'true',
           embeddingEnabled: process.env.ENABLE_COZE_EMBEDDING === 'true',
           imageGenerationEnabled: process.env.ENABLE_COZE_IMAGE_GENERATION === 'true',

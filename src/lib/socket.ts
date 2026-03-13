@@ -2,7 +2,7 @@ import { Server as SocketIOServer } from 'socket.io';
 
 /**
  * Socket.IO 服务器配置
- * 
+ *
  * 注意：这是一个独立的 WebSocket 服务器实现。
  * 在生产环境中，您应该：
  * 1. 将此服务器作为独立进程运行
@@ -58,7 +58,11 @@ class SocketServer {
     const {
       port = 6000,
       cors = {
-        origin: ['http://localhost:5000', 'http://localhost:3000', 'https://eea906de-e74a-496b-a0fb-ee58e7165f0d.dev.coze.site'],
+        origin: [
+          'http://localhost:5000',
+          'http://localhost:3000',
+          'https://eea906de-e74a-496b-a0fb-ee58e7165f0d.dev.coze.site',
+        ],
         credentials: true,
       },
     } = options;
@@ -165,7 +169,9 @@ class SocketServer {
           });
         }
 
-        console.log(`[Socket Server] 消息发送: ${type} from ${sender.userId} ${to ? `to ${to}` : 'broadcast'}`);
+        console.log(
+          `[Socket Server] 消息发送: ${type} from ${sender.userId} ${to ? `to ${to}` : 'broadcast'}`
+        );
       });
 
       // 消息已读
@@ -181,7 +187,9 @@ class SocketServer {
           readAt: new Date(),
         });
 
-        console.log(`[Socket Server] 消息已读: ${data.messageType}/${data.messageId} by ${user.userId}`);
+        console.log(
+          `[Socket Server] 消息已读: ${data.messageType}/${data.messageId} by ${user.userId}`
+        );
       });
 
       // 通知已读
@@ -257,7 +265,7 @@ class SocketServer {
         const inactiveTime = now.getTime() - user.lastSeen.getTime();
         if (inactiveTime > timeout) {
           console.log(`[Socket Server] 用户 ${userId} 超时，标记为离线`);
-          
+
           // 发送断开指令
           this.io.to(user.socketId).emit('disconnect');
 
@@ -274,7 +282,6 @@ class SocketServer {
 
       // 更新在线用户列表
       this.sendOnlineUsersList();
-
     }, 30000); // 每30秒检查一次
   }
 
@@ -284,7 +291,7 @@ class SocketServer {
   private sendOnlineUsersList() {
     if (!this.io) return;
 
-    const usersList = Array.from(this.onlineUsers.values()).map(user => ({
+    const usersList = Array.from(this.onlineUsers.values()).map((user) => ({
       userId: user.userId,
       username: user.username,
       avatar: user.avatar,

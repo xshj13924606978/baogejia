@@ -29,9 +29,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Analytics] 获取转化漏斗失败:', error);
-    return NextResponse.json(
-      { error: '获取转化漏斗失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '获取转化漏斗失败' }, { status: 500 });
   }
 }

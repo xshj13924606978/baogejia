@@ -1,6 +1,6 @@
 /**
  * 文件上传处理器 - 持久化存储集成
- * 
+ *
  * 功能：
  * 1. 文件上传到对象存储
  * 2. 保存上传记录到 user_uploads 表
@@ -115,7 +115,6 @@ export class FileUploadProcessor {
         embeddingId,
         productsUpdated,
       };
-
     } catch (error) {
       console.error('[FileUploadProcessor] 处理文件上传失败:', error);
       return {
@@ -165,7 +164,6 @@ export class FileUploadProcessor {
         fileKey: actualKey,
         fileUrl,
       };
-
     } catch (error) {
       console.error('[FileUploadProcessor] 上传到对象存储失败:', error);
       return {
@@ -264,7 +262,6 @@ export class FileUploadProcessor {
       console.log('[FileUploadProcessor] 知识库记录已保存，ID:', record.id);
 
       return { embeddingId: record.id };
-
     } catch (error) {
       console.error('[FileUploadProcessor] 向量化失败:', error);
       return { error: error instanceof Error ? error.message : '向量化失败' };
@@ -283,7 +280,7 @@ export class FileUploadProcessor {
     try {
       // 从内容中提取产品列表（简化版，实际可能需要更复杂的解析）
       const products: { name: string; model?: string }[] = [];
-      
+
       // 简单的正则表达式提取产品名称和型号
       // 格式：产品名称 型号 或 产品名称 (型号)
       const productPatterns = [
@@ -296,9 +293,9 @@ export class FileUploadProcessor {
         while ((match = pattern.exec(content)) !== null) {
           const name = match[1].trim();
           const model = match[2].trim();
-          
+
           // 避免重复
-          if (!products.some(p => p.name === name && p.model === model)) {
+          if (!products.some((p) => p.name === name && p.model === model)) {
             products.push({ name, model });
           }
         }
@@ -312,18 +309,14 @@ export class FileUploadProcessor {
       }
 
       // 使用 PriceMatcher 批量匹配价格
-      const priceResults = await PriceMatcher.matchPrices(
-        products,
-        userId
-      );
+      const priceResults = await PriceMatcher.matchPrices(products, userId);
 
       console.log('[FileUploadProcessor] 价格匹配完成，结果:', priceResults.length);
 
       // 统计成功匹配的产品数量
-      const productsUpdated = priceResults.filter(r => r.confidence >= 50).length;
+      const productsUpdated = priceResults.filter((r) => r.confidence >= 50).length;
 
       return { productsUpdated };
-
     } catch (error) {
       console.error('[FileUploadProcessor] 价格提取失败:', error);
       return {

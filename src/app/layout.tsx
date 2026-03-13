@@ -11,20 +11,14 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-}
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
       <body className={inter.className}>
         <UserProvider>
-          <SwitchProvider>
-            {children}
-          </SwitchProvider>
+          <SwitchProvider>{children}</SwitchProvider>
         </UserProvider>
       </body>
     </html>

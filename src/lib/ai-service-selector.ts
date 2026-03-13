@@ -1,15 +1,15 @@
 /**
  * 智能AI服务选择器
- * 
+ *
  * 核心功能：
  * 1. 根据任务类型自动选择最合适的AI服务（DeepSeek / Coze）
  * 2. 支持服务降级和故障转移
  * 3. 提供统一的调用接口
- * 
+ *
  * 架构设计：
  * - DeepSeek：对话理解、技术方案生成、报价单生成
  * - Coze：联网搜索（市场价格）、向量模型（相似产品）、生图模型（产品图）
- * 
+ *
  * 自动选择策略：
  * 1. 对话类任务 → DeepSeek
  * 2. 联网搜索 → Coze Web Search
@@ -27,15 +27,14 @@ import { Logger } from './logger';
 // ============================================================================
 
 export type TaskType =
-  | 'chat'              // 对话理解
+  | 'chat' // 对话理解
   | 'technical-proposal' // 技术方案生成
-  | 'quote-generation'  // 报价单生成
-  | 'market-price'      // 市场价格查询（联网搜索）
-  | 'similar-products'  // 相似产品推荐（向量搜索）
-  | 'product-image'     // 产品图生成（生图）
+  | 'quote-generation' // 报价单生成
+  | 'market-price' // 市场价格查询（联网搜索）
+  | 'similar-products' // 相似产品推荐（向量搜索）
+  | 'product-image' // 产品图生成（生图）
   | 'quote-enhancement' // 报价增强（混合任务）
-  | 'price-optimization' // 价格优化建议（DeepSeek）
-  ;
+  | 'price-optimization'; // 价格优化建议（DeepSeek）
 
 export type ServiceType = 'deepseek' | 'coze' | 'both' | 'auto' | 'none';
 
@@ -154,7 +153,7 @@ export class AIServiceSelector {
         const services = [];
         if (deepseekAvailable) services.push('deepseek');
         if (cozeStatus.enabled) services.push('coze');
-        
+
         if (services.length === 0) {
           return {
             service: 'none',
@@ -162,7 +161,7 @@ export class AIServiceSelector {
             confidence: 0,
           };
         }
-        
+
         return {
           service: services.length > 1 ? 'both' : (services[0] as 'deepseek' | 'coze'),
           reason: `报价增强需要组合能力：${services.join(' + ')}`,
@@ -252,13 +251,14 @@ export class AIServiceSelector {
     if (cozeStatus.imageGenerationEnabled) cozeToolsList.push('Image Generation');
 
     return {
-      recommendation: availability.deepseekAvailable && availability.cozeAvailable
-        ? '✅ 完美配置！DeepSeek + Coze 双引擎已就绪，所有功能可正常使用'
-        : availability.deepseekAvailable
-        ? '⚠️  基础配置可用。建议启用 Coze 工具以获得市场价格查询、相似产品推荐和生图能力'
-        : availability.cozeAvailable
-        ? '⚠️  部分配置可用。建议配置 DeepSeek API Key 以获得完整的对话和技术方案生成能力'
-        : '❌ 无可用AI服务。请配置至少一个服务（DeepSeek 或 Coze）',
+      recommendation:
+        availability.deepseekAvailable && availability.cozeAvailable
+          ? '✅ 完美配置！DeepSeek + Coze 双引擎已就绪，所有功能可正常使用'
+          : availability.deepseekAvailable
+            ? '⚠️  基础配置可用。建议启用 Coze 工具以获得市场价格查询、相似产品推荐和生图能力'
+            : availability.cozeAvailable
+              ? '⚠️  部分配置可用。建议配置 DeepSeek API Key 以获得完整的对话和技术方案生成能力'
+              : '❌ 无可用AI服务。请配置至少一个服务（DeepSeek 或 Coze）',
       currentSetup: {
         deepseek: availability.deepseekAvailable,
         coze: availability.cozeAvailable,
@@ -285,7 +285,7 @@ export class AIServiceSelector {
     selection: ServiceSelection;
   }> {
     const selection = this.selectService(taskType);
-    
+
     Logger.info(`[AIServiceSelector] 执行任务: ${taskType}`, {
       选择服务: selection.service,
       原因: selection.reason,
@@ -294,7 +294,7 @@ export class AIServiceSelector {
 
     try {
       const result = await taskFn(selection.service);
-      
+
       return {
         result,
         serviceUsed: selection.service,

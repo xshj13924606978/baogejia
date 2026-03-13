@@ -7,7 +7,8 @@ import { useRouter } from 'next/navigation';
 export function TopBar() {
   const router = useRouter();
 
-  const userId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : null;
+  const userId =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : null;
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white border-b z-50">

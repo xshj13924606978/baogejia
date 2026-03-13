@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     // 解析前端发送的数据
     const data = await request.json();
     console.log('[ExportHTML] 收到数据:', JSON.stringify(data, null, 2));
-    
+
     const {
       quoteNumber,
       supplierInfo,
@@ -36,26 +36,26 @@ export async function POST(request: NextRequest) {
       const digitUppercase = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
       const unit = ['', '拾', '佰', '仟'];
       const bigUnit = ['', '万', '亿'];
-      
+
       const amountStr = amount.toFixed(2);
       const [integerPart, decimalPart] = amountStr.split('.');
-      
+
       if (parseInt(integerPart) === 0 && parseInt(decimalPart) === 0) {
         return '零元整';
       }
-      
+
       let result = '';
-      
+
       // 处理整数部分
       const integer = parseInt(integerPart);
       if (integer > 0) {
         const integerStr = integer.toString();
         const len = integerStr.length;
-        
+
         for (let i = 0; i < len; i++) {
           const digit = parseInt(integerStr[i]);
           const pos = len - i - 1;
-          
+
           if (digit !== 0) {
             result += digitUppercase[digit] + unit[pos % 4];
           } else {
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
               result += '零';
             }
           }
-          
+
           if (pos % 4 === 0 && pos > 0) {
             result += bigUnit[Math.floor(pos / 4)];
           }
@@ -72,10 +72,10 @@ export async function POST(request: NextRequest) {
       } else {
         result = '零元';
       }
-      
+
       const jiao = parseInt(decimalPart[0]);
       const fen = parseInt(decimalPart[1]);
-      
+
       if (jiao === 0 && fen === 0) {
         result += '整';
       } else {
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
           result += digitUppercase[fen] + '分';
         }
       }
-      
+
       return result;
     };
 
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     const phone = supplierInfo?.phone || '-';
     const email = supplierInfo?.email || '-';
     const address = supplierInfo?.address || '-';
-    
+
     const customerName = customerInfo?.name || '-';
     const projectName = customerInfo?.projectName || '-';
     const contactPerson = customerInfo?.contactPerson || '-';
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         const quantity = product?.quantity || 0;
         const unitPrice = product?.unitPrice || 0;
         const totalPrice = product?.totalPrice || 0;
-        
+
         productRows += `
             <tr>
                 <td>${index + 1}</td>
@@ -449,18 +449,17 @@ export async function POST(request: NextRequest) {
 
     // 返回 HTML 页面
     return new NextResponse(htmlContent, {
-        status: 200,
-        headers: {
-            'Content-Type': 'text/html; charset=utf-8',
-        },
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+      },
     });
-
   } catch (error) {
     console.error('[ExportHTML] HTML生成失败:', error);
     return NextResponse.json(
-      { 
-        error: 'HTML生成失败', 
-        message: error instanceof Error ? error.message : '未知错误'
+      {
+        error: 'HTML生成失败',
+        message: error instanceof Error ? error.message : '未知错误',
       },
       { status: 500 }
     );

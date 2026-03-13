@@ -84,15 +84,24 @@ export async function GET(request: NextRequest) {
     // 统计各风格下载次数
     const stats = {
       totalDownloads: userPosters?.reduce((sum, p) => sum + (p.download_count || 0), 0) || 0,
-      simpleDownloads: userPosters?.filter(p => p.style === 'simple').reduce((sum, p) => sum + (p.download_count || 0), 0) || 0,
-      festiveDownloads: userPosters?.filter(p => p.style === 'festive').reduce((sum, p) => sum + (p.download_count || 0), 0) || 0,
-      businessDownloads: userPosters?.filter(p => p.style === 'business').reduce((sum, p) => sum + (p.download_count || 0), 0) || 0,
+      simpleDownloads:
+        userPosters
+          ?.filter((p) => p.style === 'simple')
+          .reduce((sum, p) => sum + (p.download_count || 0), 0) || 0,
+      festiveDownloads:
+        userPosters
+          ?.filter((p) => p.style === 'festive')
+          .reduce((sum, p) => sum + (p.download_count || 0), 0) || 0,
+      businessDownloads:
+        userPosters
+          ?.filter((p) => p.style === 'business')
+          .reduce((sum, p) => sum + (p.download_count || 0), 0) || 0,
       totalShares: userPosters?.reduce((sum, p) => sum + (p.share_count || 0), 0) || 0,
     };
 
     // 今日统计
     const today = new Date().toISOString().split('T')[0];
-    const todayPosters = userPosters?.filter(p => p.created_at?.startsWith(today)) || [];
+    const todayPosters = userPosters?.filter((p) => p.created_at?.startsWith(today)) || [];
     const todayStats = {
       generated: todayPosters.length,
       downloaded: todayPosters.reduce((sum, p) => sum + (p.download_count || 0), 0),

@@ -8,10 +8,7 @@ export async function GET(request: NextRequest) {
     const user_id = searchParams.get('user_id');
 
     if (!user_id) {
-      return NextResponse.json(
-        { error: '缺少用户ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -25,10 +22,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[Notifications] 查询失败:', error);
-      return NextResponse.json(
-        { error: '查询失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '查询失败' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -37,10 +31,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Notifications] 请求失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
 
@@ -51,10 +42,7 @@ export async function POST(request: NextRequest) {
     const { notification_id } = body;
 
     if (!notification_id) {
-      return NextResponse.json(
-        { error: '缺少通知ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少通知ID' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -66,10 +54,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[Notifications] 标记失败:', error);
-      return NextResponse.json(
-        { error: '标记失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '标记失败' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -78,9 +63,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Notifications] 请求失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

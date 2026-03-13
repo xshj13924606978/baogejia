@@ -1,12 +1,12 @@
 /**
  * 智能报价增强器
- * 
+ *
  * 功能：
  * 1. 使用联网搜索获取市场价格（Coze Web Search）
  * 2. 使用向量模型推荐相似产品（Coze Embedding）
  * 3. 使用生图模型生成产品图（Coze Image Generation）
  * 4. 使用 DeepSeek 生成智能价格优化建议（DeepSeek）
- * 
+ *
  * 集成到报价生成流程中，支持智能服务选择和降级
  */
 
@@ -130,12 +130,16 @@ export class QuoteEnhancer {
         const enhanced: EnhancedProduct = { ...product };
 
         // 1. 获取市场价格（使用 Coze Web Search）
-        if (enableMarketPrice && cozeToolsService.getStatus().enabled && cozeToolsService.getStatus().webSearchEnabled) {
+        if (
+          enableMarketPrice &&
+          cozeToolsService.getStatus().enabled &&
+          cozeToolsService.getStatus().webSearchEnabled
+        ) {
           const marketPrice = await this.getProductMarketPrice(product.name);
           if (marketPrice) {
             enhanced.marketPrice = marketPrice;
             usedTools.webSearch = true;
-            
+
             // 计算基础价格调整建议
             enhanced.priceAdjustment = this.calculatePriceAdjustment(
               product.price,
@@ -146,10 +150,7 @@ export class QuoteEnhancer {
 
         // 2. 推荐相似产品（使用 Coze Embedding）
         if (enableSimilarProducts && productDatabase.length > 0) {
-          const similarProducts = await this.getSimilarProducts(
-            product.name,
-            productDatabase
-          );
+          const similarProducts = await this.getSimilarProducts(product.name, productDatabase);
           if (similarProducts.length > 0) {
             enhanced.similarProducts = similarProducts;
             usedTools.embedding = true;
@@ -157,11 +158,12 @@ export class QuoteEnhancer {
         }
 
         // 3. 生成产品图（使用 Coze Image Generation）
-        if (enableProductImages && cozeToolsService.getStatus().enabled && cozeToolsService.getStatus().imageGenerationEnabled) {
-          const productImage = await this.getProductImage(
-            product.name,
-            product.specs
-          );
+        if (
+          enableProductImages &&
+          cozeToolsService.getStatus().enabled &&
+          cozeToolsService.getStatus().imageGenerationEnabled
+        ) {
+          const productImage = await this.getProductImage(product.name, product.specs);
           if (productImage) {
             enhanced.productImage = productImage;
             usedTools.imageGeneration = true;
@@ -203,9 +205,7 @@ export class QuoteEnhancer {
   /**
    * 获取产品市场价格（带缓存）
    */
-  private async getProductMarketPrice(
-    productName: string
-  ): Promise<MarketPriceInfo | null> {
+  private async getProductMarketPrice(productName: string): Promise<MarketPriceInfo | null> {
     // 检查缓存
     if (this.productCache.has(productName)) {
       Logger.debug(`使用缓存的市场价格: ${productName}`);
@@ -214,7 +214,7 @@ export class QuoteEnhancer {
 
     // 调用Coze工具
     const marketPrice = await cozeToolsService.searchMarketPrice(productName);
-    
+
     // 缓存结果
     if (marketPrice) {
       this.productCache.set(productName, marketPrice);
@@ -239,7 +239,7 @@ export class QuoteEnhancer {
     // 调用Coze工具
     const similarProducts = await cozeToolsService.searchSimilarProducts(
       productName,
-      productDatabase.map(p => ({
+      productDatabase.map((p) => ({
         id: p.id || p.name,
         name: p.name,
         price: p.price,
@@ -317,7 +317,7 @@ export class QuoteEnhancer {
       }
 
       // 准备产品数据
-      const productsInfo = products.map(p => ({
+      const productsInfo = products.map((p) => ({
         name: p.name,
         currentPrice: p.price,
         marketPrice: p.marketPrice?.averagePrice,
@@ -386,9 +386,9 @@ export class QuoteEnhancer {
       let suggestions: PriceOptimizationSuggestion[] = [];
       try {
         // 提取 JSON（可能包含在代码块中）
-        const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/) || 
-                         response.text.match(/\[[\s\S]*\]/);
-        
+        const jsonMatch =
+          response.text.match(/```json\s*([\s\S]*?)\s*```/) || response.text.match(/\[[\s\S]*\]/);
+
         if (jsonMatch) {
           suggestions = JSON.parse(jsonMatch[1] || jsonMatch[0]);
         } else {
@@ -396,10 +396,9 @@ export class QuoteEnhancer {
         }
 
         // 验证数据格式
-        suggestions = suggestions.filter((s: any) => 
-          s.product && 
-          typeof s.currentPrice === 'number' && 
-          typeof s.suggestedPrice === 'number'
+        suggestions = suggestions.filter(
+          (s: any) =>
+            s.product && typeof s.currentPrice === 'number' && typeof s.suggestedPrice === 'number'
         );
 
         Logger.info(`[QuoteEnhancer] DeepSeek 生成了 ${suggestions.length} 条价格优化建议`);
@@ -409,7 +408,6 @@ export class QuoteEnhancer {
       }
 
       return suggestions;
-
     } catch (error) {
       Logger.error('[QuoteEnhancer] 生成价格优化建议失败:', error);
       return [];
@@ -424,21 +422,17 @@ export class QuoteEnhancer {
     priceOptimizations: PriceOptimizationSuggestion[] = []
   ): QuoteEnhancementResult['summary'] {
     const totalProducts = products.length;
-    const productsWithMarketPrice = products.filter(
-      p => p.marketPrice !== undefined
-    ).length;
+    const productsWithMarketPrice = products.filter((p) => p.marketPrice !== undefined).length;
     const productsWithSimilarProducts = products.filter(
-      p => p.similarProducts && p.similarProducts.length > 0
+      (p) => p.similarProducts && p.similarProducts.length > 0
     ).length;
-    const productsWithImages = products.filter(
-      p => p.productImage !== undefined
-    ).length;
+    const productsWithImages = products.filter((p) => p.productImage !== undefined).length;
     const productsWithPriceOptimization = priceOptimizations.length;
 
     const totalValue = products.reduce((sum, p) => sum + p.total, 0);
     const marketTotalValue = products
-      .filter(p => p.marketPrice !== undefined)
-      .reduce((sum, p) => sum + (p.marketPrice!.averagePrice * p.quantity), 0);
+      .filter((p) => p.marketPrice !== undefined)
+      .reduce((sum, p) => sum + p.marketPrice!.averagePrice * p.quantity, 0);
 
     const summary: QuoteEnhancementResult['summary'] = {
       totalProducts,
@@ -452,9 +446,7 @@ export class QuoteEnhancer {
     if (marketTotalValue > 0) {
       summary.marketTotalValue = marketTotalValue;
       summary.priceDifference = marketTotalValue - totalValue;
-      summary.priceDifferencePercent = (
-        (summary.priceDifference / marketTotalValue) * 100
-      );
+      summary.priceDifferencePercent = (summary.priceDifference / marketTotalValue) * 100;
     }
 
     return summary;
@@ -482,4 +474,3 @@ export class QuoteEnhancer {
 
 // 导出单例实例
 export const quoteEnhancer = new QuoteEnhancer();
-

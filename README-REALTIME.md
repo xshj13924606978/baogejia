@@ -11,6 +11,7 @@
 **文件**: `src/lib/socket.ts`
 
 **功能**:
+
 - 基于 Socket.IO 的 WebSocket 服务器
 - 支持多房间管理
 - 用户加入/离开房间
@@ -20,6 +21,7 @@
 - 跨域支持（CORS）
 
 **主要方法**:
+
 - `init()` - 初始化服务器
 - `sendNotification(userId, notification)` - 发送通知给指定用户
 - `broadcastNotification(notification)` - 广播通知
@@ -33,6 +35,7 @@
 **文件**: `src/hooks/useSocket.ts`
 
 **功能**:
+
 - 在 React 组件中使用 WebSocket 连接
 - 自动连接/重连（最多5次）
 - 事件监听和消息处理
@@ -40,6 +43,7 @@
 - 心跳响应
 
 **主要方法**:
+
 - `connect()` - 连接 WebSocket
 - `disconnect()` - 断开连接
 - `sendMessage(type, payload, to?)` - 发送消息
@@ -50,6 +54,7 @@
 - `leaveRoom(roomId)` - 离开房间
 
 **状态**:
+
 - `isConnected` - 是否已连接
 - `isConnecting` - 是否正在连接
 - `onlineUsers` - 在线用户列表
@@ -60,6 +65,7 @@
 **文件**: `src/components/online-status/online-indicator.tsx`
 
 **组件**:
+
 - `OnlineIndicator` - 在线指示器
 - `UserOnlineStatus` - 用户在线状态
 - `OnlineUsersCount` - 在线用户统计
@@ -67,6 +73,7 @@
 - `StatusSelector` - 状态选择器
 
 **功能**:
+
 - 显示用户在线/离线状态
 - 支持多种状态：在线、忙碌、离开
 - 实时更新在线用户列表
@@ -77,12 +84,14 @@
 **文件**: `src/components/message-read-receipt/message-read-receipt.tsx`
 
 **组件**:
+
 - `MessageReadReceipt` - 消息已读回执
 - `BatchMessageReadReceipt` - 批量消息已读回执
 - `ChatMessageReadReceipt` - 聊天消息已读回执
 - `MessageDeliveryStatus` - 消息发送状态
 
 **功能**:
+
 - 显示消息已读/未读状态
 - 统计已读人数
 - 显示已读用户列表
@@ -93,11 +102,13 @@
 **文件**: `src/components/notification-panel/notification-panel.tsx`
 
 **组件**:
+
 - `NotificationPanel` - 通知面板
 - `NotificationBadge` - 通知徽章
 - `NotificationList` - 通知列表
 
 **功能**:
+
 - 实时接收通知
 - 通知分类显示（info、success、warning、error）
 - 未读通知计数
@@ -111,6 +122,7 @@
 **文件**: `src/components/websocket/websocket-provider.tsx`
 
 **功能**:
+
 - 在全局初始化 WebSocket 连接
 - 从 localStorage 读取用户信息
 - 自动连接/断开处理
@@ -121,6 +133,7 @@
 **文件**: `src/app/realtime-demo/page.tsx`
 
 **功能**:
+
 - 完整的实时通信功能演示
 - WebSocket 连接状态显示
 - 在线状态演示
@@ -141,9 +154,7 @@ export default function RootLayout({ children }) {
   return (
     <html>
       <body>
-        <WebSocketProvider>
-          {children}
-        </WebSocketProvider>
+        <WebSocketProvider>{children}</WebSocketProvider>
       </body>
     </html>
   );
@@ -199,7 +210,11 @@ function MyPage() {
 ### 4. 显示在线状态
 
 ```tsx
-import { OnlineIndicator, UserOnlineStatus, OnlineUsersCount } from '@/components/online-status/online-indicator';
+import {
+  OnlineIndicator,
+  UserOnlineStatus,
+  OnlineUsersCount,
+} from '@/components/online-status/online-indicator';
 
 function MyPage() {
   return (
@@ -237,43 +252,63 @@ function MyPage() {
 ### 客户端发送事件
 
 - `join` - 加入用户房间
+
   ```typescript
   { userId: number; username?: string; avatar?: string }
   ```
 
 - `user:status` - 更新用户状态
+
   ```typescript
-  { status: 'online' | 'busy' | 'away' }
+  {
+    status: 'online' | 'busy' | 'away';
+  }
   ```
 
 - `message` - 发送消息
+
   ```typescript
   { to?: number; type: string; payload: any }
   ```
 
 - `message:read` - 标记消息已读
+
   ```typescript
-  { messageType: string; messageId: string }
+  {
+    messageType: string;
+    messageId: string;
+  }
   ```
 
 - `notification:read` - 标记通知已读
+
   ```typescript
-  { notificationId: number }
+  {
+    notificationId: number;
+  }
   ```
 
 - `room:join` - 加入房间
+
   ```typescript
-  { roomId: string }
+  {
+    roomId: string;
+  }
   ```
 
 - `room:leave` - 离开房间
+
   ```typescript
-  { roomId: string }
+  {
+    roomId: string;
+  }
   ```
 
 - `pong` - 心跳响应
   ```typescript
-  { timestamp: Date }
+  {
+    timestamp: Date;
+  }
   ```
 
 ### 服务器推送事件
@@ -285,6 +320,7 @@ function MyPage() {
 - `connect_error` - 连接错误
 
 - `message` - 接收消息
+
   ```typescript
   {
     from: number;
@@ -295,6 +331,7 @@ function MyPage() {
   ```
 
 - `notification` - 接收通知
+
   ```typescript
   {
     id: number;
@@ -309,16 +346,21 @@ function MyPage() {
   ```
 
 - `user:online` - 用户上线
+
   ```typescript
   { userId: number; username?: string }
   ```
 
 - `user:offline` - 用户离线
+
   ```typescript
-  { userId: number }
+  {
+    userId: number;
+  }
   ```
 
 - `user:status:update` - 用户状态更新
+
   ```typescript
   {
     userId: number;
@@ -327,6 +369,7 @@ function MyPage() {
   ```
 
 - `message:read` - 消息已读
+
   ```typescript
   {
     messageType: string;
@@ -337,6 +380,7 @@ function MyPage() {
   ```
 
 - `notification:read` - 通知已读
+
   ```typescript
   {
     notificationId: number;
@@ -346,18 +390,21 @@ function MyPage() {
   ```
 
 - `online_users` - 在线用户列表
+
   ```typescript
   Array<{
     userId: number;
     username?: string;
     avatar?: string;
     status: 'online' | 'busy' | 'away';
-  }>
+  }>;
   ```
 
 - `ping` - 心跳请求
   ```typescript
-  { timestamp: Date }
+  {
+    timestamp: Date;
+  }
   ```
 
 ## 配置

@@ -29,7 +29,7 @@ export default function KnowledgeCenter({ initialModule, onClose }: KnowledgeCen
   ];
 
   // 获取当前活跃组件
-  const ActiveComponent = modules.find(m => m.id === activeTab)?.component || PriceLibrary;
+  const ActiveComponent = modules.find((m) => m.id === activeTab)?.component || PriceLibrary;
 
   return (
     <div className="fixed inset-0 bg-white z-50 flex flex-col">
@@ -48,15 +48,16 @@ export default function KnowledgeCenter({ initialModule, onClose }: KnowledgeCen
 
       {/* 标签页导航 */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 overflow-x-auto">
-        {modules.map(module => (
+        {modules.map((module) => (
           <button
             key={module.id}
             onClick={() => setActiveTab(module.id)}
             className={`
               px-4 py-3 whitespace-nowrap flex items-center gap-2 text-sm border-b-2 transition-colors
-              ${activeTab === module.id
-                ? `border-${module.color}-500 text-${module.color}-600 font-medium`
-                : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              ${
+                activeTab === module.id
+                  ? `border-${module.color}-500 text-${module.color}-600 font-medium`
+                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }
             `}
           >

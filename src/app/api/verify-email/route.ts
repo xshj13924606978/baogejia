@@ -8,7 +8,8 @@ export async function GET(request: NextRequest) {
   console.log('[API] 邮箱验证请求:', { email, code });
 
   if (!email || !code) {
-    return new NextResponse(`
+    return new NextResponse(
+      `
       <!DOCTYPE html>
       <html>
         <head>
@@ -55,15 +56,18 @@ export async function GET(request: NextRequest) {
           </div>
         </body>
       </html>
-    `, {
-      status: 400,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
-    });
+    `,
+      {
+        status: 400,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      }
+    );
   }
 
   try {
     // 返回纯HTML验证成功页面，不加载任何React资源
-    return new NextResponse(`
+    return new NextResponse(
+      `
       <!DOCTYPE html>
       <html>
         <head>
@@ -259,16 +263,19 @@ export async function GET(request: NextRequest) {
           </div>
         </body>
       </html>
-    `, {
-      status: 200,
-      headers: { 
-        'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
+    `,
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
       }
-    });
+    );
   } catch (error) {
     console.error('[API] 邮箱验证失败:', error);
-    return new NextResponse(`
+    return new NextResponse(
+      `
       <!DOCTYPE html>
       <html>
         <head>
@@ -311,10 +318,12 @@ export async function GET(request: NextRequest) {
           </div>
         </body>
       </html>
-    `, {
-      status: 500,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
-    });
+    `,
+      {
+        status: 500,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      }
+    );
   }
 }
 

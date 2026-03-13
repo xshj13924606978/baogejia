@@ -145,12 +145,8 @@ export default function PaymentResultPage() {
       <div className="max-w-2xl mx-auto">
         <Card>
           <CardHeader className="text-center pb-8">
-            <div className="flex justify-center mb-4">
-              {getStatusIcon()}
-            </div>
-            <CardTitle className="text-2xl">
-              {getStatusTitle()}
-            </CardTitle>
+            <div className="flex justify-center mb-4">{getStatusIcon()}</div>
+            <CardTitle className="text-2xl">{getStatusTitle()}</CardTitle>
           </CardHeader>
 
           <CardContent className="space-y-6">
@@ -159,9 +155,7 @@ export default function PaymentResultPage() {
               variant={status === 'success' ? 'default' : 'destructive'}
               className={status === 'success' ? 'bg-green-50 border-green-200' : ''}
             >
-              <AlertDescription className="text-center">
-                {getStatusDescription()}
-              </AlertDescription>
+              <AlertDescription className="text-center">{getStatusDescription()}</AlertDescription>
             </Alert>
 
             {/* 订单详情 */}
@@ -222,11 +216,7 @@ export default function PaymentResultPage() {
 
             {/* 操作按钮 */}
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={handleContinue}
-              >
+              <Button variant="outline" className="flex-1" onClick={handleContinue}>
                 继续购物
               </Button>
               <Button

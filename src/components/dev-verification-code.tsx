@@ -22,7 +22,7 @@ export function DevVerificationCode() {
     const handleShowCode = (event: CustomEvent<CodeInfo>) => {
       setCodeInfo(event.detail);
       setOpen(true);
-      
+
       // 3秒后自动关闭
       setTimeout(() => {
         setOpen(false);
@@ -44,17 +44,11 @@ export function DevVerificationCode() {
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle className="text-blue-600">📱 开发环境验证码</DialogTitle>
-          <DialogDescription>
-            手机号: {codeInfo?.phone}
-          </DialogDescription>
+          <DialogDescription>手机号: {codeInfo?.phone}</DialogDescription>
         </DialogHeader>
         <div className="py-6 text-center">
-          <div className="text-4xl font-bold tracking-wider text-blue-600">
-            {codeInfo?.code}
-          </div>
-          <p className="text-sm text-gray-500 mt-2">
-            该验证码仅在开发环境显示，5分钟内有效
-          </p>
+          <div className="text-4xl font-bold tracking-wider text-blue-600">{codeInfo?.code}</div>
+          <p className="text-sm text-gray-500 mt-2">该验证码仅在开发环境显示，5分钟内有效</p>
         </div>
       </DialogContent>
     </Dialog>

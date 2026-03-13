@@ -24,7 +24,7 @@ export function VerificationCodeDisplay() {
     const handleShowCode = (event: CustomEvent<CodeInfo>) => {
       setCodeInfo(event.detail);
       setOpen(true);
-      
+
       // 10秒后自动关闭
       setTimeout(() => {
         setOpen(false);
@@ -54,12 +54,8 @@ export function VerificationCodeDisplay() {
           <div className="text-5xl font-bold tracking-wider text-blue-600 mb-4">
             {codeInfo.code}
           </div>
-          <p className="text-sm text-gray-500">
-            {codeInfo.message}
-          </p>
-          <p className="text-xs text-gray-400 mt-2">
-            该验证码仅在开发环境显示，5分钟内有效
-          </p>
+          <p className="text-sm text-gray-500">{codeInfo.message}</p>
+          <p className="text-xs text-gray-400 mt-2">该验证码仅在开发环境显示，5分钟内有效</p>
         </div>
       </DialogContent>
     </Dialog>

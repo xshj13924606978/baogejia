@@ -85,8 +85,7 @@ export async function GET(req: NextRequest) {
           console.log('[Socket.IO] User authenticated:', userId);
 
           // 验证 userId 格式（应该是 UUID）
-          const uuidRegex =
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
           if (!uuidRegex.test(userId)) {
             console.log('[Socket.IO] 无效的 UUID 格式:', userId);
             socket.emit('error', { message: 'Invalid user ID format' });

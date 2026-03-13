@@ -49,7 +49,7 @@ export class EnhancedPdfParser {
     console.log('[PDF增强] 文件名:', fileInfo.name);
 
     const startTime = Date.now();
-    
+
     try {
       // 第1层：尝试pdf-parse（适用于文本型PDF）
       if (fileInfo.buffer) {
@@ -58,7 +58,7 @@ export class EnhancedPdfParser {
           console.log('[PDF增强] 第1层解析成功，置信度:', textResult.confidence);
           return this.addMetadata(textResult, fileInfo, 'pdf-parse', startTime);
         }
-        
+
         if (textResult.rawContent && textResult.rawContent.length > 100) {
           fileInfo.extractedText = textResult.rawContent;
         }
@@ -86,7 +86,6 @@ export class EnhancedPdfParser {
       console.log('[PDF增强] 使用降级方案');
       const fallbackResult = this.createFallbackResult(fileInfo);
       return this.addMetadata(fallbackResult, fileInfo, 'fallback', startTime);
-
     } catch (error) {
       console.error('[PDF增强] 解析失败:', error);
       const errorResult = this.createErrorResult(error);
@@ -98,7 +97,7 @@ export class EnhancedPdfParser {
     try {
       const pdfParse = (await import('pdf-parse')).default;
       const data = await pdfParse(buffer);
-      
+
       const products = this.extractProductsFromText(data.text);
       const confidence = this.calculateConfidence(products, data.text);
 
@@ -107,7 +106,7 @@ export class EnhancedPdfParser {
         globalRemarks: [],
         rawContent: data.text,
         parseLevel: 'local',
-        confidence
+        confidence,
       };
     } catch (error) {
       return {
@@ -115,7 +114,7 @@ export class EnhancedPdfParser {
         globalRemarks: ['pdf-parse解析失败'],
         rawContent: '',
         parseLevel: 'local',
-        confidence: 0
+        confidence: 0,
       };
     }
   }
@@ -125,21 +124,23 @@ export class EnhancedPdfParser {
       const tempDir = os.tmpdir();
       const tempPdf = path.join(tempDir, `ocr-${Date.now()}.pdf`);
       const tempImage = path.join(tempDir, `ocr-${Date.now()}.png`);
-      
+
       fs.writeFileSync(tempPdf, fileInfo.buffer);
-      
+
       try {
-        await execAsync(`pdftoppm -png -f 1 -singlefile ${tempPdf} ${tempImage.replace('.png', '')}`);
+        await execAsync(
+          `pdftoppm -png -f 1 -singlefile ${tempPdf} ${tempImage.replace('.png', '')}`
+        );
       } catch (e) {
         console.log('[PDF] pdftoppm可能未安装，跳过OCR');
         return {
           products: [],
           globalRemarks: ['OCR工具未安装'],
           parseLevel: 'ocr',
-          confidence: 0
+          confidence: 0,
         };
       }
-      
+
       const imageBuffer = fs.readFileSync(tempImage);
       const base64Image = imageBuffer.toString('base64');
 
@@ -158,21 +159,24 @@ export class EnhancedPdfParser {
   "remarks": ["备注"]
 }`;
 
-      const response = await this.visionClient.invoke([
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:image/png;base64,${base64Image}`,
-                detail: 'high'
-              }
-            }
-          ]
-        }
-      ], { temperature: 0.3 });
+      const response = await this.visionClient.invoke(
+        [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/png;base64,${base64Image}`,
+                  detail: 'high',
+                },
+              },
+            ],
+          },
+        ],
+        { temperature: 0.3 }
+      );
 
       // 清理临时文件
       try {
@@ -184,15 +188,14 @@ export class EnhancedPdfParser {
       if (jsonMatch) {
         const data = JSON.parse(jsonMatch[0]);
         const products = this.normalizeProducts(data.products || []);
-        
+
         return {
           products,
           globalRemarks: data.remarks || [],
           parseLevel: 'ocr',
-          confidence: products.length > 0 ? 70 : 0
+          confidence: products.length > 0 ? 70 : 0,
         };
       }
-
     } catch (error) {
       console.error('[PDF] OCR失败:', error);
     }
@@ -201,13 +204,13 @@ export class EnhancedPdfParser {
       products: [],
       globalRemarks: ['OCR解析失败'],
       parseLevel: 'ocr',
-      confidence: 0
+      confidence: 0,
     };
   }
 
   private async parseWithAI(fileInfo: any): Promise<ParseResult> {
     const extractedText = fileInfo.extractedText || '无法提取文本';
-    
+
     const prompt = `你是一个专业的报价单解析助手。请从以下PDF内容中提取所有产品信息。
 
 PDF文件名: ${fileInfo.name}
@@ -233,10 +236,9 @@ ${extractedText.substring(0, 3000)}
 }`;
 
     try {
-      const response = await this.llmClient.invoke(
-        [{ role: 'user', content: prompt }],
-        { temperature: 0.3 }
-      );
+      const response = await this.llmClient.invoke([{ role: 'user', content: prompt }], {
+        temperature: 0.3,
+      });
 
       const jsonMatch = response.content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -248,7 +250,7 @@ ${extractedText.substring(0, 3000)}
           globalRemarks: data.remarks || [],
           rawContent: extractedText,
           parseLevel: 'ai',
-          confidence: products.length > 0 ? 60 : 0
+          confidence: products.length > 0 ? 60 : 0,
         };
       }
     } catch (error) {
@@ -260,18 +262,18 @@ ${extractedText.substring(0, 3000)}
       globalRemarks: ['AI解析失败'],
       rawContent: extractedText,
       parseLevel: 'ai',
-      confidence: 0
+      confidence: 0,
     };
   }
 
   private extractProductsFromText(text: string): Product[] {
     const products: Product[] = [];
-    const lines = text.split('\n').filter(line => line.trim().length > 3);
+    const lines = text.split('\n').filter((line) => line.trim().length > 3);
 
     const patterns = [
       /(\d+)[.\s、]*([^\d]{2,30}?)[\s]+(\d+(?:\.\d+)?)\s*(个|台|套|只|件|米|公斤|吨|根|条)[\s]+(\d+(?:\.\d+)?)/,
       /([^\d]{2,20}?)[\s]+([A-Z0-9\-]+)[\s]+(\d+(?:\.\d+)?)\s*(个|台|套)/,
-      /([^\d]{2,30}?)[\s]+(\d+(?:\.\d+)?)\s*(个|台|套|只|件)/
+      /([^\d]{2,30}?)[\s]+(\d+(?:\.\d+)?)\s*(个|台|套|只|件)/,
     ];
 
     for (const line of lines) {
@@ -281,7 +283,7 @@ ${extractedText.substring(0, 3000)}
           const name = match[1].trim();
           const quantity = parseFloat(match[match.length === 4 ? 2 : 3]) || 1;
           const unit = match[match.length === 4 ? 3 : 4] || '个';
-          
+
           if (name.length > 1 && name.length < 50 && !this.isNoise(name)) {
             products.push({
               name,
@@ -292,7 +294,7 @@ ${extractedText.substring(0, 3000)}
               unit,
               price: 0,
               total: 0,
-              remark: '从PDF提取'
+              remark: '从PDF提取',
             });
             break;
           }
@@ -314,62 +316,66 @@ ${extractedText.substring(0, 3000)}
       /www\.|http|\.com/i,
       /电话|传真|邮箱|地址/i,
       /版权所有|翻版必究/i,
-      /报价单|询价单|采购单|合同/i
+      /报价单|询价单|采购单|合同/i,
     ];
-    return noisePatterns.some(pattern => pattern.test(text));
+    return noisePatterns.some((pattern) => pattern.test(text));
   }
 
   private calculateConfidence(products: Product[], rawText: string): number {
     if (products.length === 0) return 0;
-    
+
     let score = 50;
     score += Math.min(products.length * 5, 30);
-    
-    const hasPrices = products.some(p => p.price > 0);
+
+    const hasPrices = products.some((p) => p.price > 0);
     if (hasPrices) score += 20;
-    
-    const hasModels = products.some(p => p.model);
+
+    const hasModels = products.some((p) => p.model);
     if (hasModels) score += 15;
-    
-    const hasUnits = products.some(p => p.unit !== '个');
+
+    const hasUnits = products.some((p) => p.unit !== '个');
     if (hasUnits) score += 10;
-    
+
     return Math.min(score, 100);
   }
 
   private normalizeProducts(products: any[]): Product[] {
-    return products.map(p => ({
-      name: p.name || '',
-      model: p.model || '',
-      brand: p.brand || '',
-      specs: p.specs || '',
-      quantity: Number(p.quantity) || 1,
-      unit: p.unit || '个',
-      price: Number(p.price) || 0,
-      total: Number(p.total) || (Number(p.price) || 0) * (Number(p.quantity) || 1),
-      remark: p.remark || ''
-    })).filter(p => p.name);
+    return products
+      .map((p) => ({
+        name: p.name || '',
+        model: p.model || '',
+        brand: p.brand || '',
+        specs: p.specs || '',
+        quantity: Number(p.quantity) || 1,
+        unit: p.unit || '个',
+        price: Number(p.price) || 0,
+        total: Number(p.total) || (Number(p.price) || 0) * (Number(p.quantity) || 1),
+        remark: p.remark || '',
+      }))
+      .filter((p) => p.name);
   }
 
   private createFallbackResult(fileInfo: any): ParseResult {
     const fileName = fileInfo.name.replace(/\.pdf$/i, '');
     const parts = fileName.split(/[-\s_]+/);
-    
+
     return {
-      products: [{
-        name: parts[0] || '未知产品',
-        model: parts[1] || '',
-        brand: '',
-        specs: '请手动填写',
-        quantity: 1,
-        unit: '个',
-        price: 0,
-        total: 0,
-        remark: 'PDF解析失败，请手动输入'
-      }],
+      products: [
+        {
+          name: parts[0] || '未知产品',
+          model: parts[1] || '',
+          brand: '',
+          specs: '请手动填写',
+          quantity: 1,
+          unit: '个',
+          price: 0,
+          total: 0,
+          remark: 'PDF解析失败，请手动输入',
+        },
+      ],
       globalRemarks: ['无法自动解析PDF内容，请检查文件格式或手动输入'],
       parseLevel: 'fallback',
-      confidence: 10
+      confidence: 10,
     };
   }
 
@@ -378,11 +384,16 @@ ${extractedText.substring(0, 3000)}
       products: [],
       globalRemarks: [`解析错误: ${error.message || '未知错误'}`],
       parseLevel: 'error',
-      confidence: 0
+      confidence: 0,
     };
   }
 
-  private addMetadata(result: ParseResult, fileInfo: any, method: string, startTime: number): ParseResult {
+  private addMetadata(
+    result: ParseResult,
+    fileInfo: any,
+    method: string,
+    startTime: number
+  ): ParseResult {
     return {
       ...result,
       metadata: {
@@ -390,8 +401,8 @@ ${extractedText.substring(0, 3000)}
         fileName: fileInfo.name,
         fileSize: fileInfo.buffer?.length || 0,
         parseMethod: method,
-        parseTime: Date.now() - startTime
-      }
+        parseTime: Date.now() - startTime,
+      },
     };
   }
 }

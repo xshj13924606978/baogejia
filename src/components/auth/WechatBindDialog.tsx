@@ -32,9 +32,9 @@ export function WechatBindDialog({ open, onOpenChange, onBound }: WechatBindDial
       onBound();
     } catch (error) {
       toast({
-        title: "绑定失败",
-        description: "请稍后重试",
-        variant: "destructive",
+        title: '绑定失败',
+        description: '请稍后重试',
+        variant: 'destructive',
         duration: 3000,
       });
     } finally {
@@ -50,9 +50,7 @@ export function WechatBindDialog({ open, onOpenChange, onBound }: WechatBindDial
             <QrCode className="h-5 w-5 text-green-600" />
             绑定微信
           </DialogTitle>
-          <DialogDescription>
-            使用微信扫码绑定账号，之后可以用微信快捷登录
-          </DialogDescription>
+          <DialogDescription>使用微信扫码绑定账号，之后可以用微信快捷登录</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -82,7 +80,11 @@ export function WechatBindDialog({ open, onOpenChange, onBound }: WechatBindDial
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               取消
             </Button>
-            <Button onClick={handleBind} disabled={loading} className="bg-green-600 hover:bg-green-700">
+            <Button
+              onClick={handleBind}
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700"
+            >
               {loading ? '跳转中...' : '前往微信授权'}
             </Button>
           </div>

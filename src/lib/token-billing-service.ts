@@ -10,11 +10,11 @@ import { userLevelService } from './user-level-service';
 export interface TokenPricingConfig {
   id: number;
   configName: string;
-  yuanToTokens: number;      // 1元 = ? Tokens
-  yuanToPoints: number;      // 1元 = ? 积分
-  pointsToTokens: number;    // 1积分 = ? Tokens
-  inputTokenRate: number;    // 输入Token倍率
-  outputTokenRate: number;   // 输出Token倍率
+  yuanToTokens: number; // 1元 = ? Tokens
+  yuanToPoints: number; // 1元 = ? 积分
+  pointsToTokens: number; // 1积分 = ? Tokens
+  inputTokenRate: number; // 输入Token倍率
+  outputTokenRate: number; // 输出Token倍率
   level1InputRate: number;
   level1OutputRate: number;
   level2InputRate: number;
@@ -74,11 +74,11 @@ export interface PaymentPlan {
   id: string;
   name: string;
   description: string;
-  amount: number;        // 金额（元）
-  points: number;        // 赠送积分
-  level: number;         // 等级
-  days: number;          // 有效期（天）
-  features: string[];    // 功能列表
+  amount: number; // 金额（元）
+  points: number; // 赠送积分
+  level: number; // 等级
+  days: number; // 有效期（天）
+  features: string[]; // 功能列表
 }
 
 export class TokenBillingService {
@@ -96,17 +96,28 @@ export class TokenBillingService {
       if (config.yuanToPoints !== undefined) updateData.yuan_to_points = config.yuanToPoints;
       if (config.pointsToTokens !== undefined) updateData.points_to_tokens = config.pointsToTokens;
       if (config.inputTokenRate !== undefined) updateData.input_token_rate = config.inputTokenRate;
-      if (config.outputTokenRate !== undefined) updateData.output_token_rate = config.outputTokenRate;
-      if (config.level1InputRate !== undefined) updateData.level_1_input_rate = config.level1InputRate;
-      if (config.level1OutputRate !== undefined) updateData.level_1_output_rate = config.level1OutputRate;
-      if (config.level2InputRate !== undefined) updateData.level_2_input_rate = config.level2InputRate;
-      if (config.level2OutputRate !== undefined) updateData.level_2_output_rate = config.level2OutputRate;
-      if (config.level3InputRate !== undefined) updateData.level_3_input_rate = config.level3InputRate;
-      if (config.level3OutputRate !== undefined) updateData.level_3_output_rate = config.level3OutputRate;
-      if (config.level4InputRate !== undefined) updateData.level_4_input_rate = config.level4InputRate;
-      if (config.level4OutputRate !== undefined) updateData.level_4_output_rate = config.level4OutputRate;
-      if (config.level5InputRate !== undefined) updateData.level_5_input_rate = config.level5InputRate;
-      if (config.level5OutputRate !== undefined) updateData.level_5_output_rate = config.level5OutputRate;
+      if (config.outputTokenRate !== undefined)
+        updateData.output_token_rate = config.outputTokenRate;
+      if (config.level1InputRate !== undefined)
+        updateData.level_1_input_rate = config.level1InputRate;
+      if (config.level1OutputRate !== undefined)
+        updateData.level_1_output_rate = config.level1OutputRate;
+      if (config.level2InputRate !== undefined)
+        updateData.level_2_input_rate = config.level2InputRate;
+      if (config.level2OutputRate !== undefined)
+        updateData.level_2_output_rate = config.level2OutputRate;
+      if (config.level3InputRate !== undefined)
+        updateData.level_3_input_rate = config.level3InputRate;
+      if (config.level3OutputRate !== undefined)
+        updateData.level_3_output_rate = config.level3OutputRate;
+      if (config.level4InputRate !== undefined)
+        updateData.level_4_input_rate = config.level4InputRate;
+      if (config.level4OutputRate !== undefined)
+        updateData.level_4_output_rate = config.level4OutputRate;
+      if (config.level5InputRate !== undefined)
+        updateData.level_5_input_rate = config.level5InputRate;
+      if (config.level5OutputRate !== undefined)
+        updateData.level_5_output_rate = config.level5OutputRate;
       if (config.isActive !== undefined) updateData.is_active = config.isActive;
 
       updateData.updated_at = new Date().toISOString();
@@ -166,7 +177,7 @@ export class TokenBillingService {
         level5OutputRate: data.level_5_output_rate,
         isActive: data.is_active,
         createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at)
+        updatedAt: new Date(data.updated_at),
       };
     } catch (error) {
       console.error('[TokenBillingService] 获取计费配置异常:', error);
@@ -272,7 +283,7 @@ export class TokenBillingService {
       outputTokens,
       totalTokens,
       pointsConsumed,
-      tokenRate: (inputRate + outputRate) / 2
+      tokenRate: (inputRate + outputRate) / 2,
     };
   }
 
@@ -298,11 +309,21 @@ export class TokenBillingService {
 
     let rate = 1.0;
     switch (userLevel) {
-      case 1: rate = (config.level1InputRate + config.level1OutputRate) / 2; break;
-      case 2: rate = (config.level2InputRate + config.level2OutputRate) / 2; break;
-      case 3: rate = (config.level3InputRate + config.level3OutputRate) / 2; break;
-      case 4: rate = (config.level4InputRate + config.level4OutputRate) / 2; break;
-      case 5: rate = (config.level5InputRate + config.level5OutputRate) / 2; break;
+      case 1:
+        rate = (config.level1InputRate + config.level1OutputRate) / 2;
+        break;
+      case 2:
+        rate = (config.level2InputRate + config.level2OutputRate) / 2;
+        break;
+      case 3:
+        rate = (config.level3InputRate + config.level3OutputRate) / 2;
+        break;
+      case 4:
+        rate = (config.level4InputRate + config.level4OutputRate) / 2;
+        break;
+      case 5:
+        rate = (config.level5InputRate + config.level5OutputRate) / 2;
+        break;
     }
 
     const adjustedTokens = Math.ceil(totalTokens * rate);
@@ -339,7 +360,7 @@ export class TokenBillingService {
         totalRechargedPoints: data.total_recharged_points,
         totalRechargedAmount: data.total_recharged_amount,
         lastUpdated: new Date(data.last_updated),
-        createdAt: new Date(data.created_at)
+        createdAt: new Date(data.created_at),
       };
     } catch (error) {
       console.error('[TokenBillingService] 获取用户余额异常:', error);
@@ -357,7 +378,7 @@ export class TokenBillingService {
         .insert({
           user_id: userId,
           points_balance: 0,
-          token_balance: 0
+          token_balance: 0,
         })
         .select()
         .single();
@@ -377,7 +398,7 @@ export class TokenBillingService {
         totalRechargedPoints: data.total_recharged_points,
         totalRechargedAmount: data.total_recharged_amount,
         lastUpdated: new Date(data.last_updated),
-        createdAt: new Date(data.created_at)
+        createdAt: new Date(data.created_at),
       };
     } catch (error) {
       console.error('[TokenBillingService] 创建用户余额异常:', error);
@@ -424,7 +445,7 @@ export class TokenBillingService {
         .update({
           points_balance: balance.pointsBalance - points,
           total_consumed_points: balance.totalConsumedPoints + points,
-          last_updated: new Date()
+          last_updated: new Date(),
         })
         .eq('user_id', userId);
 
@@ -451,20 +472,18 @@ export class TokenBillingService {
     serviceType?: string
   ): Promise<void> {
     try {
-      const { error } = await this.supabase
-        .from('token_consumption_log')
-        .insert({
-          user_id: userId,
-          conversation_id: conversationId,
-          message_id: messageId,
-          input_tokens: consumption.inputTokens,
-          output_tokens: consumption.outputTokens,
-          total_tokens: consumption.totalTokens,
-          points_consumed: consumption.pointsConsumed,
-          token_rate: consumption.tokenRate,
-          user_level: await this.getUserLevel(userId),
-          service_type: serviceType
-        });
+      const { error } = await this.supabase.from('token_consumption_log').insert({
+        user_id: userId,
+        conversation_id: conversationId,
+        message_id: messageId,
+        input_tokens: consumption.inputTokens,
+        output_tokens: consumption.outputTokens,
+        total_tokens: consumption.totalTokens,
+        points_consumed: consumption.pointsConsumed,
+        token_rate: consumption.tokenRate,
+        user_level: await this.getUserLevel(userId),
+        service_type: serviceType,
+      });
 
       if (error) {
         console.error('[TokenBillingService] 记录Token消耗日志失败:', error);
@@ -509,7 +528,7 @@ export class TokenBillingService {
           points_balance: balance.pointsBalance + points,
           total_recharged_points: balance.totalRechargedPoints + points,
           total_recharged_amount: balance.totalRechargedAmount + (amount || 0),
-          last_updated: new Date()
+          last_updated: new Date(),
         })
         .eq('user_id', userId);
 
@@ -539,7 +558,7 @@ export class TokenBillingService {
         points: 100,
         level: 1,
         days: 7,
-        features: ['100积分', '7天有效', '基础功能']
+        features: ['100积分', '7天有效', '基础功能'],
       },
       {
         id: 'basic',
@@ -549,7 +568,7 @@ export class TokenBillingService {
         points: 300,
         level: 2,
         days: 30,
-        features: ['300积分', '30天有效', '基础功能', '等级2权限']
+        features: ['300积分', '30天有效', '基础功能', '等级2权限'],
       },
       {
         id: 'vip_monthly',
@@ -559,7 +578,7 @@ export class TokenBillingService {
         points: 1000,
         level: 3,
         days: 30,
-        features: ['1000积分', '30天VIP', 'VIP权限', '优先支持']
+        features: ['1000积分', '30天VIP', 'VIP权限', '优先支持'],
       },
       {
         id: 'vip_yearly',
@@ -569,7 +588,7 @@ export class TokenBillingService {
         points: 12000,
         level: 3,
         days: 365,
-        features: ['12000积分', '365天VIP', 'VIP权限', '优先支持', '省200元']
+        features: ['12000积分', '365天VIP', 'VIP权限', '优先支持', '省200元'],
       },
       {
         id: 'enterprise',
@@ -579,8 +598,8 @@ export class TokenBillingService {
         points: 50000,
         level: 4,
         days: 365,
-        features: ['50000积分', '365天企业会员', '企业权限', '专属客服', 'API访问']
-      }
+        features: ['50000积分', '365天企业会员', '企业权限', '专属客服', 'API访问'],
+      },
     ];
   }
 
@@ -602,7 +621,7 @@ export class TokenBillingService {
     try {
       // 设置用户等级
       const success = await userLevelService.setUserLevel(userId.toString(), level);
-      
+
       if (!success) {
         return { success: false, message: '设置等级失败' };
       }
@@ -619,7 +638,7 @@ export class TokenBillingService {
         success: true,
         newLevel: level,
         expiryDate,
-        message: '购买成功'
+        message: '购买成功',
       };
     } catch (error) {
       console.error('[TokenBillingService] 购买等级异常:', error);
@@ -648,7 +667,7 @@ export class TokenBillingService {
       }
 
       // 等级兑换积分规则：等级 * 100 * 天数 / 30
-      const pointsRequired = Math.ceil(level * 100 * days / 30);
+      const pointsRequired = Math.ceil((level * 100 * days) / 30);
 
       // 检查积分是否充足
       const hasEnough = await this.checkPointsBalance(userId, pointsRequired);
@@ -677,7 +696,7 @@ export class TokenBillingService {
         success: true,
         pointsConsumed: pointsRequired,
         expiryDate,
-        message: '兑换成功'
+        message: '兑换成功',
       };
     } catch (error) {
       console.error('[TokenBillingService] 兑换等级异常:', error);
@@ -706,7 +725,7 @@ export class TokenBillingService {
         return [];
       }
 
-      return data.map(log => ({
+      return data.map((log) => ({
         id: log.id,
         userId: log.user_id,
         conversationId: log.conversation_id,
@@ -718,7 +737,7 @@ export class TokenBillingService {
         tokenRate: log.token_rate,
         userLevel: log.user_level,
         serviceType: log.service_type,
-        createdAt: new Date(log.created_at)
+        createdAt: new Date(log.created_at),
       }));
     } catch (error) {
       console.error('[TokenBillingService] 获取消费记录异常:', error);
@@ -742,7 +761,7 @@ export class TokenBillingService {
     return {
       yuanToTokens: config.yuanToTokens,
       yuanToPoints: config.yuanToPoints,
-      pointsToTokens: config.pointsToTokens
+      pointsToTokens: config.pointsToTokens,
     };
   }
 }

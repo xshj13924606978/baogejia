@@ -10,115 +10,108 @@ import path from 'path';
  * 仅限超级管理员使用
  */
 
-
 export const POST = withPermissionCheck(
-  {"minLevel":5,"roles":["super_admin"]},
+  { minLevel: 5, roles: ['super_admin'] },
   async (request: NextRequest, user: any) => {
+    try {
+      // 验证用户身份
+      const currentUser = await getCurrentUser(request);
+      if (!currentUser || !currentUser.id) {
+        return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
+      }
 
-  try {
-    // 验证用户身份
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录或用户信息无效' }, { status: 401 }
+      // 检查超级管理员权限
+      const supabase = getSupabaseClient();
+      const { data: userRole, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', currentUser.id)
+        .single();
+
+      if (roleError || !userRole || userRole.role !== 'super_admin') {
+        return NextResponse.json({ error: '需要超级管理员权限' }, { status: 403 });
+      }
+
+      console.log('[Migration] 开始执行权限系统迁移');
+
+      // 读取迁移文件
+      const migrationFilePath = path.join(
+        process.cwd(),
+        'scripts/migrations/04_permission_system.sql'
       );
-    }
 
-    // 检查超级管理员权限
-    const supabase = getSupabaseClient();
-    const { data: userRole, error: roleError } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', currentUser.id)
-      .single();
+      if (!fs.existsSync(migrationFilePath)) {
+        return NextResponse.json({ error: '迁移文件不存在' }, { status: 404 });
+      }
 
-    if (roleError || !userRole || userRole.role !== 'super_admin') {
-      return NextResponse.json(
-        { error: '需要超级管理员权限' }, { status: 403 }
-      );
-    }
+      const sql = fs.readFileSync(migrationFilePath, 'utf8');
 
-    console.log('[Migration] 开始执行权限系统迁移');
+      // 分割 SQL 语句
+      const statements = sql
+        .split(';')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && !s.startsWith('--') && !s.startsWith('/*'));
 
-    // 读取迁移文件
-    const migrationFilePath = path.join(process.cwd(), 'scripts/migrations/04_permission_system.sql');
-    
-    if (!fs.existsSync(migrationFilePath)) {
-      return NextResponse.json(
-        { error: '迁移文件不存在' }, { status: 404 }
-      );
-    }
+      console.log(`[Migration] 共 ${statements.length} 条 SQL 语句`);
 
-    const sql = fs.readFileSync(migrationFilePath, 'utf8');
+      const results: Array<{ index: number; success: boolean; error?: string }> = [];
+      let successCount = 0;
+      let errorCount = 0;
 
-    // 分割 SQL 语句
-    const statements = sql
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--') && !s.startsWith('/*'));
+      // 逐条执行
+      for (let i = 0; i < statements.length; i++) {
+        const statement = statements[i];
+        const statementPreview = statement.substring(0, 100);
 
-    console.log(`[Migration] 共 ${statements.length} 条 SQL 语句`);
+        try {
+          // 使用 Supabase 的 raw 执行
+          const { data, error } = await supabase.rpc('exec_sql', {
+            sql_query: statement,
+          });
 
-    const results: Array<{ index: number; success: boolean; error?: string }> = [];
-    let successCount = 0;
-    let errorCount = 0;
-
-    // 逐条执行
-    for (let i = 0; i < statements.length; i++) {
-      const statement = statements[i];
-      const statementPreview = statement.substring(0, 100);
-      
-      try {
-        // 使用 Supabase 的 raw 执行
-        const { data, error } = await supabase.rpc('exec_sql', { 
-          sql_query: statement 
-        });
-
-        if (error) {
-          // 尝试直接使用 PostgreSQL 客户端
-          console.error(`[Migration] 语句 ${i + 1} 失败 (尝试备用方法):`, error.message);
+          if (error) {
+            // 尝试直接使用 PostgreSQL 客户端
+            console.error(`[Migration] 语句 ${i + 1} 失败 (尝试备用方法):`, error.message);
+            results.push({
+              index: i + 1,
+              success: false,
+              error: error.message,
+            });
+            errorCount++;
+          } else {
+            console.log(`[Migration] ✅ 语句 ${i + 1}/${statements.length}`);
+            results.push({ index: i + 1, success: true });
+            successCount++;
+          }
+        } catch (err: any) {
+          console.error(`[Migration] 语句 ${i + 1} 异常:`, err.message);
           results.push({
             index: i + 1,
             success: false,
-            error: error.message
+            error: err.message,
           });
           errorCount++;
-        } else {
-          console.log(`[Migration] ✅ 语句 ${i + 1}/${statements.length}`);
-          results.push({ index: i + 1, success: true });
-          successCount++;
         }
-      } catch (err: any) {
-        console.error(`[Migration] 语句 ${i + 1} 异常:`, err.message);
-        results.push({
-          index: i + 1,
-          success: false,
-          error: err.message
-        });
-        errorCount++;
+
+        // 避免过快的请求
+        if (i < statements.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
       }
 
-      // 避免过快的请求
-      if (i < statements.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
+      console.log(`[Migration] 完成: ${successCount} 成功, ${errorCount} 失败`);
+
+      return NextResponse.json({
+        success: errorCount === 0,
+        message: `迁移完成: ${successCount} 成功, ${errorCount} 失败`,
+        totalStatements: statements.length,
+        successCount,
+        errorCount,
+        results: results.filter((r) => !r.success), // 只返回失败的结果
+      });
+    } catch (error: any) {
+      console.error('[Migration] 执行失败:', error);
+      return NextResponse.json({ error: '服务器错误', details: error.message }, { status: 500 });
     }
-
-    console.log(`[Migration] 完成: ${successCount} 成功, ${errorCount} 失败`);
-
-    return NextResponse.json({
-      success: errorCount === 0,
-      message: `迁移完成: ${successCount} 成功, ${errorCount} 失败`,
-      totalStatements: statements.length,
-      successCount,
-      errorCount,
-      results: results.filter(r => !r.success) // 只返回失败的结果
-    });
-  } catch (error: any) {
-    console.error('[Migration] 执行失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误', details: error.message }, { status: 500 }
-      );
   }
-});
-
+);

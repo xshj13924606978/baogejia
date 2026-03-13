@@ -10,7 +10,7 @@ const POINTS_RULES = {
   upload_drawing: 15,
   data_adopted: 50,
   invite_friend: 30,
-  redeem: -1 // 兑换消耗
+  redeem: -1, // 兑换消耗
 };
 
 // 增加或减少积分
@@ -31,7 +31,7 @@ export async function awardPoints(
       points,
       type,
       reference_id: referenceId,
-      description: description || `积分变动：${type}`
+      description: description || `积分变动：${type}`,
     })
     .select()
     .single();
@@ -97,11 +97,7 @@ export async function consumePoints(
 export async function getUserPoints(userId: number) {
   const db = getSupabaseClient();
 
-  const { data: user, error } = await db
-    .from('users')
-    .select('points')
-    .eq('id', userId)
-    .single();
+  const { data: user, error } = await db.from('users').select('points').eq('id', userId).single();
 
   if (error) {
     throw error;

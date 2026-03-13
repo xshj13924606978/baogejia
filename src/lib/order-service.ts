@@ -74,7 +74,9 @@ export class OrderService {
     // 保存订单
     this.orders.set(order.id, order);
 
-    console.log(`[OrderService] 创建订单成功: 订单号=${order_no}, 用户=${user_id}, 金额=${final_amount}`);
+    console.log(
+      `[OrderService] 创建订单成功: 订单号=${order_no}, 用户=${user_id}, 金额=${final_amount}`
+    );
     return order;
   }
 
@@ -106,12 +108,13 @@ export class OrderService {
     pageSize: number = 20,
     status?: OrderStatus
   ): Promise<{ orders: Order[]; total: number }> {
-    let filteredOrders = Array.from(this.orders.values())
-      .filter(order => order.user_id === userId);
+    let filteredOrders = Array.from(this.orders.values()).filter(
+      (order) => order.user_id === userId
+    );
 
     // 筛选状态
     if (status) {
-      filteredOrders = filteredOrders.filter(order => order.status === status);
+      filteredOrders = filteredOrders.filter((order) => order.status === status);
     }
 
     // 按创建时间倒序排序
@@ -174,7 +177,9 @@ export class OrderService {
 
     // 验证金额
     if (Math.abs(order.final_amount - amount) > 0.01) {
-      console.error(`[OrderService] 金额不匹配: 订单金额=${order.final_amount}, 实际金额=${amount}`);
+      console.error(
+        `[OrderService] 金额不匹配: 订单金额=${order.final_amount}, 实际金额=${amount}`
+      );
       return null;
     }
 
@@ -219,8 +224,9 @@ export class OrderService {
     }
 
     // 检查是否已有退款记录
-    const existingRefund = Array.from(this.refunds.values())
-      .find(r => r.order_id === orderId && r.status === RefundStatus.PENDING);
+    const existingRefund = Array.from(this.refunds.values()).find(
+      (r) => r.order_id === orderId && r.status === RefundStatus.PENDING
+    );
     if (existingRefund) {
       console.error(`[OrderService] 订单已有退款记录`);
       return null;
@@ -247,7 +253,9 @@ export class OrderService {
     order.updated_at = new Date();
     this.orders.set(orderId, order);
 
-    console.log(`[OrderService] 退款申请成功: 订单号=${order.order_no}, 退款金额=${refund.refund_amount}`);
+    console.log(
+      `[OrderService] 退款申请成功: 订单号=${order.order_no}, 退款金额=${refund.refund_amount}`
+    );
 
     // TODO: 调用第三方退款接口（微信/支付宝）
 
@@ -285,7 +293,9 @@ export class OrderService {
         order.updated_at = new Date();
         this.orders.set(order.id, order);
 
-        console.log(`[OrderService] 退款成功: 订单号=${order.order_no}, 退款金额=${refund.refund_amount}`);
+        console.log(
+          `[OrderService] 退款成功: 订单号=${order.order_no}, 退款金额=${refund.refund_amount}`
+        );
 
         // TODO: 处理后续业务逻辑
         // - 退回积分
@@ -355,15 +365,14 @@ export class OrderService {
     cancelled: number;
     refunded: number;
   }> {
-    const userOrders = Array.from(this.orders.values())
-      .filter(order => order.user_id === userId);
+    const userOrders = Array.from(this.orders.values()).filter((order) => order.user_id === userId);
 
     return {
       total: userOrders.length,
-      pending: userOrders.filter(o => o.status === OrderStatus.PENDING).length,
-      paid: userOrders.filter(o => o.status === OrderStatus.PAID).length,
-      cancelled: userOrders.filter(o => o.status === OrderStatus.CANCELLED).length,
-      refunded: userOrders.filter(o => o.status === OrderStatus.REFUNDED).length,
+      pending: userOrders.filter((o) => o.status === OrderStatus.PENDING).length,
+      paid: userOrders.filter((o) => o.status === OrderStatus.PAID).length,
+      cancelled: userOrders.filter((o) => o.status === OrderStatus.CANCELLED).length,
+      refunded: userOrders.filter((o) => o.status === OrderStatus.REFUNDED).length,
     };
   }
 
@@ -432,7 +441,7 @@ export class OrderService {
       },
     ];
 
-    mockOrders.forEach(order => {
+    mockOrders.forEach((order) => {
       this.orders.set(order.id, order);
     });
 

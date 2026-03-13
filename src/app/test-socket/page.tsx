@@ -7,21 +7,15 @@ import { useState, useEffect } from 'react';
 export default function TestSocketPage() {
   const { user, loading: userLoading } = useUser();
   const [messages, setMessages] = useState<string[]>([]);
-  
-  const {
-    isConnected,
-    onlineCount,
-    joinConversation,
-    sendMessage,
-    on
-  } = useSocket(user?.id);
+
+  const { isConnected, onlineCount, joinConversation, sendMessage, on } = useSocket(user?.id);
 
   // 监听消息
   useEffect(() => {
     if (!isConnected) return;
 
     const unsubscribe = on('message:received', (data) => {
-      setMessages(prev => [...prev, `收到消息: ${JSON.stringify(data)}`]);
+      setMessages((prev) => [...prev, `收到消息: ${JSON.stringify(data)}`]);
     });
 
     return unsubscribe;
@@ -32,11 +26,11 @@ export default function TestSocketPage() {
     if (!isConnected) return;
 
     const unsubscribeOnline = on('user:online', (data) => {
-      setMessages(prev => [...prev, `用户上线: ${data.userId}`]);
+      setMessages((prev) => [...prev, `用户上线: ${data.userId}`]);
     });
 
     const unsubscribeOffline = on('user:offline', (data) => {
-      setMessages(prev => [...prev, `用户下线: ${data.userId}`]);
+      setMessages((prev) => [...prev, `用户下线: ${data.userId}`]);
     });
 
     return () => {
@@ -47,15 +41,19 @@ export default function TestSocketPage() {
 
   const handleJoinConversation = () => {
     joinConversation(1);
-    setMessages(prev => [...prev, '加入对话 1']);
+    setMessages((prev) => [...prev, '加入对话 1']);
   };
 
   const handleSendMessage = () => {
-    sendMessage(1, {
-      content: '测试消息 ' + new Date().toLocaleTimeString(),
-      type: 'text'
-    }, Date.now().toString());
-    setMessages(prev => [...prev, '发送测试消息']);
+    sendMessage(
+      1,
+      {
+        content: '测试消息 ' + new Date().toLocaleTimeString(),
+        type: 'text',
+      },
+      Date.now().toString()
+    );
+    setMessages((prev) => [...prev, '发送测试消息']);
   };
 
   if (userLoading) {
@@ -65,11 +63,17 @@ export default function TestSocketPage() {
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Socket.IO 测试页面</h1>
-      
+
       <div className="mb-4 p-4 bg-gray-100 rounded">
-        <p><strong>连接状态:</strong> {isConnected ? '✅ 已连接' : '❌ 未连接'}</p>
-        <p><strong>当前用户:</strong> {user?.name || '未登录'} (ID: {user?.id || '无'})</p>
-        <p><strong>在线用户数:</strong> {onlineCount}</p>
+        <p>
+          <strong>连接状态:</strong> {isConnected ? '✅ 已连接' : '❌ 未连接'}
+        </p>
+        <p>
+          <strong>当前用户:</strong> {user?.name || '未登录'} (ID: {user?.id || '无'})
+        </p>
+        <p>
+          <strong>在线用户数:</strong> {onlineCount}
+        </p>
       </div>
 
       <div className="space-x-2 mb-4">
@@ -91,7 +95,9 @@ export default function TestSocketPage() {
         <h2 className="font-semibold mb-2">消息记录:</h2>
         <div className="space-y-1">
           {messages.map((msg, i) => (
-            <div key={i} className="text-sm border-b pb-1">{msg}</div>
+            <div key={i} className="text-sm border-b pb-1">
+              {msg}
+            </div>
           ))}
         </div>
       </div>

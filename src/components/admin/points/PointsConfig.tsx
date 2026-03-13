@@ -2,7 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -60,11 +68,11 @@ export const PointsConfig: React.FC = () => {
       const res = await fetch('/api/admin/billing/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values)
+        body: JSON.stringify(values),
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok && data.success) {
         toast({
           title: '成功',
@@ -92,9 +100,7 @@ export const PointsConfig: React.FC = () => {
     <Card>
       <CardHeader>
         <CardTitle>积分兑换规则</CardTitle>
-        <CardDescription>
-          配置积分、人民币与 Token 之间的兑换比例
-        </CardDescription>
+        <CardDescription>配置积分、人民币与 Token 之间的兑换比例</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -113,9 +119,7 @@ export const PointsConfig: React.FC = () => {
                       onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
-                  <FormDescription>
-                    设置人民币与积分的兑换比例
-                  </FormDescription>
+                  <FormDescription>设置人民币与积分的兑换比例</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -135,9 +139,7 @@ export const PointsConfig: React.FC = () => {
                       onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
-                  <FormDescription>
-                    设置积分与 Token 的兑换比例
-                  </FormDescription>
+                  <FormDescription>设置积分与 Token 的兑换比例</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -157,9 +159,7 @@ export const PointsConfig: React.FC = () => {
                       onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
-                  <FormDescription>
-                    设置人民币与 Token 的直接兑换比例
-                  </FormDescription>
+                  <FormDescription>设置人民币与 Token 的直接兑换比例</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

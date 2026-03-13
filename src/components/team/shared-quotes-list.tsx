@@ -1,15 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  FileText,
-  Share2,
-  Download,
-  Eye,
-  Edit,
-  MessageSquare,
-  Calendar,
-} from 'lucide-react';
+import { FileText, Share2, Download, Eye, Edit, MessageSquare, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -130,9 +122,7 @@ export function SharedQuotesList({ teamId }: SharedQuotesListProps) {
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>共享报价单到团队</DialogTitle>
-                <DialogDescription>
-                  将报价单共享给团队成员
-                </DialogDescription>
+                <DialogDescription>将报价单共享给团队成员</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -198,9 +188,7 @@ export function SharedQuotesList({ teamId }: SharedQuotesListProps) {
           {loading ? (
             <div className="text-center py-8">加载中...</div>
           ) : sharedQuotes.length === 0 ? (
-            <div className="text-center py-8 text-gray-600">
-              暂无共享报价单，点击上方按钮共享
-            </div>
+            <div className="text-center py-8 text-gray-600">暂无共享报价单，点击上方按钮共享</div>
           ) : (
             <div className="space-y-4">
               {sharedQuotes.map((quote) => (
@@ -211,9 +199,7 @@ export function SharedQuotesList({ teamId }: SharedQuotesListProps) {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       <FileText className="h-5 w-5 text-blue-600" />
-                      <span className="font-medium">
-                        报价单 {quote.quoteId}
-                      </span>
+                      <span className="font-medium">报价单 {quote.quoteId}</span>
                     </div>
                     <div className="text-sm text-gray-600 flex items-center space-x-4">
                       <span className="flex items-center">

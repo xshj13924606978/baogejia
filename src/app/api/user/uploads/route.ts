@@ -8,10 +8,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('user_id');
 
     if (!userId) {
-      return NextResponse.json(
-        { error: '缺少用户ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -25,22 +22,16 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[User] 查询上传记录失败:', error);
-      return NextResponse.json(
-        { error: '查询失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '查询失败' }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      records: records || []
+      records: records || [],
     });
   } catch (error) {
     console.error('[User] 请求失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
 
@@ -51,10 +42,7 @@ export async function POST(request: NextRequest) {
     const { user_id, type, title, file_url } = body;
 
     if (!user_id || !type || !title) {
-      return NextResponse.json(
-        { error: '缺少必要参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -70,10 +58,7 @@ export async function POST(request: NextRequest) {
       .limit(10);
 
     if (todayUploads && todayUploads.length >= 10) {
-      return NextResponse.json(
-        { error: '今日上传次数已达上限' },
-        { status: 429 }
-      );
+      return NextResponse.json({ error: '今日上传次数已达上限' }, { status: 429 });
     }
 
     // 创建上传记录
@@ -91,21 +76,15 @@ export async function POST(request: NextRequest) {
 
     if (error || !record) {
       console.error('[User] 创建上传记录失败:', error);
-      return NextResponse.json(
-        { error: '创建失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '创建失败' }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      record
+      record,
     });
   } catch (error) {
     console.error('[User] 请求失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

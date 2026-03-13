@@ -60,7 +60,7 @@ export class OAuthService {
       params.append('response_type', 'code');
       params.append('scope', this.wechatConfig.scope || 'snsapi_login');
       params.append('state', this.generateState());
-      
+
       const qrCodeUrl = `https://open.weixin.qq.com/connect/qrconnect?${params.toString()}`;
 
       console.log('[OAuthService] 创建微信扫码登录二维码');
@@ -160,7 +160,7 @@ export class OAuthService {
       params.append('redirect_uri', this.qqConfig.redirect_uri);
       params.append('scope', this.qqConfig.scope || 'get_user_info');
       params.append('state', this.generateState());
-      
+
       const authUrl = `https://graph.qq.com/oauth2.0/authorize?${params.toString()}`;
 
       console.log('[OAuthService] 创建QQ登录授权URL');
@@ -217,9 +217,7 @@ export class OAuthService {
 
       const openIdResponse = await fetch(openIdUrl);
       const openIdText = await openIdResponse.text();
-      const openIdData = JSON.parse(
-        openIdText.replace(/^callback\(/, '').replace(/\)$/, '')
-      );
+      const openIdData = JSON.parse(openIdText.replace(/^callback\(/, '').replace(/\)$/, ''));
 
       if (!openIdData.openid) {
         console.error('[OAuthService] 获取QQ openid失败:', openIdData);
@@ -274,10 +272,7 @@ export class OAuthService {
   /**
    * 创建OAuth绑定
    */
-  async createBinding(
-    userId: number,
-    oauthUser: OAuthUserInfo
-  ): Promise<OAuthBinding> {
+  async createBinding(userId: number, oauthUser: OAuthUserInfo): Promise<OAuthBinding> {
     const binding: OAuthBinding = {
       id: `${userId}-${oauthUser.provider}-${oauthUser.openid}`,
       user_id: userId,
@@ -300,18 +295,13 @@ export class OAuthService {
    * 查询用户的OAuth绑定列表
    */
   async getUserBindings(userId: number): Promise<OAuthBinding[]> {
-    return Array.from(this.bindings.values()).filter(
-      (binding) => binding.user_id === userId
-    );
+    return Array.from(this.bindings.values()).filter((binding) => binding.user_id === userId);
   }
 
   /**
    * 解除OAuth绑定
    */
-  async unbindAccount(
-    userId: number,
-    provider: OAuthProvider
-  ): Promise<boolean> {
+  async unbindAccount(userId: number, provider: OAuthProvider): Promise<boolean> {
     let found = false;
     for (const [key, binding] of this.bindings.entries()) {
       if (binding.user_id === userId && binding.provider === provider) {
@@ -370,7 +360,8 @@ export class OAuthService {
       openid: `mock_wechat_openid_${Date.now()}`,
       unionid: `mock_wechat_unionid_${Date.now()}`,
       nickname: '微信用户',
-      avatar: 'https://thirdwx.qlogo.cn/mmopen/vi_32/Q0j4TwGTfTLuY3K8Wx7V0mZKv1k6p2J8q4m5n6o7p8q9r0s1t2u3v4w5x6y7z8',
+      avatar:
+        'https://thirdwx.qlogo.cn/mmopen/vi_32/Q0j4TwGTfTLuY3K8Wx7V0mZKv1k6p2J8q4m5n6o7p8q9r0s1t2u3v4w5x6y7z8',
       gender: 0,
       province: '广东',
       city: '深圳',

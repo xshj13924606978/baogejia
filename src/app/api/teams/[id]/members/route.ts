@@ -4,10 +4,7 @@ import { TeamService } from '@/lib/team-service';
 /**
  * 获取团队成员列表
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: teamId } = await params;
     const userId = request.headers.get('x-user-id') || 'demo_user_1';

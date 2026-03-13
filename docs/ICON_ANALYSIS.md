@@ -1,6 +1,7 @@
 # quote-table.tsx 图标使用分析
 
 ## 实际使用的图标
+
 以下是 quote-table.tsx 文件中实际使用的图标列表：
 
 1. Building ✅ (存在)
@@ -32,6 +33,7 @@
 根据 TypeScript 错误分析，以下图标在 lucide-react 中不存在：
 
 ### 地理相关
+
 - Abyss
 - Asteroid
 - Avalanche
@@ -72,6 +74,7 @@
 - Wadi
 
 ### 天气相关
+
 - Blizzard
 - Cold
 - Cyclone
@@ -95,6 +98,7 @@
 - Windstorm
 
 ### 生物相关
+
 - Bacteria
 - Bone
 - Brain
@@ -120,6 +124,7 @@
 - Virus
 
 ### 植物相关
+
 - Cactus
 - Campground
 - Fern
@@ -138,6 +143,7 @@
 - Woods
 
 ### 杂项
+
 - Balance
 - Barrel
 - Bacteria
@@ -470,6 +476,6 @@ import {
   Rapids,
   Whirlpool,
   Chasm,
-  CheckCircle
+  CheckCircle,
 } from 'lucide-react';
 ```

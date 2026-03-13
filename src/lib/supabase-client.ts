@@ -13,7 +13,7 @@ export const getServiceSupabase = () => {
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
+      persistSession: false,
+    },
   });
 };

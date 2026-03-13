@@ -21,7 +21,12 @@ interface PhoneChangeDialogProps {
   onChanged: () => void;
 }
 
-export function PhoneChangeDialog({ open, onOpenChange, currentPhone, onChanged }: PhoneChangeDialogProps) {
+export function PhoneChangeDialog({
+  open,
+  onOpenChange,
+  currentPhone,
+  onChanged,
+}: PhoneChangeDialogProps) {
   const { toast } = useToast();
   const { sendPhoneCode, bindPhone } = useUser();
   const [step, setStep] = useState<'input' | 'code'>('input');
@@ -60,11 +65,11 @@ export function PhoneChangeDialog({ open, onOpenChange, currentPhone, onChanged 
 
   const handleSendCode = async () => {
     if (!newPhone) {
-      toast({ title: "请输入手机号", variant: "destructive", duration: 2000 });
+      toast({ title: '请输入手机号', variant: 'destructive', duration: 2000 });
       return;
     }
     if (!validatePhone(newPhone)) {
-      toast({ title: "手机号格式不正确", variant: "destructive", duration: 3000 });
+      toast({ title: '手机号格式不正确', variant: 'destructive', duration: 3000 });
       return;
     }
 
@@ -74,8 +79,8 @@ export function PhoneChangeDialog({ open, onOpenChange, currentPhone, onChanged 
 
     if (result.success) {
       toast({
-        title: "验证码已发送",
-        description: "请查看控制台获取验证码",
+        title: '验证码已发送',
+        description: '请查看控制台获取验证码',
         duration: 3000,
       });
       setStep('code');
@@ -94,39 +99,39 @@ export function PhoneChangeDialog({ open, onOpenChange, currentPhone, onChanged 
 
   const handleConfirm = async () => {
     if (!code || code.length !== 6) {
-      toast({ title: "请输入6位验证码", variant: "destructive", duration: 2000 });
+      toast({ title: '请输入6位验证码', variant: 'destructive', duration: 2000 });
       return;
     }
 
     setLoading(true);
     try {
       const result = await bindPhone(newPhone, code);
-      
+
       if (result.success) {
         setBindSuccess(true);
         toast({
-          title: currentPhone ? "修改成功" : "绑定成功",
-          description: currentPhone ? "手机号已更新" : "手机号已绑定",
+          title: currentPhone ? '修改成功' : '绑定成功',
+          description: currentPhone ? '手机号已更新' : '手机号已绑定',
           duration: 3000,
         });
-        
+
         setTimeout(() => {
           onChanged();
           onOpenChange(false);
         }, 1500);
       } else {
         toast({
-          title: currentPhone ? "修改失败" : "绑定失败",
-          description: result.error || "请重试",
-          variant: "destructive",
+          title: currentPhone ? '修改失败' : '绑定失败',
+          description: result.error || '请重试',
+          variant: 'destructive',
           duration: 3000,
         });
       }
     } catch (error) {
       toast({
-        title: currentPhone ? "修改失败" : "绑定失败",
-        description: "请稍后重试",
-        variant: "destructive",
+        title: currentPhone ? '修改失败' : '绑定失败',
+        description: '请稍后重试',
+        variant: 'destructive',
         duration: 3000,
       });
     } finally {
@@ -141,13 +146,13 @@ export function PhoneChangeDialog({ open, onOpenChange, currentPhone, onChanged 
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-green-600">
               <CheckCircle className="h-5 w-5" />
-              {currentPhone ? "修改成功" : "绑定成功"}
+              {currentPhone ? '修改成功' : '绑定成功'}
             </DialogTitle>
           </DialogHeader>
           <div className="py-8 text-center">
             <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
             <p className="text-lg font-medium">
-              {currentPhone ? "手机号修改成功！" : "手机号绑定成功！"}
+              {currentPhone ? '手机号修改成功！' : '手机号绑定成功！'}
             </p>
             <p className="text-sm text-gray-500 mt-2">即将关闭...</p>
           </div>
@@ -162,11 +167,11 @@ export function PhoneChangeDialog({ open, onOpenChange, currentPhone, onChanged 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Phone className="h-5 w-5 text-blue-600" />
-            {currentPhone ? "变更手机号" : "绑定手机号"}
+            {currentPhone ? '变更手机号' : '绑定手机号'}
           </DialogTitle>
           <DialogDescription>
             {currentPhone && `当前手机号: ${currentPhone}`}
-            {!currentPhone && "绑定手机号后，您可以用手机号登录"}
+            {!currentPhone && '绑定手机号后，您可以用手机号登录'}
           </DialogDescription>
         </DialogHeader>
 
@@ -175,7 +180,7 @@ export function PhoneChangeDialog({ open, onOpenChange, currentPhone, onChanged 
             <>
               <div className="space-y-2">
                 <label className="text-sm font-medium">
-                  {currentPhone ? "新手机号" : "手机号"}
+                  {currentPhone ? '新手机号' : '手机号'}
                 </label>
                 <Input
                   value={newPhone}
@@ -190,9 +195,9 @@ export function PhoneChangeDialog({ open, onOpenChange, currentPhone, onChanged 
                 <div className="flex items-start gap-2 text-sm text-blue-700 dark:text-blue-400">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <span>
-                    {currentPhone 
-                      ? "变更手机号后，您需要用新手机号登录" 
-                      : "绑定手机号后，您可以用手机号登录账号"}
+                    {currentPhone
+                      ? '变更手机号后，您需要用新手机号登录'
+                      : '绑定手机号后，您可以用手机号登录账号'}
                   </span>
                 </div>
               </div>
@@ -201,8 +206,8 @@ export function PhoneChangeDialog({ open, onOpenChange, currentPhone, onChanged 
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
                   取消
                 </Button>
-                <Button 
-                  onClick={handleSendCode} 
+                <Button
+                  onClick={handleSendCode}
                   disabled={loading || !newPhone || !validatePhone(newPhone)}
                 >
                   {loading ? '发送中...' : '下一步'}

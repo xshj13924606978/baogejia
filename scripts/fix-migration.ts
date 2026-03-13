@@ -50,14 +50,19 @@ function fixFile(filePath: string): boolean {
   }
 
   // 修复方法1：移除重复的导入
-  content = content.replace(/(import { NextRequest } from 'next\/server';\n)(import { NextRequest } from 'next\/server';\n)/g, '$1');
+  content = content.replace(
+    /(import { NextRequest } from 'next\/server';\n)(import { NextRequest } from 'next\/server';\n)/g,
+    '$1'
+  );
 
   // 修复方法2：修复函数结尾
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
   for (const method of methods) {
     // 查找这个方法的函数定义
-    const methodRegex = new RegExp(`export const ${method} = withPermissionCheck\\(\\s*{[^}]*}\\s*,\\s*async \\(request: NextRequest, user: any\\) =>\\s*{`);
+    const methodRegex = new RegExp(
+      `export const ${method} = withPermissionCheck\\(\\s*{[^}]*}\\s*,\\s*async \\(request: NextRequest, user: any\\) =>\\s*{`
+    );
 
     if (methodRegex.test(content)) {
       console.log(`🔧 修复 ${filePath} - ${method}`);

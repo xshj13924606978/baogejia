@@ -5,7 +5,7 @@ import { hasPermission } from '@/lib/auth/roles';
 
 /**
  * 用户积分管理API
- * 
+ *
  * 功能：
  * - POST: 为用户添加/扣除积分
  */
@@ -15,10 +15,7 @@ export async function POST(request: NextRequest) {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
     if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -38,24 +35,18 @@ export async function POST(request: NextRequest) {
     const targetUserId = userId || currentUser.id;
 
     if (typeof points !== 'number') {
-      return NextResponse.json(
-        { error: '积分必须是数字' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '积分必须是数字' }, { status: 400 });
     }
 
     if (points === 0) {
-      return NextResponse.json(
-        { error: '积分不能为0' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '积分不能为0' }, { status: 400 });
     }
 
     console.log('[UserPoints API] 添加积分:', {
       userId: targetUserId,
       points,
       description,
-      operator: currentUser.id
+      operator: currentUser.id,
     });
 
     // 添加积分
@@ -66,10 +57,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: '操作失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '操作失败' }, { status: 500 });
     }
 
     // 获取更新后的等级信息
@@ -81,14 +69,11 @@ export async function POST(request: NextRequest) {
         points,
         upgraded: result.upgraded,
         newLevel: result.newLevel,
-        levelInfo
-      }
+        levelInfo,
+      },
     });
   } catch (error) {
     console.error('[UserPoints API] 添加积分异常:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

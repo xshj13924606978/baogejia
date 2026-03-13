@@ -26,17 +26,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -63,11 +54,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 // 图标导入 - 只保留实际使用的图标
 import {
@@ -207,7 +194,7 @@ import {
   Castle,
   Tent,
   Palmtree,
-  CheckCircle
+  CheckCircle,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -348,9 +335,9 @@ const ALL_COLUMNS: ColumnConfig[] = [
 
 // 生成 UUID
 const generateUUID = () => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 };
@@ -397,20 +384,20 @@ const calculatePriceDiff = (currentPrice: number, marketPrice: number) => {
 // 获取报价标题
 const getQuoteTitle = (products: Product[]) => {
   if (!products || products.length === 0) return '报价单';
-  
-  const validProducts = products.filter(p => p != null);
-  const categories = validProducts.map(p => p.category).filter(Boolean);
+
+  const validProducts = products.filter((p) => p != null);
+  const categories = validProducts.map((p) => p.category).filter(Boolean);
   const uniqueCategories = [...new Set(categories)];
-  
+
   if (uniqueCategories.length === 1) {
     return `${uniqueCategories[0]}报价单`;
   } else if (uniqueCategories.length > 1) {
     return '综合设备报价单';
   } else {
-    const names = validProducts.map(p => p.name);
+    const names = validProducts.map((p) => p.name);
     const keywords = ['泵', '阀', '罐', '机', '器', '电机', '仪表'];
     for (const keyword of keywords) {
-      if (names.some(name => name?.includes(keyword))) {
+      if (names.some((name) => name?.includes(keyword))) {
         return `${keyword}类设备报价单`;
       }
     }
@@ -423,26 +410,26 @@ const formatAmountToChinese = (amount: number) => {
   const digitUppercase = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
   const unit = ['', '拾', '佰', '仟'];
   const bigUnit = ['', '万', '亿'];
-  
+
   const amountStr = amount.toFixed(2);
   const [integerPart, decimalPart] = amountStr.split('.');
-  
+
   if (parseInt(integerPart) === 0 && parseInt(decimalPart) === 0) {
     return '零元整';
   }
-  
+
   let result = '';
-  
+
   // 处理整数部分
   const integer = parseInt(integerPart);
   if (integer > 0) {
     const integerStr = integer.toString();
     const len = integerStr.length;
-    
+
     for (let i = 0; i < len; i++) {
       const digit = parseInt(integerStr[i]);
       const pos = len - i - 1;
-      
+
       if (digit !== 0) {
         result += digitUppercase[digit] + unit[pos % 4];
       } else {
@@ -450,7 +437,7 @@ const formatAmountToChinese = (amount: number) => {
           result += '零';
         }
       }
-      
+
       if (pos % 4 === 0 && pos > 0) {
         result += bigUnit[Math.floor(pos / 4)];
       }
@@ -459,11 +446,11 @@ const formatAmountToChinese = (amount: number) => {
   } else {
     result = '零元';
   }
-  
+
   // 处理小数部分
   const jiao = parseInt(decimalPart[0]);
   const fen = parseInt(decimalPart[1]);
-  
+
   if (jiao === 0 && fen === 0) {
     result += '整';
   } else {
@@ -474,7 +461,7 @@ const formatAmountToChinese = (amount: number) => {
       result += digitUppercase[fen] + '分';
     }
   }
-  
+
   return result;
 };
 
@@ -493,32 +480,47 @@ export default function QuoteTable({
 }: QuoteTableProps) {
   // 使用传入的供应信息或从报价数据中获取
   const actualSupplierInfo = propSupplierInfo || data?.supplierInfo;
-  
+
   // 内部状态
   const [quoteData, setQuoteData] = useState<QuoteData>(() => ({
     ...data,
-    products: Array.isArray(data?.products) ? data.products.filter(p => p != null) : []
+    products: Array.isArray(data?.products) ? data.products.filter((p) => p != null) : [],
   }));
-  
-  const [editingPrice, setEditingPrice] = useState<{ rowIndex: number; value: string } | null>(null);
-  const [editingQuantity, setEditingQuantity] = useState<{ rowIndex: number; value: string } | null>(null);
-  const [editingField, setEditingField] = useState<{ rowIndex: number; value: string } | null>(null);
+
+  const [editingPrice, setEditingPrice] = useState<{ rowIndex: number; value: string } | null>(
+    null
+  );
+  const [editingQuantity, setEditingQuantity] = useState<{
+    rowIndex: number;
+    value: string;
+  } | null>(null);
+  const [editingField, setEditingField] = useState<{ rowIndex: number; value: string } | null>(
+    null
+  );
   const [editingFee, setEditingFee] = useState<{ field: string; value: string } | null>(null);
-  const [editingCustomField, setEditingCustomField] = useState<{ fieldIndex: number; value: string } | null>(null);
+  const [editingCustomField, setEditingCustomField] = useState<{
+    fieldIndex: number;
+    value: string;
+  } | null>(null);
   const [searchingMarketPrice, setSearchingMarketPrice] = useState<number | null>(null);
   const [isSearchingAll, setIsSearchingAll] = useState(false);
-  const [marketPrices, setMarketPrices] = useState<Record<number, {
-    loading: boolean;
-    data: any;
-    error: string | null;
-    showConfirm: boolean;
-  }>>({});
+  const [marketPrices, setMarketPrices] = useState<
+    Record<
+      number,
+      {
+        loading: boolean;
+        data: any;
+        error: string | null;
+        showConfirm: boolean;
+      }
+    >
+  >({});
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [groupBy, setGroupBy] = useState<string>('none');
   const [showNotes, setShowNotes] = useState<Record<number, boolean>>({});
   const [selectedColumns, setSelectedColumns] = useState<string[]>(() => {
     // 初始化列配置，确保单价和总价列始终包含在内
-    const columns = ALL_COLUMNS.filter(col => col.visible).map(col => col.key);
+    const columns = ALL_COLUMNS.filter((col) => col.visible).map((col) => col.key);
     const requiredColumns = ['unitPrice', 'totalPrice'];
     const uniqueColumns = Array.from(new Set([...requiredColumns, ...columns]));
     return uniqueColumns;
@@ -526,14 +528,16 @@ export default function QuoteTable({
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [projectFields, setProjectFields] = useState<CustomField[]>([
     { id: '1', name: '联系人', value: data?.customerInfo?.contactPerson || '' },
-    { id: '2', name: '电话', value: data?.customerInfo?.phone || '' }
+    { id: '2', name: '电话', value: data?.customerInfo?.phone || '' },
   ]);
   const [feeConfig, setFeeConfig] = useState<FeeConfig>({
     taxRate: data?.taxRate || 13,
     shipping: data?.shipping || 0,
     installation: data?.installation || 0,
     otherFees: data?.otherFees || 0,
-    validUntil: data?.validUntil || new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    validUntil:
+      data?.validUntil ||
+      new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     paymentTerms: data?.terms?.payment || '预付30%，发货前付清70%',
     deliveryTerms: data?.terms?.delivery || '合同签订后15个工作日内',
     warrantyTerms: data?.terms?.warranty || '整机质保12个月',
@@ -549,7 +553,9 @@ export default function QuoteTable({
     averageDiff: number;
   } | null>(null);
   const [autoFillEnabled, setAutoFillEnabled] = useState(true);
-  const [pendingAutoFill, setPendingAutoFill] = useState<{index: number; price: number} | null>(null);
+  const [pendingAutoFill, setPendingAutoFill] = useState<{ index: number; price: number } | null>(
+    null
+  );
 
   // 临时编辑状态
   const [tempFeeConfig, setTempFeeConfig] = useState<FeeConfig>(feeConfig);
@@ -583,18 +589,18 @@ export default function QuoteTable({
   // 当传入数据更新时更新本地状态
   useEffect(() => {
     console.log('[QuoteTable] 收到新数据:', data);
-    
+
     if (!data) return;
-    
+
     // 安全地处理数据
     const safeData = {
       ...data,
-      products: Array.isArray(data.products) ? data.products.filter(p => p != null) : []
+      products: Array.isArray(data.products) ? data.products.filter((p) => p != null) : [],
     };
-    
+
     setQuoteData(safeData);
-    
-    setProjectFields(prev => {
+
+    setProjectFields((prev) => {
       const newFields = [...prev];
       if (newFields.length >= 2) {
         newFields[0] = { ...newFields[0], value: data.customerInfo?.contactPerson || '' };
@@ -602,13 +608,15 @@ export default function QuoteTable({
       }
       return newFields;
     });
-    
+
     setFeeConfig({
       taxRate: data.taxRate || 13,
       shipping: data.shipping || 0,
       installation: data.installation || 0,
       otherFees: data.otherFees || 0,
-      validUntil: data.validUntil || new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      validUntil:
+        data.validUntil ||
+        new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       paymentTerms: data.terms?.payment || '预付30%，发货前付清70%',
       deliveryTerms: data.terms?.delivery || '合同签订后15个工作日内',
       warrantyTerms: data.terms?.warranty || '整机质保12个月',
@@ -617,16 +625,17 @@ export default function QuoteTable({
 
   // 安全地获取产品数组
   const safeProducts = useMemo(() => {
-    return Array.isArray(quoteData?.products) ? quoteData.products.filter(p => p != null) : [];
+    return Array.isArray(quoteData?.products) ? quoteData.products.filter((p) => p != null) : [];
   }, [quoteData]);
 
   // 计算费用汇总
   const subtotal = safeProducts.reduce((sum, p) => sum + (p?.totalPrice || 0), 0);
   const taxAmount = subtotal * (feeConfig.taxRate / 100);
-  const totalAmount = subtotal + taxAmount + feeConfig.shipping + feeConfig.installation + feeConfig.otherFees;
+  const totalAmount =
+    subtotal + taxAmount + feeConfig.shipping + feeConfig.installation + feeConfig.otherFees;
 
   // 检测是否有零价格产品
-  const hasZeroPriceProducts = safeProducts.some(p => (p?.unitPrice || 0) === 0);
+  const hasZeroPriceProducts = safeProducts.some((p) => (p?.unitPrice || 0) === 0);
 
   // 处理价格编辑
   const handlePriceEdit = (rowIndex: number, currentPrice: number) => {
@@ -786,7 +795,7 @@ export default function QuoteTable({
     if (editingFee && editingFee.field === field) {
       const newValue = parseFloat(editingFee.value);
       if (!isNaN(newValue) && newValue >= 0) {
-        setFeeConfig(prev => ({
+        setFeeConfig((prev) => ({
           ...prev,
           [field]: newValue,
         }));
@@ -826,7 +835,7 @@ export default function QuoteTable({
         value: editingCustomField.value,
       };
       setProjectFields(updatedFields);
-      
+
       const field = updatedFields[fieldIndex];
       if (field.name === '联系人') {
         const newData = {
@@ -849,7 +858,7 @@ export default function QuoteTable({
         setQuoteData(newData);
         onUpdateData?.(newData);
       }
-      
+
       setEditingCustomField(null);
     }
   };
@@ -865,7 +874,7 @@ export default function QuoteTable({
   // 添加自定义项目字段
   const handleAddProjectField = () => {
     if (!newFieldName.trim()) return;
-    
+
     const newField = {
       id: generateUUID(),
       name: newFieldName,
@@ -878,14 +887,12 @@ export default function QuoteTable({
 
   // 移除自定义项目字段
   const handleRemoveProjectField = (id: string) => {
-    setTempProjectFields(tempProjectFields.filter(f => f.id !== id));
+    setTempProjectFields(tempProjectFields.filter((f) => f.id !== id));
   };
 
   // 更新自定义项目字段
   const handleUpdateProjectField = (id: string, field: 'name' | 'value', value: string) => {
-    setTempProjectFields(prev =>
-      prev.map(f => (f.id === id ? { ...f, [field]: value } : f))
-    );
+    setTempProjectFields((prev) => prev.map((f) => (f.id === id ? { ...f, [field]: value } : f)));
   };
 
   // 保存项目字段配置
@@ -923,10 +930,8 @@ export default function QuoteTable({
     if (columnKey === 'unitPrice' || columnKey === 'totalPrice') {
       return;
     }
-    setTempSelectedColumns(prev =>
-      prev.includes(columnKey)
-        ? prev.filter(k => k !== columnKey)
-        : [...prev, columnKey]
+    setTempSelectedColumns((prev) =>
+      prev.includes(columnKey) ? prev.filter((k) => k !== columnKey) : [...prev, columnKey]
     );
   };
 
@@ -972,18 +977,18 @@ export default function QuoteTable({
     console.log('[QuoteTable] 产品信息:', {
       name: product.name,
       model: product.model,
-      parameter_description: product.parameter_description
+      parameter_description: product.parameter_description,
     });
 
     setSearchingMarketPrice(productIndex);
-    setMarketPrices(prev => ({
+    setMarketPrices((prev) => ({
       ...prev,
-      [productIndex]: { 
-        loading: true, 
-        data: null, 
-        error: null, 
-        showConfirm: false 
-      }
+      [productIndex]: {
+        loading: true,
+        data: null,
+        error: null,
+        showConfirm: false,
+      },
     }));
 
     try {
@@ -1015,24 +1020,25 @@ export default function QuoteTable({
       console.log('[QuoteTable] 响应数据:', result);
 
       const marketData = result.data?.[0] || result;
-      
-      const priceValue = marketData.averageMarketPrice ||
-                         marketData.price ||
-                         marketData.marketPrice ||
-                         marketData.value ||
-                         marketData.unitPrice ||
-                         0;
+
+      const priceValue =
+        marketData.averageMarketPrice ||
+        marketData.price ||
+        marketData.marketPrice ||
+        marketData.value ||
+        marketData.unitPrice ||
+        0;
 
       console.log('[QuoteTable] 提取的价格值:', priceValue);
 
-      setMarketPrices(prev => ({
+      setMarketPrices((prev) => ({
         ...prev,
         [productIndex]: {
           loading: false,
           data: marketData,
           error: null,
           showConfirm: true,
-        }
+        },
       }));
 
       if (autoFillEnabled && priceValue > 0) {
@@ -1043,14 +1049,14 @@ export default function QuoteTable({
       console.log('[QuoteTable] ========== 查询完成 ==========');
     } catch (error) {
       console.error('[QuoteTable] 搜索市场价失败:', error);
-      setMarketPrices(prev => ({
+      setMarketPrices((prev) => ({
         ...prev,
         [productIndex]: {
           loading: false,
           data: null,
           error: error instanceof Error ? error.message : '网络错误',
           showConfirm: false,
-        }
+        },
       }));
     } finally {
       setSearchingMarketPrice(null);
@@ -1062,7 +1068,7 @@ export default function QuoteTable({
     console.log('[QuoteTable] ========== 开始批量查询市场价 ==========');
     setIsSearchingAll(true);
     setMarketPriceStats(null);
-    
+
     const products = safeProducts;
     const results: Record<number, any> = {};
     let matched = 0;
@@ -1071,10 +1077,10 @@ export default function QuoteTable({
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
       if (!product) continue;
-      
-      setMarketPrices(prev => ({
+
+      setMarketPrices((prev) => ({
         ...prev,
-        [i]: { ...prev[i], loading: true, error: null }
+        [i]: { ...prev[i], loading: true, error: null },
       }));
 
       try {
@@ -1082,11 +1088,13 @@ export default function QuoteTable({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            products: [{
-              name: product.name,
-              model: product.model || '',
-              specs: product.parameter_description || product.model || '',
-            }]
+            products: [
+              {
+                name: product.name,
+                model: product.model || '',
+                specs: product.parameter_description || product.model || '',
+              },
+            ],
           }),
         });
 
@@ -1095,14 +1103,15 @@ export default function QuoteTable({
           const marketData = result.data?.[0] || result;
           results[i] = marketData;
           matched++;
-          
-          const priceValue = marketData.averageMarketPrice ||
-                             marketData.price ||
-                             marketData.marketPrice ||
-                             marketData.value ||
-                             marketData.unitPrice ||
-                             0;
-          
+
+          const priceValue =
+            marketData.averageMarketPrice ||
+            marketData.price ||
+            marketData.marketPrice ||
+            marketData.value ||
+            marketData.unitPrice ||
+            0;
+
           if (priceValue > 0) {
             totalDiff += Math.abs((product.unitPrice || 0) - priceValue);
           }
@@ -1122,13 +1131,13 @@ export default function QuoteTable({
       };
     }
     setMarketPrices(newMarketPrices);
-    
+
     setMarketPriceStats({
       total: products.length,
       matched,
       averageDiff: matched > 0 ? totalDiff / matched : 0,
     });
-    
+
     setIsSearchingAll(false);
     console.log('[QuoteTable] ========== 批量查询完成 ==========');
 
@@ -1142,19 +1151,20 @@ export default function QuoteTable({
   // 应用市场价
   const handleApplyMarketPrice = (productIndex: number) => {
     const marketData = marketPrices[productIndex];
-    
+
     if (!marketData || !marketData.data) {
       console.error('[QuoteTable] 市场价数据不存在');
       return;
     }
 
-    const marketPriceValue = marketData.data.averageMarketPrice ||
-                             marketData.data.price ||
-                             marketData.data.marketPrice ||
-                             marketData.data.value ||
-                             marketData.data.unitPrice ||
-                             0;
-    
+    const marketPriceValue =
+      marketData.data.averageMarketPrice ||
+      marketData.data.price ||
+      marketData.data.marketPrice ||
+      marketData.data.value ||
+      marketData.data.unitPrice ||
+      0;
+
     if (marketPriceValue === 0) {
       console.error('[QuoteTable] 无法提取价格');
       return;
@@ -1163,7 +1173,7 @@ export default function QuoteTable({
     console.log('[QuoteTable] 应用市场价:', {
       productIndex,
       oldPrice: safeProducts[productIndex]?.unitPrice,
-      newPrice: marketPriceValue
+      newPrice: marketPriceValue,
     });
 
     if (onUpdateProductPrice) {
@@ -1185,29 +1195,30 @@ export default function QuoteTable({
       }
     }
 
-    setMarketPrices(prev => ({
+    setMarketPrices((prev) => ({
       ...prev,
-      [productIndex]: { ...prev[productIndex], showConfirm: false }
+      [productIndex]: { ...prev[productIndex], showConfirm: false },
     }));
   };
 
   // 应用所有市场价
   const handleApplyAllMarketPrices = () => {
     console.log('[QuoteTable] 开始应用所有市场价');
-    
+
     const updatedProducts = [...safeProducts];
     let appliedCount = 0;
 
     for (let i = 0; i < updatedProducts.length; i++) {
       const marketData = marketPrices[i];
       if (marketData?.data && updatedProducts[i]) {
-        const marketPriceValue = marketData.data.averageMarketPrice ||
-                                 marketData.data.price ||
-                                 marketData.data.marketPrice ||
-                                 marketData.data.value ||
-                                 marketData.data.unitPrice ||
-                                 0;
-        
+        const marketPriceValue =
+          marketData.data.averageMarketPrice ||
+          marketData.data.price ||
+          marketData.data.marketPrice ||
+          marketData.data.value ||
+          marketData.data.unitPrice ||
+          0;
+
         if (marketPriceValue > 0) {
           updatedProducts[i] = {
             ...updatedProducts[i],
@@ -1226,25 +1237,25 @@ export default function QuoteTable({
       };
       setQuoteData(newData);
       onUpdateData?.(newData);
-      
+
       const newMarketPrices = { ...marketPrices };
-      Object.keys(newMarketPrices).forEach(key => {
+      Object.keys(newMarketPrices).forEach((key) => {
         newMarketPrices[parseInt(key)] = {
           ...newMarketPrices[parseInt(key)],
-          showConfirm: false
+          showConfirm: false,
         };
       });
       setMarketPrices(newMarketPrices);
-      
+
       console.log(`[QuoteTable] 已应用 ${appliedCount} 个产品的市场价`);
     }
   };
 
   // 放弃市场价
   const handleDismissMarketPrice = (productIndex: number) => {
-    setMarketPrices(prev => ({
+    setMarketPrices((prev) => ({
       ...prev,
-      [productIndex]: { ...prev[productIndex], showConfirm: false }
+      [productIndex]: { ...prev[productIndex], showConfirm: false },
     }));
   };
 
@@ -1252,9 +1263,9 @@ export default function QuoteTable({
   const handleFillPrices = async () => {
     console.log('[QuoteTable] ========== 开始填充市场价 ==========');
     setFillPricesLoading(true);
-    
-    const zeroPriceProducts = safeProducts.filter(p => (p?.unitPrice || 0) === 0);
-    
+
+    const zeroPriceProducts = safeProducts.filter((p) => (p?.unitPrice || 0) === 0);
+
     if (zeroPriceProducts.length === 0) {
       console.log('[QuoteTable] 没有零价格产品需要填充');
       setFillPricesLoading(false);
@@ -1268,36 +1279,37 @@ export default function QuoteTable({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          products: zeroPriceProducts.map(p => ({
+          products: zeroPriceProducts.map((p) => ({
             name: p.name,
             model: p.model || '',
             specs: p.parameter_description || p.model || '',
-          }))
+          })),
         }),
       });
 
       if (response.ok) {
         const result = await response.json();
         console.log('[QuoteTable] 填充响应:', result);
-        
+
         if (result.data && Array.isArray(result.data)) {
           const updatedProducts = [...safeProducts];
           let zeroIndex = 0;
           let filledCount = 0;
-          
+
           for (let i = 0; i < updatedProducts.length; i++) {
             if ((updatedProducts[i]?.unitPrice || 0) === 0 && zeroIndex < result.data.length) {
               const marketData = result.data[zeroIndex];
-              
-              const marketPriceValue = marketData.averageMarketPrice ||
-                                        marketData.price ||
-                                        marketData.marketPrice ||
-                                        marketData.value ||
-                                        marketData.unitPrice ||
-                                        0;
-              
+
+              const marketPriceValue =
+                marketData.averageMarketPrice ||
+                marketData.price ||
+                marketData.marketPrice ||
+                marketData.value ||
+                marketData.unitPrice ||
+                0;
+
               console.log(`[QuoteTable] 产品 ${i} - 提取价格: ${marketPriceValue}`);
-              
+
               if (marketPriceValue > 0 && updatedProducts[i]) {
                 if (onUpdateProductPrice) {
                   onUpdateProductPrice(i, marketPriceValue);
@@ -1313,7 +1325,7 @@ export default function QuoteTable({
               zeroIndex++;
             }
           }
-          
+
           if (!onUpdateProductPrice) {
             const newData = {
               ...quoteData,
@@ -1360,24 +1372,32 @@ export default function QuoteTable({
       data.push([]);
 
       if (projectFields.length > 0) {
-        projectFields.forEach(field => {
+        projectFields.forEach((field) => {
           data.push([field.name, field.value]);
         });
         data.push([]);
       }
 
       const headers = columns
-        .filter(col => selectedColumns.includes(col.key) && col.key !== 'actions' && col.key !== 'marketPrice')
-        .map(col => col.label);
+        .filter(
+          (col) =>
+            selectedColumns.includes(col.key) && col.key !== 'actions' && col.key !== 'marketPrice'
+        )
+        .map((col) => col.label);
       data.push(['产品清单']);
       data.push(headers);
 
-      safeProducts.forEach(product => {
+      safeProducts.forEach((product) => {
         if (!product) return;
         const row: any[] = [];
         columns
-          .filter(col => selectedColumns.includes(col.key) && col.key !== 'actions' && col.key !== 'marketPrice')
-          .forEach(col => {
+          .filter(
+            (col) =>
+              selectedColumns.includes(col.key) &&
+              col.key !== 'actions' &&
+              col.key !== 'marketPrice'
+          )
+          .forEach((col) => {
             if (col.key === 'index') {
               row.push((safeProducts.indexOf(product) + 1).toString());
             } else if (col.key === 'name') {
@@ -1419,8 +1439,15 @@ export default function QuoteTable({
 
       const ws = XLSX.utils.aoa_to_sheet(data);
       ws['!cols'] = [
-        { wch: 20 }, { wch: 40 }, { wch: 15 }, { wch: 15 },
-        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+        { wch: 20 },
+        { wch: 40 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 12 },
       ];
 
       XLSX.utils.book_append_sheet(wb, ws, '报价单');
@@ -1468,7 +1495,7 @@ export default function QuoteTable({
       }
 
       const html = await response.text();
-      
+
       const newWindow = window.open();
       if (newWindow) {
         newWindow.document.write(html);
@@ -1489,16 +1516,16 @@ export default function QuoteTable({
   // 获取分组后的产品
   const getGroupedProducts = () => {
     const products = safeProducts;
-    
+
     if (groupBy === 'none') {
-      return { '全部产品': products };
+      return { 全部产品: products };
     }
 
     const groups: Record<string, Product[]> = {};
-    
-    products.forEach(product => {
+
+    products.forEach((product) => {
       if (!product) return;
-      
+
       let groupKey = '其他';
       if (groupBy === 'category' && product.category) {
         groupKey = product.category;
@@ -1513,36 +1540,36 @@ export default function QuoteTable({
         else if (name.includes('电机')) groupKey = '动力系统';
         else groupKey = '其他系统';
       }
-      
+
       if (!groups[groupKey]) {
         groups[groupKey] = [];
       }
       groups[groupKey].push(product);
     });
-    
+
     return groups;
   };
 
   // 切换行展开状态
   const toggleRowExpand = (rowIndex: number) => {
-    setExpandedRows(prev => ({
+    setExpandedRows((prev) => ({
       ...prev,
-      [rowIndex]: !prev[rowIndex]
+      [rowIndex]: !prev[rowIndex],
     }));
   };
 
   // 切换备注显示
   const toggleNoteShow = (rowIndex: number) => {
-    setShowNotes(prev => ({
+    setShowNotes((prev) => ({
       ...prev,
-      [rowIndex]: !prev[rowIndex]
+      [rowIndex]: !prev[rowIndex],
     }));
   };
 
   const groupedProducts = getGroupedProducts();
   const quoteTitle = getQuoteTitle(safeProducts);
 
-  const marketPriceCount = Object.values(marketPrices).filter(m => m?.data).length;
+  const marketPriceCount = Object.values(marketPrices).filter((m) => m?.data).length;
 
   return (
     <div className="export-container bg-white">
@@ -1600,10 +1627,7 @@ export default function QuoteTable({
             {/* 自动填充开关 */}
             <div className="flex items-center gap-2 mr-2">
               <span className="text-sm text-slate-600">自动填充</span>
-              <Switch
-                checked={autoFillEnabled}
-                onCheckedChange={setAutoFillEnabled}
-              />
+              <Switch checked={autoFillEnabled} onCheckedChange={setAutoFillEnabled} />
             </div>
 
             {/* 批量填充按钮 */}
@@ -1715,7 +1739,12 @@ export default function QuoteTable({
             {/* 导出按钮 */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="border-slate-300" disabled={isExporting}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-300"
+                  disabled={isExporting}
+                >
                   {isExporting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -1757,12 +1786,12 @@ export default function QuoteTable({
             onClick={() => {
               setTempProjectFields(projectFields);
               setShowProjectConfig(true);
-              }}
-              className="h-8 text-xs"
-            >
-              <Settings className="h-3.5 w-3.5 mr-1" />
-              自定义字段
-            </Button>
+            }}
+            className="h-8 text-xs"
+          >
+            <Settings className="h-3.5 w-3.5 mr-1" />
+            自定义字段
+          </Button>
         </div>
         <div className="grid grid-cols-4 gap-4">
           {/* 客户名称 */}
@@ -1803,7 +1832,9 @@ export default function QuoteTable({
             ) : (
               <div
                 className="text-sm font-medium cursor-pointer hover:text-[#0a4a7a] hover:underline flex items-center gap-1 group"
-                onClick={() => handleProjectFieldEdit('projectName', quoteData?.customerInfo?.projectName || '')}
+                onClick={() =>
+                  handleProjectFieldEdit('projectName', quoteData?.customerInfo?.projectName || '')
+                }
               >
                 {quoteData?.customerInfo?.projectName || '未填写'}
                 <Edit className="h-3 w-3 text-slate-400 opacity-0 group-hover:opacity-100" />
@@ -1854,7 +1885,7 @@ export default function QuoteTable({
                 <SelectValue placeholder="分组方式" />
               </SelectTrigger>
               <SelectContent>
-                {groupOptions.map(option => (
+                {groupOptions.map((option) => (
                   <SelectItem key={`group-option-${option.key}`} value={option.key}>
                     {option.label}
                   </SelectItem>
@@ -1878,25 +1909,39 @@ export default function QuoteTable({
         </div>
 
         {/* 表格容器 */}
-        <div className="quote-table-container rounded-lg border border-slate-200 overflow-auto" style={{ maxHeight: '600px' }}>
+        <div
+          className="quote-table-container rounded-lg border border-slate-200 overflow-auto"
+          style={{ maxHeight: '600px' }}
+        >
           <Table className="config-table" style={{ tableLayout: 'fixed', width: '100%' }}>
             <TableHeader className="bg-[#0a4a7a] sticky top-0 z-10">
               <TableRow>
                 {columns
-                  .filter(col => selectedColumns.includes(col.key))
+                  .filter((col) => selectedColumns.includes(col.key))
                   .sort((a, b) => a.priority - b.priority)
-                  .map(column => (
+                  .map((column) => (
                     <TableHead
                       key={`header-${column.key}`}
                       className={`text-white font-semibold py-3 px-4 ${
-                        column.align === 'right' ? 'text-right' :
-                        column.align === 'center' ? 'text-center' : 'text-left'
+                        column.align === 'right'
+                          ? 'text-right'
+                          : column.align === 'center'
+                            ? 'text-center'
+                            : 'text-left'
                       }`}
-                      style={{ 
-                        width: column.key === 'parameter_description' ? '30%' : 
-                               column.key === 'name' ? '20%' : 'auto',
-                        minWidth: column.key === 'parameter_description' ? '250px' : 
-                                  column.key === 'name' ? '150px' : '80px'
+                      style={{
+                        width:
+                          column.key === 'parameter_description'
+                            ? '30%'
+                            : column.key === 'name'
+                              ? '20%'
+                              : 'auto',
+                        minWidth:
+                          column.key === 'parameter_description'
+                            ? '250px'
+                            : column.key === 'name'
+                              ? '150px'
+                              : '80px',
                       }}
                     >
                       {column.label}
@@ -1920,315 +1965,359 @@ export default function QuoteTable({
                       </TableRow>
                     )}
 
-                    {products.filter(p => p != null).map((product, idx) => {
-                      if (!product) return null;
-                      
-                      const actualIndex = safeProducts.findIndex(p => 
-                        p && p.name === product.name && 
-                        p.model === product.model && 
-                        p.parameter_description === product.parameter_description
-                      );
-                      
-                      const safeIndex = actualIndex !== -1 ? actualIndex : idx;
-                      const marketData = marketPrices[safeIndex];
-                      const isExpanded = expandedRows[safeIndex] || false;
-                      
-                      const marketPriceValue = marketData?.data?.averageMarketPrice ||
-                                               marketData?.data?.price ||
-                                               marketData?.data?.marketPrice ||
-                                               marketData?.data?.value ||
-                                               marketData?.data?.unitPrice ||
-                                               0;
-                      
-                      const priceDiff = marketPriceValue > 0
-                        ? calculatePriceDiff(product.unitPrice || 0, marketPriceValue)
-                        : null;
-                      
-                      const productUniqueKey = product.id 
-                        ? `product-${product.id}`
-                        : `product-${safeIndex}-${product.name || ''}-${product.model || ''}`;
+                    {products
+                      .filter((p) => p != null)
+                      .map((product, idx) => {
+                        if (!product) return null;
 
-                      return (
-                        <TableRow
-                          key={productUniqueKey}
-                          className={`${
-                            idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                          } hover:bg-slate-100 transition-colors`}
-                        >
-                          {selectedColumns.includes('index') && (
-                            <TableCell key={`cell-index-${productUniqueKey}`} className="text-center py-3 px-4 text-sm">
-                              {safeIndex + 1}
-                            </TableCell>
-                          )}
+                        const actualIndex = safeProducts.findIndex(
+                          (p) =>
+                            p &&
+                            p.name === product.name &&
+                            p.model === product.model &&
+                            p.parameter_description === product.parameter_description
+                        );
 
-                          {selectedColumns.includes('name') && (
-                            <TableCell 
-                              key={`cell-name-${productUniqueKey}`} 
-                              className="py-3 px-4"
-                              style={{ 
-                                whiteSpace: 'normal', 
-                                wordBreak: 'break-word',
-                                maxWidth: '200px',
-                                minWidth: '150px'
-                              }}
-                            >
-                              <div className="flex items-start gap-1">
-                                <span className="font-medium text-sm" style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                                  {product.name || ''}
-                                </span>
-                                {product.note && (
+                        const safeIndex = actualIndex !== -1 ? actualIndex : idx;
+                        const marketData = marketPrices[safeIndex];
+                        const isExpanded = expandedRows[safeIndex] || false;
+
+                        const marketPriceValue =
+                          marketData?.data?.averageMarketPrice ||
+                          marketData?.data?.price ||
+                          marketData?.data?.marketPrice ||
+                          marketData?.data?.value ||
+                          marketData?.data?.unitPrice ||
+                          0;
+
+                        const priceDiff =
+                          marketPriceValue > 0
+                            ? calculatePriceDiff(product.unitPrice || 0, marketPriceValue)
+                            : null;
+
+                        const productUniqueKey = product.id
+                          ? `product-${product.id}`
+                          : `product-${safeIndex}-${product.name || ''}-${product.model || ''}`;
+
+                        return (
+                          <TableRow
+                            key={productUniqueKey}
+                            className={`${
+                              idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                            } hover:bg-slate-100 transition-colors`}
+                          >
+                            {selectedColumns.includes('index') && (
+                              <TableCell
+                                key={`cell-index-${productUniqueKey}`}
+                                className="text-center py-3 px-4 text-sm"
+                              >
+                                {safeIndex + 1}
+                              </TableCell>
+                            )}
+
+                            {selectedColumns.includes('name') && (
+                              <TableCell
+                                key={`cell-name-${productUniqueKey}`}
+                                className="py-3 px-4"
+                                style={{
+                                  whiteSpace: 'normal',
+                                  wordBreak: 'break-word',
+                                  maxWidth: '200px',
+                                  minWidth: '150px',
+                                }}
+                              >
+                                <div className="flex items-start gap-1">
+                                  <span
+                                    className="font-medium text-sm"
+                                    style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
+                                  >
+                                    {product.name || ''}
+                                  </span>
+                                  {product.note && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger>
+                                          <Info className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>{product.note}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                  {(product.parameter_description?.length || 0) > 100 && (
+                                    <button
+                                      onClick={() => toggleRowExpand(safeIndex)}
+                                      className="text-[#2c8c99] hover:text-[#1e6a73] ml-1 flex-shrink-0"
+                                    >
+                                      {isExpanded ? (
+                                        <ChevronUp className="h-3.5 w-3.5" />
+                                      ) : (
+                                        <ChevronDown className="h-3.5 w-3.5" />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            )}
+
+                            {selectedColumns.includes('parameter_description') && (
+                              <TableCell
+                                key={`cell-specs-${productUniqueKey}`}
+                                className="py-3 px-4"
+                                style={{
+                                  whiteSpace: 'normal',
+                                  wordBreak: 'break-word',
+                                  maxWidth: '400px',
+                                  minWidth: '250px',
+                                }}
+                              >
+                                <div
+                                  className="text-sm text-slate-600"
+                                  style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
+                                >
+                                  {isExpanded
+                                    ? product.parameter_description
+                                    : product.parameter_description &&
+                                        product.parameter_description.length > 150
+                                      ? product.parameter_description.substring(0, 150) + '...'
+                                      : product.parameter_description || '-'}
+                                </div>
+                              </TableCell>
+                            )}
+
+                            {selectedColumns.includes('brand') && (
+                              <TableCell
+                                key={`cell-brand-${productUniqueKey}`}
+                                className="py-3 px-4 text-sm"
+                              >
+                                {product.brand || '-'}
+                              </TableCell>
+                            )}
+
+                            {selectedColumns.includes('unit') && (
+                              <TableCell
+                                key={`cell-unit-${productUniqueKey}`}
+                                className="text-center py-3 px-4 text-sm"
+                              >
+                                {product.unit || '个'}
+                              </TableCell>
+                            )}
+
+                            {selectedColumns.includes('quantity') && (
+                              <TableCell
+                                key={`cell-quantity-${productUniqueKey}`}
+                                className="text-center py-3 px-4"
+                              >
+                                {editingQuantity && editingQuantity.rowIndex === safeIndex ? (
+                                  <Input
+                                    type="number"
+                                    value={editingQuantity.value}
+                                    onChange={(e) => handleQuantityChange(e.target.value)}
+                                    onBlur={() => handleQuantitySave(safeIndex)}
+                                    onKeyDown={(e) => handleKeyDown(e, safeIndex, 'quantity')}
+                                    className="w-20 h-8 px-2 text-center text-sm cursor-pointer focus:ring-2 focus:ring-[#0a4a7a]"
+                                    autoFocus
+                                    min="0.01"
+                                    step="0.01"
+                                  />
+                                ) : (
+                                  <div
+                                    className="cursor-pointer hover:text-[#0a4a7a] hover:underline px-2 py-1 text-sm"
+                                    onClick={() =>
+                                      handleQuantityEdit(safeIndex, product.quantity || 1)
+                                    }
+                                  >
+                                    {product.quantity || 1}
+                                  </div>
+                                )}
+                              </TableCell>
+                            )}
+
+                            {selectedColumns.includes('unitPrice') && (
+                              <TableCell
+                                key={`cell-unitPrice-${productUniqueKey}`}
+                                className="text-right py-3 px-4"
+                              >
+                                {editingPrice && editingPrice.rowIndex === safeIndex ? (
+                                  <Input
+                                    type="number"
+                                    value={editingPrice.value}
+                                    onChange={(e) => handlePriceChange(e.target.value)}
+                                    onBlur={() => handlePriceSave(safeIndex)}
+                                    onKeyDown={(e) => handleKeyDown(e, safeIndex, 'price')}
+                                    className="w-24 h-8 px-2 text-right text-sm cursor-pointer focus:ring-2 focus:ring-[#0a4a7a]"
+                                    autoFocus
+                                    min="0"
+                                    step="0.01"
+                                  />
+                                ) : (
+                                  <div
+                                    className="cursor-pointer hover:text-[#0a4a7a] hover:underline px-2 py-1 font-bold text-[#d32f2f] text-sm"
+                                    onClick={() =>
+                                      handlePriceEdit(safeIndex, product.unitPrice || 0)
+                                    }
+                                  >
+                                    {formatCurrency(product.unitPrice || 0)}
+                                  </div>
+                                )}
+                              </TableCell>
+                            )}
+
+                            {selectedColumns.includes('totalPrice') && (
+                              <TableCell
+                                key={`cell-totalPrice-${productUniqueKey}`}
+                                className="text-right py-3 px-4 font-bold text-sm"
+                              >
+                                {formatCurrency(product.totalPrice || 0)}
+                              </TableCell>
+                            )}
+
+                            {selectedColumns.includes('marketPrice') && (
+                              <TableCell
+                                key={`cell-marketPrice-${productUniqueKey}`}
+                                className="text-right py-3 px-4"
+                              >
+                                {marketData?.loading ? (
+                                  <div className="flex items-center justify-end gap-2 text-[#2c8c99]">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span className="text-sm">搜索中</span>
+                                  </div>
+                                ) : marketData?.data ? (
+                                  <div className="text-right space-y-2">
+                                    <div>
+                                      <div className="font-semibold text-[#2c8c99] text-sm">
+                                        {(() => {
+                                          const data = marketData.data;
+                                          const priceValue =
+                                            data.averageMarketPrice ||
+                                            data.price ||
+                                            data.marketPrice ||
+                                            data.value ||
+                                            data.unitPrice ||
+                                            0;
+                                          return priceValue > 0
+                                            ? `¥${priceValue.toFixed(2)}`
+                                            : '价格待确认';
+                                        })()}
+                                      </div>
+                                      {priceDiff && (
+                                        <div
+                                          className={`text-xs font-semibold flex items-center justify-end gap-1 ${
+                                            priceDiff.isLower ? 'text-green-600' : 'text-red-600'
+                                          }`}
+                                        >
+                                          {priceDiff.isLower ? (
+                                            <TrendingDown className="h-3 w-3" />
+                                          ) : (
+                                            <TrendingUp className="h-3 w-3" />
+                                          )}
+                                          <span>{Math.abs(priceDiff.percentage).toFixed(1)}%</span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {marketData.showConfirm && (
+                                      <div className="flex items-center justify-end gap-1 pt-2 border-t border-slate-200">
+                                        <Button
+                                          size="sm"
+                                          className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700"
+                                          onClick={() => handleApplyMarketPrice(safeIndex)}
+                                        >
+                                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                                          应用
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-6 px-2 text-xs"
+                                          onClick={() => handleDismissMarketPrice(safeIndex)}
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
                                   <TooltipProvider>
                                     <Tooltip>
-                                      <TooltipTrigger>
-                                        <Info className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0 text-[#2c8c99]"
+                                          onClick={() => handleSearchMarketPrice(safeIndex)}
+                                        >
+                                          <Search className="h-4 w-4" />
+                                        </Button>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        <p>{product.note}</p>
+                                        <p>获取市场参考价</p>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
-                                {(product.parameter_description?.length || 0) > 100 && (
-                                  <button
-                                    onClick={() => toggleRowExpand(safeIndex)}
-                                    className="text-[#2c8c99] hover:text-[#1e6a73] ml-1 flex-shrink-0"
-                                  >
-                                    {isExpanded ? (
-                                      <ChevronUp className="h-3.5 w-3.5" />
-                                    ) : (
-                                      <ChevronDown className="h-3.5 w-3.5" />
-                                    )}
-                                  </button>
-                                )}
-                              </div>
-                            </TableCell>
-                          )}
+                              </TableCell>
+                            )}
 
-                          {selectedColumns.includes('parameter_description') && (
-                            <TableCell 
-                              key={`cell-specs-${productUniqueKey}`} 
-                              className="py-3 px-4"
-                              style={{ 
-                                whiteSpace: 'normal', 
-                                wordBreak: 'break-word',
-                                maxWidth: '400px',
-                                minWidth: '250px'
-                              }}
-                            >
-                              <div className="text-sm text-slate-600" style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                                {isExpanded
-                                  ? product.parameter_description
-                                  : product.parameter_description && product.parameter_description.length > 150
-                                    ? product.parameter_description.substring(0, 150) + '...'
-                                    : product.parameter_description || '-'}
-                              </div>
-                            </TableCell>
-                          )}
-
-                          {selectedColumns.includes('brand') && (
-                            <TableCell key={`cell-brand-${productUniqueKey}`} className="py-3 px-4 text-sm">
-                              {product.brand || '-'}
-                            </TableCell>
-                          )}
-
-                          {selectedColumns.includes('unit') && (
-                            <TableCell key={`cell-unit-${productUniqueKey}`} className="text-center py-3 px-4 text-sm">
-                              {product.unit || '个'}
-                            </TableCell>
-                          )}
-
-                          {selectedColumns.includes('quantity') && (
-                            <TableCell key={`cell-quantity-${productUniqueKey}`} className="text-center py-3 px-4">
-                              {editingQuantity && editingQuantity.rowIndex === safeIndex ? (
-                                <Input
-                                  type="number"
-                                  value={editingQuantity.value}
-                                  onChange={(e) => handleQuantityChange(e.target.value)}
-                                  onBlur={() => handleQuantitySave(safeIndex)}
-                                  onKeyDown={(e) => handleKeyDown(e, safeIndex, 'quantity')}
-                                  className="w-20 h-8 px-2 text-center text-sm cursor-pointer focus:ring-2 focus:ring-[#0a4a7a]"
-                                  autoFocus
-                                  min="0.01"
-                                  step="0.01"
-                                />
-                              ) : (
-                                <div
-                                  className="cursor-pointer hover:text-[#0a4a7a] hover:underline px-2 py-1 text-sm"
-                                  onClick={() => handleQuantityEdit(safeIndex, product.quantity || 1)}
-                                >
-                                  {product.quantity || 1}
-                                </div>
-                              )}
-                            </TableCell>
-                          )}
-
-                          {selectedColumns.includes('unitPrice') && (
-                            <TableCell key={`cell-unitPrice-${productUniqueKey}`} className="text-right py-3 px-4">
-                              {editingPrice && editingPrice.rowIndex === safeIndex ? (
-                                <Input
-                                  type="number"
-                                  value={editingPrice.value}
-                                  onChange={(e) => handlePriceChange(e.target.value)}
-                                  onBlur={() => handlePriceSave(safeIndex)}
-                                  onKeyDown={(e) => handleKeyDown(e, safeIndex, 'price')}
-                                  className="w-24 h-8 px-2 text-right text-sm cursor-pointer focus:ring-2 focus:ring-[#0a4a7a]"
-                                  autoFocus
-                                  min="0"
-                                  step="0.01"
-                                />
-                              ) : (
-                                <div
-                                  className="cursor-pointer hover:text-[#0a4a7a] hover:underline px-2 py-1 font-bold text-[#d32f2f] text-sm"
-                                  onClick={() => handlePriceEdit(safeIndex, product.unitPrice || 0)}
-                                >
-                                  {formatCurrency(product.unitPrice || 0)}
-                                </div>
-                              )}
-                            </TableCell>
-                          )}
-
-                          {selectedColumns.includes('totalPrice') && (
-                            <TableCell key={`cell-totalPrice-${productUniqueKey}`} className="text-right py-3 px-4 font-bold text-sm">
-                              {formatCurrency(product.totalPrice || 0)}
-                            </TableCell>
-                          )}
-
-                          {selectedColumns.includes('marketPrice') && (
-                            <TableCell key={`cell-marketPrice-${productUniqueKey}`} className="text-right py-3 px-4">
-                              {marketData?.loading ? (
-                                <div className="flex items-center justify-end gap-2 text-[#2c8c99]">
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                  <span className="text-sm">搜索中</span>
-                                </div>
-                              ) : marketData?.data ? (
-                                <div className="text-right space-y-2">
-                                  <div>
-                                    <div className="font-semibold text-[#2c8c99] text-sm">
-                                      {(() => {
-                                        const data = marketData.data;
-                                        const priceValue = data.averageMarketPrice ||
-                                                           data.price ||
-                                                           data.marketPrice ||
-                                                           data.value ||
-                                                           data.unitPrice ||
-                                                           0;
-                                        return priceValue > 0 ? `¥${priceValue.toFixed(2)}` : '价格待确认';
-                                      })()}
-                                    </div>
-                                    {priceDiff && (
-                                      <div
-                                        className={`text-xs font-semibold flex items-center justify-end gap-1 ${
-                                          priceDiff.isLower ? 'text-green-600' : 'text-red-600'
-                                        }`}
-                                      >
-                                        {priceDiff.isLower ? (
-                                          <TrendingDown className="h-3 w-3" />
-                                        ) : (
-                                          <TrendingUp className="h-3 w-3" />
-                                        )}
-                                        <span>{Math.abs(priceDiff.percentage).toFixed(1)}%</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  {marketData.showConfirm && (
-                                    <div className="flex items-center justify-end gap-1 pt-2 border-t border-slate-200">
-                                      <Button
-                                        size="sm"
-                                        className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700"
-                                        onClick={() => handleApplyMarketPrice(safeIndex)}
-                                      >
-                                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                                        应用
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-6 px-2 text-xs"
-                                        onClick={() => handleDismissMarketPrice(safeIndex)}
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 w-8 p-0 text-[#2c8c99]"
-                                        onClick={() => handleSearchMarketPrice(safeIndex)}
-                                      >
-                                        <Search className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>获取市场参考价</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </TableCell>
-                          )}
-
-                          {selectedColumns.includes('actions') && (
-                            <TableCell key={`cell-actions-${productUniqueKey}`} className="text-center py-3 px-4">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setExpandedRows(prev => ({
-                                        ...prev,
-                                        [safeIndex]: !prev[safeIndex]
-                                      }));
-                                    }}
-                                  >
-                                    {isExpanded ? (
-                                      <>
-                                        <ChevronUp className="h-4 w-4 mr-2" />
-                                        收起规格
-                                      </>
-                                    ) : (
-                                      <>
-                                        <ChevronDown className="h-4 w-4 mr-2" />
-                                        展开规格
-                                      </>
-                                    )}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      if (product.note) {
-                                        toggleNoteShow(safeIndex);
-                                      }
-                                    }}
-                                    disabled={!product.note}
-                                  >
-                                    <Info className="h-4 w-4 mr-2" />
-                                    查看备注
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    className="text-red-600"
-                                    onClick={() => handleRemoveProduct(safeIndex)}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    移除
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      );
-                    })}
+                            {selectedColumns.includes('actions') && (
+                              <TableCell
+                                key={`cell-actions-${productUniqueKey}`}
+                                className="text-center py-3 px-4"
+                              >
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setExpandedRows((prev) => ({
+                                          ...prev,
+                                          [safeIndex]: !prev[safeIndex],
+                                        }));
+                                      }}
+                                    >
+                                      {isExpanded ? (
+                                        <>
+                                          <ChevronUp className="h-4 w-4 mr-2" />
+                                          收起规格
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ChevronDown className="h-4 w-4 mr-2" />
+                                          展开规格
+                                        </>
+                                      )}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        if (product.note) {
+                                          toggleNoteShow(safeIndex);
+                                        }
+                                      }}
+                                      disabled={!product.note}
+                                    >
+                                      <Info className="h-4 w-4 mr-2" />
+                                      查看备注
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onClick={() => handleRemoveProduct(safeIndex)}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      移除
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })}
                   </React.Fragment>
                 );
               })}
@@ -2436,7 +2525,8 @@ export default function QuoteTable({
 
       {/* 页脚 */}
       <div className="px-6 py-3 text-center text-xs text-slate-400 border-t border-slate-200">
-        本报价单由我司工程师校核生成，如有疑问请联系我们【电话：{actualSupplierInfo?.phone || '待填写'}】
+        本报价单由我司工程师校核生成，如有疑问请联系我们【电话：
+        {actualSupplierInfo?.phone || '待填写'}】
       </div>
 
       {/* 费用配置弹窗 */}
@@ -2444,9 +2534,7 @@ export default function QuoteTable({
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>费用配置</DialogTitle>
-            <DialogDescription>
-              设置税率、运费和其他费用，以及商务条款。
-            </DialogDescription>
+            <DialogDescription>设置税率、运费和其他费用，以及商务条款。</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -2456,13 +2544,15 @@ export default function QuoteTable({
                   <Label htmlFor="taxRate">税率 (%)</Label>
                   <Select
                     value={tempFeeConfig.taxRate.toString()}
-                    onValueChange={(value) => setTempFeeConfig({ ...tempFeeConfig, taxRate: parseFloat(value) })}
+                    onValueChange={(value) =>
+                      setTempFeeConfig({ ...tempFeeConfig, taxRate: parseFloat(value) })
+                    }
                   >
                     <SelectTrigger id="taxRate">
                       <SelectValue placeholder="选择税率" />
                     </SelectTrigger>
                     <SelectContent>
-                      {COMMON_TAX_RATES.map(rate => (
+                      {COMMON_TAX_RATES.map((rate) => (
                         <SelectItem key={`tax-${rate}`} value={rate.toString()}>
                           {rate}%
                         </SelectItem>
@@ -2476,7 +2566,12 @@ export default function QuoteTable({
                     id="shipping"
                     type="number"
                     value={tempFeeConfig.shipping}
-                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, shipping: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setTempFeeConfig({
+                        ...tempFeeConfig,
+                        shipping: parseFloat(e.target.value) || 0,
+                      })
+                    }
                     min="0"
                     step="0.01"
                   />
@@ -2487,7 +2582,12 @@ export default function QuoteTable({
                     id="installation"
                     type="number"
                     value={tempFeeConfig.installation}
-                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, installation: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setTempFeeConfig({
+                        ...tempFeeConfig,
+                        installation: parseFloat(e.target.value) || 0,
+                      })
+                    }
                     min="0"
                     step="0.01"
                   />
@@ -2498,7 +2598,12 @@ export default function QuoteTable({
                     id="otherFees"
                     type="number"
                     value={tempFeeConfig.otherFees}
-                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, otherFees: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setTempFeeConfig({
+                        ...tempFeeConfig,
+                        otherFees: parseFloat(e.target.value) || 0,
+                      })
+                    }
                     min="0"
                     step="0.01"
                   />
@@ -2514,7 +2619,9 @@ export default function QuoteTable({
                   <Input
                     id="paymentTerms"
                     value={tempFeeConfig.paymentTerms}
-                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, paymentTerms: e.target.value })}
+                    onChange={(e) =>
+                      setTempFeeConfig({ ...tempFeeConfig, paymentTerms: e.target.value })
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -2522,7 +2629,9 @@ export default function QuoteTable({
                   <Input
                     id="warrantyTerms"
                     value={tempFeeConfig.warrantyTerms}
-                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, warrantyTerms: e.target.value })}
+                    onChange={(e) =>
+                      setTempFeeConfig({ ...tempFeeConfig, warrantyTerms: e.target.value })
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -2530,7 +2639,9 @@ export default function QuoteTable({
                   <Input
                     id="deliveryTerms"
                     value={tempFeeConfig.deliveryTerms}
-                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, deliveryTerms: e.target.value })}
+                    onChange={(e) =>
+                      setTempFeeConfig({ ...tempFeeConfig, deliveryTerms: e.target.value })
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -2539,7 +2650,9 @@ export default function QuoteTable({
                     id="validUntil"
                     type="date"
                     value={tempFeeConfig.validUntil}
-                    onChange={(e) => setTempFeeConfig({ ...tempFeeConfig, validUntil: e.target.value })}
+                    onChange={(e) =>
+                      setTempFeeConfig({ ...tempFeeConfig, validUntil: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -2549,9 +2662,7 @@ export default function QuoteTable({
             <Button variant="outline" onClick={handleCancelFeeConfig}>
               取消
             </Button>
-            <Button onClick={handleSaveFeeConfig}>
-              保存
-            </Button>
+            <Button onClick={handleSaveFeeConfig}>保存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -2561,12 +2672,10 @@ export default function QuoteTable({
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle>显示列配置</DialogTitle>
-            <DialogDescription>
-              选择要在表格中显示的列。
-            </DialogDescription>
+            <DialogDescription>选择要在表格中显示的列。</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
-            {columns.map(column => {
+            {columns.map((column) => {
               const isRequired = column.key === 'unitPrice' || column.key === 'totalPrice';
               return (
                 <div
@@ -2598,9 +2707,7 @@ export default function QuoteTable({
             <Button variant="outline" onClick={handleCancelColumnConfig}>
               取消
             </Button>
-            <Button onClick={handleSaveColumnConfig}>
-              保存
-            </Button>
+            <Button onClick={handleSaveColumnConfig}>保存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -2610,14 +2717,15 @@ export default function QuoteTable({
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>自定义字段</DialogTitle>
-            <DialogDescription>
-              添加、编辑或删除项目概况中的自定义字段。
-            </DialogDescription>
+            <DialogDescription>添加、编辑或删除项目概况中的自定义字段。</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
               {tempProjectFields.map((field, index) => (
-                <div key={`field-${field.id}-${index}`} className="flex items-center gap-2 p-2 border rounded-md">
+                <div
+                  key={`field-${field.id}-${index}`}
+                  className="flex items-center gap-2 p-2 border rounded-md"
+                >
                   <Input
                     value={field.name}
                     onChange={(e) => handleUpdateProjectField(field.id, 'name', e.target.value)}
@@ -2670,9 +2778,7 @@ export default function QuoteTable({
             <Button variant="outline" onClick={handleCancelProjectFields}>
               取消
             </Button>
-            <Button onClick={handleSaveProjectFields}>
-              保存
-            </Button>
+            <Button onClick={handleSaveProjectFields}>保存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -43,9 +43,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     // 获取 WebSocket 服务器地址
     const wsPort = process.env.NEXT_PUBLIC_WS_PORT || 6000;
-    const wsUrl = typeof window !== 'undefined' 
-      ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:${wsPort}`
-      : `ws://localhost:${wsPort}`;
+    const wsUrl =
+      typeof window !== 'undefined'
+        ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:${wsPort}`
+        : `ws://localhost:${wsPort}`;
 
     console.log('[WebSocket] 连接到:', wsUrl);
 
@@ -65,7 +66,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       console.log('[WebSocket] 连接成功:', socket.id);
       setIsConnected(true);
       onConnect?.();
-      
+
       // 加入用户房间
       if (userId) {
         socket.emit('join', { userId: userId.toString() });
@@ -101,7 +102,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     socket.on('user:online', (data) => {
       console.log('[WebSocket] 用户上线:', data);
       setOnlineUsers((prev) => {
-        if (!prev.find(u => u.user_id === data.userId)) {
+        if (!prev.find((u) => u.user_id === data.userId)) {
           return [...prev, { user_id: data.userId }];
         }
         return prev;
@@ -112,7 +113,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     // 用户离线
     socket.on('user:offline', (data) => {
       console.log('[WebSocket] 用户离线:', data);
-      setOnlineUsers((prev) => prev.filter(u => u.user_id !== data.userId));
+      setOnlineUsers((prev) => prev.filter((u) => u.user_id !== data.userId));
       onUserOffline?.(data.userId);
     });
 
@@ -143,7 +144,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         socket.emit('ping');
       }
     }, 30000); // 30秒心跳
-  }, [userId, onConnect, onDisconnect, onError, onNotification, onMessage, onUserOnline, onUserOffline, onMessageRead, onOnlineUsers]);
+  }, [
+    userId,
+    onConnect,
+    onDisconnect,
+    onError,
+    onNotification,
+    onMessage,
+    onUserOnline,
+    onUserOffline,
+    onMessageRead,
+    onOnlineUsers,
+  ]);
 
   // 断开连接
   const disconnect = useCallback(() => {
@@ -153,12 +165,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       socketRef.current = null;
       setIsConnected(false);
     }
-    
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
-    
+
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current);
       heartbeatIntervalRef.current = null;

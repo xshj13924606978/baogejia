@@ -68,6 +68,7 @@ src/
 **端点**: `GET /api/auth/wechat`
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -82,6 +83,7 @@ src/
 **端点**: `GET /api/auth/wechat/callback?code=xxx&state=xxx`
 
 **处理流程**:
+
 1. 使用 code 换取 access_token
 2. 使用 access_token 获取用户信息
 3. 检查是否已有绑定
@@ -89,6 +91,7 @@ src/
    - 未绑定：跳转到绑定页面
 
 **重定向**:
+
 - 登录成功：`/login?success=true&provider=wechat`
 - 需要绑定：`/login?action=bind&provider=wechat&openid=xxx&nickname=xxx&avatar=xxx`
 - 失败：`/login?error=xxx`
@@ -98,6 +101,7 @@ src/
 **端点**: `GET /api/auth/qq`
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -110,6 +114,7 @@ src/
 **端点**: `GET /api/auth/qq/callback?code=xxx&state=xxx`
 
 **处理流程**:
+
 1. 使用 code 换取 access_token
 2. 获取用户 OpenID
 3. 使用 access_token 和 OpenID 获取用户信息
@@ -118,6 +123,7 @@ src/
    - 未绑定：跳转到绑定页面
 
 **重定向**:
+
 - 登录成功：`/login?success=true&provider=qq`
 - 需要绑定：`/login?action=bind&provider=qq&openid=xxx&nickname=xxx&avatar=xxx`
 - 失败：`/login?error=xxx`
@@ -127,6 +133,7 @@ src/
 **端点**: `POST /api/auth/bind`
 
 **请求体**:
+
 ```json
 {
   "provider": "wechat",
@@ -139,6 +146,7 @@ src/
 ```
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -158,6 +166,7 @@ src/
 **端点**: `GET /api/auth/bind`
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -180,6 +189,7 @@ src/
 **端点**: `DELETE /api/auth/bind`
 
 **请求体**:
+
 ```json
 {
   "provider": "wechat",
@@ -188,6 +198,7 @@ src/
 ```
 
 **响应**:
+
 ```json
 {
   "success": true
@@ -480,6 +491,7 @@ const handleBind = async (oauthInfo: any, username: string, password: string) =>
 ## 技术支持
 
 如有问题，请联系开发团队或查看：
+
 - [微信开放平台文档](https://open.weixin.qq.com/cgi-bin/showdocument?action=dir_list&t=resource/res_list&verify=1&id=open1419316505&token=&lang=zh_CN)
 - [QQ互联文档](https://wiki.connect.qq.com/)
 

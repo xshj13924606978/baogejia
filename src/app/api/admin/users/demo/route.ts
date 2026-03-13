@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  withAdmin, 
-  withUserView, 
-  withUserCreate, 
+import {
+  withAdmin,
+  withUserView,
+  withUserCreate,
   withUserEdit,
-  withPermissionCheck
+  withPermissionCheck,
 } from '@/lib/permission-check';
 
 /**
@@ -35,7 +35,7 @@ export const GET = withAdmin(async (request: NextRequest, user: any) => {
     return NextResponse.json({
       success: true,
       data: users || [],
-      message: '获取用户列表成功'
+      message: '获取用户列表成功',
     });
   } catch (error: any) {
     console.error('[Users Demo API] 获取用户列表失败:', error);
@@ -57,10 +57,7 @@ export const POST = withUserCreate(async (request: NextRequest, user: any) => {
 
     // 验证参数
     if (!email || !username || !password) {
-      return NextResponse.json(
-        { error: '缺少必要参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
     // 创建用户（业务逻辑）
@@ -76,15 +73,12 @@ export const POST = withUserCreate(async (request: NextRequest, user: any) => {
       data: {
         email,
         username,
-        role: role || 'user'
-      }
+        role: role || 'user',
+      },
     });
   } catch (error: any) {
     console.error('[Users Demo API] 创建用户失败:', error);
-    return NextResponse.json(
-      { error: '创建用户失败', details: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '创建用户失败', details: error.message }, { status: 500 });
   }
 });
 
@@ -95,7 +89,7 @@ export const POST = withUserCreate(async (request: NextRequest, user: any) => {
 export const PUT = withPermissionCheck(
   {
     permissions: 'user.edit',
-    roles: ['admin', 'super_admin']
+    roles: ['admin', 'super_admin'],
   },
   async (request: NextRequest, user: any) => {
     try {
@@ -104,10 +98,7 @@ export const PUT = withPermissionCheck(
 
       // 验证参数
       if (!userId || !updates) {
-        return NextResponse.json(
-          { error: '缺少必要参数' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
       }
 
       // 更新用户（业务逻辑）
@@ -128,14 +119,11 @@ export const PUT = withPermissionCheck(
       return NextResponse.json({
         success: true,
         message: '用户更新成功',
-        data
+        data,
       });
     } catch (error: any) {
       console.error('[Users Demo API] 更新用户失败:', error);
-      return NextResponse.json(
-        { error: '更新用户失败', details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '更新用户失败', details: error.message }, { status: 500 });
     }
   }
 );
@@ -147,7 +135,7 @@ export const PUT = withPermissionCheck(
 export const DELETE = withPermissionCheck(
   {
     permissions: 'user.delete',
-    roles: ['super_admin']
+    roles: ['super_admin'],
   },
   async (request: NextRequest, user: any) => {
     try {
@@ -156,20 +144,14 @@ export const DELETE = withPermissionCheck(
 
       // 验证参数
       if (!userId) {
-        return NextResponse.json(
-          { error: '缺少用户ID' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
       }
 
       // 删除用户（业务逻辑）
       const { getSupabaseClient } = await import('@/storage/database/supabase-client');
       const supabase = getSupabaseClient();
 
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', userId);
+      const { error } = await supabase.from('users').delete().eq('id', userId);
 
       if (error) {
         throw error;
@@ -177,14 +159,11 @@ export const DELETE = withPermissionCheck(
 
       return NextResponse.json({
         success: true,
-        message: '用户删除成功'
+        message: '用户删除成功',
       });
     } catch (error: any) {
       console.error('[Users Demo API] 删除用户失败:', error);
-      return NextResponse.json(
-        { error: '删除用户失败', details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '删除用户失败', details: error.message }, { status: 500 });
     }
   }
 );

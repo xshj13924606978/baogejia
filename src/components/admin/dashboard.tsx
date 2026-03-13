@@ -157,7 +157,10 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="space-y-4">
               {pendingItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                >
                   <div className="flex items-start gap-3">
                     {item.priority === '高' ? (
                       <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
@@ -194,7 +197,10 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="space-y-4">
               {recentUploads.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                >
                   <div className="flex items-start gap-3">
                     <FileText className="h-5 w-5 text-blue-500 mt-0.5" />
                     <div>

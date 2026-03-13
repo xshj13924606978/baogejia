@@ -6,27 +6,18 @@ import { orderService } from '@/lib/order-service';
 /**
  * GET /api/orders/[id] - 查询订单详情
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
 
     if (!id) {
-      return NextResponse.json(
-        { success: false, error: '缺少订单ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '缺少订单ID' }, { status: 400 });
     }
 
     const order = await orderService.getOrderById(id);
 
     if (!order) {
-      return NextResponse.json(
-        { success: false, error: '订单不存在' },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: '订单不存在' }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -35,10 +26,7 @@ export async function GET(
     });
   } catch (error) {
     console.error('[OrderDetail API] 查询订单详情失败:', error);
-    return NextResponse.json(
-      { success: false, error: '查询订单详情失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: '查询订单详情失败' }, { status: 500 });
   }
 }
 
@@ -53,19 +41,13 @@ export async function DELETE(
     const { id } = await params;
 
     if (!id) {
-      return NextResponse.json(
-        { success: false, error: '缺少订单ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: '缺少订单ID' }, { status: 400 });
     }
 
     const order = await orderService.cancelOrder(id);
 
     if (!order) {
-      return NextResponse.json(
-        { success: false, error: '订单不存在或无法取消' },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: '订单不存在或无法取消' }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -74,9 +56,6 @@ export async function DELETE(
     });
   } catch (error) {
     console.error('[OrderDetail API] 取消订单失败:', error);
-    return NextResponse.json(
-      { success: false, error: '取消订单失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: '取消订单失败' }, { status: 500 });
   }
 }

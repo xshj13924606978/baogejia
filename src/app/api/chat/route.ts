@@ -54,7 +54,7 @@ class WebSearchService {
    */
   async searchAndGenerate(query: string): Promise<{
     content: string;
-    sources: Array<{ title: string; url: string; }>;
+    sources: Array<{ title: string; url: string }>;
     followUpQuestions?: string[];
   }> {
     console.log('[WebSearch] ========== 开始联网搜索 ==========');
@@ -67,22 +67,21 @@ class WebSearchService {
 
       // 生成方案内容
       const content = this.generateSolution(query, searchResults);
-      
+
       // 生成跟进问题
       const followUpQuestions = this.generateFollowUpQuestions(query);
-      
+
       return {
         content,
-        sources: searchResults.map(r => ({ title: r.title, url: r.url })),
-        followUpQuestions
+        sources: searchResults.map((r) => ({ title: r.title, url: r.url })),
+        followUpQuestions,
       };
-
     } catch (error) {
       console.error('[WebSearch] 搜索失败:', error);
       return {
         content: this.getFallbackContent(query),
         sources: [],
-        followUpQuestions: this.generateFollowUpQuestions(query)
+        followUpQuestions: this.generateFollowUpQuestions(query),
       };
     }
   }
@@ -91,47 +90,49 @@ class WebSearchService {
    * 专门用于价格查询的联网搜索
    */
   async searchPrices(products: Product[]): Promise<{
-    matchedProducts: Array<Product & { 
-      marketPrice: number; 
-      priceRange: { min: number; max: number };
-      source: string;
-      confidence: number;
-      brandPrices?: Array<{ brand: string; price: number; }>;
-    }>;
+    matchedProducts: Array<
+      Product & {
+        marketPrice: number;
+        priceRange: { min: number; max: number };
+        source: string;
+        confidence: number;
+        brandPrices?: Array<{ brand: string; price: number }>;
+      }
+    >;
     content: string;
-    sources: Array<{ title: string; url: string; }>;
+    sources: Array<{ title: string; url: string }>;
   }> {
     console.log('[WebSearch] ========== 开始价格联网搜索 ==========');
     console.log('[WebSearch] 产品数量:', products.length);
 
     try {
       const matchedProducts = [];
-      const allSources: Array<{ title: string; url: string; }> = [];
+      const allSources: Array<{ title: string; url: string }> = [];
 
       for (const product of products) {
         console.log(`[WebSearch] 搜索产品: ${product.name} ${product.specs || ''}`);
-        
+
         // 构建搜索查询
         const searchQuery = `${product.name} ${product.specs || ''} 市场价格 采购价`.trim();
-        
+
         // 执行搜索
         const searchResults = await this.performPriceSearch(searchQuery, product);
-        
+
         // 提取价格信息
         const priceInfo = this.extractPriceFromResults(searchResults, product);
-        
+
         matchedProducts.push({
           ...product,
           marketPrice: priceInfo.price,
           priceRange: priceInfo.range,
           source: priceInfo.source,
           confidence: priceInfo.confidence,
-          brandPrices: priceInfo.brandPrices
+          brandPrices: priceInfo.brandPrices,
         });
 
         // 收集来源
-        searchResults.slice(0, 3).forEach(r => {
-          if (!allSources.some(s => s.url === r.url)) {
+        searchResults.slice(0, 3).forEach((r) => {
+          if (!allSources.some((s) => s.url === r.url)) {
             allSources.push({ title: r.title, url: r.url });
           }
         });
@@ -141,25 +142,24 @@ class WebSearchService {
       const content = this.generatePriceReport(products, matchedProducts);
 
       console.log('[WebSearch] 价格搜索完成');
-      
+
       return {
         matchedProducts,
         content,
-        sources: allSources
+        sources: allSources,
       };
-
     } catch (error) {
       console.error('[WebSearch] 价格搜索失败:', error);
       return {
-        matchedProducts: products.map(p => ({
+        matchedProducts: products.map((p) => ({
           ...p,
           marketPrice: 0,
           priceRange: { min: 0, max: 0 },
           source: 'error',
-          confidence: 0
+          confidence: 0,
         })),
         content: '价格搜索失败，请稍后重试',
-        sources: []
+        sources: [],
       };
     }
   }
@@ -167,16 +167,21 @@ class WebSearchService {
   /**
    * 执行价格搜索
    */
-  private async performPriceSearch(query: string, product: Product): Promise<Array<{
-    title: string;
-    url: string;
-    snippet: string;
-    content: string;
-    price?: number;
-    brand?: string;
-  }>> {
+  private async performPriceSearch(
+    query: string,
+    product: Product
+  ): Promise<
+    Array<{
+      title: string;
+      url: string;
+      snippet: string;
+      content: string;
+      price?: number;
+      brand?: string;
+    }>
+  > {
     // 这里应该调用真实的搜索引擎API
-    
+
     // 模拟搜索结果 - 根据不同产品类型返回不同的价格数据
     const results: Array<{
       title: string;
@@ -191,32 +196,32 @@ class WebSearchService {
     if (product.name.includes('污水') || product.name.includes('处理')) {
       const scale = product.specs?.match(/(\d+)\s*吨/) || [];
       const capacity = scale[1] ? parseInt(scale[1]) : 50;
-      
+
       results.push({
         title: `${capacity}吨污水处理设备最新报价`,
         url: 'https://example.com/wastewater-price-1',
         snippet: `${capacity}吨/天一体化污水处理设备价格分析`,
-        content: `根据市场调研，${capacity}吨/天污水处理设备价格区间：碳钢设备${Math.round(capacity*0.08)}-${Math.round(capacity*0.12)}万元，不锈钢设备${Math.round(capacity*0.15)}-${Math.round(capacity*0.2)}万元`,
-        price: capacity * 1000
+        content: `根据市场调研，${capacity}吨/天污水处理设备价格区间：碳钢设备${Math.round(capacity * 0.08)}-${Math.round(capacity * 0.12)}万元，不锈钢设备${Math.round(capacity * 0.15)}-${Math.round(capacity * 0.2)}万元`,
+        price: capacity * 1000,
       });
-      
+
       results.push({
         title: `2024年污水处理设备采购价格指南`,
         url: 'https://example.com/wastewater-price-guide',
         snippet: '包含不同材质、不同工艺的污水处理设备价格对比',
-        content: `主流品牌价格：A/O工艺${Math.round(capacity*0.1)}-${Math.round(capacity*0.15)}万元，MBR工艺${Math.round(capacity*0.25)}-${Math.round(capacity*0.35)}万元`,
+        content: `主流品牌价格：A/O工艺${Math.round(capacity * 0.1)}-${Math.round(capacity * 0.15)}万元，MBR工艺${Math.round(capacity * 0.25)}-${Math.round(capacity * 0.35)}万元`,
         price: capacity * 1200,
-        brand: '主流品牌'
+        brand: '主流品牌',
       });
     }
 
     // 水泵设备
     else if (product.name.includes('泵') || product.name.includes('水泵')) {
       const pumpTypes = {
-        '离心泵': { min: 1500, max: 8000 },
-        '螺杆泵': { min: 3000, max: 12000 },
-        '隔膜泵': { min: 2000, max: 6000 },
-        '潜水泵': { min: 1000, max: 5000 }
+        离心泵: { min: 1500, max: 8000 },
+        螺杆泵: { min: 3000, max: 12000 },
+        隔膜泵: { min: 2000, max: 6000 },
+        潜水泵: { min: 1000, max: 5000 },
       };
 
       let pumpType = '离心泵';
@@ -227,8 +232,8 @@ class WebSearchService {
             title: `${type}市场价格行情`,
             url: 'https://example.com/pump-price',
             snippet: `${type}不同品牌价格对比`,
-            content: `${type}价格范围：${range.min}-${range.max}元，格兰富品牌价格约${Math.round(range.max*1.5)}元`,
-            price: (range.min + range.max) / 2
+            content: `${type}价格范围：${range.min}-${range.max}元，格兰富品牌价格约${Math.round(range.max * 1.5)}元`,
+            price: (range.min + range.max) / 2,
           });
           break;
         }
@@ -239,27 +244,27 @@ class WebSearchService {
         title: '格兰富水泵官方价格表',
         url: 'https://example.com/grundfos-price',
         snippet: '格兰富各型号水泵价格查询',
-        content: `格兰富${pumpType}价格：基础型${Math.round(pumpTypes[pumpType as keyof typeof pumpTypes]?.max || 5000)}元，智能型${Math.round((pumpTypes[pumpType as keyof typeof pumpTypes]?.max || 5000)*1.8)}元`,
+        content: `格兰富${pumpType}价格：基础型${Math.round(pumpTypes[pumpType as keyof typeof pumpTypes]?.max || 5000)}元，智能型${Math.round((pumpTypes[pumpType as keyof typeof pumpTypes]?.max || 5000) * 1.8)}元`,
         price: pumpTypes[pumpType as keyof typeof pumpTypes]?.max || 5000,
-        brand: '格兰富'
+        brand: '格兰富',
       });
-      
+
       results.push({
         title: '威乐水泵经销商报价',
         url: 'https://example.com/wilo-price',
         snippet: '威乐水泵区域代理价格',
-        content: `威乐${pumpType}：标准款${Math.round((pumpTypes[pumpType as keyof typeof pumpTypes]?.max || 5000)*0.9)}元`,
+        content: `威乐${pumpType}：标准款${Math.round((pumpTypes[pumpType as keyof typeof pumpTypes]?.max || 5000) * 0.9)}元`,
         price: (pumpTypes[pumpType as keyof typeof pumpTypes]?.max || 5000) * 0.9,
-        brand: '威乐'
+        brand: '威乐',
       });
-      
+
       results.push({
         title: '南方泵业产品报价单',
         url: 'https://example.com/cnp-price',
         snippet: '南方泵业全系列产品价格',
-        content: `南方${pumpType}：${Math.round((pumpTypes[pumpType as keyof typeof pumpTypes]?.min || 3000))}-${Math.round((pumpTypes[pumpType as keyof typeof pumpTypes]?.max || 6000))}元`,
-        price: (pumpTypes[pumpType as keyof typeof pumpTypes]?.min || 3000),
-        brand: '南方泵业'
+        content: `南方${pumpType}：${Math.round(pumpTypes[pumpType as keyof typeof pumpTypes]?.min || 3000)}-${Math.round(pumpTypes[pumpType as keyof typeof pumpTypes]?.max || 6000)}元`,
+        price: pumpTypes[pumpType as keyof typeof pumpTypes]?.min || 3000,
+        brand: '南方泵业',
       });
     }
 
@@ -267,21 +272,21 @@ class WebSearchService {
     else if (product.name.includes('搅拌罐') || product.name.includes('反应釜')) {
       const volume = product.specs?.match(/(\d+)\s*(m³|立方|L)/) || [];
       const vol = volume[1] ? parseInt(volume[1]) : 5;
-      
+
       results.push({
         title: `${vol}m³不锈钢搅拌罐价格`,
         url: 'https://example.com/mixer-price',
         snippet: `${vol}立方不锈钢搅拌罐最新报价`,
-        content: `${vol}m³不锈钢搅拌罐价格：${vol*3000}-${vol*5000}元，带搅拌电机${vol*6000}-${vol*8000}元`,
-        price: vol * 4000
+        content: `${vol}m³不锈钢搅拌罐价格：${vol * 3000}-${vol * 5000}元，带搅拌电机${vol * 6000}-${vol * 8000}元`,
+        price: vol * 4000,
       });
-      
+
       results.push({
         title: '反应釜市场价格分析',
         url: 'https://example.com/reactor-price',
         snippet: '不同材质、不同容积反应釜价格对比',
-        content: `碳钢反应釜：${vol*2000}-${vol*3500}元，不锈钢反应釜：${vol*4000}-${vol*7000}元，搪瓷反应釜：${vol*5000}-${vol*9000}元`,
-        price: vol * 5000
+        content: `碳钢反应釜：${vol * 2000}-${vol * 3500}元，不锈钢反应釜：${vol * 4000}-${vol * 7000}元，搪瓷反应釜：${vol * 5000}-${vol * 9000}元`,
+        price: vol * 5000,
       });
     }
 
@@ -292,16 +297,16 @@ class WebSearchService {
         url: 'https://example.com/general-price',
         snippet: `${product.name}最新市场报价`,
         content: `${product.name}市场参考价：1000-5000元/台，具体价格取决于品牌、规格和采购数量`,
-        price: 3000
+        price: 3000,
       });
-      
+
       results.push({
         title: `2024年${product.name}采购指南`,
         url: 'https://example.com/buying-guide',
         snippet: `${product.name}选型要点和价格参考`,
         content: `主流品牌${product.name}价格范围：2000-8000元，建议批量采购可享受8-9折优惠`,
         price: 4000,
-        brand: '主流品牌'
+        brand: '主流品牌',
       });
     }
 
@@ -311,22 +316,25 @@ class WebSearchService {
   /**
    * 从搜索结果中提取价格信息
    */
-  private extractPriceFromResults(results: any[], product: Product): {
+  private extractPriceFromResults(
+    results: any[],
+    product: Product
+  ): {
     price: number;
     range: { min: number; max: number };
     source: string;
     confidence: number;
-    brandPrices?: Array<{ brand: string; price: number; }>;
+    brandPrices?: Array<{ brand: string; price: number }>;
   } {
     let prices: number[] = [];
-    let brandPrices: Array<{ brand: string; price: number; }> = [];
+    let brandPrices: Array<{ brand: string; price: number }> = [];
 
     // 提取所有价格
     for (const result of results) {
       if (result.price) {
         prices.push(result.price);
       }
-      
+
       // 从内容中提取价格
       const priceMatches = result.content.match(/(\d+(?:\.?\d+)?)[,，]?(\d+(?:\.?\d+)?)?/g);
       if (priceMatches) {
@@ -342,7 +350,7 @@ class WebSearchService {
       if (result.brand && result.price) {
         brandPrices.push({
           brand: result.brand,
-          price: result.price
+          price: result.price,
         });
       }
     }
@@ -353,31 +361,29 @@ class WebSearchService {
       if (product.name.includes('污水')) defaultPrice = 100000;
       else if (product.name.includes('泵')) defaultPrice = 3000;
       else if (product.name.includes('罐')) defaultPrice = 8000;
-      
+
       return {
         price: defaultPrice,
         range: { min: defaultPrice * 0.7, max: defaultPrice * 1.3 },
         source: 'estimate',
-        confidence: 0.3
+        confidence: 0.3,
       };
     }
 
     // 计算价格区间
     prices.sort((a, b) => a - b);
     const mid = Math.floor(prices.length / 2);
-    const median = prices.length % 2 === 0 
-      ? (prices[mid - 1] + prices[mid]) / 2 
-      : prices[mid];
+    const median = prices.length % 2 === 0 ? (prices[mid - 1] + prices[mid]) / 2 : prices[mid];
 
     return {
       price: Math.round(median),
       range: {
         min: Math.round(prices[0]),
-        max: Math.round(prices[prices.length - 1])
+        max: Math.round(prices[prices.length - 1]),
       },
       source: 'web_search',
       confidence: prices.length > 5 ? 0.8 : 0.6,
-      brandPrices: brandPrices.length > 0 ? brandPrices : undefined
+      brandPrices: brandPrices.length > 0 ? brandPrices : undefined,
     };
   }
 
@@ -390,7 +396,7 @@ class WebSearchService {
     for (let i = 0; i < matchedProducts.length; i++) {
       const p = matchedProducts[i];
       const original = originalProducts[i];
-      
+
       content += `**${i + 1}. ${p.name}**`;
       if (p.specs) content += ` ${p.specs}`;
       content += `\n\n`;
@@ -434,15 +440,17 @@ class WebSearchService {
   /**
    * 执行搜索（模拟实现）
    */
-  private async performSearch(query: string): Promise<Array<{
-    title: string;
-    url: string;
-    snippet: string;
-    content: string;
-  }>> {
+  private async performSearch(query: string): Promise<
+    Array<{
+      title: string;
+      url: string;
+      snippet: string;
+      content: string;
+    }>
+  > {
     // 这里应该调用真实的搜索引擎API
     // 例如：Google Search API, Bing Search API, 或自建搜索服务
-    
+
     // 模拟搜索结果 - 以污水设备为例
     if (query.includes('污水') || query.includes('处理') || query.includes('设备')) {
       return [
@@ -456,12 +464,13 @@ class WebSearchService {
             2. A²/O工艺：脱氮除磷效果好，出水可达一级A标准
             3. MBR工艺：出水水质最好，可直接回用，但投资较高
             4. MBBR工艺：处理效率高，占地小，适合改造项目
-          `
+          `,
         },
         {
           title: '50吨污水处理设备价格分析',
           url: 'https://example.com/50t-price',
-          snippet: '详细分析日处理50吨污水处理设备的价格构成，包括设备材质、品牌、自动化程度等因素。',
+          snippet:
+            '详细分析日处理50吨污水处理设备的价格构成，包括设备材质、品牌、自动化程度等因素。',
           content: `
             50吨/天污水处理设备价格区间：
             - 基础碳钢设备：3-5万元
@@ -469,7 +478,7 @@ class WebSearchService {
             - A²/O工艺设备：15-20万元
             - MBR膜设备：25-35万元
             - 全自动集装箱式：30-45万元
-          `
+          `,
         },
         {
           title: 'MBR膜技术在污水处理中的应用',
@@ -486,7 +495,7 @@ class WebSearchService {
             - 投资成本高
             - 膜组件需定期更换
             - 能耗相对较高
-          `
+          `,
         },
         {
           title: '污水处理设备材质对比',
@@ -497,7 +506,7 @@ class WebSearchService {
             - 碳钢：价格低，需防腐处理，寿命8-10年
             - 不锈钢：耐腐蚀，寿命15年以上，价格是碳钢的2-3倍
             - 玻璃钢：轻质高强，耐腐蚀，适合地下安装
-          `
+          `,
         },
         {
           title: '农村污水处理典型案例',
@@ -510,8 +519,8 @@ class WebSearchService {
             - 运行成本：0.8元/吨
             - 出水标准：一级A
             - 占地：120平方米
-          `
-        }
+          `,
+        },
       ];
     }
 
@@ -521,8 +530,8 @@ class WebSearchService {
         title: `关于"${query}"的搜索结果`,
         url: 'https://example.com/search',
         snippet: '为您整理了相关信息和解决方案',
-        content: `根据您的查询"${query}"，我们为您提供以下信息...`
-      }
+        content: `根据您的查询"${query}"，我们为您提供以下信息...`,
+      },
     ];
   }
 
@@ -564,13 +573,13 @@ class WebSearchService {
    */
   private generateFollowUpQuestions(query: string): string[] {
     const questions = [
-      "您需要处理的是什么类型的水？（生活污水/工业废水）",
-      "对出水水质有什么要求？（排放标准/回用标准）",
-      "项目预算大概是多少？",
-      "现场条件如何？（有无电力、占地大小等）",
-      "是否需要自动化控制系统？"
+      '您需要处理的是什么类型的水？（生活污水/工业废水）',
+      '对出水水质有什么要求？（排放标准/回用标准）',
+      '项目预算大概是多少？',
+      '现场条件如何？（有无电力、占地大小等）',
+      '是否需要自动化控制系统？',
     ];
-    
+
     return questions;
   }
 
@@ -580,7 +589,7 @@ class WebSearchService {
   private extractPriceInfo(query: string, results: any[]): string {
     // 整理价格表格
     let table = '| 设备类型 | 参考价格 | 特点 |\n|---------|---------|-----|\n';
-    
+
     if (query.includes('50吨') || query.includes('50t') || query.includes('50吨/天')) {
       table += '| 基础碳钢设备 | 3-5万元 | 传统工艺，适合预算有限的项目 |\n';
       table += '| 标准A/O工艺 | 8-12万元 | 性价比高，处理达标 |\n';
@@ -630,7 +639,7 @@ class WebSearchService {
     info += '   - 投资：85万元\n';
     info += '   - 运行成本：0.8元/吨\n';
     info += '   - 出水标准：一级A\n\n';
-    
+
     info += '2. **某工业园区100吨/天废水处理**\n';
     info += '   - 工艺：预处理+MBR\n';
     info += '   - 投资：280万元\n';
@@ -713,17 +722,17 @@ class TextParser {
   parse(text: string): Product[] {
     console.log('[TextParser] ========== 开始解析文字描述 ==========');
     console.log('[TextParser] 原始文本:', text);
-    
+
     const products: Product[] = [];
-    
+
     // 1. 清理文本（去除多余空格、换行）
     const cleanText = text.replace(/\s+/g, ' ').trim();
     console.log('[TextParser] 清理后文本:', cleanText);
-    
+
     // 2. 判断是否为单产品描述（包含规格说明但不应分割）
     const isSingleProduct = this.isSingleProductDescription(cleanText);
     console.log('[TextParser] 是否为单产品描述:', isSingleProduct);
-    
+
     if (isSingleProduct) {
       // 如果是单产品描述，整体解析为一个产品
       console.log('[TextParser] 检测为单产品描述，整体解析');
@@ -734,24 +743,27 @@ class TextParser {
     } else {
       // 多产品描述，按分隔符分割
       console.log('[TextParser] 检测为多产品描述，尝试分割');
-      
+
       // 尝试按常见分隔符分割
       const separators = ['；', ';', '。', '，', ',', '、'];
       let lines = [cleanText];
-      
+
       for (const sep of separators) {
         if (cleanText.includes(sep)) {
-          lines = cleanText.split(sep).map(l => l.trim()).filter(l => l);
+          lines = cleanText
+            .split(sep)
+            .map((l) => l.trim())
+            .filter((l) => l);
           console.log(`[TextParser] 使用分隔符 "${sep}" 分割为 ${lines.length} 部分`);
           break;
         }
       }
-      
+
       // 逐行解析
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         console.log(`[TextParser] 解析第 ${i + 1} 行:`, line);
-        
+
         const product = this.extractProductFromLine(line);
         if (product) {
           console.log(`[TextParser] 第 ${i + 1} 行解析到产品:`, product);
@@ -761,7 +773,7 @@ class TextParser {
         }
       }
     }
-    
+
     // 3. 如果仍然没有解析到产品，尝试按产品名称分割
     if (products.length === 0) {
       console.log('[TextParser] 未按行解析到产品，尝试全文解析');
@@ -770,10 +782,10 @@ class TextParser {
         products.push(product);
       }
     }
-    
+
     console.log(`[TextParser] 解析完成，共解析到 ${products.length} 个产品`);
     console.log('[TextParser] ========== 解析结束 ==========');
-    
+
     return products;
   }
 
@@ -784,28 +796,28 @@ class TextParser {
   private isSingleProductDescription(text: string): boolean {
     // 特征1：包含数量词但没有明确的产品分隔符
     const hasQuantity = /(\d+)\s*(吨|套|台|个|只|件|组)/.test(text);
-    
+
     // 特征2：包含规格描述（如"处理量"、"型号"等）
     const hasSpecKeywords = /处理量|处理能力|规格|型号|尺寸|φ|Φ|直径|容积|容量/.test(text);
-    
+
     // 特征3：没有明显的产品分隔符（如多个产品名称）
     const productKeywords = ['泵', '阀', '罐', '机', '器', '设备', '系统', '装置'];
-    const keywordCount = productKeywords.filter(k => text.includes(k)).length;
-    
+    const keywordCount = productKeywords.filter((k) => text.includes(k)).length;
+
     // 特征4：文本长度较短（通常单产品描述不会太长）
     const isShort = text.length < 50;
-    
+
     // 特征5：包含"一套"、"一台"等数量单位，但没有明确分割
     const hasUnit = /一(套|台|个|只|件|组)/.test(text);
-    
+
     console.log('[TextParser] 单产品判断特征:', {
       hasQuantity,
       hasSpecKeywords,
       keywordCount,
       isShort,
-      hasUnit
+      hasUnit,
     });
-    
+
     // 如果有规格描述且有数量词，但产品关键词数量<=1，认为是单产品
     return (hasSpecKeywords || hasQuantity || hasUnit) && keywordCount <= 1;
   }
@@ -815,34 +827,34 @@ class TextParser {
    */
   private parseAsSingleProduct(text: string): Product | null {
     console.log('[TextParser] 解析为单个产品:', text);
-    
+
     // 提取产品名称
     const name = this.extractProductName(text);
     if (!name) return null;
-    
+
     // 提取型号/规格
     const model = this.extractModel(text);
-    
+
     // 提取处理量/规格
     const specs = this.extractSpecs(text);
-    
+
     // 提取数量
     let quantity = 1;
     const qtyMatch = text.match(/(\d+)\s*(套|台|个|只|件|组)/);
     if (qtyMatch) {
       quantity = parseInt(qtyMatch[1]);
     }
-    
+
     // 提取单位
     let unit = '套';
     const unitMatch = text.match(/(套|台|个|只|件|组)/);
     if (unitMatch) {
       unit = unitMatch[1];
     }
-    
+
     // 组合完整的规格描述
-    const fullSpecs = [model, specs].filter(s => s).join(' ');
-    
+    const fullSpecs = [model, specs].filter((s) => s).join(' ');
+
     return {
       name,
       model: model || '',
@@ -852,7 +864,7 @@ class TextParser {
       unit,
       price: 0,
       total: 0,
-      remark: '来自文字描述'
+      remark: '来自文字描述',
     };
   }
 
@@ -862,18 +874,43 @@ class TextParser {
   private extractProductName(text: string): string | null {
     // 常见工业设备关键词（按优先级排序）
     const productKeywords = [
-      '污水一体化设备', '一体化污水处理设备', '污水处理设备',
-      '搅拌罐', '反应釜', '混合机', '搅拌器',
-      '离心泵', '螺杆泵', '隔膜泵', '齿轮泵', '潜水泵', '排污泵',
-      '蝶阀', '球阀', '闸阀', '截止阀', '止回阀',
-      '过滤器', '滤芯', '压滤机',
-      '换热器', '冷凝器', '冷却器',
-      '风机', '鼓风机', '压缩机',
-      '电机', '减速机',
-      '仪表', '传感器', '变送器',
-      '加药装置', '二氧化氯发生器', '消毒设备'
+      '污水一体化设备',
+      '一体化污水处理设备',
+      '污水处理设备',
+      '搅拌罐',
+      '反应釜',
+      '混合机',
+      '搅拌器',
+      '离心泵',
+      '螺杆泵',
+      '隔膜泵',
+      '齿轮泵',
+      '潜水泵',
+      '排污泵',
+      '蝶阀',
+      '球阀',
+      '闸阀',
+      '截止阀',
+      '止回阀',
+      '过滤器',
+      '滤芯',
+      '压滤机',
+      '换热器',
+      '冷凝器',
+      '冷却器',
+      '风机',
+      '鼓风机',
+      '压缩机',
+      '电机',
+      '减速机',
+      '仪表',
+      '传感器',
+      '变送器',
+      '加药装置',
+      '二氧化氯发生器',
+      '消毒设备',
     ];
-    
+
     // 优先匹配完整关键词
     for (const keyword of productKeywords) {
       if (text.includes(keyword)) {
@@ -881,14 +918,14 @@ class TextParser {
         return keyword;
       }
     }
-    
+
     // 如果没有匹配到完整关键词，尝试匹配包含关键词的短语
     const keywordPattern = /([^，,。.、\s]+(?:设备|装置|机|器|泵|阀|罐))/;
     const match = text.match(keywordPattern);
     if (match) {
       return match[1];
     }
-    
+
     return null;
   }
 
@@ -898,18 +935,18 @@ class TextParser {
   private extractModel(text: string): string {
     // 型号模式：字母+数字的组合，如 IS150-125-250, LPD-2000, φ4000×3000
     const modelPatterns = [
-      /([A-Za-z]+[\d\-]+[A-Za-z\d\-]*)/,  // IS150-125-250
+      /([A-Za-z]+[\d\-]+[A-Za-z\d\-]*)/, // IS150-125-250
       /(φ|Φ)?\s*(\d+[xX×]\d+[xX×]?\d*)/, // φ4000×3000
       /([A-Z]+[\d\-]+)/, // LPD-2000
     ];
-    
+
     for (const pattern of modelPatterns) {
       const match = text.match(pattern);
       if (match) {
         return match[0];
       }
     }
-    
+
     return '';
   }
 
@@ -919,33 +956,33 @@ class TextParser {
   private extractSpecs(text: string): string {
     // 处理量模式：如 50吨/天, 100m³/h, 50t/d
     const capacityPatterns = [
-      /(\d+)\s*(吨|t|T)\s*[\/每]\s*(天|日|d|D)/,  // 50吨/天
+      /(\d+)\s*(吨|t|T)\s*[\/每]\s*(天|日|d|D)/, // 50吨/天
       /(\d+)\s*(m³|立方)\s*[\/每]\s*(小时|h|H)/, // 100m³/h
-      /处理量[：:]\s*(\d+)\s*(吨|t|m³|立方)/,     // 处理量：50吨
-      /(\d+)\s*吨/,                              // 50吨
-      /(\d+)\s*立方/,                            // 50立方
+      /处理量[：:]\s*(\d+)\s*(吨|t|m³|立方)/, // 处理量：50吨
+      /(\d+)\s*吨/, // 50吨
+      /(\d+)\s*立方/, // 50立方
     ];
-    
+
     for (const pattern of capacityPatterns) {
       const match = text.match(pattern);
       if (match) {
         return match[0];
       }
     }
-    
+
     // 尺寸模式
     const sizePatterns = [
-      /(\d+[xX×]\d+[xX×]?\d*)/,  // 4000×3000
-      /φ\s*\d+/,                  // φ4000
+      /(\d+[xX×]\d+[xX×]?\d*)/, // 4000×3000
+      /φ\s*\d+/, // φ4000
     ];
-    
+
     for (const pattern of sizePatterns) {
       const match = text.match(pattern);
       if (match) {
         return match[0];
       }
     }
-    
+
     return '';
   }
 
@@ -965,7 +1002,7 @@ class TextParser {
 class FileDownloader {
   async download(file: any, fileKey: string): Promise<Buffer | null> {
     console.log('[Downloader] 开始下载文件:', file?.name || '未知');
-    
+
     if (file?.buffer) {
       console.log('[Downloader] 使用已有的 buffer');
       return file.buffer;
@@ -974,10 +1011,10 @@ class FileDownloader {
     if (file?.url) {
       try {
         console.log('[Downloader] 从 URL 下载:', file.url);
-        const response = await fetch(file.url, { 
-          signal: AbortSignal.timeout(30000) // 30秒超时
+        const response = await fetch(file.url, {
+          signal: AbortSignal.timeout(30000), // 30秒超时
         });
-        
+
         if (response.ok) {
           const arrayBuffer = await response.arrayBuffer();
           console.log('[Downloader] 下载成功，大小:', arrayBuffer.byteLength);
@@ -1005,20 +1042,20 @@ class FileDownloader {
 class ExcelParser {
   async parse(buffer: Buffer): Promise<ParseResult> {
     console.log('[Excel] 开始解析Excel文件');
-    
+
     try {
       const workbook = XLSX.read(buffer, { type: 'buffer', cellStyles: true, cellText: true });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      
+
       // 获取合并单元格信息
       const merges = worksheet['!merges'] || [];
       console.log('[Excel] 合并单元格数量:', merges.length);
-      
+
       // 转换为二维数组，保留原始格式
       const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
       const data: any[][] = [];
-      
+
       for (let R = range.s.r; R <= range.e.r; ++R) {
         const row: any[] = [];
         for (let C = range.s.c; C <= range.e.c; ++C) {
@@ -1028,7 +1065,7 @@ class ExcelParser {
         }
         data.push(row);
       }
-      
+
       // 创建合并单元格值映射
       const mergeValueMap = new Map<string, any>();
       for (const merge of merges) {
@@ -1038,55 +1075,67 @@ class ExcelParser {
           mergeValueMap.set(`${merge.s.r},${merge.s.c}`, topLeftCell.v);
         }
       }
-      
+
       // 辅助函数：获取单元格值（处理合并单元格）
       const getCellValue = (row: number, col: number): any => {
         if (row < 0 || row >= data.length) return undefined;
         const rowData = data[row];
         if (!rowData || col < 0 || col >= rowData.length) return undefined;
-        
+
         // 如果当前单元格有值，直接返回
         if (rowData[col] !== undefined && rowData[col] !== '') {
           return rowData[col];
         }
-        
+
         // 检查是否在合并区域内
         for (const merge of merges) {
           if (row >= merge.s.r && row <= merge.e.r && col >= merge.s.c && col <= merge.e.c) {
             return mergeValueMap.get(`${merge.s.r},${merge.s.c}`);
           }
         }
-        
+
         return rowData[col];
       };
-      
+
       // 查找表头行
       let headerRow = -1;
       let nameCol = -1;
       let specsCol = -1;
       let quantityCol = -1;
       let unitCol = -1;
-      
+
       console.log('[Excel] 开始查找表头...');
       for (let i = 0; i < Math.min(10, data.length); i++) {
         const row = data[i];
         if (!row || row.length === 0) continue;
-        
+
         // 将行数据转换为字符串进行匹配
-        const rowStr = row.map(cell => cell ? String(cell) : '').join('|').toLowerCase();
-        
+        const rowStr = row
+          .map((cell) => (cell ? String(cell) : ''))
+          .join('|')
+          .toLowerCase();
+
         console.log(`[Excel] 第${i}行内容:`, rowStr);
-        
+
         // 检测是否为表头行
         if (rowStr.includes('产品') || rowStr.includes('设备名称') || rowStr.includes('名称')) {
           headerRow = i;
-          
+
           // 识别列位置
           row.forEach((cell, col) => {
             const cellStr = cell ? String(cell).toLowerCase() : '';
-            if (cellStr.includes('产品名称') || cellStr.includes('设备名称') || cellStr === '名称') {
+            if (
+              cellStr.includes('产品名称') ||
+              cellStr.includes('设备名称') ||
+              cellStr === '名称'
+            ) {
               nameCol = col;
-            } else if (cellStr.includes('规格') || cellStr.includes('型号') || cellStr.includes('简介说明') || cellStr === '规格型号') {
+            } else if (
+              cellStr.includes('规格') ||
+              cellStr.includes('型号') ||
+              cellStr.includes('简介说明') ||
+              cellStr === '规格型号'
+            ) {
               specsCol = col;
             } else if (cellStr.includes('数量') || cellStr === '数量') {
               quantityCol = col;
@@ -1094,12 +1143,17 @@ class ExcelParser {
               unitCol = col;
             }
           });
-          
-          console.log('[Excel] 找到表头行:', i, '列位置:', { nameCol, specsCol, quantityCol, unitCol });
+
+          console.log('[Excel] 找到表头行:', i, '列位置:', {
+            nameCol,
+            specsCol,
+            quantityCol,
+            unitCol,
+          });
           break;
         }
       }
-      
+
       if (headerRow === -1) {
         console.warn('[Excel] 未找到表头行，尝试使用默认列位置');
         headerRow = 0;
@@ -1108,54 +1162,52 @@ class ExcelParser {
         quantityCol = 3;
         unitCol = 3;
       }
-      
+
       // 解析数据行
       const products: Product[] = [];
       const productMap = new Map<string, Product>(); // 用于去重：产品名称 -> 产品对象
       let lastProductName = ''; // 记录上一个产品名称
-      
+
       console.log('[Excel] 开始解析数据行...');
-      
+
       for (let i = headerRow + 1; i < data.length; i++) {
         const row = data[i];
-        
+
         // 检查整行是否为空，如果是则跳过
-        const isRowEmpty = row.every(cell => 
-          cell === undefined || 
-          cell === '' || 
-          String(cell).trim() === ''
+        const isRowEmpty = row.every(
+          (cell) => cell === undefined || cell === '' || String(cell).trim() === ''
         );
-        
+
         if (isRowEmpty) {
           console.log(`[Excel] 第${i}行: 空行，跳过`);
           continue;
         }
-        
+
         const nameValue = getCellValue(i, nameCol);
         const productName = nameValue ? String(nameValue).trim() : '';
-        
+
         // 如果当前行有产品名称且与上一个不同，说明是一个新产品
         if (productName !== '' && productName !== lastProductName) {
           // 保存上一个产品（如果有的话）
           if (lastProductName !== '' && productMap.has(lastProductName)) {
             const product = productMap.get(lastProductName)!;
             // 只有当产品还没有添加到数组时才添加
-            if (!products.some(p => p.name === product.name)) {
+            if (!products.some((p) => p.name === product.name)) {
               products.push(product);
             }
           }
-          
+
           // 创建新产品
           const specsValue = getCellValue(i, specsCol) || '';
           const quantityValue = getCellValue(i, quantityCol) || '';
           const unitValue = getCellValue(i, unitCol) || '';
-          
+
           let quantity = 1;
           const qtyMatch = String(quantityValue).match(/(\d+)/);
           if (qtyMatch) {
             quantity = parseInt(qtyMatch[1]);
           }
-          
+
           const newProduct: Product = {
             name: productName,
             model: '',
@@ -1165,9 +1217,9 @@ class ExcelParser {
             unit: String(unitValue).trim() || '套',
             price: 0,
             total: 0,
-            remark: ''
+            remark: '',
           };
-          
+
           productMap.set(productName, newProduct);
           lastProductName = productName;
           console.log(`[Excel] 第${i}行: 新产品 - ${productName}`);
@@ -1175,44 +1227,54 @@ class ExcelParser {
           // 如果当前行没有产品名称或产品名称相同，追加规格说明
           if (lastProductName !== '' && productMap.has(lastProductName)) {
             const currentProduct = productMap.get(lastProductName)!;
-            
+
             if (specsCol !== -1) {
               const specsValue = getCellValue(i, specsCol);
-              if (specsValue !== undefined && specsValue !== '' && String(specsValue).trim() !== '') {
+              if (
+                specsValue !== undefined &&
+                specsValue !== '' &&
+                String(specsValue).trim() !== ''
+              ) {
                 const specsStr = String(specsValue).trim();
                 if (currentProduct.specs) {
                   currentProduct.specs += '\n' + specsStr;
                 } else {
                   currentProduct.specs = specsStr;
                 }
-                console.log(`[Excel] 第${i}行: 追加规格到 ${productName || lastProductName} - ${specsStr}`);
+                console.log(
+                  `[Excel] 第${i}行: 追加规格到 ${productName || lastProductName} - ${specsStr}`
+                );
               }
             }
           }
         }
       }
-      
+
       // 保存最后一个产品
       if (lastProductName !== '' && productMap.has(lastProductName)) {
         const product = productMap.get(lastProductName)!;
-        if (!products.some(p => p.name === product.name)) {
+        if (!products.some((p) => p.name === product.name)) {
           products.push(product);
         }
       }
-      
+
       console.log(`[Excel] 解析完成，共 ${products.length} 个产品`);
       products.forEach((p, idx) => {
         console.log(`[Excel] 产品${idx + 1}: ${p.name}, 规格行数: ${p.specs.split('\n').length}`);
       });
-      
+
       return {
         products,
         globalRemarks: [],
-        parseLevel: 'excel'
+        parseLevel: 'excel',
       };
     } catch (error) {
       console.error('[Excel] 解析失败:', error);
-      return { products: [], globalRemarks: ['Excel解析失败: ' + (error instanceof Error ? error.message : '未知错误')], parseLevel: 'error' };
+      return {
+        products: [],
+        globalRemarks: ['Excel解析失败: ' + (error instanceof Error ? error.message : '未知错误')],
+        parseLevel: 'error',
+      };
     }
   }
 }
@@ -1242,13 +1304,13 @@ class PdfParser {
 
       Logger.info('[PDF] pdf-parse解析成功', {
         pageCount: data.numpages,
-        textLength: data.text?.length || 0
+        textLength: data.text?.length || 0,
       });
 
       if (data.text && data.text.trim().length > 0) {
         const tableProducts = this.ocrHelper.extractProductsFromTable(data.text);
 
-        const products = tableProducts.map(p => ({
+        const products = tableProducts.map((p) => ({
           name: p.name,
           model: p.model || '',
           brand: '',
@@ -1257,21 +1319,21 @@ class PdfParser {
           unit: p.unit,
           price: 0,
           total: 0,
-          remark: '从PDF提取'
+          remark: '从PDF提取',
         }));
 
         Logger.info('[PDF] 解析成功', { productCount: products.length });
         return {
           products,
           globalRemarks: [],
-          parseLevel: 'pdf-parse'
+          parseLevel: 'pdf-parse',
         };
       } else {
         Logger.warn('[PDF] 未提取到文本内容');
         return {
           products: [],
           globalRemarks: ['PDF未包含可提取的文本内容'],
-          parseLevel: 'error'
+          parseLevel: 'error',
         };
       }
     } catch (error) {
@@ -1285,7 +1347,7 @@ class PdfParser {
         if (text && text.trim().length > 0) {
           const tableProducts = this.ocrHelper.extractProductsFromTable(text);
 
-          const products = tableProducts.map(p => ({
+          const products = tableProducts.map((p) => ({
             name: p.name,
             model: p.model || '',
             brand: '',
@@ -1294,14 +1356,14 @@ class PdfParser {
             unit: p.unit,
             price: 0,
             total: 0,
-            remark: '通过OCR提取'
+            remark: '通过OCR提取',
           }));
 
           Logger.info('[PDF] OCR解析成功', { productCount: products.length });
           return {
             products,
             globalRemarks: [],
-            parseLevel: 'ocr'
+            parseLevel: 'ocr',
           };
         }
       } catch (ocrError) {
@@ -1328,10 +1390,10 @@ class WordParser {
 
       const result = await mammoth.extractRawText({ buffer: fileInfo.buffer });
       const text = result.value;
-      
+
       const products: Product[] = [];
       const lines = text.split('\n');
-      
+
       // 简单的产品提取逻辑
       for (const line of lines) {
         if (line.includes('产品') || line.includes('型号')) {
@@ -1342,7 +1404,7 @@ class WordParser {
       return {
         products,
         globalRemarks: [],
-        parseLevel: 'word'
+        parseLevel: 'word',
       };
     } catch (error) {
       console.error('[Word] 解析失败:', error);
@@ -1361,27 +1423,27 @@ class ConversationGenerator {
    */
   generateTextResponse(message: string): string {
     console.log('[Conversation] 生成文字回复:', message);
-    
+
     // 检查是否是问候语
     if (this.isGreeting(message)) {
       return this.getGreetingResponse();
     }
-    
+
     // 检查是否是常见问题
     if (this.isCommonQuestion(message)) {
       return this.getCommonQuestionResponse(message);
     }
-    
+
     // 检查是否是价格询问
     if (this.isPriceInquiry(message)) {
       return this.getPriceInquiryResponse(message);
     }
-    
+
     // 检查是否是技术咨询
     if (this.isTechnicalInquiry(message)) {
       return this.getTechnicalResponse(message);
     }
-    
+
     // 默认回复
     return this.getDefaultResponse();
   }
@@ -1390,8 +1452,18 @@ class ConversationGenerator {
    * 判断是否为问候语
    */
   private isGreeting(message: string): boolean {
-    const greetings = ['你好', '您好', 'hi', 'hello', '在吗', '在不在', '早上好', '下午好', '晚上好'];
-    return greetings.some(g => message.toLowerCase().includes(g));
+    const greetings = [
+      '你好',
+      '您好',
+      'hi',
+      'hello',
+      '在吗',
+      '在不在',
+      '早上好',
+      '下午好',
+      '晚上好',
+    ];
+    return greetings.some((g) => message.toLowerCase().includes(g));
   }
 
   /**
@@ -1412,7 +1484,7 @@ class ConversationGenerator {
    */
   private isCommonQuestion(message: string): boolean {
     const questions = ['怎么用', '如何使用', '功能介绍', '能做什么', '收费'];
-    return questions.some(q => message.includes(q));
+    return questions.some((q) => message.includes(q));
   }
 
   /**
@@ -1422,7 +1494,7 @@ class ConversationGenerator {
     if (message.includes('收费')) {
       return `目前基础报价功能免费使用，高级功能正在开发中，敬请期待！`;
     }
-    
+
     return `我可以帮您：
 1. 📊 生成报价单 - 上传Excel或描述产品需求
 2. 💰 查询价格 - 直接输入产品名称和规格
@@ -1437,7 +1509,7 @@ class ConversationGenerator {
    */
   private isPriceInquiry(message: string): boolean {
     const priceKeywords = ['价格', '多少钱', '报价', '价格表', '单价', '市场价'];
-    return priceKeywords.some(k => message.includes(k));
+    return priceKeywords.some((k) => message.includes(k));
   }
 
   /**
@@ -1457,7 +1529,7 @@ class ConversationGenerator {
    */
   private isTechnicalInquiry(message: string): boolean {
     const techKeywords = ['技术', '工艺', '原理', '流程', '方案', '设计', '选型', '怎么选'];
-    return techKeywords.some(k => message.includes(k));
+    return techKeywords.some((k) => message.includes(k));
   }
 
   /**
@@ -1491,9 +1563,9 @@ class ConversationGenerator {
    */
   generateIntentPrompt(products?: Product[]): string {
     if (products && products.length > 0) {
-      return `我理解您需要的是：\n${products.map(p => `• ${p.name} ${p.specs || ''}`).join('\n')}\n\n请选择您需要的服务：`;
+      return `我理解您需要的是：\n${products.map((p) => `• ${p.name} ${p.specs || ''}`).join('\n')}\n\n请选择您需要的服务：`;
     }
-    
+
     return `请选择您需要的服务：`;
   }
 }
@@ -1503,12 +1575,15 @@ class ConversationGenerator {
 // ============================================================================
 
 class ConversationMemory {
-  private conversations: Map<string, {
-    history: Array<{ role: string; content: string; timestamp: number }>;
-    userInfo: Map<string, any>;
-    lastTopic: string;
-    preferences: Map<string, any>;
-  }> = new Map();
+  private conversations: Map<
+    string,
+    {
+      history: Array<{ role: string; content: string; timestamp: number }>;
+      userInfo: Map<string, any>;
+      lastTopic: string;
+      preferences: Map<string, any>;
+    }
+  > = new Map();
 
   /**
    * 获取或创建对话记忆
@@ -1519,7 +1594,7 @@ class ConversationMemory {
         history: [],
         userInfo: new Map(),
         lastTopic: '',
-        preferences: new Map()
+        preferences: new Map(),
       });
     }
     return this.conversations.get(conversationId)!;
@@ -1533,9 +1608,9 @@ class ConversationMemory {
     memory.history.push({
       role,
       content,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
+
     // 只保留最近20条记录
     if (memory.history.length > 20) {
       memory.history = memory.history.slice(-20);
@@ -1548,7 +1623,7 @@ class ConversationMemory {
   getContext(conversationId: string, maxLength: number = 5): string {
     const memory = this.getMemory(conversationId);
     const recent = memory.history.slice(-maxLength);
-    return recent.map(h => `${h.role === 'user' ? '用户' : '助手'}: ${h.content}`).join('\n');
+    return recent.map((h) => `${h.role === 'user' ? '用户' : '助手'}: ${h.content}`).join('\n');
   }
 
   /**
@@ -1599,7 +1674,7 @@ class DomainKnowledgeBase {
         disadvantages: ['脱氮效率70-80%', '除磷效果有限', '占地面积较大'],
         suitable: '适用于COD浓度适中、氨氮要求一般的城镇污水',
         price: '8-12万元/50吨',
-        case: '某农村50吨/天生活污水站，投资85万元，运行成本0.8元/吨'
+        case: '某农村50吨/天生活污水站，投资85万元，运行成本0.8元/吨',
       },
       'A²/O': {
         fullName: '厌氧-缺氧-好氧工艺',
@@ -1608,94 +1683,94 @@ class DomainKnowledgeBase {
         disadvantages: ['运行管理要求高', '碳源需求量大', '污泥处理复杂'],
         suitable: '适用于对氮磷排放要求严格的生活污水',
         price: '15-20万元/50吨',
-        case: '某住宅小区100吨/天污水处理站，投资180万元，出水一级A'
+        case: '某住宅小区100吨/天污水处理站，投资180万元，出水一级A',
       },
-      'MBR': {
+      MBR: {
         fullName: '膜生物反应器',
         application: '高标准排放或回用要求的污水处理',
         advantages: ['出水水质好（可直接回用）', '占地面积小', '污泥产量低', '自动化程度高'],
         disadvantages: ['投资成本高', '膜组件需定期更换', '能耗较高'],
         suitable: '适用于出水要求高、占地有限的项目',
         price: '25-35万元/50吨',
-        case: '某工业园区废水处理，MBR工艺，投资280万元，回用率70%'
+        case: '某工业园区废水处理，MBR工艺，投资280万元，回用率70%',
       },
-      'MBBR': {
+      MBBR: {
         fullName: '移动床生物膜反应器',
         application: '改造扩容或占地有限的项目',
         advantages: ['处理效率高', '占地小', '抗冲击负荷强'],
         disadvantages: ['填料需补充', '曝气系统要求高', '设计经验要求高'],
         suitable: '适用于现有设施改造或扩容',
         price: '18-25万元/50吨',
-        case: '某工厂废水处理改造，MBBR工艺，处理效率提升40%'
-      }
+        case: '某工厂废水处理改造，MBBR工艺，处理效率提升40%',
+      },
     },
-    
+
     materials: {
-      '碳钢': {
+      碳钢: {
         pros: '价格低，强度高',
         cons: '需防腐处理，寿命8-10年',
         price: '基础价格',
-        suitable: '预算有限、室内安装'
+        suitable: '预算有限、室内安装',
       },
-      '不锈钢': {
+      不锈钢: {
         pros: '耐腐蚀，寿命15年以上',
         cons: '价格是碳钢的2-3倍',
         price: '+4-5万元/50吨',
-        suitable: '恶劣环境、高标准要求'
+        suitable: '恶劣环境、高标准要求',
       },
-      '玻璃钢': {
+      玻璃钢: {
         pros: '轻质高强，耐腐蚀',
         cons: '抗冲击性较差',
         price: '+3-4万元/50吨',
-        suitable: '地埋式安装、潮湿环境'
-      }
+        suitable: '地埋式安装、潮湿环境',
+      },
     },
-    
+
     standards: {
-      '一级B': {
+      一级B: {
         description: '适用于排入地表水体',
         indicators: 'COD≤60mg/L，BOD≤20mg/L，NH3-N≤8mg/L',
-        application: '一般排放标准'
+        application: '一般排放标准',
       },
-      '一级A': {
+      一级A: {
         description: '适用于敏感区域排放',
         indicators: 'COD≤50mg/L，BOD≤10mg/L，NH3-N≤5mg/L',
-        application: '高标准排放'
+        application: '高标准排放',
       },
-      '回用标准': {
+      回用标准: {
         description: '根据回用用途确定',
         indicators: 'COD≤30mg/L，BOD≤6mg/L，NH3-N≤1.5mg/L',
-        application: '中水回用、绿化浇灌'
-      }
-    }
+        application: '中水回用、绿化浇灌',
+      },
+    },
   };
 
   // 水泵知识库
   private pumpKnowledge = {
     types: {
-      '离心泵': {
+      离心泵: {
         application: '清水、污水输送，流量大、扬程适中',
         price: '1500-8000元/台',
-        brands: ['格兰富', '威乐', '南方泵业']
+        brands: ['格兰富', '威乐', '南方泵业'],
       },
-      '螺杆泵': {
+      螺杆泵: {
         application: '高粘度介质、污泥输送',
         price: '3000-12000元/台',
-        brands: ['西派克', '耐驰', '艾迪']
+        brands: ['西派克', '耐驰', '艾迪'],
       },
-      '隔膜泵': {
+      隔膜泵: {
         application: '含颗粒介质、计量输送',
         price: '2000-6000元/台',
-        brands: ['英格索兰', '威尔顿', '边锋']
-      }
+        brands: ['英格索兰', '威尔顿', '边锋'],
+      },
     },
-    
+
     selectionGuide: `**水泵选型要点：**
 1. **流量(Q)**：根据实际需求确定，m³/h或L/s
 2. **扬程(H)**：包括静扬程+管路损失，单位米
 3. **介质特性**：温度、粘度、腐蚀性、含固量
 4. **安装方式**：卧式/立式、自吸/非自吸
-5. **材质要求**：铸铁/不锈钢/工程塑料`
+5. **材质要求**：铸铁/不锈钢/工程塑料`,
   };
 
   /**
@@ -1703,9 +1778,9 @@ class DomainKnowledgeBase {
    */
   getWastewaterKnowledge(query: string): string {
     const keywords = {
-      '工艺': this.wastewaterKnowledge.processes,
-      '材质': this.wastewaterKnowledge.materials,
-      '标准': this.wastewaterKnowledge.standards
+      工艺: this.wastewaterKnowledge.processes,
+      材质: this.wastewaterKnowledge.materials,
+      标准: this.wastewaterKnowledge.standards,
     };
 
     for (const [key, value] of Object.entries(keywords)) {
@@ -1724,23 +1799,29 @@ class DomainKnowledgeBase {
     if (query.includes('选型')) {
       return this.pumpKnowledge.selectionGuide;
     }
-    
+
     for (const [type, info] of Object.entries(this.pumpKnowledge.types)) {
       if (query.includes(type)) {
         return this.formatPumpInfo(type, info);
       }
     }
-    
+
     return '';
   }
 
   private formatKnowledge(type: string, data: any): string {
     let result = `**${type}对比分析**\n\n`;
-    
+
     for (const [key, value] of Object.entries(data)) {
       result += `**${key}**：\n`;
       if (typeof value === 'object' && value !== null) {
-        const comparisonData = value as { advantages?: string[], disadvantages?: string[], price?: string, suitable?: string, case?: string };
+        const comparisonData = value as {
+          advantages?: string[];
+          disadvantages?: string[];
+          price?: string;
+          suitable?: string;
+          case?: string;
+        };
         if (comparisonData.advantages) {
           result += `- 优势：${comparisonData.advantages.join('、')}\n`;
         }
@@ -1759,15 +1840,17 @@ class DomainKnowledgeBase {
       }
       result += '\n';
     }
-    
+
     return result;
   }
 
   private formatPumpInfo(type: string, info: any): string {
-    return `**${type}**\n` +
-           `- 应用：${info.application}\n` +
-           `- 价格：${info.price}\n` +
-           `- 品牌：${info.brands.join('、')}`;
+    return (
+      `**${type}**\n` +
+      `- 应用：${info.application}\n` +
+      `- 价格：${info.price}\n` +
+      `- 品牌：${info.brands.join('、')}`
+    );
   }
 }
 
@@ -1790,7 +1873,7 @@ class ProfessionalDialogueEngine {
    * 生成专业回复
    */
   async generateResponse(
-    message: string, 
+    message: string,
     conversationId: string,
     context?: string
   ): Promise<{
@@ -1805,7 +1888,7 @@ class ProfessionalDialogueEngine {
 
     // 1. 获取对话记忆
     const memory = this.memory.getMemory(conversationId);
-    
+
     // 2. 分析意图
     const intent = this.analyzeIntent(message, memory);
     console.log('[ProfessionalEngine] 识别意图:', intent);
@@ -1836,56 +1919,59 @@ class ProfessionalDialogueEngine {
    */
   private analyzeIntent(message: string, memory: any): { type: string; confidence: number } {
     const msg = message.toLowerCase();
-    
+
     // 问候语
     if (msg.match(/你好|您好|hi|hello|在吗|在不在/)) {
       return { type: 'greeting', confidence: 0.95 };
     }
-    
+
     // 污水处理相关
     if (msg.match(/污水|处理|废水|生活污水|工业废水/)) {
       return { type: 'wastewater_inquiry', confidence: 0.9 };
     }
-    
+
     // 水泵相关
     if (msg.match(/泵|水泵|离心泵|螺杆泵|隔膜泵/)) {
       return { type: 'pump_inquiry', confidence: 0.9 };
     }
-    
+
     // 价格询问
     if (msg.match(/价格|多少钱|报价|市场价/)) {
       return { type: 'price_inquiry', confidence: 0.85 };
     }
-    
+
     // 技术咨询
     if (msg.match(/技术|工艺|原理|怎么选|选型|如何选择/)) {
       return { type: 'technical_consultation', confidence: 0.9 };
     }
-    
+
     // 产品对比
     if (msg.match(/对比|比较|哪个好|区别|差异/)) {
       return { type: 'comparison', confidence: 0.9 };
     }
-    
+
     // 跟进对话
     if (memory.lastTopic && msg.length < 20) {
       return { type: 'follow_up', confidence: 0.7 };
     }
-    
+
     return { type: 'general', confidence: 0.5 };
   }
 
   /**
    * 处理问候
    */
-  private handleGreeting(message: string, conversationId: string): {
+  private handleGreeting(
+    message: string,
+    conversationId: string
+  ): {
     content: string;
     suggestions: string[];
     requiresFollowUp: boolean;
   } {
     const hour = new Date().getHours();
     let greeting = '';
-    
+
     if (hour < 6) greeting = '凌晨好';
     else if (hour < 12) greeting = '早上好';
     else if (hour < 14) greeting = '中午好';
@@ -1897,29 +1983,27 @@ class ProfessionalDialogueEngine {
     const hasHistory = context.length > 0;
 
     let content = `${greeting}！我是您的专业报价助手✨\n\n`;
-    
+
     if (hasHistory) {
       content += `欢迎回来！我们之前聊过：\n${context}\n\n`;
     }
 
-    content += `**我可以帮您解决这些问题：**\n\n` +
+    content +=
+      `**我可以帮您解决这些问题：**\n\n` +
       `💧 **污水处理设备**\n` +
       `   - 工艺选择：A/O、A²/O、MBR对比\n` +
       `   - 价格分析：不同配置的价格差异\n` +
       `   - 选型建议：根据水质、规模推荐\n` +
       `   - 典型案例：成功项目参考\n\n` +
-      
       `⚙️ **水泵设备**\n` +
       `   - 类型对比：离心泵、螺杆泵、隔膜泵\n` +
       `   - 选型指南：流量、扬程计算\n` +
       `   - 价格查询：不同品牌价格\n` +
       `   - 品牌推荐：主流品牌特点\n\n` +
-      
       `📊 **报价生成**\n` +
       `   - 产品清单解析\n` +
       `   - 自动价格匹配\n` +
       `   - 专业报价单生成\n\n` +
-      
       `🔧 **技术支持**\n` +
       `   - 工艺方案设计\n` +
       `   - 设备选型指导\n` +
@@ -1929,37 +2013,41 @@ class ProfessionalDialogueEngine {
       '污水处理设备怎么选型',
       '50吨/天设备价格',
       'A/O和MBR工艺对比',
-      '离心泵选型指南'
+      '离心泵选型指南',
     ];
 
     return {
       content,
       suggestions,
-      requiresFollowUp: true
+      requiresFollowUp: true,
     };
   }
 
   /**
    * 处理污水处理咨询
    */
-  private handleWastewaterInquiry(message: string, conversationId: string): {
+  private handleWastewaterInquiry(
+    message: string,
+    conversationId: string
+  ): {
     content: string;
     suggestions: string[];
     requiresFollowUp: boolean;
     followUpQuestions?: string[];
   } {
     const msg = message.toLowerCase();
-    
+
     // 检查是否包含具体规模
     const scaleMatch = msg.match(/(\d+)\s*吨/);
     const hasScale = !!scaleMatch;
-    
+
     // 检查是否包含工艺
-    const hasProcess = msg.includes('工艺') || msg.includes('A/O') || msg.includes('A2O') || msg.includes('MBR');
-    
+    const hasProcess =
+      msg.includes('工艺') || msg.includes('A/O') || msg.includes('A2O') || msg.includes('MBR');
+
     // 检查是否包含材质
     const hasMaterial = msg.includes('材质') || msg.includes('碳钢') || msg.includes('不锈钢');
-    
+
     // 检查是否包含标准
     const hasStandard = msg.includes('标准') || msg.includes('一级A') || msg.includes('一级B');
 
@@ -1970,10 +2058,10 @@ class ProfessionalDialogueEngine {
       // 用户提供了详细信息，可以给出专业建议
       const scale = scaleMatch ? scaleMatch[1] : '50';
       content = `根据您提供的${scale}吨/天处理规模，我为您分析如下：\n\n`;
-      
+
       // 添加工艺对比
       content += this.knowledgeBase.getWastewaterKnowledge('工艺');
-      
+
       // 根据具体问题补充信息
       if (hasProcess) {
         content += `\n**工艺选择建议：**\n`;
@@ -1981,20 +2069,20 @@ class ProfessionalDialogueEngine {
         content += `- 高标准排放：推荐MBR工艺，出水可直接回用\n`;
         content += `- 预算有限：可考虑A/O工艺，投资较低\n`;
       }
-      
+
       if (hasMaterial) {
         content += this.knowledgeBase.getWastewaterKnowledge('材质');
       }
-      
+
       if (hasStandard) {
         content += this.knowledgeBase.getWastewaterKnowledge('标准');
       }
-      
+
       followUpQuestions = [
         '您处理的是什么类型的水？（生活污水/工业废水）',
         '对出水水质有什么具体要求？',
         '项目预算大概是多少？',
-        '现场条件如何？（占地、电力等）'
+        '现场条件如何？（占地、电力等）',
       ];
     } else {
       // 信息不足，引导用户提供更多信息
@@ -2006,11 +2094,11 @@ class ProfessionalDialogueEngine {
       content += `4️⃣ **材质要求** - 碳钢、不锈钢、玻璃钢\n`;
       content += `5️⃣ **出水标准** - 一级A、一级B、回用标准\n\n`;
       content += `您提供的信息越详细，我的建议就越精准！`;
-      
+
       followUpQuestions = [
         '处理规模是多少吨/天？',
         '处理的是什么类型的水？',
-        '对工艺有什么具体要求吗？'
+        '对工艺有什么具体要求吗？',
       ];
     }
 
@@ -2021,53 +2109,58 @@ class ProfessionalDialogueEngine {
       '50吨/天生活污水设备价格',
       'A/O和MBR工艺对比',
       '不锈钢和碳钢材质对比',
-      '一级A标准要求'
+      '一级A标准要求',
     ];
 
     return {
       content,
       suggestions,
       requiresFollowUp: true,
-      followUpQuestions
+      followUpQuestions,
     };
   }
 
   /**
    * 处理水泵咨询
    */
-  private handlePumpInquiry(message: string, conversationId: string): {
+  private handlePumpInquiry(
+    message: string,
+    conversationId: string
+  ): {
     content: string;
     suggestions: string[];
     requiresFollowUp: boolean;
     followUpQuestions?: string[];
   } {
     const msg = message.toLowerCase();
-    
+
     // 获取水泵知识
     const pumpKnowledge = this.knowledgeBase.getPumpKnowledge(msg);
-    
-    let content = pumpKnowledge || `关于水泵设备，我可以帮您：\n\n` +
-      `**常见水泵类型：**\n` +
-      `- 离心泵：清水输送，流量大\n` +
-      `- 螺杆泵：高粘度介质，污泥输送\n` +
-      `- 隔膜泵：含颗粒介质，计量输送\n\n` +
-      `**选型需要参数：**\n` +
-      `- 流量(Q)：单位m³/h或L/s\n` +
-      `- 扬程(H)：单位米\n` +
-      `- 介质特性：温度、粘度、腐蚀性\n` +
-      `- 安装方式：卧式/立式`;
+
+    let content =
+      pumpKnowledge ||
+      `关于水泵设备，我可以帮您：\n\n` +
+        `**常见水泵类型：**\n` +
+        `- 离心泵：清水输送，流量大\n` +
+        `- 螺杆泵：高粘度介质，污泥输送\n` +
+        `- 隔膜泵：含颗粒介质，计量输送\n\n` +
+        `**选型需要参数：**\n` +
+        `- 流量(Q)：单位m³/h或L/s\n` +
+        `- 扬程(H)：单位米\n` +
+        `- 介质特性：温度、粘度、腐蚀性\n` +
+        `- 安装方式：卧式/立式`;
 
     const suggestions = [
       '离心泵选型指南',
       '格兰富水泵价格',
       '水泵扬程计算方法',
-      '不同品牌水泵对比'
+      '不同品牌水泵对比',
     ];
 
     const followUpQuestions = [
       '需要什么类型的水泵？',
       '流量和扬程要求是多少？',
-      '输送的是什么介质？'
+      '输送的是什么介质？',
     ];
 
     this.memory.updateLastTopic(conversationId, '水泵');
@@ -2076,81 +2169,88 @@ class ProfessionalDialogueEngine {
       content,
       suggestions,
       requiresFollowUp: true,
-      followUpQuestions
+      followUpQuestions,
     };
   }
 
   /**
    * 处理价格咨询（增强版：优先知识库匹配，失败则联网搜索）
    */
-  private async handlePriceInquiry(message: string, conversationId: string): Promise<{
+  private async handlePriceInquiry(
+    message: string,
+    conversationId: string
+  ): Promise<{
     content: string;
     suggestions: string[];
     requiresFollowUp: boolean;
     followUpQuestions?: string[];
   }> {
     console.log('[PriceInquiry] ========== 开始处理价格查询 ==========');
-    
+
     // 尝试提取产品信息
     const parser = new TextParser();
     const products = parser.parse(message);
-    
+
     let content = '';
     let followUpQuestions: string[] = [];
 
     if (products.length > 0) {
       console.log(`[PriceInquiry] 解析到 ${products.length} 个产品`);
-      
+
       content = `我理解您想查询以下产品的价格：\n\n`;
       products.forEach((p, i) => {
-        content += `${i+1}. **${p.name}**`;
+        content += `${i + 1}. **${p.name}**`;
         if (p.specs) content += ` ${p.specs}`;
         if (p.quantity > 1) content += ` ×${p.quantity}`;
         content += '\n';
       });
-      
+
       content += `\n`;
-      
+
       // 第一步：尝试从价格库匹配
       console.log('[PriceInquiry] 尝试从价格库匹配...');
       const matchedProducts = [];
       const matchResults = [];
-      
+
       for (const product of products) {
         const productMatch: ProductMatch = {
           name: product.name,
           model: product.model || product.specs,
           parameter_description: product.specs || product.model,
           quantity: product.quantity,
-          unit: product.unit
+          unit: product.unit,
         };
-        
+
         const matchResult = await PriceMatcher.matchPrice(productMatch, undefined, true);
         matchResults.push(matchResult);
-        
+
         matchedProducts.push({
           ...product,
           marketPrice: matchResult.price,
           source: matchResult.source,
           confidence: matchResult.confidence,
-          marketPriceInfo: matchResult.marketPrice ? {
-            min: matchResult.marketPrice * 0.8,
-            max: matchResult.marketPrice * 1.2
-          } : undefined
+          marketPriceInfo: matchResult.marketPrice
+            ? {
+                min: matchResult.marketPrice * 0.8,
+                max: matchResult.marketPrice * 1.2,
+              }
+            : undefined,
         });
       }
-      
+
       // 检查是否有足够高置信度的匹配
-      const hasHighConfidenceMatch = matchResults.some(r => r.confidence >= 0.7 && r.source !== 'estimate' && r.source !== 'default');
-      
+      const hasHighConfidenceMatch = matchResults.some(
+        (r) => r.confidence >= 0.7 && r.source !== 'estimate' && r.source !== 'default'
+      );
+
       if (hasHighConfidenceMatch) {
         console.log('[PriceInquiry] 从价格库匹配到高置信度价格');
         content += `**价格库匹配结果：**\n\n`;
-        
+
         for (let i = 0; i < matchedProducts.length; i++) {
           const p = matchedProducts[i];
           const match = matchResults[i];
-          
+
           content += `**${p.name}**`;
           if (p.specs) content += ` ${p.specs}`;
           content += `\n`;
@@ -2158,74 +2258,70 @@ class ProfessionalDialogueEngine {
           content += `- 价格来源：${this.getSourceName(match.source)}\n`;
           content += `- 可信度：${Math.round(match.confidence * 100)}%\n\n`;
         }
-        
+
         // 添加价格影响因素说明
         content += `\n**价格影响因素：**\n`;
         content += `- 品牌差异：不同品牌价格差异可达30-50%\n`;
         content += `- 材质选择：不锈钢比碳钢贵40-60%\n`;
         content += `- 自动化程度：全自动比手动贵20-30%\n`;
         content += `- 采购数量：批量采购可享受8-9折优惠\n\n`;
-        
+
         followUpQuestions = [
           '有偏好的品牌吗？',
           '对材质有什么要求？',
           '需要自动化控制吗？',
-          '采购数量是多少？'
+          '采购数量是多少？',
         ];
       } else {
         console.log('[PriceInquiry] 价格库匹配置信度不足，启动联网搜索');
-        
+
         // 显示搜索状态
         content += `🔍 正在为您搜索实时市场价格...\n\n`;
-        
+
         // 执行联网搜索获取实时价格
         const searchResult = await this.webSearch.searchPrices(products);
-        
+
         content += searchResult.content;
-        
+
         if (searchResult.sources && searchResult.sources.length > 0) {
           content += `\n**信息来源：**\n`;
           searchResult.sources.slice(0, 3).forEach((source, i) => {
-            content += `${i+1}. [${source.title}](${source.url})\n`;
+            content += `${i + 1}. [${source.title}](${source.url})\n`;
           });
           content += `\n`;
         }
-        
+
         followUpQuestions = [
           '有偏好的品牌吗？',
           '对材质有什么具体要求？',
           '需要什么配置（自动化程度）？',
-          '采购数量是多少？（批量采购有优惠）'
+          '采购数量是多少？（批量采购有优惠）',
         ];
       }
-      
+
       // 添加服务选项
       content += `💡 **我可以为您：**\n`;
       content += `1️⃣ 生成详细报价单（含产品规格、价格明细）\n`;
       content += `2️⃣ 提供不同品牌价格对比\n`;
       content += `3️⃣ 根据您的预算推荐合适方案\n`;
-
     } else {
       console.log('[PriceInquiry] 未能解析出产品');
-      content = `为了给您准确的价格，请提供：\n\n` +
+      content =
+        `为了给您准确的价格，请提供：\n\n` +
         `- **产品名称**：如离心泵、污水处理设备\n` +
         `- **型号规格**：如IS150-125-250、50吨/天\n` +
         `- **数量**：需要几台/几套\n` +
         `- **品牌偏好**：如有指定品牌\n\n` +
         `价格会根据这些因素有较大差异，详细信息能让我报价更精准。`;
-      
-      followUpQuestions = [
-        '需要查询什么产品的价格？',
-        '有具体的型号或规格吗？',
-        '需要多少数量？'
-      ];
+
+      followUpQuestions = ['需要查询什么产品的价格？', '有具体的型号或规格吗？', '需要多少数量？'];
     }
 
     const suggestions = [
       '格兰富水泵价格',
       '50吨污水处理设备报价',
       '不锈钢设备价格',
-      '自动控制系统报价'
+      '自动控制系统报价',
     ];
 
     // 更新最后讨论的主题
@@ -2237,7 +2333,7 @@ class ProfessionalDialogueEngine {
       content,
       suggestions,
       requiresFollowUp: true,
-      followUpQuestions
+      followUpQuestions,
     };
   }
 
@@ -2246,12 +2342,12 @@ class ProfessionalDialogueEngine {
    */
   private getSourceName(source: string): string {
     const sourceMap: Record<string, string> = {
-      'database': '价格库',
-      'knowledge': '知识库',
-      'market': '市场参考价',
-      'estimate': '估算价',
-      'default': '默认价格',
-      'web_search': '实时网络搜索'
+      database: '价格库',
+      knowledge: '知识库',
+      market: '市场参考价',
+      estimate: '估算价',
+      default: '默认价格',
+      web_search: '实时网络搜索',
     };
     return sourceMap[source] || source;
   }
@@ -2259,14 +2355,17 @@ class ProfessionalDialogueEngine {
   /**
    * 处理技术咨询
    */
-  private handleTechnicalConsultation(message: string, conversationId: string): {
+  private handleTechnicalConsultation(
+    message: string,
+    conversationId: string
+  ): {
     content: string;
     suggestions: string[];
     requiresFollowUp: boolean;
     followUpQuestions?: string[];
   } {
     const msg = message.toLowerCase();
-    
+
     let content = '';
     let followUpQuestions: string[] = [];
 
@@ -2275,27 +2374,24 @@ class ProfessionalDialogueEngine {
       content += `**1. 处理规模确定**\n`;
       content += `   - 根据实际水量确定设备规格\n`;
       content += `   - 建议预留10-20%余量应对峰值\n\n`;
-      
+
       content += `**2. 水质分析**\n`;
       content += `   - 生活污水：COD 200-400mg/L\n`;
       content += `   - 工业废水：需专项检测\n`;
       content += `   - 特殊污染物：重金属、油脂等\n\n`;
-      
+
       content += `**3. 出水标准选择**\n`;
       content += `   - 一级B：COD≤60mg/L，适用于一般排放\n`;
       content += `   - 一级A：COD≤50mg/L，适用于敏感区域\n`;
       content += `   - 回用标准：根据用途确定\n\n`;
-      
+
       content += `**4. 工艺对比**\n`;
       content += this.knowledgeBase.getWastewaterKnowledge('工艺');
-      
-      followUpQuestions = [
-        '处理规模是多少？',
-        '进水水质情况如何？',
-        '要求达到什么排放标准？'
-      ];
+
+      followUpQuestions = ['处理规模是多少？', '进水水质情况如何？', '要求达到什么排放标准？'];
     } else {
-      content = `关于技术问题，我可以提供：\n\n` +
+      content =
+        `关于技术问题，我可以提供：\n\n` +
         `**工艺方案设计**\n` +
         `- 根据水质特点推荐工艺路线\n` +
         `- 工艺参数计算和优化\n\n` +
@@ -2308,20 +2404,11 @@ class ProfessionalDialogueEngine {
         `**成本分析**\n` +
         `- 投资估算\n` +
         `- 运行成本分析`;
-      
-      followUpQuestions = [
-        '具体想了解哪方面的技术？',
-        '项目处于什么阶段？',
-        '有什么特殊要求吗？'
-      ];
+
+      followUpQuestions = ['具体想了解哪方面的技术？', '项目处于什么阶段？', '有什么特殊要求吗？'];
     }
 
-    const suggestions = [
-      '工艺方案设计',
-      '设备选型指南',
-      '运行维护手册',
-      '成本估算'
-    ];
+    const suggestions = ['工艺方案设计', '设备选型指南', '运行维护手册', '成本估算'];
 
     this.memory.updateLastTopic(conversationId, '技术咨询');
 
@@ -2329,106 +2416,103 @@ class ProfessionalDialogueEngine {
       content,
       suggestions,
       requiresFollowUp: true,
-      followUpQuestions
+      followUpQuestions,
     };
   }
 
   /**
    * 处理产品对比
    */
-  private handleComparison(message: string, conversationId: string): {
+  private handleComparison(
+    message: string,
+    conversationId: string
+  ): {
     content: string;
     suggestions: string[];
     requiresFollowUp: boolean;
     followUpQuestions?: string[];
   } {
-    const content = `**产品对比分析框架**\n\n` +
+    const content =
+      `**产品对比分析框架**\n\n` +
       `当您需要对比不同产品时，可以从以下维度分析：\n\n` +
-      
       `**1. 性能参数对比**\n` +
       `   - 处理能力/流量\n` +
       `   - 效率/能耗\n` +
       `   - 使用寿命\n\n` +
-      
       `**2. 价格对比**\n` +
       `   - 初期投资\n` +
       `   - 运行成本\n` +
       `   - 维护费用\n\n` +
-      
       `**3. 工艺对比**\n` +
       `   - 技术成熟度\n` +
       `   - 适用场景\n` +
       `   - 优缺点分析\n\n` +
-      
       `**4. 品牌对比**\n` +
       `   - 市场口碑\n` +
       `   - 售后服务\n` +
       `   - 配件供应\n\n` +
-      
       `请告诉我要对比的具体产品和维度，我为您详细分析。`;
 
     const suggestions = [
       'A/O和MBR工艺对比',
       '格兰富和威乐水泵对比',
       '不锈钢和碳钢材质对比',
-      '手动和自动控制系统对比'
+      '手动和自动控制系统对比',
     ];
 
-    const followUpQuestions = [
-      '想对比什么产品？',
-      '主要关注哪些方面？',
-      '有预算限制吗？'
-    ];
+    const followUpQuestions = ['想对比什么产品？', '主要关注哪些方面？', '有预算限制吗？'];
 
     return {
       content,
       suggestions,
       requiresFollowUp: true,
-      followUpQuestions
+      followUpQuestions,
     };
   }
 
   /**
    * 处理跟进对话
    */
-  private handleFollowUp(message: string, conversationId: string): {
+  private handleFollowUp(
+    message: string,
+    conversationId: string
+  ): {
     content: string;
     suggestions: string[];
     requiresFollowUp: boolean;
     followUpQuestions?: string[];
   } {
     const lastTopic = this.memory.getLastTopic(conversationId);
-    
+
     let content = `关于您刚才提到的${lastTopic}，我建议您：\n\n`;
     content += `1. **明确具体需求**：提供更多细节，让我能精准分析\n`;
     content += `2. **分步推进**：先确定关键参数，再深入具体方案\n`;
     content += `3. **案例参考**：我可以分享类似项目经验\n\n`;
     content += `您想深入了解哪方面？`;
 
-    const suggestions = [
-      '提供更多需求细节',
-      '查看类似案例',
-      '技术方案建议',
-      '成本分析'
-    ];
+    const suggestions = ['提供更多需求细节', '查看类似案例', '技术方案建议', '成本分析'];
 
     return {
       content,
       suggestions,
-      requiresFollowUp: true
+      requiresFollowUp: true,
     };
   }
 
   /**
    * 处理通用查询
    */
-  private handleGeneralQuery(message: string, conversationId: string): {
+  private handleGeneralQuery(
+    message: string,
+    conversationId: string
+  ): {
     content: string;
     suggestions: string[];
     requiresFollowUp: boolean;
     followUpQuestions?: string[];
   } {
-    const content = `收到您的问题。我可以帮您解决以下专业问题：\n\n` +
+    const content =
+      `收到您的问题。我可以帮您解决以下专业问题：\n\n` +
       `💧 **污水处理设备**\n` +
       `   - 工艺选择、价格分析、选型建议\n` +
       `   - 典型案例分享\n\n` +
@@ -2444,24 +2528,19 @@ class ProfessionalDialogueEngine {
       `   - 运行维护建议\n\n` +
       `您具体想了解什么？可以直接告诉我产品名称、规格和数量。`;
 
-    const suggestions = [
-      '污水处理设备选型',
-      '离心泵价格查询',
-      '生成报价单',
-      '技术方案咨询'
-    ];
+    const suggestions = ['污水处理设备选型', '离心泵价格查询', '生成报价单', '技术方案咨询'];
 
     const followUpQuestions = [
       '想了解哪方面的内容？',
       '有具体的产品或项目吗？',
-      '需要什么类型的帮助？'
+      '需要什么类型的帮助？',
     ];
 
     return {
       content,
       suggestions,
       requiresFollowUp: true,
-      followUpQuestions
+      followUpQuestions,
     };
   }
 }
@@ -2518,13 +2597,13 @@ class UnifiedFileParser {
 async function generateQuoteData(products: Product[]) {
   Logger.info('[QuoteGen] 开始生成报价单', { productCount: products.length });
   // 移除详细的产品列表输出，只输出产品名称
-  Logger.info('[QuoteGen] 产品列表', products.map(p => p.name).join(', '));
+  Logger.info('[QuoteGen] 产品列表', products.map((p) => p.name).join(', '));
 
   // ✅ 自动获取商务信息（供应方、客户、商务条款）
   let businessInfo: any = {
     supplier: null,
     customer: null,
-    terms: null
+    terms: null,
   };
 
   try {
@@ -2538,14 +2617,13 @@ async function generateQuoteData(products: Product[]) {
         Logger.info('[QuoteGen] 商务信息获取成功', {
           hasSupplier: !!businessInfo.supplier,
           hasCustomer: !!businessInfo.customer,
-          hasTerms: !!businessInfo.terms
+          hasTerms: !!businessInfo.terms,
         });
       }
     }
   } catch (error) {
     Logger.warn('[QuoteGen] 获取商务信息失败，使用默认信息', error);
   }
-
 
   const matchedProducts = [];
   const matchResults = [];
@@ -2554,7 +2632,7 @@ async function generateQuoteData(products: Product[]) {
     knowledge: 0,
     market: 0,
     estimate: 0,
-    default: 0
+    default: 0,
   };
 
   for (let i = 0; i < products.length; i++) {
@@ -2568,7 +2646,7 @@ async function generateQuoteData(products: Product[]) {
       model: product.model || product.specs,
       parameter_description: product.specs || product.model,
       quantity: product.quantity,
-      unit: product.unit
+      unit: product.unit,
     };
 
     console.log('[QuoteGen] 调用 PriceMatcher.matchPrice');
@@ -2578,10 +2656,10 @@ async function generateQuoteData(products: Product[]) {
       price: matchResult.price,
       source: matchResult.source,
       confidence: matchResult.confidence,
-      productName: matchResult.productName
+      productName: matchResult.productName,
     });
     matchResults.push(matchResult);
-    
+
     // 统计匹配来源
     if (matchResult.source in matchStats) {
       matchStats[matchResult.source as keyof typeof matchStats]++;
@@ -2596,13 +2674,19 @@ async function generateQuoteData(products: Product[]) {
       unit: product.unit,
       unitPrice: matchResult.price,
       totalPrice: matchResult.price * product.quantity,
-      note: matchResult.source === 'database' ? '来自价格库' :
-            matchResult.source === 'knowledge' ? '来自知识库' :
-            matchResult.source === 'market' ? '市场参考价' :
-            matchResult.source === 'estimate' ? '估算价' : '默认价格',
+      note:
+        matchResult.source === 'database'
+          ? '来自价格库'
+          : matchResult.source === 'knowledge'
+            ? '来自知识库'
+            : matchResult.source === 'market'
+              ? '市场参考价'
+              : matchResult.source === 'estimate'
+                ? '估算价'
+                : '默认价格',
       marketPrice: matchResult.marketPrice,
       priceSource: matchResult.source,
-      confidence: matchResult.confidence
+      confidence: matchResult.confidence,
     });
   }
 
@@ -2633,7 +2717,7 @@ async function generateQuoteData(products: Product[]) {
       warranty: terms.warrantyPeriod || '12个月',
       delivery: terms.deliveryPeriod || '7个工作日',
       validity: terms.validityPeriod || '15天',
-      remarks: terms.remarks || ''
+      remarks: terms.remarks || '',
     },
     // ✅ 添加供应方信息
     supplierInfo: {
@@ -2645,7 +2729,7 @@ async function generateQuoteData(products: Product[]) {
       website: supplier.website || 'www.example.com',
       bankName: supplier.bankName || '中国银行',
       bankAccount: supplier.bankAccount || '1234567890123456',
-      taxId: supplier.taxId || '310115XXXXXXXXXXXX'
+      taxId: supplier.taxId || '310115XXXXXXXXXXXX',
     },
     // ✅ 添加客户信息
     customerInfo: {
@@ -2654,9 +2738,9 @@ async function generateQuoteData(products: Product[]) {
       contactPerson: customer.contactPerson || '李工',
       phone: customer.phone || '13912345678',
       email: customer.email || 'ligong@example.com',
-      address: customer.address || '江苏省苏州市工业园区'
+      address: customer.address || '江苏省苏州市工业园区',
     },
-    matchStats
+    matchStats,
   };
 }
 
@@ -2668,11 +2752,11 @@ function processUploadedFile(file: any) {
   if (typeof file === 'string') {
     return { name: '文件', type: 'application/octet-stream', url: file };
   }
-  
+
   return {
     name: file.name || file.fileName || '未知文件',
     type: file.type || 'application/octet-stream',
-    url: file.url || ''
+    url: file.url || '',
   };
 }
 
@@ -2685,61 +2769,63 @@ class ProjectInfoParser {
    * 解析项目描述中的关键信息
    */
   parseProjectInfo(text: string): {
-    scale?: number;           // 处理规模（吨/天）
-    tankSize?: string;        // 调节池尺寸
-    pumpInfo?: string;        // 水泵信息
-    material?: string;        // 材质要求
-    standard?: string;        // 排放标准
-    address?: string;         // 交货地址
-    companyName?: string;     // 公司名称
-    contactInfo?: any;        // 联系人信息
-    requirements?: string[];  // 特殊要求
+    scale?: number; // 处理规模（吨/天）
+    tankSize?: string; // 调节池尺寸
+    pumpInfo?: string; // 水泵信息
+    material?: string; // 材质要求
+    standard?: string; // 排放标准
+    address?: string; // 交货地址
+    companyName?: string; // 公司名称
+    contactInfo?: any; // 联系人信息
+    requirements?: string[]; // 特殊要求
   } {
     const result: any = {};
-    
+
     // 解析处理规模
     const scaleMatch = text.match(/(\d+)\s*(?:立方|m³|吨)\s*\/?\s*(?:天|日)/i);
     if (scaleMatch) {
       result.scale = parseInt(scaleMatch[1]);
     }
-    
+
     // 解析调节池尺寸
-    const tankMatch = text.match(/调节池[^。]*?长\s*(\d+(?:\.\d+)?)[\s×*]?米[^。]*?宽\s*(\d+(?:\.\d+)?)[\s×*]?米[^。]*?高\s*(\d+(?:\.\d+)?)[\s×*]?米/i);
+    const tankMatch = text.match(
+      /调节池[^。]*?长\s*(\d+(?:\.\d+)?)[\s×*]?米[^。]*?宽\s*(\d+(?:\.\d+)?)[\s×*]?米[^。]*?高\s*(\d+(?:\.\d+)?)[\s×*]?米/i
+    );
     if (tankMatch) {
       result.tankSize = `${tankMatch[1]}m × ${tankMatch[2]}m × ${tankMatch[3]}m`;
     }
-    
+
     // 解析水泵信息
     const pumpMatch = text.match(/(\d+(?:\.\d+)?)KW.*?泵/i);
     if (pumpMatch) {
       result.pumpInfo = pumpMatch[0];
     }
-    
+
     // 解析材质要求
     const materialMatch = text.match(/(碳钢|不锈钢|玻璃钢).*?(\d+)mm/i);
     if (materialMatch) {
       result.material = materialMatch[0];
     }
-    
+
     // 解析排放标准
     const standardMatch = text.match(/(一级A|一级B|回用标准|排放标准[^。]*)/i);
     if (standardMatch) {
       result.standard = standardMatch[1];
     }
-    
+
     // 解析交货地址
     const addressMatch = text.match(/交货地址[：:]\s*([^\n]+)/i);
     if (addressMatch) {
       result.address = addressMatch[1].trim();
     }
-    
+
     // 解析公司名称 - 从公司信息中提取
     const companyMatch = text.match(/公司名称[：:]\s*([^\n]+)/i);
     if (companyMatch) {
       // 直接使用用户输入的公司名称，不做任何修改
       result.companyName = companyMatch[1].trim();
     }
-    
+
     return result;
   }
 }
@@ -2765,7 +2851,7 @@ class DetailedProposalGenerator {
     message: string
   ): Promise<string> {
     console.log('[DetailedProposalGenerator] 开始生成详细方案');
-    
+
     try {
       // 并行生成各个章节，但添加错误处理
       const results = await Promise.allSettled([
@@ -2776,9 +2862,9 @@ class DetailedProposalGenerator {
         this.generateCostAnalysis(projectInfo, products),
         this.generateInstallationAndCommissioning(),
         this.generateOperationAndMaintenance(),
-        this.generateAfterSalesService()
+        this.generateAfterSalesService(),
       ]);
-      
+
       // 收集成功的章节，失败的章节使用备用内容
       const sections: string[] = [];
       results.forEach((result, index) => {
@@ -2791,11 +2877,10 @@ class DetailedProposalGenerator {
           sections.push(this.getFallbackSection(index));
         }
       });
-      
+
       const proposal = this.formatProposal(sections);
       console.log('[DetailedProposalGenerator] 详细方案生成完成');
       return proposal;
-      
     } catch (error) {
       console.error('[DetailedProposalGenerator] 生成方案失败:', error);
       // 回退到基础方案
@@ -2815,9 +2900,9 @@ class DetailedProposalGenerator {
       `## 五、投资及运行成本分析\n\n项目总投资合理，运行成本可控，具有良好的经济效益和环境效益。具体数据请参考详细报价。`,
       `## 六、安装调试\n\n设备安装调试由专业团队负责，严格按照规范施工，确保设备正常运行。`,
       `## 七、运行维护\n\n制定完善的运行维护制度，确保系统长期稳定运行。`,
-      `## 八、售后服务\n\n提供全面的技术支持和售后服务，确保客户满意。`
+      `## 八、售后服务\n\n提供全面的技术支持和售后服务，确保客户满意。`,
     ];
-    
+
     return fallbackSections[index] || `## 章节内容\n\n内容生成中...`;
   }
 
@@ -2842,10 +2927,10 @@ class DetailedProposalGenerator {
       const response = await this.aiClient.chat({
         messages: [
           { role: 'system', content: '你是一位资深的环保工程师，擅长编写污水处理项目的技术方案。' },
-          { role: 'user', content: prompt }
+          { role: 'user', content: prompt },
         ],
         temperature: 0.7,
-        maxTokens: 500
+        maxTokens: 500,
       });
 
       return `## 一、项目概述\n\n${response.text || '本项目是针对生活污水的治理工程，旨在采用先进的污水处理技术，实现污水的达标排放，保护水环境，改善区域生态环境质量。'}`;
@@ -2882,10 +2967,10 @@ class DetailedProposalGenerator {
       const response = await this.aiClient.chat({
         messages: [
           { role: 'system', content: '你是一位资深的环保工程师，擅长污水处理工艺选择和技术分析。' },
-          { role: 'user', content: prompt }
+          { role: 'user', content: prompt },
         ],
         temperature: 0.7,
-        maxTokens: 800
+        maxTokens: 800,
       });
 
       return `## 二、工艺比选\n\n${response.text || '根据项目特点，经综合比较分析，推荐采用A²/O工艺。该工艺技术成熟、运行稳定、处理效果好，能够满足一级A排放标准要求。'}`;
@@ -2912,10 +2997,10 @@ class DetailedProposalGenerator {
       const response = await this.aiClient.chat({
         messages: [
           { role: 'system', content: '你是一位资深的环保工程师，擅长污水处理工艺设计。' },
-          { role: 'user', content: prompt }
+          { role: 'user', content: prompt },
         ],
         temperature: 0.7,
-        maxTokens: 600
+        maxTokens: 600,
       });
 
       return `## 三、选定工艺方案\n\n${response.text || '本项目采用A²/O工艺，工艺流程为：格栅→调节池→A²/O生化池→二沉池→消毒池→达标排放。该工艺具有脱氮除磷效果好、运行稳定、管理方便等优点。'}`;
@@ -2933,24 +3018,25 @@ class DetailedProposalGenerator {
     content += `### 4.1 设备配置清单（完整版）\n\n`;
     content += `| 序号 | 设备名称 | 型号规格 | 数量 | 单价(元) | 总价(元) | 备注 |\n`;
     content += `|------|----------|----------|------|----------|----------|------|\n`;
-    
+
     let total = 0;
     products.forEach((product, index) => {
       const price = product.price || 0;
       const subtotal = price * product.quantity;
       total += subtotal;
-      
+
       content += `| ${index + 1} | ${product.name} | ${product.specs || '-'} | ${product.quantity} | ${price.toFixed(0)} | ${subtotal.toFixed(0)} | ${product.remark || '-'} |\n`;
     });
-    
+
     content += `\n**设备总价：${total.toFixed(2)} 元**\n\n`;
-    
+
     // 为每个设备生成详细描述（包含所有设备）
     content += `### 4.2 设备技术说明（完整版）\n\n`;
-    for (const product of products) { // 为所有设备生成详细说明
+    for (const product of products) {
+      // 为所有设备生成详细说明
       content += await this.generateEquipmentDescription(product);
     }
-    
+
     return content;
   }
 
@@ -2972,10 +3058,10 @@ class DetailedProposalGenerator {
       const response = await this.aiClient.chat({
         messages: [
           { role: 'system', content: '你是一位设备工程师，擅长编写设备技术说明。' },
-          { role: 'user', content: prompt }
+          { role: 'user', content: prompt },
         ],
         temperature: 0.7,
-        maxTokens: 300
+        maxTokens: 300,
       });
 
       return `**${product.name}**\n\n${response.text || '该设备采用先进的设计理念，结构紧凑，运行稳定，能够满足系统处理要求。'}\n\n`;
@@ -3011,40 +3097,42 @@ class DetailedProposalGenerator {
       const response = await this.aiClient.chat({
         messages: [
           { role: 'system', content: '你是一位环保工程师，擅长进行污水处理项目经济分析。' },
-          { role: 'user', content: prompt }
+          { role: 'user', content: prompt },
         ],
         temperature: 0.7,
-        maxTokens: 500
+        maxTokens: 500,
       });
 
       let content = `## 五、投资及运行成本分析\n\n`;
       content += `### 5.1 工程总投资\n\n`;
       content += `| 项目 | 金额(元) | 占比 |\n`;
       content += `|------|----------|------|\n`;
-      content += `| 设备费 | ${equipmentTotal.toFixed(2)} | ${(equipmentTotal/total*100).toFixed(1)}% |\n`;
-      content += `| 土建费 | ${civilCost.toFixed(2)} | ${(civilCost/total*100).toFixed(1)}% |\n`;
-      content += `| 安装费 | ${installCost.toFixed(2)} | ${(installCost/total*100).toFixed(1)}% |\n`;
-      content += `| 其他费 | ${otherCost.toFixed(2)} | ${(otherCost/total*100).toFixed(1)}% |\n`;
+      content += `| 设备费 | ${equipmentTotal.toFixed(2)} | ${((equipmentTotal / total) * 100).toFixed(1)}% |\n`;
+      content += `| 土建费 | ${civilCost.toFixed(2)} | ${((civilCost / total) * 100).toFixed(1)}% |\n`;
+      content += `| 安装费 | ${installCost.toFixed(2)} | ${((installCost / total) * 100).toFixed(1)}% |\n`;
+      content += `| 其他费 | ${otherCost.toFixed(2)} | ${((otherCost / total) * 100).toFixed(1)}% |\n`;
       content += `| **合计** | **${total.toFixed(2)}** | **100%** |\n\n`;
       content += `### 5.2 运行成本分析\n\n`;
-      content += response.text || `预计年运行成本约 ${(total * 0.1).toFixed(2)} 元，吨水处理成本约 ${(total * 0.1 / projectInfo.scale / 365).toFixed(2)} 元/吨。`;
-      
+      content +=
+        response.text ||
+        `预计年运行成本约 ${(total * 0.1).toFixed(2)} 元，吨水处理成本约 ${((total * 0.1) / projectInfo.scale / 365).toFixed(2)} 元/吨。`;
+
       return content;
     } catch (error) {
       console.error('[DetailedProposalGenerator] 生成成本分析失败:', error);
-      
+
       const dailyCost = total * 0.0002; // 每日成本约为总投资的0.02%
       const annualCost = dailyCost * 365;
       const unitCost = dailyCost / (projectInfo.scale || 60);
-      
+
       let content = `## 五、投资及运行成本分析\n\n`;
       content += `### 5.1 工程总投资\n\n`;
       content += `| 项目 | 金额(元) | 占比 |\n`;
       content += `|------|----------|------|\n`;
-      content += `| 设备费 | ${equipmentTotal.toFixed(2)} | ${(equipmentTotal/total*100).toFixed(1)}% |\n`;
-      content += `| 土建费 | ${civilCost.toFixed(2)} | ${(civilCost/total*100).toFixed(1)}% |\n`;
-      content += `| 安装费 | ${installCost.toFixed(2)} | ${(installCost/total*100).toFixed(1)}% |\n`;
-      content += `| 其他费 | ${otherCost.toFixed(2)} | ${(otherCost/total*100).toFixed(1)}% |\n`;
+      content += `| 设备费 | ${equipmentTotal.toFixed(2)} | ${((equipmentTotal / total) * 100).toFixed(1)}% |\n`;
+      content += `| 土建费 | ${civilCost.toFixed(2)} | ${((civilCost / total) * 100).toFixed(1)}% |\n`;
+      content += `| 安装费 | ${installCost.toFixed(2)} | ${((installCost / total) * 100).toFixed(1)}% |\n`;
+      content += `| 其他费 | ${otherCost.toFixed(2)} | ${((otherCost / total) * 100).toFixed(1)}% |\n`;
       content += `| **合计** | **${total.toFixed(2)}** | **100%** |\n\n`;
       content += `### 5.2 运行成本分析\n\n`;
       content += `| 费用项目 | 年费用(元) | 占比 |\n`;
@@ -3059,7 +3147,7 @@ class DetailedProposalGenerator {
       content += `- **吨水处理成本**：${unitCost.toFixed(2)} 元/吨\n`;
       content += `- **年运行成本**：${annualCost.toFixed(2)} 元\n`;
       content += `- **投资回收期**：约 ${(total / annualCost).toFixed(1)} 年\n`;
-      
+
       return content;
     }
   }
@@ -3074,13 +3162,13 @@ class DetailedProposalGenerator {
     content += `2. 设备就位：设备就位时应找平找正，水平度偏差≤2mm/m\n`;
     content += `3. 管道连接：管道安装应符合GB50242规范要求\n`;
     content += `4. 电气接线：电气安装应符合GB50303规范要求\n\n`;
-    
+
     content += `### 6.2 调试步骤\n\n`;
     content += `1. 单机调试：各设备单独运行，检查运行状态\n`;
     content += `2. 联动调试：各设备联动运行，测试自控系统\n`;
     content += `3. 水质调试：通过进出水水质监测，调整运行参数\n`;
     content += `4. 性能验收：连续运行72小时，出水水质达标\n\n`;
-    
+
     return content;
   }
 
@@ -3094,13 +3182,13 @@ class DetailedProposalGenerator {
     content += `2. 建立完善的运行记录制度，每日记录进出水水质、设备运行状态\n`;
     content += `3. 定期巡检，发现问题及时处理\n`;
     content += `4. 制定应急预案，应对突发情况\n\n`;
-    
+
     content += `### 7.2 维护保养\n\n`;
     content += `1. 日常维护：每日检查设备运行状态，清理格栅杂物\n`;
     content += `2. 定期维护：每周检查曝气系统，每月清理沉淀池\n`;
     content += `3. 年度维护：每年对设备进行全面检修，更换易损件\n`;
     content += `4. 药剂管理：规范药剂存储和使用，定期检测药剂浓度\n\n`;
-    
+
     return content;
   }
 
@@ -3113,14 +3201,14 @@ class DetailedProposalGenerator {
     content += `- 设备质保期：12个月\n`;
     content += `- 电气系统质保期：18个月\n`;
     content += `- 钢结构质保期：24个月\n\n`;
-    
+
     content += `### 8.2 服务承诺\n\n`;
     content += `1. 技术培训：免费为业主提供操作人员培训\n`;
     content += `2. 质保期内服务：免费维修或更换损坏部件\n`;
     content += `3. 技术支持：提供7×24小时电话技术支持\n`;
     content += `4. 应急响应：接到故障通知后24小时内到达现场\n`;
     content += `5. 终身服务：质保期后提供终身有偿服务\n\n`;
-    
+
     return content;
   }
 
@@ -3135,7 +3223,9 @@ class DetailedProposalGenerator {
    * 生成基础方案（回退方案）
    */
   private generateBasicProposal(projectInfo: any, products: Product[]): Promise<string> {
-    return Promise.resolve(`# 污水处理工程方案\n\n## 一、项目概述\n\n本项目处理规模${projectInfo.scale || 60}吨/天，采用A²/O工艺，出水达到一级A标准。\n\n## 二、配置清单\n\n共配置设备${products.length}台（套），详见设备清单。\n\n## 三、服务承诺\n\n提供完善的安装调试、技术培训和售后服务。`);
+    return Promise.resolve(
+      `# 污水处理工程方案\n\n## 一、项目概述\n\n本项目处理规模${projectInfo.scale || 60}吨/天，采用A²/O工艺，出水达到一级A标准。\n\n## 二、配置清单\n\n共配置设备${products.length}台（套），详见设备清单。\n\n## 三、服务承诺\n\n提供完善的安装调试、技术培训和售后服务。`
+    );
   }
 }
 
@@ -3157,16 +3247,16 @@ class QuoteGenerator {
    */
   async generateProfessionalQuote(projectInfo: any, message: string): Promise<string> {
     const scale = projectInfo.scale || 60; // 默认60吨/天
-    
+
     // 构建工艺流程
     const processFlow = this.generateProcessFlow(scale);
-    
+
     // 生成设备清单（模拟数据）
     const equipmentList = await this.generateEquipmentList(scale, projectInfo);
-    
+
     // 计算运费
     const freight = this.calculateFreight(projectInfo.address);
-    
+
     // 生成报价单HTML（带真实下载功能）
     return this.formatQuoteHTML(projectInfo, processFlow, equipmentList, freight);
   }
@@ -3175,14 +3265,16 @@ class QuoteGenerator {
    * 生成工艺流程
    */
   private generateProcessFlow(scale: number): string {
-    return `**生活污水处理工艺流程图**\n\n` +
+    return (
+      `**生活污水处理工艺流程图**\n\n` +
       `格栅 → 调节池 → A²/O生化池 → 二沉池 → 消毒池 → 达标排放\n\n` +
       `**工艺说明：**\n` +
       `- **格栅**：拦截大颗粒杂物，保护后续设备\n` +
       `- **调节池**：均衡水质水量，停留时间8小时\n` +
       `- **A²/O生化池**：厌氧-缺氧-好氧工艺，去除COD、BOD、脱氮除磷\n` +
       `- **二沉池**：泥水分离，污泥回流\n` +
-      `- **消毒池**：紫外线/氯消毒，杀灭细菌\n`;
+      `- **消毒池**：紫外线/氯消毒，杀灭细菌\n`
+    );
   }
 
   /**
@@ -3199,7 +3291,7 @@ class QuoteGenerator {
         unit: '台',
         unitPrice: 8500,
         totalPrice: 8500,
-        note: '不锈钢材质'
+        note: '不锈钢材质',
       },
       {
         name: '提升泵',
@@ -3209,7 +3301,7 @@ class QuoteGenerator {
         unit: '台',
         unitPrice: 3200,
         totalPrice: 6400,
-        note: '一用一备，铸铁材质'
+        note: '一用一备，铸铁材质',
       },
       {
         name: '一体化污水处理设备',
@@ -3219,7 +3311,7 @@ class QuoteGenerator {
         unit: '套',
         unitPrice: 156000,
         totalPrice: 156000,
-        note: '含A²/O生化池、二沉池、消毒池'
+        note: '含A²/O生化池、二沉池、消毒池',
       },
       {
         name: '鼓风机',
@@ -3229,7 +3321,7 @@ class QuoteGenerator {
         unit: '台',
         unitPrice: 6800,
         totalPrice: 13600,
-        note: '一用一备'
+        note: '一用一备',
       },
       {
         name: '污泥回流泵',
@@ -3239,7 +3331,7 @@ class QuoteGenerator {
         unit: '台',
         unitPrice: 2800,
         totalPrice: 2800,
-        note: ''
+        note: '',
       },
       {
         name: '消毒装置',
@@ -3249,7 +3341,7 @@ class QuoteGenerator {
         unit: '套',
         unitPrice: 12500,
         totalPrice: 12500,
-        note: ''
+        note: '',
       },
       {
         name: '电控系统',
@@ -3259,7 +3351,7 @@ class QuoteGenerator {
         unit: '套',
         unitPrice: 18500,
         totalPrice: 18500,
-        note: '含远程监控接口'
+        note: '含远程监控接口',
       },
       {
         name: '管道阀门',
@@ -3269,8 +3361,8 @@ class QuoteGenerator {
         unit: '批',
         unitPrice: 9500,
         totalPrice: 9500,
-        note: '含管件、阀门、支架'
-      }
+        note: '含管件、阀门、支架',
+      },
     ];
 
     return equipment;
@@ -3455,37 +3547,43 @@ class QuoteGenerator {
   private numberToChinese(num: number): string {
     const digits = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
     const units = ['', '拾', '佰', '仟', '万', '拾', '佰', '仟', '亿'];
-    
+
     const numStr = Math.round(num).toString();
     let result = '';
-    
+
     for (let i = 0; i < numStr.length; i++) {
       const digit = parseInt(numStr[i]);
       const unit = units[numStr.length - 1 - i];
       result += digits[digit] + unit;
     }
-    
+
     return result + '圆整';
   }
 
   /**
    * 格式化报价单HTML（优化商务样式）
    */
-  private formatQuoteHTML(projectInfo: any, processFlow: string, equipmentList: any[], freight: number): string {
+  private formatQuoteHTML(
+    projectInfo: any,
+    processFlow: string,
+    equipmentList: any[],
+    freight: number
+  ): string {
     const subtotal = equipmentList.reduce((sum, item) => sum + item.totalPrice, 0);
     const taxRate = 13;
-    const taxAmount = subtotal * taxRate / 100;
+    const taxAmount = (subtotal * taxRate) / 100;
     const totalAmount = subtotal + taxAmount + freight;
-    
+
     const today = new Date().toLocaleDateString('zh-CN');
     const totalChinese = this.numberToChinese(totalAmount);
-    
+
     // 使用用户输入的公司名称
     const companyName = projectInfo.companyName || '兴燊环境技术（深圳）有限公司';
-    
+
     // 生成设备清单表格
-    const equipmentTable = equipmentList.map((item, index) => {
-      return `<tr>
+    const equipmentTable = equipmentList
+      .map((item, index) => {
+        return `<tr>
         <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: center;">${index + 1}</td>
         <td style="padding: 6px 8px; border: 1px solid #ddd;">${item.name}</td>
         <td style="padding: 6px 8px; border: 1px solid #ddd;">${item.model}</td>
@@ -3496,8 +3594,9 @@ class QuoteGenerator {
         <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: right;">¥${item.totalPrice.toLocaleString()}</td>
         <td style="padding: 6px 8px; border: 1px solid #ddd;">${item.note || '-'}</td>
       </tr>`;
-    }).join('');
-    
+      })
+      .join('');
+
     // 优化的CSS样式 - 商务风格，包含颜色
     const styles = `
       * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -3534,7 +3633,7 @@ class QuoteGenerator {
       .btn-pdf { background: #dc2626; }
       .quote-content { margin: 0; }
     `;
-    
+
     return `
 <style>${styles}</style>
 <div class="quote-container">
@@ -3684,68 +3783,84 @@ class IntentResponseGenerator {
    * 根据意图生成专业回复
    */
   async generateResponse(
-    intent: IntentResult, 
+    intent: IntentResult,
     processedInput: ProcessedInput,
     conversationId?: string
   ): Promise<string> {
     console.log('[ResponseGenerator] 根据意图生成回复:', intent.intent);
-    
+
     const baseContent = processedInput.textContent || '';
-    
+
     // 检测是否是详细的项目需求
-    const hasDetailedProject = baseContent.includes('项目描述') || 
-                               baseContent.includes('公司名称') ||
-                               baseContent.includes('交货地址') ||
-                               (baseContent.includes('污水') && baseContent.includes('立方'));
-    
+    const hasDetailedProject =
+      baseContent.includes('项目描述') ||
+      baseContent.includes('公司名称') ||
+      baseContent.includes('交货地址') ||
+      (baseContent.includes('污水') && baseContent.includes('立方'));
+
     if (hasDetailedProject && intent.intent === 'ask_quote') {
       console.log('[ResponseGenerator] 检测到详细项目需求，生成专业报价');
-      
+
       // 解析项目信息
       const projectInfo = this.projectParser.parseProjectInfo(baseContent);
-      
+
       // 生成专业报价单
-      const quoteHTML = await this.quoteGenerator.generateProfessionalQuote(projectInfo, baseContent);
-      
+      const quoteHTML = await this.quoteGenerator.generateProfessionalQuote(
+        projectInfo,
+        baseContent
+      );
+
       return quoteHTML;
     }
-    
+
     // 原有逻辑保持不变
     const previewLength = 200;
-    
+
     switch (intent.intent) {
       case 'ask_quote':
         return `根据您的需求，我可以帮您生成报价单。\n\n${baseContent && !baseContent.startsWith('[') ? `您提到：${baseContent.substring(0, previewLength)}${baseContent.length > previewLength ? '...' : ''}` : ''}\n\n请确认以下信息，以便我为您生成准确报价：\n1️⃣ 产品具体型号和规格\n2️⃣ 所需数量\n3️⃣ 材质要求（如不锈钢、碳钢等）\n4️⃣ 品牌偏好（如有）\n\n您可以直接回复补充这些信息，或上传产品清单Excel文件。`;
-      
+
       case 'upload_document':
         const fileName = intent.entities.fileName || '文件';
         const fileType = intent.entities.fileType || '';
-        
+
         let response = `我已收到您上传的「${fileName}」文件。\n\n`;
-        
-        if (processedInput.textContent && !processedInput.textContent.startsWith('[') && processedInput.textContent.length > 10) {
+
+        if (
+          processedInput.textContent &&
+          !processedInput.textContent.startsWith('[') &&
+          processedInput.textContent.length > 10
+        ) {
           response += `从文件中提取到以下内容：\n\n${processedInput.textContent.substring(0, previewLength)}${processedInput.textContent.length > previewLength ? '...' : ''}\n\n`;
         }
-        
+
         // 智能判断：根据文件内容和类型自动判断生成报价单还是方案
         console.log('[ResponseGenerator] 智能判断文件处理方向');
-        
+
         // 判断特征
-        const hasProductKeywords = /产品|设备|规格|型号|数量|单价|价格|泵|阀|罐|电机/.test(baseContent);
-        const hasProjectKeywords = /项目|工艺|流程|方案|设计|技术|要求|标准|处理|建设/.test(baseContent);
+        const hasProductKeywords = /产品|设备|规格|型号|数量|单价|价格|泵|阀|罐|电机/.test(
+          baseContent
+        );
+        const hasProjectKeywords = /项目|工艺|流程|方案|设计|技术|要求|标准|处理|建设/.test(
+          baseContent
+        );
         const hasTableStructure = baseContent.includes('|') && baseContent.split('\n').length > 5;
         const isExcel = fileType === 'excel';
-        
+
         console.log('[ResponseGenerator] 文件内容分析:', {
           hasProductKeywords,
           hasProjectKeywords,
           hasTableStructure,
           isExcel,
-          fileType
+          fileType,
         });
-        
+
         // Excel 文件或包含产品清單的文件 → 生成报价单
-        if (isExcel || (hasProductKeywords && !hasProjectKeywords) || (hasTableStructure && hasProductKeywords)) {
+        if (
+          isExcel ||
+          (hasProductKeywords && !hasProjectKeywords) ||
+          (hasTableStructure && hasProductKeywords)
+        ) {
           console.log('[ResponseGenerator] 判断为：生成报价单');
           response += `根据文件内容分析，我检测到这是一份产品清单，为您生成报价单。\n\n`;
           response += `📊 **生成报价单中**\n\n`;
@@ -3756,7 +3871,7 @@ class IntentResponseGenerator {
           response += `报价单将在下方显示，您可以直接导出或继续修改。`;
           return response;
         }
-        
+
         // 包含项目描述和技术要求的文件 → 生成方案
         if (hasProjectKeywords || (!hasProductKeywords && baseContent.length > 200)) {
           console.log('[ResponseGenerator] 判断为：生成技术方案');
@@ -3770,49 +3885,49 @@ class IntentResponseGenerator {
           response += `技术方案将在下方显示，如需报价单请告知。`;
           return response;
         }
-        
+
         // 无法明确判断时，提供选项
         console.log('[ResponseGenerator] 无法明确判断，提供选项');
         response += `请选择您需要的服务：\n📊 生成报价单 - 基于文件内容生成专业报价\n📝 生成技术方案 - 提供详细的技术方案\n🔍 查询价格 - 查询具体产品价格\n📑 两者都生成 - 同时生成报价单和技术方案\n\n直接回复数字或文字选择即可。`;
-        
+
         return response;
-      
+
       case 'compare_quotes':
         return `我理解您想要比较不同的报价方案。\n\n${baseContent ? `您提到：${baseContent.substring(0, previewLength)}${baseContent.length > previewLength ? '...' : ''}` : ''}\n\n请告诉我您想比较哪些方面：\n• 价格对比\n• 性能参数对比\n• 品牌对比\n• 售后服务的差异\n\n或者直接提供需要对比的产品清单，我为您详细分析。`;
-      
+
       case 'modify_quote':
         return `我理解您想要修改现有的报价。\n\n${baseContent ? `您提到：${baseContent.substring(0, previewLength)}${baseContent.length > previewLength ? '...' : ''}` : ''}\n\n请告诉我具体的修改要求：\n• 调整产品数量\n• 更改产品规格\n• 更换品牌\n• 修改价格\n\n我会根据您的要求更新报价单。`;
-      
+
       case 'export_quote':
         return `我理解您想要导出报价单。\n\n${baseContent ? `您提到：${baseContent.substring(0, previewLength)}${baseContent.length > previewLength ? '...' : ''}` : ''}\n\n我可以为您：\n📄 生成PDF格式报价单\n📊 导出Excel格式报价单\n📧 发送报价单到邮箱\n\n请告诉我您需要的格式和接收方式。`;
-      
+
       case 'generate_proposal':
         console.log('[ResponseGenerator] 检测到方案生成需求');
-        
+
         // 自动生成技术方案
         let proposalResponse = `根据您的需求，我将为您生成技术方案。\n\n`;
-        
+
         if (baseContent && !baseContent.startsWith('[') && baseContent.length > 10) {
           proposalResponse += `**需求分析**：\n${baseContent.substring(0, previewLength)}${baseContent.length > previewLength ? '...' : ''}\n\n`;
         }
-        
+
         proposalResponse += `正在为您生成详细的技术方案，包括：\n\n`;
         proposalResponse += `📋 **工艺流程设计**\n   • 工艺流程图\n   • 处理单元配置\n   • 关键设备选型\n\n`;
         proposalResponse += `⚙️ **设备配置方案**\n   • 核心设备清单\n   • 技术参数要求\n   • 布置建议\n\n`;
         proposalResponse += `💧 **技术参数**\n   • 处理能力\n   • 水质标准\n   • 运行参数\n\n`;
         proposalResponse += `📊 **经济效益分析**\n   • 投资估算\n   • 运行成本\n   • 经济指标\n\n`;
-        
+
         // 尝试执行联网搜索以获取更详细的方案信息
         try {
           console.log('[ResponseGenerator] 执行联网搜索以丰富方案内容');
           const searchResult = await this.webSearch.searchAndGenerate(
             baseContent || '污水处理技术方案'
           );
-          
+
           if (searchResult.content) {
             proposalResponse += `\n---\n**参考案例**：\n${searchResult.content.substring(0, 500)}...\n\n`;
           }
-          
+
           if (searchResult.sources && searchResult.sources.length > 0) {
             proposalResponse += `**参考资料**：\n`;
             searchResult.sources.slice(0, 3).forEach((source, index) => {
@@ -3823,24 +3938,24 @@ class IntentResponseGenerator {
           console.error('[ResponseGenerator] 联网搜索失败:', error);
           proposalResponse += `\n---\nℹ️ 如需更详细的技术方案，请提供更具体的需求描述。`;
         }
-        
+
         return proposalResponse;
-      
+
       case 'simple_quote':
         console.log('[ResponseGenerator] 生成纯报价单（基础版）');
         return `正在为您生成纯报价单...\n\n报价单将包含：\n• 供需双方信息\n• 设备清单及报价\n• 商务条款\n\n请稍候...`;
-      
+
       case 'enhanced_quote':
         console.log('[ResponseGenerator] 生成增强型报价单');
         return `正在为您生成增强型报价单...\n\n报价单将包含：\n• 供需双方信息\n• 设备清单及报价\n• 设备应用范围描述\n• 安装调试说明\n• 商务条款\n\n请稍候...`;
-      
+
       case 'detailed_proposal':
         console.log('[ResponseGenerator] 生成详细技术方案');
-        
+
         try {
           // 解析项目信息
           const projectInfo = this.projectParser.parseProjectInfo(baseContent);
-          
+
           // 模拟产品清单（实际应从文件或输入中提取）
           const products: Product[] = [
             {
@@ -3852,7 +3967,7 @@ class IntentResponseGenerator {
               unit: '台',
               price: 8500,
               total: 8500,
-              remark: '不锈钢材质'
+              remark: '不锈钢材质',
             },
             {
               name: '一体化污水处理设备',
@@ -3863,23 +3978,23 @@ class IntentResponseGenerator {
               unit: '套',
               price: 156000,
               total: 156000,
-              remark: '含A²/O生化系统'
-            }
+              remark: '含A²/O生化系统',
+            },
           ];
-          
+
           // 生成详细方案
           const detailedProposal = await this.detailedProposalGenerator.generateDetailedProposal(
             projectInfo,
             products,
             baseContent
           );
-          
+
           return detailedProposal;
         } catch (error) {
           console.error('[ResponseGenerator] 生成详细方案失败:', error);
           return `抱歉，生成详细方案时出现错误：${error instanceof Error ? error.message : '未知错误'}\n\n请稍后重试或联系技术支持。`;
         }
-      
+
       case 'unknown':
         if (processedInput.type === 'image') {
           return `您上传了一张图片。目前图片分析功能正在完善中，请上传Excel、Word或PDF格式的文件，或直接输入文字描述您的需求。`;
@@ -3887,8 +4002,8 @@ class IntentResponseGenerator {
         if (processedInput.type === 'unknown') {
           return `抱歉，我无法解析您上传的文件格式。请上传以下格式的文件：\n• Excel (.xlsx, .xls)\n• Word (.docx, .doc)\n• PDF (.pdf)\n• 文本文件 (.txt)\n\n或者直接输入文字描述您的需求。`;
         }
-        // 继续到默认情况
-        
+      // 继续到默认情况
+
       default:
         // 一般性问题
         return `收到您的问题。我可以帮您解决以下专业问题：\n\n💧 **污水处理设备**\n   - 工艺选择、价格分析、选型建议\n   - 典型案例分享\n\n⚙️ **水泵设备**\n   - 类型对比、选型指南、价格查询\n   - 品牌推荐\n\n📊 **报价生成**\n   - 产品清单解析\n   - 自动价格匹配\n   - 专业报价单生成\n\n🔧 **技术支持**\n   - 方案设计、选型指导\n   - 运行维护建议\n\n您具体想了解什么？可以直接告诉我产品名称、规格和数量。`;
@@ -3912,7 +4027,7 @@ const smartProcessor = smartChatProcessor;
 export async function POST(request: NextRequest) {
   try {
     console.log('[Chat API] ========== 新请求 ==========');
-    
+
     // 1. 解析请求（兼容两种格式：JSON 或 FormData）
     let message: string | null = null;
     let files: any[] | null = null;
@@ -3920,9 +4035,9 @@ export async function POST(request: NextRequest) {
     let conversationId: string | null = null;
     let uploadedFile: File | null = null;
     let userId: string | null = null;
-    
+
     const contentType = request.headers.get('content-type') || '';
-    
+
     if (contentType.includes('multipart/form-data')) {
       // FormData 格式（前端上传文件）
       const formData = await request.formData();
@@ -3940,16 +4055,16 @@ export async function POST(request: NextRequest) {
       intent = body.intent;
       userId = body.userId;
     }
-    
-    console.log('[Chat API] 请求参数:', { 
-      hasMessage: !!message, 
+
+    console.log('[Chat API] 请求参数:', {
+      hasMessage: !!message,
       messagePreview: message?.substring(0, 50),
       hasFile: !!uploadedFile,
       fileName: uploadedFile?.name,
       fileType: uploadedFile?.type,
       filesCount: files?.length,
       intent,
-      conversationId 
+      conversationId,
     });
 
     // 2. 处理文件上传解析模式（保留原有逻辑）
@@ -3963,13 +4078,13 @@ export async function POST(request: NextRequest) {
       for (const file of files) {
         const processedFile = processUploadedFile(file);
         const buffer = await downloader.download(file, file.fileKey);
-        
+
         const fileInfo: FileInfo = {
           name: processedFile.name,
           type: processedFile.type,
           url: processedFile.url,
           fileKey: file.fileKey,
-          buffer: buffer || undefined
+          buffer: buffer || undefined,
         };
 
         const parseResult = await fileParser.parseFile(fileInfo);
@@ -3980,7 +4095,7 @@ export async function POST(request: NextRequest) {
           productCount: parseResult.products.length,
           products: parseResult.products,
           remarks: parseResult.globalRemarks,
-          parseLevel: parseResult.parseLevel
+          parseLevel: parseResult.parseLevel,
         });
       }
 
@@ -3990,14 +4105,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           action: 'ERROR',
           content: '无法从文件中解析到产品信息',
-          files: parsedFiles
+          files: parsedFiles,
         });
       }
 
       return NextResponse.json({
         action: 'ASK_INTENT',
         files: parsedFiles,
-        content: `文件解析完成，共找到 ${totalProducts} 个产品`
+        content: `文件解析完成，共找到 ${totalProducts} 个产品`,
       });
     }
 
@@ -4008,21 +4123,21 @@ export async function POST(request: NextRequest) {
       // 纯文字对话意图选择
       if (!files || files.length === 0) {
         console.log('[Chat API] 纯文字对话意图选择，进行联网搜索');
-        
+
         const currentMessage = message || '';
-        
+
         if (!currentMessage) {
           return NextResponse.json({
-            content: '请提供具体需求，我会为您生成方案'
+            content: '请提供具体需求，我会为您生成方案',
           });
         }
-        
+
         // 执行联网搜索
         const webSearch = new WebSearchService();
         const searchResult = await webSearch.searchAndGenerate(currentMessage);
-        
+
         let responseContent = searchResult.content;
-        
+
         if (searchResult.followUpQuestions && searchResult.followUpQuestions.length > 0) {
           responseContent += `\n\n---\n`;
           responseContent += `### 💬 为了给您更精准的方案，请告诉我：\n`;
@@ -4031,12 +4146,12 @@ export async function POST(request: NextRequest) {
           });
           responseContent += `\n您可以继续提问，我会根据您的回答提供更详细的建议。`;
         }
-        
+
         return NextResponse.json({
           content: responseContent,
           sources: searchResult.sources,
           action: 'GENERATED_PROPOSAL',
-          followUpQuestions: searchResult.followUpQuestions
+          followUpQuestions: searchResult.followUpQuestions,
         });
       }
 
@@ -4051,13 +4166,13 @@ export async function POST(request: NextRequest) {
         for (const file of files) {
           const processedFile = processUploadedFile(file);
           const buffer = await downloader.download(file, file.fileKey);
-          
+
           const fileInfo: FileInfo = {
             name: processedFile.name,
             type: processedFile.type,
             url: processedFile.url,
             fileKey: file.fileKey,
-            buffer: buffer || undefined
+            buffer: buffer || undefined,
           };
 
           const parseResult = await fileParser.parseFile(fileInfo);
@@ -4066,63 +4181,67 @@ export async function POST(request: NextRequest) {
 
         if (allProducts.length === 0) {
           return NextResponse.json({
-            content: '无法从文件中解析到产品信息'
+            content: '无法从文件中解析到产品信息',
           });
         }
 
         if (intent === 'quote' || intent === 'both') {
           const quoteData = await generateQuoteData(allProducts);
-          
+
           return NextResponse.json({
             content: `已为您生成报价方案，共 ${quoteData.products.length} 个产品`,
-            quoteData
+            quoteData,
           });
         }
 
         return NextResponse.json({
-          content: `已为您生成产品方案，共 ${allProducts.length} 个产品`
+          content: `已为您生成产品方案，共 ${allProducts.length} 个产品`,
         });
       }
 
       return NextResponse.json({
-        content: '请提供具体需求，我会为您生成方案'
+        content: '请提供具体需求，我会为您生成方案',
       });
     }
 
     // 4. 新流程：智能对话处理（使用 LLM 语义理解）
     if (message || uploadedFile) {
       console.log('[Chat API] ========== 智能对话处理模式 ==========');
-      
+
       // 4.1 处理输入（统一格式化）
       let processedInput: ProcessedInput;
-      
+
       if (uploadedFile) {
         // 有文件上传
-        console.log('[Chat API] 处理文件上传:', uploadedFile.name, uploadedFile.type, uploadedFile.size);
+        console.log(
+          '[Chat API] 处理文件上传:',
+          uploadedFile.name,
+          uploadedFile.type,
+          uploadedFile.size
+        );
         const buffer = Buffer.from(await uploadedFile.arrayBuffer());
-        
+
         processedInput = await inputProcessor.process({
           type: 'file',
           content: buffer,
           mimeType: uploadedFile.type,
-          fileName: uploadedFile.name
+          fileName: uploadedFile.name,
         });
-        
-        console.log('[Chat API] 文件处理结果:', { 
-          type: processedInput.type, 
+
+        console.log('[Chat API] 文件处理结果:', {
+          type: processedInput.type,
           textLength: processedInput.textContent.length,
-          metadata: processedInput.metadata
+          metadata: processedInput.metadata,
         });
-        
       } else {
         // 纯文本输入
         console.log('[Chat API] 处理文本输入:', message);
         processedInput = await inputProcessor.process({
           type: 'text',
-          content: message || ''
+          content: message || '',
         });
       }
-      
+
       // 4.2 ✅ 使用智能对话处理器（LLM 语义理解，无需固定意图检测）
       console.log('[Chat API] 调用智能对话处理器进行语义理解...');
       const smartResponse = await smartProcessor.process(
@@ -4131,20 +4250,20 @@ export async function POST(request: NextRequest) {
         conversationId || undefined,
         userId || undefined
       );
-      
-      console.log('[Chat API] 智能响应生成完成:', { 
-        intent: smartResponse.intent, 
+
+      console.log('[Chat API] 智能响应生成完成:', {
+        intent: smartResponse.intent,
         contentLength: smartResponse.content.length,
         suggestions: smartResponse.suggestions?.length,
-        requiresFollowUp: smartResponse.requiresFollowUp
+        requiresFollowUp: smartResponse.requiresFollowUp,
       });
-      
+
       // 4.3 保存对话历史（如果有conversationId）
       if (conversationId) {
         globalConversationMemory.addToHistory(conversationId, 'user', message || '[文件上传]');
         globalConversationMemory.addToHistory(conversationId, 'assistant', smartResponse.content);
       }
-      
+
       // 4.4 返回响应
       return NextResponse.json({
         response: smartResponse.content,
@@ -4156,25 +4275,24 @@ export async function POST(request: NextRequest) {
           intent: smartResponse.intent, // 动态识别的意图，不固定
           inputType: processedInput.type,
           confidence: smartResponse.metadata?.confidence || 0.9,
-          entities: smartResponse.metadata?.extractedEntities
-        }
+          entities: smartResponse.metadata?.extractedEntities,
+        },
       });
     }
 
     // 5. 没有有效输入
     return NextResponse.json({
       content: '请上传文件或输入产品需求',
-      response: '请上传文件或输入产品需求'
+      response: '请上传文件或输入产品需求',
     });
-
   } catch (error) {
     console.error('[Chat API] 处理失败:', error);
     return NextResponse.json(
-      { 
-        error: '处理请求时发生错误', 
+      {
+        error: '处理请求时发生错误',
         message: error instanceof Error ? error.message : '未知错误',
         content: '处理请求时发生错误，请稍后重试',
-        response: '处理请求时发生错误，请稍后重试'
+        response: '处理请求时发生错误，请稍后重试',
       },
       { status: 500 }
     );
@@ -4186,24 +4304,24 @@ export async function GET(request: NextRequest) {
   try {
     // 获取可用模型列表
     const availableModels = aiClient.getAvailableModels();
-    
+
     return NextResponse.json({
       success: true,
       models: availableModels,
       defaultModel: 'deepseek',
-      message: availableModels.includes('deepseek') 
-        ? 'DeepSeek API已就绪，请配置 API Key 使用' 
+      message: availableModels.includes('deepseek')
+        ? 'DeepSeek API已就绪，请配置 API Key 使用'
         : '未检测到可用的AI模型，请检查环境变量配置',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
     console.error('[Chat API GET] 错误:', error);
     return NextResponse.json(
-      { 
-        error: error.message, 
+      {
+        error: error.message,
         models: [],
         success: false,
-        message: '获取模型列表失败'
+        message: '获取模型列表失败',
       },
       { status: 500 }
     );

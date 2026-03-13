@@ -83,14 +83,17 @@ export class OcrHelper {
 
       Logger.warn('[OCR] 无法提取文本');
       return { text: '', isTable: false };
-
     } catch (error) {
       Logger.error('[OCR] PDF处理失败', error);
       return { text: '', isTable: false };
     } finally {
       // 清理临时文件
-      try { fs.unlinkSync(tempPdf); } catch (e) {}
-      try { fs.unlinkSync(tempTxt); } catch (e) {}
+      try {
+        fs.unlinkSync(tempPdf);
+      } catch (e) {}
+      try {
+        fs.unlinkSync(tempTxt);
+      } catch (e) {}
     }
   }
 
@@ -98,7 +101,7 @@ export class OcrHelper {
    * 从文本中提取产品信息
    */
   extractProductsFromTable(text: string): ExtractedProduct[] {
-    const lines = text.split('\n').filter(l => l.trim());
+    const lines = text.split('\n').filter((l) => l.trim());
     Logger.info('[OCR] 开始解析文本', { lineCount: lines.length });
 
     const products: ExtractedProduct[] = [];
@@ -111,7 +114,7 @@ export class OcrHelper {
       '搅拌罐',
       '搅拌系统',
       '反应釜',
-      '储罐'
+      '储罐',
     ];
 
     for (let i = 0; i < lines.length; i++) {
@@ -143,7 +146,11 @@ export class OcrHelper {
 
           // 检查下一行是否是新产品
           for (const keyword of productKeywords) {
-            if (nextLine.includes(keyword) && !nextLine.includes('mm') && !nextLine.includes('kW')) {
+            if (
+              nextLine.includes(keyword) &&
+              !nextLine.includes('mm') &&
+              !nextLine.includes('kW')
+            ) {
               isNextProduct = true;
               break;
             }
@@ -162,7 +169,11 @@ export class OcrHelper {
         const product = this.parseProductLines(productLines, productName);
         if (product) {
           products.push(product);
-          Logger.debug('[OCR] 解析到产品', { name: product.name, quantity: product.quantity, unit: product.unit });
+          Logger.debug('[OCR] 解析到产品', {
+            name: product.name,
+            quantity: product.quantity,
+            unit: product.unit,
+          });
         }
 
         i = j - 1; // 跳过已处理的行
@@ -189,7 +200,7 @@ export class OcrHelper {
       quantity: 1,
       unit: '台',
       price: 0,
-      total: 0
+      total: 0,
     };
 
     // 提取数量 - 正确的逻辑，排除尺寸中的数字
@@ -207,11 +218,11 @@ export class OcrHelper {
   private extractQuantity(product: ExtractedProduct, text: string): void {
     // 首先尝试找 "套 X" 模式（最准确）
     const quantityPatterns = [
-      { pattern: /套\s*[：:]\s*(\d+)/, unit: '套' },     // 套：3
-      { pattern: /套\s*(\d+)/, unit: '套' },            // 套 3
-      { pattern: /(\d+)\s*套(?!\d)/, unit: '套' },      // 3 套（排除后面跟数字）
-      { pattern: /数量[：:]\s*(\d+)/, unit: '套' },      // 数量：3
-      { pattern: /[xX]\s*(\d+)\s*套/, unit: '套' },      // x3套
+      { pattern: /套\s*[：:]\s*(\d+)/, unit: '套' }, // 套：3
+      { pattern: /套\s*(\d+)/, unit: '套' }, // 套 3
+      { pattern: /(\d+)\s*套(?!\d)/, unit: '套' }, // 3 套（排除后面跟数字）
+      { pattern: /数量[：:]\s*(\d+)/, unit: '套' }, // 数量：3
+      { pattern: /[xX]\s*(\d+)\s*套/, unit: '套' }, // x3套
     ];
 
     for (const { pattern, unit } of quantityPatterns) {
@@ -258,13 +269,13 @@ export class OcrHelper {
   private extractModel(product: ExtractedProduct, text: string): void {
     // 型号模式（按优先级排序）
     const modelPatterns = [
-      /φ\d+[×x]\d+(?:mm)?/i,           // φ4000×3000mm
-      /\d+[×x]\d+(?:mm)?/i,             // 4000×3000mm
-      /\d+kW/i,                         // 11kW
-      /[A-Z0-9]+[-][A-Z0-9]+/i,         // IS150-125-250
-      /[A-Z]{2,}\d+/i,                  // Q235B
-      /[A-Z]+\d+[A-Z]*/i,               // DN100
-      /\d+[A-Z]+[A-Z0-9]*/i,            // 304不锈钢中的304
+      /φ\d+[×x]\d+(?:mm)?/i, // φ4000×3000mm
+      /\d+[×x]\d+(?:mm)?/i, // 4000×3000mm
+      /\d+kW/i, // 11kW
+      /[A-Z0-9]+[-][A-Z0-9]+/i, // IS150-125-250
+      /[A-Z]{2,}\d+/i, // Q235B
+      /[A-Z]+\d+[A-Z]*/i, // DN100
+      /\d+[A-Z]+[A-Z0-9]*/i, // 304不锈钢中的304
     ];
 
     for (const pattern of modelPatterns) {

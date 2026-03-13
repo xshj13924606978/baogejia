@@ -17,10 +17,7 @@ async function updateRankings(period: string = 'week') {
   }
 
   // 查询该时间段内的邀请数据
-  let query = db
-    .from('invite_relations')
-    .select('inviter_id, points_awarded')
-    .eq('level', 1);
+  let query = db.from('invite_relations').select('inviter_id, points_awarded').eq('level', 1);
 
   if (period !== 'total') {
     query = query.gte('created_at', startDate.toISOString());

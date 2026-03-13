@@ -21,7 +21,8 @@ export function NotificationToast() {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [showPanel, setShowPanel] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const userId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : null;
+  const userId =
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : null;
 
   const { markNotificationAsRead } = useWebSocket({
     userId,
@@ -29,7 +30,7 @@ export function NotificationToast() {
       // 新通知添加到顶部
       setNotifications((prev) => [notification, ...prev]);
       setUnreadCount((prev) => prev + 1);
-      
+
       // 播放通知声音
       playNotificationSound();
     },
@@ -178,9 +179,7 @@ export function NotificationToast() {
             {/* 通知列表 */}
             <div className="flex-1 overflow-y-auto p-2">
               {notifications.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  暂无通知
-                </div>
+                <div className="text-center py-8 text-gray-500">暂无通知</div>
               ) : (
                 notifications.map((notification) => (
                   <div
@@ -196,9 +195,7 @@ export function NotificationToast() {
                     }}
                   >
                     <div className="flex gap-3">
-                      <div className="flex-shrink-0">
-                        {getNotificationIcon(notification.type)}
-                      </div>
+                      <div className="flex-shrink-0">{getNotificationIcon(notification.type)}</div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm text-gray-900">{notification.title}</div>
                         <div className="text-xs text-gray-600 mt-1 line-clamp-2">

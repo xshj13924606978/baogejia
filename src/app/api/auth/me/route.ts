@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth-utils';
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser(request);
-    
+
     if (!user) {
       // 返回模拟用户数据（仅用于测试）
       return NextResponse.json({
@@ -19,9 +19,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(user);
   } catch (error) {
     console.error('[Auth API] Error:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

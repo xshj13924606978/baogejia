@@ -26,7 +26,12 @@ export default function AdminPanel({ isOpen, onClose, user }: AdminPanelProps) {
         {/* 头部 */}
         <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-red-500 to-orange-500 text-white">
           <h2 className="text-lg font-bold">⚙️ 管理后台</h2>
-          <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-white hover:bg-white/20"
+          >
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -62,21 +67,15 @@ export default function AdminPanel({ isOpen, onClose, user }: AdminPanelProps) {
               </TabsContent>
 
               <TabsContent value="users">
-                <div className="text-center py-12 text-gray-500">
-                  用户管理功能开发中...
-                </div>
+                <div className="text-center py-12 text-gray-500">用户管理功能开发中...</div>
               </TabsContent>
 
               <TabsContent value="finance">
-                <div className="text-center py-12 text-gray-500">
-                  财务管理功能开发中...
-                </div>
+                <div className="text-center py-12 text-gray-500">财务管理功能开发中...</div>
               </TabsContent>
 
               <TabsContent value="stats">
-                <div className="text-center py-12 text-gray-500">
-                  数据统计功能开发中...
-                </div>
+                <div className="text-center py-12 text-gray-500">数据统计功能开发中...</div>
               </TabsContent>
             </div>
           </ScrollArea>

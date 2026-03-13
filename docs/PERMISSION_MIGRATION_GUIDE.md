@@ -33,6 +33,7 @@
 检查现有 API 路由中的权限检查代码，常见的模式包括：
 
 **模式 1：手动检查用户角色**
+
 ```typescript
 const currentUser = await getCurrentUser(request);
 if (!currentUser) {
@@ -51,12 +52,9 @@ if (userRole?.role !== 'admin') {
 ```
 
 **模式 2：检查用户等级**
+
 ```typescript
-const { data: user } = await supabase
-  .from('users')
-  .select('level')
-  .eq('id', userId)
-  .single();
+const { data: user } = await supabase.from('users').select('level').eq('id', userId).single();
 
 if (user?.level < 3) {
   return NextResponse.json({ error: '等级不足' }, { status: 403 });
@@ -64,6 +62,7 @@ if (user?.level < 3) {
 ```
 
 **模式 3：检查字段权限**
+
 ```typescript
 const levelConfig = await userLevelService.getLevelConfig(user.level);
 
@@ -76,14 +75,14 @@ if (!levelConfig.fieldPermissions.can_view_cost_price) {
 
 将现有的权限检查映射到新的权限代码：
 
-| 旧方式 | 新权限代码 | 说明 |
-|--------|-----------|------|
-| 检查角色为 admin | roles: ['admin', 'super_admin'] | 管理员角色 |
-| 检查等级 >= 3 | minLevel: 3 | 最低等级要求 |
-| 检查积分 >= 100 | minPoints: 100 | 最低积分要求 |
-| 查看用户 | permissions: 'user.view' | 用户查看权限 |
-| 编辑用户 | permissions: 'user.edit' | 用户编辑权限 |
-| 删除用户 | permissions: 'user.delete' | 用户删除权限 |
+| 旧方式           | 新权限代码                      | 说明         |
+| ---------------- | ------------------------------- | ------------ |
+| 检查角色为 admin | roles: ['admin', 'super_admin'] | 管理员角色   |
+| 检查等级 >= 3    | minLevel: 3                     | 最低等级要求 |
+| 检查积分 >= 100  | minPoints: 100                  | 最低积分要求 |
+| 查看用户         | permissions: 'user.view'        | 用户查看权限 |
+| 编辑用户         | permissions: 'user.edit'        | 用户编辑权限 |
+| 删除用户         | permissions: 'user.delete'      | 用户删除权限 |
 
 ---
 
@@ -147,7 +146,12 @@ export const POST = withProductExport(async (request: NextRequest, user: any) =>
 #### 报价相关
 
 ```typescript
-import { withQuoteCreate, withQuoteView, withQuoteEdit, withQuoteExport } from '@/lib/permission-check';
+import {
+  withQuoteCreate,
+  withQuoteView,
+  withQuoteEdit,
+  withQuoteExport,
+} from '@/lib/permission-check';
 
 export const GET = withQuoteView(async (request: NextRequest, user: any) => {
   // 业务逻辑
@@ -205,11 +209,11 @@ import { withPermissionCheck } from '@/lib/permission-check';
 
 export const GET = withPermissionCheck(
   {
-    permissions: ['user.view', 'user.edit'],  // 需要所有权限
+    permissions: ['user.view', 'user.edit'], // 需要所有权限
     requireAll: true,
     roles: ['admin', 'super_admin'],
     minLevel: 2,
-    minPoints: 100
+    minPoints: 100,
   },
   async (request: NextRequest, user: any) => {
     // 业务逻辑
@@ -251,6 +255,7 @@ export const POST = withAllPermissions(
 ### 示例 1：迁移用户列表 API
 
 **迁移前：**
+
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-utils';
@@ -279,6 +284,7 @@ export async function GET(request: NextRequest) {
 ```
 
 **迁移后：**
+
 ```typescript
 import { withAdmin } from '@/lib/permission-check';
 
@@ -291,6 +297,7 @@ export const GET = withAdmin(async (request: NextRequest, user: any) => {
 ### 示例 2：迁移产品编辑 API
 
 **迁移前：**
+
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-utils';
@@ -314,6 +321,7 @@ export async function PUT(request: NextRequest) {
 ```
 
 **迁移后：**
+
 ```typescript
 import { withProductEdit } from '@/lib/permission-check';
 
@@ -326,6 +334,7 @@ export const PUT = withProductEdit(async (request: NextRequest, user: any) => {
 ### 示例 3：迁移报价创建 API（等级限制）
 
 **迁移前：**
+
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-utils';
@@ -354,6 +363,7 @@ export async function POST(request: NextRequest) {
 ```
 
 **迁移后：**
+
 ```typescript
 import { withLevel } from '@/lib/permission-check';
 
@@ -366,6 +376,7 @@ export const POST = withLevel(2, async (request: NextRequest, user: any) => {
 ### 示例 4：迁移批量操作 API（多权限）
 
 **迁移前：**
+
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-utils';
@@ -389,13 +400,14 @@ export async function POST(request: NextRequest) {
   }
 
   // 检查其他权限...
-  
+
   // 业务逻辑...
   return NextResponse.json({ success: true });
 }
 ```
 
 **迁移后：**
+
 ```typescript
 import { withAllPermissions } from '@/lib/permission-check';
 
@@ -447,7 +459,7 @@ export const GET = withPermissionCheck(
   {
     permissions: 'user.view',
     roles: ['admin', 'super_admin'],
-    minLevel: 2
+    minLevel: 2,
   },
   async (request: NextRequest, user: any) => {
     // 业务逻辑
@@ -507,7 +519,7 @@ export const GET = withAdmin(async (request: NextRequest, user: any) => {
   console.log('用户角色:', user.role);
   console.log('用户等级:', user.level);
   console.log('用户积分:', user.currentPoints);
-  
+
   // 业务逻辑
   return NextResponse.json({ success: true });
 });
@@ -530,7 +542,7 @@ import { checkPermission } from '@/lib/permission-check';
 
 test('管理员可以访问用户列表', async () => {
   const result = await checkPermission(mockRequest, {
-    roles: ['admin', 'super_admin']
+    roles: ['admin', 'super_admin'],
   });
   expect(result.allowed).toBe(true);
 });
@@ -571,26 +583,29 @@ curl http://localhost:5000/api/admin/permission-test/all/super-admin
 ### 优先级分类
 
 **高优先级（立即迁移）**
+
 - `/api/admin/levels/*` - 等级管理
 - `/api/admin/users/*` - 用户管理
 - `/api/admin/permissions/*` - 权限管理
 
 **中优先级（逐步迁移）**
+
 - `/api/admin/products/*` - 产品管理
 - `/api/admin/quotes/*` - 报价管理
 - `/api/admin/stats/*` - 统计分析
 
 **低优先级（按需迁移）**
+
 - 其他 API 路由
 
 ### 迁移时间表
 
-| 阶段 | 时间 | 目标 |
-|------|------|------|
+| 阶段     | 时间   | 目标              |
+| -------- | ------ | ----------------- |
 | 第一阶段 | Week 1 | 高优先级 API 迁移 |
 | 第二阶段 | Week 2 | 中优先级 API 迁移 |
 | 第三阶段 | Week 3 | 低优先级 API 迁移 |
-| 第四阶段 | Week 4 | 测试和优化 |
+| 第四阶段 | Week 4 | 测试和优化        |
 
 ---
 

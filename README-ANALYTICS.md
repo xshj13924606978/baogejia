@@ -11,6 +11,7 @@
 **文件**: `src/lib/analytics.ts`
 
 **功能**:
+
 - 事件追踪和记录
 - 转化漏斗分析
 - 留存率计算
@@ -20,6 +21,7 @@
 **主要类**: `Analytics`
 
 **主要方法**:
+
 - `trackEvent(event)` - 记录事件
 - `calculateFunnel(startDate?, endDate?)` - 计算转化漏斗
 - `calculateRetention(days)` - 计算留存率
@@ -35,19 +37,19 @@
 
 ```typescript
 enum EventType {
-  PAGE_VIEW = 'page_view',           // 页面访问
-  BUTTON_CLICK = 'button_click',     // 按钮点击
-  FORM_SUBMIT = 'form_submit',       // 表单提交
-  FILE_UPLOAD = 'file_upload',       // 文件上传
+  PAGE_VIEW = 'page_view', // 页面访问
+  BUTTON_CLICK = 'button_click', // 按钮点击
+  FORM_SUBMIT = 'form_submit', // 表单提交
+  FILE_UPLOAD = 'file_upload', // 文件上传
   QUOTE_GENERATED = 'quote_generated', // 报价生成
-  SIGN_UP = 'sign_up',               // 注册
-  FIRST_QUOTE = 'first_quote',       // 首次报价
-  FIRST_PAYMENT = 'first_payment',   // 首次付费
+  SIGN_UP = 'sign_up', // 注册
+  FIRST_QUOTE = 'first_quote', // 首次报价
+  FIRST_PAYMENT = 'first_payment', // 首次付费
   PRODUCT_SEARCH = 'product_search', // 产品搜索
-  PRICE_INQUIRY = 'price_inquiry',   // 价格咨询
-  INVITE_SENT = 'invite_sent',       // 邀请发送
-  POINTS_EARNED = 'points_earned',   // 积分赚取
-  POINTS_SPENT = 'points_spent',     // 积分消费
+  PRICE_INQUIRY = 'price_inquiry', // 价格咨询
+  INVITE_SENT = 'invite_sent', // 邀请发送
+  POINTS_EARNED = 'points_earned', // 积分赚取
+  POINTS_SPENT = 'points_spent', // 积分消费
 }
 ```
 
@@ -57,11 +59,11 @@ enum EventType {
 
 ```typescript
 enum FunnelStep {
-  VISIT = 'visit',       // 访问
-  SIGN_UP = 'sign_up',   // 注册
-  UPLOAD = 'upload',     // 上传
-  QUOTE = 'quote',       // 报价
-  PAYMENT = 'payment',   // 付费
+  VISIT = 'visit', // 访问
+  SIGN_UP = 'sign_up', // 注册
+  UPLOAD = 'upload', // 上传
+  QUOTE = 'quote', // 报价
+  PAYMENT = 'payment', // 付费
 }
 ```
 
@@ -84,13 +86,13 @@ interface FunnelData {
 ```typescript
 interface RetentionData {
   date: Date;
-  day0: number;           // 当日新增
-  day1: number;           // 次日留存
-  day7: number;           // 7日留存
-  day30: number;          // 30日留存
+  day0: number; // 当日新增
+  day1: number; // 次日留存
+  day7: number; // 7日留存
+  day30: number; // 30日留存
   retentionRate1: number; // 次日留存率
   retentionRate7: number; // 7日留存率
-  retentionRate30: number;// 30日留存率
+  retentionRate30: number; // 30日留存率
 }
 ```
 
@@ -101,11 +103,11 @@ interface RetentionData {
 ```typescript
 interface RevenueData {
   date: Date;
-  revenue: number;                    // 收入
-  orderCount: number;                 // 订单数
-  averageOrderValue: number;         // 平均客单价
-  newCustomerRevenue: number;        // 新客户收入
-  returningCustomerRevenue: number;   // 老客户收入
+  revenue: number; // 收入
+  orderCount: number; // 订单数
+  averageOrderValue: number; // 平均客单价
+  newCustomerRevenue: number; // 新客户收入
+  returningCustomerRevenue: number; // 老客户收入
 }
 ```
 
@@ -116,6 +118,7 @@ interface RevenueData {
 **端点**: `POST /api/analytics/events`
 
 **请求体**:
+
 ```json
 {
   "userId": 1,
@@ -128,6 +131,7 @@ interface RevenueData {
 ```
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -140,11 +144,13 @@ interface RevenueData {
 **端点**: `GET /api/analytics/events`
 
 **查询参数**:
+
 - `userId` (可选) - 用户ID
 - `startDate` (可选) - 开始日期
 - `endDate` (可选) - 结束日期
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -158,10 +164,12 @@ interface RevenueData {
 **端点**: `GET /api/analytics/funnel`
 
 **查询参数**:
+
 - `startDate` (可选) - 开始日期
 - `endDate` (可选) - 结束日期
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -182,10 +190,12 @@ interface RevenueData {
 **端点**: `GET /api/analytics/retention`
 
 **查询参数**:
+
 - `days` (可选) - 天数，默认7
 - `limit` (可选) - 限制条数，默认30
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -210,10 +220,12 @@ interface RevenueData {
 **端点**: `GET /api/analytics/revenue`
 
 **查询参数**:
+
 - `startDate` (可选) - 开始日期
 - `endDate` (可选) - 结束日期
 
 **响应**:
+
 ```json
 {
   "success": true,
@@ -241,6 +253,7 @@ interface RevenueData {
 **端点**: `GET /api/analytics/export`
 
 **查询参数**:
+
 - `startDate` (可选) - 开始日期
 - `endDate` (可选) - 结束日期
 
@@ -284,6 +297,7 @@ function MyComponent() {
 ```
 
 **自动追踪**:
+
 - 页面访问（当 `autoTrackPageView` 为 `true` 时）
 - 路由变化
 - 会话时长
@@ -295,6 +309,7 @@ function MyComponent() {
 **访问路径**: `/admin/analytics`
 
 **功能**:
+
 - 统计卡片（总用户数、活跃用户、总收入、转化率、客单价）
 - 转化漏斗可视化
 - 留存率分析图表
@@ -303,6 +318,7 @@ function MyComponent() {
 - 数据导出
 
 **标签页**:
+
 1. **转化漏斗** - 显示从访问到付费的转化路径
 2. **留存分析** - 显示次日、7日、30日留存率
 3. **收入统计** - 显示收入趋势和新老客户对比
@@ -402,6 +418,7 @@ const stats = analytics.getStats();
 点击页面右上角的"导出数据"按钮，即可下载 CSV 格式的分析报告。
 
 ### CSV 内容包括:
+
 - 统计概览
 - 转化漏斗数据
 - 收入数据

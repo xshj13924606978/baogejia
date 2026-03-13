@@ -66,7 +66,7 @@ const defaultQuoteData: QuoteData = {
     address: '上海市浦东新区xx路123号',
     bankName: '中国建设银行上海分行',
     bankAccount: '3100 1234 5678 9012 345',
-    taxNumber: '91310115MA1H123456'
+    taxNumber: '91310115MA1H123456',
   },
   customerInfo: {
     name: 'XX工程项目部',
@@ -74,7 +74,7 @@ const defaultQuoteData: QuoteData = {
     contactPerson: '李工',
     phone: '13912345678',
     email: 'ligong@example.com',
-    address: '江苏省苏州市工业园区'
+    address: '江苏省苏州市工业园区',
   },
   terms: {
     payment: '预付30%，发货前付清70%',
@@ -84,11 +84,11 @@ const defaultQuoteData: QuoteData = {
     taxRate: 13,
     shipping: 0,
     installation: 0,
-    otherFees: 0
+    otherFees: 0,
   },
   products: [],
   quoteNumber: 'Q' + Date.now(),
-  createdAt: new Date().toISOString()
+  createdAt: new Date().toISOString(),
 };
 
 const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
@@ -108,29 +108,34 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
         const result = await response.json();
         if (result.success && result.data) {
           const businessInfo = result.data;
-          
+
           // 更新状态
-          setQuoteData(prev => ({
+          setQuoteData((prev) => ({
             ...prev,
             supplierInfo: businessInfo.supplier || prev.supplierInfo,
-            customerInfo: businessInfo.customer ? {
-              name: businessInfo.customer.companyName || prev.customerInfo.name,
-              projectName: businessInfo.customer.projectName || prev.customerInfo.projectName,
-              contactPerson: businessInfo.customer.contactPerson || prev.customerInfo.contactPerson,
-              phone: businessInfo.customer.phone || prev.customerInfo.phone,
-              email: businessInfo.customer.email || prev.customerInfo.email,
-              address: businessInfo.customer.address || prev.customerInfo.address,
-            } : prev.customerInfo,
-            terms: businessInfo.terms ? {
-              payment: businessInfo.terms.paymentTerms || prev.terms.payment,
-              warranty: businessInfo.terms.warrantyPeriod || prev.terms.warranty,
-              delivery: businessInfo.terms.deliveryPeriod || prev.terms.delivery,
-              validity: businessInfo.terms.validityPeriod || prev.terms.validity,
-              taxRate: businessInfo.terms.taxRate ?? prev.terms.taxRate,
-              shipping: businessInfo.terms.shipping ?? prev.terms.shipping,
-              installation: businessInfo.terms.installation ?? prev.terms.installation,
-              otherFees: businessInfo.terms.otherFees ?? prev.terms.otherFees,
-            } : prev.terms,
+            customerInfo: businessInfo.customer
+              ? {
+                  name: businessInfo.customer.companyName || prev.customerInfo.name,
+                  projectName: businessInfo.customer.projectName || prev.customerInfo.projectName,
+                  contactPerson:
+                    businessInfo.customer.contactPerson || prev.customerInfo.contactPerson,
+                  phone: businessInfo.customer.phone || prev.customerInfo.phone,
+                  email: businessInfo.customer.email || prev.customerInfo.email,
+                  address: businessInfo.customer.address || prev.customerInfo.address,
+                }
+              : prev.customerInfo,
+            terms: businessInfo.terms
+              ? {
+                  payment: businessInfo.terms.paymentTerms || prev.terms.payment,
+                  warranty: businessInfo.terms.warrantyPeriod || prev.terms.warranty,
+                  delivery: businessInfo.terms.deliveryPeriod || prev.terms.delivery,
+                  validity: businessInfo.terms.validityPeriod || prev.terms.validity,
+                  taxRate: businessInfo.terms.taxRate ?? prev.terms.taxRate,
+                  shipping: businessInfo.terms.shipping ?? prev.terms.shipping,
+                  installation: businessInfo.terms.installation ?? prev.terms.installation,
+                  otherFees: businessInfo.terms.otherFees ?? prev.terms.otherFees,
+                }
+              : prev.terms,
           }));
         }
       }
@@ -142,7 +147,7 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
 
   const updateSupplierInfo = async (info: SupplierInfo) => {
     // 更新状态
-    setQuoteData(prev => ({ ...prev, supplierInfo: info }));
+    setQuoteData((prev) => ({ ...prev, supplierInfo: info }));
 
     // 保存到数据库（如果 API 可用）
     try {
@@ -151,8 +156,8 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'supplier',
-          data: info
-        })
+          data: info,
+        }),
       });
 
       if (response.ok) {
@@ -168,7 +173,7 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
 
   const updateCustomerInfo = async (info: CustomerInfo) => {
     // 更新状态
-    setQuoteData(prev => ({ ...prev, customerInfo: info }));
+    setQuoteData((prev) => ({ ...prev, customerInfo: info }));
 
     // 保存到数据库（如果 API 可用）
     try {
@@ -184,8 +189,8 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
             phone: info.phone,
             email: info.email,
             address: info.address,
-          }
-        })
+          },
+        }),
       });
 
       if (response.ok) {
@@ -201,7 +206,7 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
 
   const updateTerms = async (terms: TermsInfo) => {
     // 更新状态
-    setQuoteData(prev => ({ ...prev, terms }));
+    setQuoteData((prev) => ({ ...prev, terms }));
 
     // 保存到数据库（如果 API 可用）
     try {
@@ -210,8 +215,8 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'terms',
-          data: terms
-        })
+          data: terms,
+        }),
       });
 
       if (response.ok) {
@@ -227,26 +232,28 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateProducts = (products: any[]) => {
-    setQuoteData(prev => ({ ...prev, products }));
+    setQuoteData((prev) => ({ ...prev, products }));
   };
 
   const resetQuote = () => {
     setQuoteData({
       ...defaultQuoteData,
       quoteNumber: 'Q' + Date.now(),
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     });
   };
 
   return (
-    <QuoteContext.Provider value={{
-      quoteData,
-      updateSupplierInfo,
-      updateCustomerInfo,
-      updateTerms,
-      updateProducts,
-      resetQuote
-    }}>
+    <QuoteContext.Provider
+      value={{
+        quoteData,
+        updateSupplierInfo,
+        updateCustomerInfo,
+        updateTerms,
+        updateProducts,
+        resetQuote,
+      }}
+    >
       {children}
     </QuoteContext.Provider>
   );

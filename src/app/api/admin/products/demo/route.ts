@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  withProductView, 
-  withProductEdit, 
+import {
+  withProductView,
+  withProductEdit,
   withProductExport,
   withLevel,
   withPoints,
-  withAllPermissions
+  withAllPermissions,
 } from '@/lib/permission-check';
 
 /**
@@ -44,8 +44,8 @@ export const GET = withProductView(async (request: NextRequest, user: any) => {
       pagination: {
         page,
         limit,
-        total: products?.length || 0
-      }
+        total: products?.length || 0,
+      },
     });
   } catch (error: any) {
     console.error('[Products Demo API] 获取产品列表失败:', error);
@@ -67,10 +67,7 @@ export const POST = withLevel(2, async (request: NextRequest, user: any) => {
 
     // 验证参数
     if (!name || !price) {
-      return NextResponse.json(
-        { error: '缺少必要参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
     // 创建产品（业务逻辑）
@@ -83,7 +80,7 @@ export const POST = withLevel(2, async (request: NextRequest, user: any) => {
         name,
         price: parseFloat(price),
         category,
-        created_by: user.id
+        created_by: user.id,
       })
       .select()
       .single();
@@ -95,14 +92,11 @@ export const POST = withLevel(2, async (request: NextRequest, user: any) => {
     return NextResponse.json({
       success: true,
       message: '产品创建成功',
-      data
+      data,
     });
   } catch (error: any) {
     console.error('[Products Demo API] 创建产品失败:', error);
-    return NextResponse.json(
-      { error: '创建产品失败', details: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '创建产品失败', details: error.message }, { status: 500 });
   }
 });
 
@@ -117,10 +111,7 @@ export const PUT = withProductEdit(async (request: NextRequest, user: any) => {
 
     // 验证参数
     if (!productId || !updates) {
-      return NextResponse.json(
-        { error: '缺少必要参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
     // 更新产品（业务逻辑）
@@ -131,7 +122,7 @@ export const PUT = withProductEdit(async (request: NextRequest, user: any) => {
       .from('products')
       .update({
         ...updates,
-        updated_by: user.id
+        updated_by: user.id,
       })
       .eq('id', productId)
       .select()
@@ -144,14 +135,11 @@ export const PUT = withProductEdit(async (request: NextRequest, user: any) => {
     return NextResponse.json({
       success: true,
       message: '产品更新成功',
-      data
+      data,
     });
   } catch (error: any) {
     console.error('[Products Demo API] 更新产品失败:', error);
-    return NextResponse.json(
-      { error: '更新产品失败', details: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '更新产品失败', details: error.message }, { status: 500 });
   }
 });
 
@@ -166,20 +154,14 @@ export const DELETE = withPoints(500, async (request: NextRequest, user: any) =>
 
     // 验证参数
     if (!productId) {
-      return NextResponse.json(
-        { error: '缺少产品ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少产品ID' }, { status: 400 });
     }
 
     // 删除产品（业务逻辑）
     const { getSupabaseClient } = await import('@/storage/database/supabase-client');
     const supabase = getSupabaseClient();
 
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', productId);
+    const { error } = await supabase.from('products').delete().eq('id', productId);
 
     if (error) {
       throw error;
@@ -187,14 +169,11 @@ export const DELETE = withPoints(500, async (request: NextRequest, user: any) =>
 
     return NextResponse.json({
       success: true,
-      message: '产品删除成功'
+      message: '产品删除成功',
     });
   } catch (error: any) {
     console.error('[Products Demo API] 删除产品失败:', error);
-    return NextResponse.json(
-      { error: '删除产品失败', details: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '删除产品失败', details: error.message }, { status: 500 });
   }
 });
 
@@ -212,10 +191,7 @@ export async function PATCH(request: NextRequest) {
 
         // 验证参数
         if (!productIds || !action) {
-          return NextResponse.json(
-            { error: '缺少必要参数' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
         }
 
         // 批量操作（业务逻辑）
@@ -224,21 +200,15 @@ export async function PATCH(request: NextRequest) {
 
         let result;
         if (action === 'delete') {
-          result = await supabase
-            .from('products')
-            .delete()
-            .in('id', productIds);
+          result = await supabase.from('products').delete().in('id', productIds);
         } else if (action === 'update') {
-          result = await supabase
-            .from('products')
-            .update(body.updates)
-            .in('id', productIds);
+          result = await supabase.from('products').update(body.updates).in('id', productIds);
         }
 
         return NextResponse.json({
           success: true,
           message: '批量操作成功',
-          data: result
+          data: result,
         });
       } catch (error: any) {
         console.error('[Products Demo API] 批量操作失败:', error);

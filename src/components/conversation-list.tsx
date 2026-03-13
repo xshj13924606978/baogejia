@@ -9,14 +9,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { 
-  MessageSquare, FileText, MoreHorizontal, 
-  Trash2, Pencil, Share2, Search, Pin, PinOff, ArrowUp, History, Plus
+  MessageSquare,
+  FileText,
+  MoreHorizontal,
+  Trash2,
+  Pencil,
+  Share2,
+  Search,
+  Pin,
+  PinOff,
+  ArrowUp,
+  History,
+  Plus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -54,15 +60,15 @@ function getDisplayTitle(conv: Conversation): string {
 // 格式化时间
 function formatTime(dateStr: string): string {
   if (!dateStr) return '';
-  
+
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '';
-    
+
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
+
     if (days < 1) {
       return format(date, 'HH:mm');
     } else if (days < 7) {
@@ -103,24 +109,24 @@ export default function ConversationList({
       const response = await fetch('/api/conversations');
       if (response.ok) {
         const data = await response.json();
-        console.log('[ConversationList] 加载对话列表完成', { count: data.conversations?.length || 0 });
-        
+        console.log('[ConversationList] 加载对话列表完成', {
+          count: data.conversations?.length || 0,
+        });
+
         const savedPins = localStorage.getItem('pinned-conversations');
         if (savedPins) {
           setPinnedConversations(new Set(JSON.parse(savedPins)));
         }
-        
+
         // 基于 title 判断是否有内容
         let filteredConversations = data.conversations || [];
         if (hideEmptyConversations) {
-          filteredConversations = filteredConversations.filter(
-            (conv: Conversation) => {
-              const hasContent = conv.title && conv.title !== '新对话';
-              return hasContent;
-            }
-          );
+          filteredConversations = filteredConversations.filter((conv: Conversation) => {
+            const hasContent = conv.title && conv.title !== '新对话';
+            return hasContent;
+          });
         }
-        
+
         setConversations(filteredConversations);
         console.log('[ConversationList] 过滤后剩余:', filteredConversations.length);
       }
@@ -140,15 +146,17 @@ export default function ConversationList({
       if (response.ok) {
         const data = await response.json();
         console.log('[ConversationList] 对话详情加载成功:', data);
-        
-        window.dispatchEvent(new CustomEvent('load-conversation', {
-          detail: {
-            conversationId: data.conversation.id,
-            messages: data.conversation.messages || [],
-            files: data.conversation.files || []
-          }
-        }));
-        
+
+        window.dispatchEvent(
+          new CustomEvent('load-conversation', {
+            detail: {
+              conversationId: data.conversation.id,
+              messages: data.conversation.messages || [],
+              files: data.conversation.files || [],
+            },
+          })
+        );
+
         return data;
       }
     } catch (error) {
@@ -159,14 +167,14 @@ export default function ConversationList({
   const togglePin = (conversationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     const newPins = new Set(pinnedConversations);
     if (newPins.has(conversationId)) {
       newPins.delete(conversationId);
     } else {
       newPins.add(conversationId);
     }
-    
+
     setPinnedConversations(newPins);
     localStorage.setItem('pinned-conversations', JSON.stringify(Array.from(newPins)));
     setOpenDropdownId(null);
@@ -175,31 +183,35 @@ export default function ConversationList({
   const handleTitleClick = async (conversation: Conversation, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     console.log('[ConversationList] 点击标题导入对话:', conversation.id);
-    
+
     onSelectConversation(conversation.id);
-    
-    window.dispatchEvent(new CustomEvent('select-conversation', {
-      detail: { conversationId: conversation.id }
-    }));
-    
+
+    window.dispatchEvent(
+      new CustomEvent('select-conversation', {
+        detail: { conversationId: conversation.id },
+      })
+    );
+
     await loadConversationDetail(conversation.id);
   };
 
   const handleCardClick = (conversation: Conversation) => {
     console.log('[ConversationList] 点击卡片加载对话:', conversation.id);
     onSelectConversation(conversation.id);
-    
-    window.dispatchEvent(new CustomEvent('select-conversation', {
-      detail: { conversationId: conversation.id }
-    }));
-    
+
+    window.dispatchEvent(
+      new CustomEvent('select-conversation', {
+        detail: { conversationId: conversation.id },
+      })
+    );
+
     loadConversationDetail(conversation.id);
   };
 
   const filteredAndSortedConversations = useMemo(() => {
-    let filtered = conversations.filter(conv => {
+    let filtered = conversations.filter((conv) => {
       const title = getDisplayTitle(conv).toLowerCase();
       const searchLower = searchTerm.toLowerCase();
       return title.includes(searchLower);
@@ -208,10 +220,10 @@ export default function ConversationList({
     return filtered.sort((a, b) => {
       const aPinned = pinnedConversations.has(a.id);
       const bPinned = pinnedConversations.has(b.id);
-      
+
       if (aPinned && !bPinned) return -1;
       if (!aPinned && bPinned) return 1;
-      
+
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
   }, [conversations, searchTerm, pinnedConversations]);
@@ -236,7 +248,7 @@ export default function ConversationList({
     };
 
     window.addEventListener('new-conversation', handleNewConversation);
-    
+
     return () => {
       window.removeEventListener('new-conversation', handleNewConversation);
       if (timeoutId) {
@@ -248,7 +260,7 @@ export default function ConversationList({
   const handleDelete = async (conversationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     if (!confirm('确定要删除这条对话记录吗？')) {
       return;
     }
@@ -274,7 +286,7 @@ export default function ConversationList({
   const handleRename = async (conversationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     const newTitle = prompt('请输入新的对话标题：');
     if (!newTitle || newTitle.trim() === '') {
       setOpenDropdownId(null);
@@ -391,10 +403,10 @@ export default function ConversationList({
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      "h-9 w-9 rounded-full",
+                      'h-9 w-9 rounded-full',
                       selectedConversationId === conv.id
-                        ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600"
-                        : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600'
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-800'
                     )}
                     onClick={() => handleCardClick(conv)}
                   >
@@ -437,9 +449,7 @@ export default function ConversationList({
         <div className="flex items-center justify-between gap-2 mb-1">
           <div className="flex items-center gap-1.5">
             <History className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-            <h2 className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              对话历史
-            </h2>
+            <h2 className="text-sm font-medium text-slate-700 dark:text-slate-300">对话历史</h2>
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -497,7 +507,7 @@ export default function ConversationList({
               const displayTitle = getDisplayTitle(conversation);
               const isPinned = pinnedConversations.has(conversation.id);
               const timeStr = formatTime(conversation.updatedAt);
-              
+
               return (
                 <div
                   key={conversation.id}
@@ -523,15 +533,17 @@ export default function ConversationList({
                           onClick={(e) => handleTitleClick(conversation, e)}
                           className="text-left flex-1 hover:underline decoration-blue-500 underline-offset-2 transition-all duration-200"
                         >
-                          <span className={`text-xs ${
-                            selectedConversationId === conversation.id
-                              ? 'text-blue-700 dark:text-blue-300 font-medium'
-                              : 'text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400'
-                          }`}>
+                          <span
+                            className={`text-xs ${
+                              selectedConversationId === conversation.id
+                                ? 'text-blue-700 dark:text-blue-300 font-medium'
+                                : 'text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400'
+                            }`}
+                          >
                             {displayTitle}
                           </span>
                         </button>
-                        
+
                         {timeStr && (
                           <span className="text-[10px] text-slate-400 dark:text-slate-500 whitespace-nowrap">
                             {timeStr}
@@ -543,7 +555,7 @@ export default function ConversationList({
 
                   {/* 操作菜单按钮 - 悬停显示 */}
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <DropdownMenu 
+                    <DropdownMenu
                       open={openDropdownId === conversation.id}
                       onOpenChange={(open) => {
                         setOpenDropdownId(open ? conversation.id : null);
@@ -565,7 +577,7 @@ export default function ConversationList({
                           <MoreHorizontal className="h-3.5 w-3.5" />
                         </Button>
                       </DropdownMenuTrigger>
-                      
+
                       <DropdownMenuContent align="end" className="w-40">
                         <DropdownMenuItem
                           onClick={(e) => togglePin(conversation.id, e)}

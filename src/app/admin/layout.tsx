@@ -49,11 +49,7 @@ interface NavItem {
   badgeColor?: string;
 }
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -70,13 +66,13 @@ export default function AdminLayout({
       } else {
         // 检查是否具有管理员权限（admin 或 super_admin）
         const isAdmin = user.role === 'admin' || user.role === 'super_admin';
-        
+
         if (!isAdmin) {
           console.log('[AdminLayout] 非管理员用户，拒绝访问，当前角色:', user.role);
           toast({
             title: '权限不足',
             description: `您当前角色为 ${user.role || '普通用户'}，没有访问管理后台的权限`,
-            variant: 'destructive'
+            variant: 'destructive',
           });
           router.push('/');
         } else {
@@ -159,7 +155,7 @@ export default function AdminLayout({
   };
 
   // 获取当前页面标题
-  const currentPageTitle = navItems.find(item => item.href === pathname)?.title || '管理后台';
+  const currentPageTitle = navItems.find((item) => item.href === pathname)?.title || '管理后台';
 
   if (loading) {
     return (
@@ -177,22 +173,20 @@ export default function AdminLayout({
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* 移动端菜单按钮 */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
+        <Button variant="outline" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>
 
       {/* 侧边栏 */}
-      <div className={`
+      <div
+        className={`
         fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-64'}
         lg:translate-x-0
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
+      `}
+      >
         {/* 侧边栏头部 */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-2">
@@ -207,7 +201,9 @@ export default function AdminLayout({
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="hidden lg:flex"
           >
-            <ChevronLeft className={`h-5 w-5 transition-transform ${sidebarOpen ? '' : 'rotate-180'}`} />
+            <ChevronLeft
+              className={`h-5 w-5 transition-transform ${sidebarOpen ? '' : 'rotate-180'}`}
+            />
           </Button>
         </div>
 
@@ -235,18 +231,17 @@ export default function AdminLayout({
                   className={`
                     flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
                     hover:bg-gray-100 dark:hover:bg-gray-800
-                    ${isActive
-                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
-                      : 'text-gray-700 dark:text-gray-300'
+                    ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                        : 'text-gray-700 dark:text-gray-300'
                     }
                   `}
                 >
                   {item.icon}
                   <span className="flex-1 text-sm">{item.title}</span>
                   {item.badge && (
-                    <Badge className={`${item.badgeColor} text-white text-xs`}>
-                      {item.badge}
-                    </Badge>
+                    <Badge className={`${item.badgeColor} text-white text-xs`}>{item.badge}</Badge>
                   )}
                 </Link>
               );
@@ -260,12 +255,8 @@ export default function AdminLayout({
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start gap-3">
                 <Avatar className="h-8 w-8">
-                  {user?.avatar ? (
-                    <AvatarImage src={user.avatar} />
-                  ) : null}
-                  <AvatarFallback>
-                    {user?.name?.[0] || '管'}
-                  </AvatarFallback>
+                  {user?.avatar ? <AvatarImage src={user.avatar} /> : null}
+                  <AvatarFallback>{user?.name?.[0] || '管'}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 text-left">
                   <p className="text-sm font-medium">{user?.name || '管理员'}</p>
@@ -287,11 +278,13 @@ export default function AdminLayout({
       </div>
 
       {/* 主内容区 */}
-      <div className={`
+      <div
+        className={`
         transition-all duration-200
         lg:ml-64
         ${sidebarOpen ? 'ml-64' : 'ml-0'}
-      `}>
+      `}
+      >
         {/* 顶部栏 */}
         <div className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6">
           <h2 className="text-lg font-semibold">{currentPageTitle}</h2>
@@ -301,20 +294,14 @@ export default function AdminLayout({
             </Button>
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
             <Avatar className="h-8 w-8">
-              {user?.avatar ? (
-                <AvatarImage src={user.avatar} />
-              ) : null}
-              <AvatarFallback>
-                {user?.name?.[0] || '管'}
-              </AvatarFallback>
+              {user?.avatar ? <AvatarImage src={user.avatar} /> : null}
+              <AvatarFallback>{user?.name?.[0] || '管'}</AvatarFallback>
             </Avatar>
           </div>
         </div>
 
         {/* 页面内容 */}
-        <div className="p-6">
-          {children}
-        </div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );

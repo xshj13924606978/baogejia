@@ -5,6 +5,7 @@
 ## 🌟 核心功能
 
 ### 1. AI 智能对话（双引擎架构）
+
 - ✅ **DeepSeek 大语言模型**：智能语义理解、意图识别、技术方案生成
 - ✅ **Coze 增强工具**：联网搜索、向量模型、生图模型
 - 🔄 **自动服务选择**：根据任务类型自动选择最合适的服务
@@ -14,6 +15,7 @@
 - 多轮对话优化报价
 
 ### 2. 报价单管理
+
 - 自动生成报价单
 - 支持多种格式导出（PDF、Word、Excel）
 - 自定义报价模板
@@ -21,6 +23,7 @@
 - 智能价格优化建议（DeepSeek + 市场数据）
 
 ### 3. 客户资料库
+
 - 客户信息管理
 - 财务信息记录
 - 模板快速填充
@@ -28,6 +31,7 @@
 - 智能搜索
 
 ### 4. 产品库
+
 - 产品分类管理
 - 价格历史追踪
 - 相似产品推荐（Coze 向量搜索）
@@ -36,6 +40,7 @@
 ### 5. 智能方案增强器 🆕
 
 #### 🎯 方案增强功能
+
 - **技术参数细化**：提取和生成详细的技术参数（进水、工艺、出水、设备）
 - **工艺流程优化**：生成详细的工艺流程步骤和运行参数
 - **设备配置优化**：生成完整的设备配置清单和技术规格
@@ -46,6 +51,7 @@
 - **优化建议**：提供技术、经济、运营等多维度优化建议
 
 #### 🚀 使用方式
+
 ```bash
 # 检查增强器状态
 curl http://localhost:5000/api/proposal/enhance
@@ -68,6 +74,7 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 ```
 
 #### 📊 增强级别
+
 - **Basic（基础）**：技术参数 + 工艺流程 + 设备清单 + 基础成本
 - **Standard（标准）**⭐：完整技术参数 + 详细工艺 + 完整设备 + 详细成本 + 实施指导 + 运营建议
 - **Comprehensive（全面）**：所有功能 + 风险评估 + 优化建议 + 市场数据
@@ -77,18 +84,21 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 ### 6. Markdown 渲染增强 🆕
 
 #### 🎯 功能说明
+
 - **完整 Markdown 支持**：使用 `markdown-it` 库替换原有的正则表达式解析器
 - **正确处理复杂表格**：修复了长文本方案内容截断问题
 - **支持所有 Markdown 语法**：标题、列表、表格、粗体、斜体、链接等
 - **自适应样式**：使用 Tailwind CSS 的 prose 插件，自动适配主题
 
 #### 🔧 技术实现
+
 - **解析器**：`markdown-it`（成熟的 Markdown 解析库）
 - **类型定义**：`@types/markdown-it`
 - **样式**：`prose prose-slate max-w-none`
 - **配置**：支持 HTML 和换行符（`{ html: true, breaks: true }`）
 
 #### 📝 修复内容
+
 - 修复了长文本方案内容被截断的问题
 - 提升了表格渲染的准确性
 - 优化了复杂 Markdown 结构的解析性能
@@ -96,16 +106,19 @@ curl -X POST http://localhost:5000/api/proposal/enhance \
 ### 7. Coze 工具集成（已预留配置）
 
 #### 🌐 联网搜索
+
 - 实时查询产品市场价格
 - 对比竞争对手报价
 - 自动价格趋势分析
 
 #### 🧠 向量大模型
+
 - 语义化搜索产品
 - 智能相似产品推荐
 - 需求自动匹配
 
 #### 🎨 生图大模型
+
 - 自动生成产品展示图
 - 创建报价单封面
 - 提升视觉效果
@@ -291,6 +304,7 @@ curl -X POST http://localhost:5000/api/coze \
 详细配置步骤请查看：[docs/COZE_QUICK_START.md](docs/COZE_QUICK_START.md)
 
 快速启用：
+
 1. 获取 API Key：https://www.coze.cn/open/oauth/apps
 2. 配置 `.env.local`（设置 `COZE_API_KEY` 和工具开关）
 3. 重启应用：`pnpm dev`
@@ -304,6 +318,7 @@ curl -X POST http://localhost:5000/api/coze \
 - [Coze 工具快速启用](docs/COZE_QUICK_START.md) - 3分钟快速启用指南
 - [Coze 工具详细配置](docs/COZE_TOOLS_SETUP.md) - 完整配置文档
 - [Coze 工具集成报告](docs/COZE_INTEGRATION_COMPLETE.md) - 集成完成报告
+
 2. 配置 `.env.local` 中的 Coze 凭证
 3. 设置 `ENABLE_COZE_TOOLS=true`
 4. 重启应用

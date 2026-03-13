@@ -5,10 +5,7 @@ import { UpdateCommentRequest } from '@/types/team';
 /**
  * 更新评论
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: commentId } = await params;
     const userId = request.headers.get('x-user-id') || 'demo_user_1';

@@ -12,18 +12,12 @@ export async function GET() {
     const result = await oauthService.createWechatQrCode();
 
     if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, error: result.error }, { status: 500 });
     }
 
     return NextResponse.json(result);
   } catch (error) {
     console.error('[Wechat OAuth] 获取二维码失败:', error);
-    return NextResponse.json(
-      { success: false, error: '获取二维码失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: '获取二维码失败' }, { status: 500 });
   }
 }

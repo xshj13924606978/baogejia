@@ -28,7 +28,7 @@ export default function CaseLibrary() {
       budget: '1200万元',
       completionDate: '2024-06-30',
       description: '老旧污水处理厂升级改造，采用MBR工艺',
-      tags: ['MBR', '升级改造', '污水处理']
+      tags: ['MBR', '升级改造', '污水处理'],
     },
     {
       id: '2',
@@ -39,7 +39,7 @@ export default function CaseLibrary() {
       budget: '800万元',
       completionDate: '2024-03-15',
       description: '工业园区供水管网全面改造升级',
-      tags: ['管网改造', '供水', '工业园区']
+      tags: ['管网改造', '供水', '工业园区'],
     },
     {
       id: '3',
@@ -50,8 +50,8 @@ export default function CaseLibrary() {
       budget: '150万元',
       completionDate: '2024-01-20',
       description: '一体化污水处理设备安装调试',
-      tags: ['一体化设备', '安装调试', '环保']
-    }
+      tags: ['一体化设备', '安装调试', '环保'],
+    },
   ]);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,11 +60,13 @@ export default function CaseLibrary() {
 
   const caseTypes = ['全部', '污水处理', '供水工程', '设备安装', '工业废水'];
 
-  const filteredCases = cases.filter(item => {
+  const filteredCases = cases.filter((item) => {
     if (filterType !== 'all' && item.type !== filterType) return false;
     if (searchTerm) {
-      return item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      return (
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
     return true;
   });
@@ -84,7 +86,7 @@ export default function CaseLibrary() {
       completionDate: new Date().toISOString().split('T')[0],
       description: '通过本地文件导入的案例',
       tags: ['导入案例'],
-      source: 'local'
+      source: 'local',
     };
     setCases([...cases, newCase]);
   };
@@ -101,12 +103,17 @@ export default function CaseLibrary() {
       description: content.substring(0, 200),
       tags: ['网页链接'],
       source: 'weblink',
-      sourceUrl: url
+      sourceUrl: url,
     };
     setCases([...cases, newCase]);
   };
 
-  const handleCloudFileUpload = (url: string, fileName: string, description: string, extractCode: string) => {
+  const handleCloudFileUpload = (
+    url: string,
+    fileName: string,
+    description: string,
+    extractCode: string
+  ) => {
     const newCase: Case = {
       id: String(cases.length + 1),
       name: fileName,
@@ -118,12 +125,18 @@ export default function CaseLibrary() {
       description: `${description}${extractCode ? ` (提取码: ${extractCode})` : ''}`,
       tags: ['网盘链接'],
       source: 'clouddrive',
-      sourceUrl: url
+      sourceUrl: url,
     };
     setCases([...cases, newCase]);
   };
 
-  const handleCloudFileWithFile = (url: string, fileName: string, description: string, extractCode: string, file: File) => {
+  const handleCloudFileWithFile = (
+    url: string,
+    fileName: string,
+    description: string,
+    extractCode: string,
+    file: File
+  ) => {
     // 直接使用文件上传功能
     handleLocalFileUpload(file);
   };
@@ -139,9 +152,7 @@ export default function CaseLibrary() {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-bold flex items-center gap-2">
           <span>🏗️</span> 案例库
-          <span className="text-sm font-normal text-gray-500 ml-2">
-            {cases.length}个案例
-          </span>
+          <span className="text-sm font-normal text-gray-500 ml-2">{cases.length}个案例</span>
         </h3>
         <div className="flex gap-2">
           <button className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center gap-1">
@@ -165,7 +176,7 @@ export default function CaseLibrary() {
 
       {/* 分类标签 */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-        {caseTypes.map(type => (
+        {caseTypes.map((type) => (
           <button
             key={type}
             onClick={() => setFilterType(type === '全部' ? 'all' : type)}
@@ -198,7 +209,7 @@ export default function CaseLibrary() {
 
       {/* 案例列表 */}
       <div className="space-y-4">
-        {filteredCases.map(item => (
+        {filteredCases.map((item) => (
           <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
               <div className="flex-1">
@@ -227,8 +238,11 @@ export default function CaseLibrary() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1 mt-3">
-                  {item.tags.map(tag => (
-                    <span key={tag} className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">
+                  {item.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs"
+                    >
                       {tag}
                     </span>
                   ))}

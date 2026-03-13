@@ -26,7 +26,10 @@ function fixFile(filePath: string): boolean {
     content = content.replace(/\n\s*\}\);\s*\n/g, '\n');
 
     // 修复模式3: 修复 setTimeout 的括号
-    content = content.replace(/setTimeout\(resolve, 100\);\s*\n\s*\}/g, 'setTimeout(resolve, 100));\n    }');
+    content = content.replace(
+      /setTimeout\(resolve, 100\);\s*\n\s*\}/g,
+      'setTimeout(resolve, 100));\n    }'
+    );
 
     // 修复模式4: 删除空行前的多余闭合括号
     content = content.replace(/\n\s*\}\s*\n\s*\}/g, '\n  }\n}');

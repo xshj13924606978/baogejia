@@ -56,8 +56,8 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between p-2 bg-muted rounded">
                 <span>最低等级：Lv.{requiredLevel}</span>
-                {user && (
-                  levelSatisfied ? (
+                {user &&
+                  (levelSatisfied ? (
                     <Badge variant="default" className="bg-green-500">
                       <Check className="h-3 w-3 mr-1" />
                       Lv.{user.level}
@@ -67,14 +67,13 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
                       <X className="h-3 w-3 mr-1" />
                       Lv.{user.level}
                     </Badge>
-                  )
-                )}
+                  ))}
               </div>
 
               <div className="flex items-center justify-between p-2 bg-muted rounded">
                 <span>所需积分：{requiredPoints}</span>
-                {user && (
-                  pointsSatisfied ? (
+                {user &&
+                  (pointsSatisfied ? (
                     <Badge variant="default" className="bg-green-500">
                       <Check className="h-3 w-3 mr-1" />
                       {user.currentPoints}
@@ -84,22 +83,17 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
                       <X className="h-3 w-3 mr-1" />
                       {user.currentPoints}
                     </Badge>
-                  )
-                )}
+                  ))}
               </div>
             </div>
           </div>
 
           {!levelSatisfied && (
-            <p className="text-sm text-muted-foreground">
-              您的等级不足，请升级后再试
-            </p>
+            <p className="text-sm text-muted-foreground">您的等级不足，请升级后再试</p>
           )}
 
           {!pointsSatisfied && (
-            <p className="text-sm text-muted-foreground">
-              您的积分不足，请充值后再试
-            </p>
+            <p className="text-sm text-muted-foreground">您的积分不足，请充值后再试</p>
           )}
         </div>
 
@@ -107,9 +101,7 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
           <Button variant="outline" onClick={onClose}>
             知道了
           </Button>
-          <Button onClick={handleUpgrade}>
-            立即升级
-          </Button>
+          <Button onClick={handleUpgrade}>立即升级</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

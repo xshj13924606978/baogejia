@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: originalId } = await params;
   console.log('[Conversations/[id]/reuse] POST 请求，原ID:', originalId);
-  
+
   try {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,10 +20,7 @@ export async function POST(
 
     if (fetchError || !original) {
       console.error('[Conversations/[id]/reuse] 原对话不存在:', originalId);
-      return NextResponse.json(
-        { error: '原对话不存在' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: '原对话不存在' }, { status: 404 });
     }
 
     // 创建新对话
@@ -39,17 +33,14 @@ export async function POST(
         status: 'active',
         message_count: 0,
         updated_at: now,
-        created_at: now
+        created_at: now,
       })
       .select()
       .single();
 
     if (error) {
       console.error('[Conversations/[id]/reuse] 创建新对话失败:', error);
-      return NextResponse.json(
-        { error: '创建失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '创建失败' }, { status: 500 });
     }
 
     console.log('[Conversations/[id]/reuse] 复用成功, 新ID:', data.id);
@@ -58,15 +49,12 @@ export async function POST(
       conversation: {
         id: data.id,
         title: data.title,
-        updatedAt: data.updated_at
+        updatedAt: data.updated_at,
       },
-      files: []
+      files: [],
     });
   } catch (error) {
     console.error('[Conversations/[id]/reuse] 复用异常:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

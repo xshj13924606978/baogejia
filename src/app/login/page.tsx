@@ -31,16 +31,16 @@ const identifyInput = (input: string): 'email' | 'phone' | 'unknown' => {
 function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { 
-    phoneLogin, 
+  const {
+    phoneLogin,
     emailLogin,
     passwordLogin,
     thirdPartyLogin,
     sendPhoneCode,
     user,
-    loading: userLoading
+    loading: userLoading,
   } = useUser();
-  
+
   // 如果已经登录，直接跳转
   useEffect(() => {
     if (user) {
@@ -52,13 +52,13 @@ function LoginPage() {
   const [loginMode, setLoginMode] = useState<'phone' | 'password' | 'qrcode'>('phone');
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  
+
   // 表单数据
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
-  
+
   // 错误信息
   const [phoneError, setPhoneError] = useState('');
   const [accountError, setAccountError] = useState('');
@@ -100,24 +100,24 @@ function LoginPage() {
   // 发送手机验证码
   const handleSendCode = async () => {
     if (!phone) {
-      toast({ title: "请输入手机号", variant: "destructive", duration: 2000 });
+      toast({ title: '请输入手机号', variant: 'destructive', duration: 2000 });
       return;
     }
-    
+
     if (!validatePhone(phone)) {
-      toast({ title: "手机号格式不正确", variant: "destructive", duration: 3000 });
+      toast({ title: '手机号格式不正确', variant: 'destructive', duration: 3000 });
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       const result = await sendPhoneCode(phone);
-      
+
       if (result.success) {
         toast({
-          title: "验证码已发送",
-          description: "请查收短信验证码",
+          title: '验证码已发送',
+          description: '请查收短信验证码',
           duration: 3000,
         });
         setCountdown(60);
@@ -131,19 +131,19 @@ function LoginPage() {
           });
         }, 1000);
       } else {
-        toast({ 
-          title: "发送失败", 
-          description: result.error || "请稍后重试", 
-          variant: "destructive", 
-          duration: 3000 
+        toast({
+          title: '发送失败',
+          description: result.error || '请稍后重试',
+          variant: 'destructive',
+          duration: 3000,
         });
       }
     } catch (error) {
-      toast({ 
-        title: "发送失败", 
-        description: "网络错误，请检查网络连接", 
-        variant: "destructive", 
-        duration: 3000 
+      toast({
+        title: '发送失败',
+        description: '网络错误，请检查网络连接',
+        variant: 'destructive',
+        duration: 3000,
       });
     } finally {
       setLoading(false);
@@ -153,39 +153,39 @@ function LoginPage() {
   // 处理手机登录
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validatePhone(phone)) {
-      toast({ title: "手机号格式不正确", variant: "destructive", duration: 3000 });
+      toast({ title: '手机号格式不正确', variant: 'destructive', duration: 3000 });
       return;
     }
-    
+
     if (!code) {
-      toast({ title: "请输入验证码", variant: "destructive", duration: 2000 });
+      toast({ title: '请输入验证码', variant: 'destructive', duration: 2000 });
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       const response = await phoneLogin(phone, code);
-      
+
       if (response.success) {
-        toast({ title: "登录成功", description: "欢迎回来", duration: 2000 });
+        toast({ title: '登录成功', description: '欢迎回来', duration: 2000 });
         router.push('/');
       } else {
-        toast({ 
-          title: "登录失败", 
-          description: response.error || "验证码错误或已过期", 
-          variant: "destructive", 
-          duration: 3000 
+        toast({
+          title: '登录失败',
+          description: response.error || '验证码错误或已过期',
+          variant: 'destructive',
+          duration: 3000,
         });
       }
     } catch (error) {
-      toast({ 
-        title: "登录失败", 
-        description: "请稍后重试", 
-        variant: "destructive", 
-        duration: 3000 
+      toast({
+        title: '登录失败',
+        description: '请稍后重试',
+        variant: 'destructive',
+        duration: 3000,
       });
     } finally {
       setLoading(false);
@@ -195,40 +195,40 @@ function LoginPage() {
   // 处理账号密码登录
   const handleAccountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const inputType = identifyInput(account);
     if (inputType === 'unknown') {
-      toast({ title: "请输入正确的邮箱或手机号", variant: "destructive", duration: 3000 });
+      toast({ title: '请输入正确的邮箱或手机号', variant: 'destructive', duration: 3000 });
       return;
     }
-    
+
     if (!password) {
-      toast({ title: "请输入密码", variant: "destructive", duration: 2000 });
+      toast({ title: '请输入密码', variant: 'destructive', duration: 2000 });
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       const response = await passwordLogin(account, password);
-      
+
       if (response.success) {
-        toast({ title: "登录成功", description: "欢迎回来", duration: 2000 });
+        toast({ title: '登录成功', description: '欢迎回来', duration: 2000 });
         router.push('/');
       } else {
-        toast({ 
-          title: "登录失败", 
-          description: response.error || "账号或密码错误", 
-          variant: "destructive", 
-          duration: 3000 
+        toast({
+          title: '登录失败',
+          description: response.error || '账号或密码错误',
+          variant: 'destructive',
+          duration: 3000,
         });
       }
     } catch (error) {
-      toast({ 
-        title: "登录失败", 
-        description: "请稍后重试", 
-        variant: "destructive", 
-        duration: 3000 
+      toast({
+        title: '登录失败',
+        description: '请稍后重试',
+        variant: 'destructive',
+        duration: 3000,
       });
     } finally {
       setLoading(false);
@@ -266,11 +266,9 @@ function LoginPage() {
               </div>
             </div>
             <CardTitle className="text-2xl">欢迎回来</CardTitle>
-            <CardDescription>
-              请使用微信或手机应用扫码登录
-            </CardDescription>
+            <CardDescription>请使用微信或手机应用扫码登录</CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             <div className="space-y-6 py-4">
               <div className="flex justify-center">
@@ -278,20 +276,16 @@ function LoginPage() {
                   <QrCode className="h-24 w-24 text-gray-400" />
                 </div>
               </div>
-              
+
               <div className="flex justify-center gap-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="px-8"
                   onClick={() => thirdPartyLogin('wechat')}
                 >
                   微信扫码
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  className="px-8"
-                  onClick={handleBack}
-                >
+                <Button variant="ghost" className="px-8" onClick={handleBack}>
                   返回
                 </Button>
               </div>
@@ -313,12 +307,10 @@ function LoginPage() {
           </div>
           <CardTitle className="text-2xl">欢迎回来</CardTitle>
           <CardDescription>
-            {loginMode === 'phone' 
-              ? '使用手机号+验证码登录' 
-              : '使用邮箱或手机号+密码登录'}
+            {loginMode === 'phone' ? '使用手机号+验证码登录' : '使用邮箱或手机号+密码登录'}
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent>
           {/* 登录方式选择 */}
           <div className="flex border-b border-gray-200 dark:border-gray-800 mb-6">
@@ -393,11 +385,13 @@ function LoginPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-gray-500">
-                未注册的手机号验证后将自动创建账号
-              </p>
+              <p className="text-xs text-gray-500">未注册的手机号验证后将自动创建账号</p>
 
-              <Button type="submit" className="w-full" disabled={loading || !validatePhone(phone) || !code}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading || !validatePhone(phone) || !code}
+              >
                 {loading ? '登录中...' : '手机号一键登录'}
               </Button>
             </form>
@@ -417,11 +411,9 @@ function LoginPage() {
                   className={accountError ? 'border-red-500' : ''}
                 />
                 {accountError && <p className="text-xs text-red-500">{accountError}</p>}
-                <p className="text-xs text-gray-500">
-                  支持邮箱或手机号登录
-                </p>
+                <p className="text-xs text-gray-500">支持邮箱或手机号登录</p>
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">密码</label>
                 <Input
@@ -433,7 +425,11 @@ function LoginPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading || !account || accountError !== '' || !password}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading || !account || accountError !== '' || !password}
+              >
                 {loading ? '登录中...' : '登录'}
               </Button>
             </form>
@@ -446,40 +442,38 @@ function LoginPage() {
                 <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-950 text-gray-500">
-                  其他登录方式
-                </span>
+                <span className="px-2 bg-white dark:bg-gray-950 text-gray-500">其他登录方式</span>
               </div>
             </div>
 
             <div className="mt-4 flex justify-center gap-4">
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 className="h-10 w-10 rounded-full"
                 onClick={() => thirdPartyLogin('wechat')}
               >
                 <span className="text-green-600 font-medium">微</span>
               </Button>
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 className="h-10 w-10 rounded-full"
                 onClick={() => thirdPartyLogin('qq')}
               >
                 <span className="text-blue-600 font-medium">Q</span>
               </Button>
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 className="h-10 w-10 rounded-full"
                 onClick={() => thirdPartyLogin('github')}
               >
                 <Github className="h-4 w-4" />
               </Button>
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 className="h-10 w-10 rounded-full"
                 onClick={() => thirdPartyLogin('google')}
               >

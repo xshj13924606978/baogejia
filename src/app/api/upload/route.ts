@@ -5,16 +5,13 @@ import { v4 as uuidv4 } from 'uuid';
 export async function POST(request: NextRequest) {
   try {
     console.log('[Upload] ========== 开始文件上传 ==========');
-    
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
     if (!file) {
       console.error('[Upload] 没有文件上传');
-      return NextResponse.json(
-        { error: 'No file uploaded' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
     console.log('[Upload] 原始文件名:', file.name);
@@ -24,18 +21,12 @@ export async function POST(request: NextRequest) {
     // 验证文件大小（最小1KB，最大10MB）
     if (file.size < 10) {
       console.error('[Upload] 文件太小:', file.size);
-      return NextResponse.json(
-        { error: 'File is too small or empty' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'File is too small or empty' }, { status: 400 });
     }
 
     if (file.size > 10 * 1024 * 1024) {
       console.error('[Upload] 文件太大:', file.size);
-      return NextResponse.json(
-        { error: 'File size exceeds 10MB limit' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'File size exceeds 10MB limit' }, { status: 400 });
     }
 
     // 验证文件类型
@@ -49,18 +40,27 @@ export async function POST(request: NextRequest) {
       'text/csv',
       'image/jpeg',
       'image/png',
-      'image/gif'
+      'image/gif',
     ];
 
     const fileExt = file.name.split('.').pop()?.toLowerCase();
-    const allowedExts = ['pdf', 'xls', 'xlsx', 'doc', 'docx', 'txt', 'csv', 'jpg', 'jpeg', 'png', 'gif'];
+    const allowedExts = [
+      'pdf',
+      'xls',
+      'xlsx',
+      'doc',
+      'docx',
+      'txt',
+      'csv',
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+    ];
 
     if (!allowedTypes.includes(file.type) && !allowedExts.includes(fileExt || '')) {
       console.error('[Upload] 不允许的文件类型:', file.type, fileExt);
-      return NextResponse.json(
-        { error: 'File type not allowed' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'File type not allowed' }, { status: 400 });
     }
 
     // 获取Supabase客户端
@@ -87,14 +87,11 @@ export async function POST(request: NextRequest) {
     let uploadData: any = null;
 
     try {
-      const result = await supabase
-        .storage
-        .from('quote-files')
-        .upload(fileKey, buffer, {
-          contentType: file.type,
-          cacheControl: '3600',
-          upsert: false
-        });
+      const result = await supabase.storage.from('quote-files').upload(fileKey, buffer, {
+        contentType: file.type,
+        cacheControl: '3600',
+        upsert: false,
+      });
 
       uploadData = result.data;
       uploadError = result.error;
@@ -114,51 +111,43 @@ export async function POST(request: NextRequest) {
 
         // 创建一个带有 service role 权限的客户端
         const { createClient } = await import('@supabase/supabase-js');
-        const serviceClient = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          serviceRoleKey,
-          {
-            auth: {
-              autoRefreshToken: false,
-              persistSession: false
-            }
-          }
-        );
+        const serviceClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        });
 
         // 检查 bucket 是否真的不存在
-        const { data: buckets, error: listError } = await serviceClient
-          .storage
-          .listBuckets();
+        const { data: buckets, error: listError } = await serviceClient.storage.listBuckets();
 
         if (listError) {
           console.error('[Upload] 检查存储桶列表失败:', listError);
           throw listError;
         }
 
-        const bucketExists = buckets?.find(b => b.name === 'quote-files');
+        const bucketExists = buckets?.find((b) => b.name === 'quote-files');
 
         if (!bucketExists) {
           // bucket 确实不存在，创建它
           console.log('[Upload] 存储桶不存在，正在创建...');
 
-          const { error: createError } = await serviceClient
-            .storage
-            .createBucket('quote-files', {
-              public: true,
-              allowedMimeTypes: [
-                'application/pdf',
-                'application/vnd.ms-excel',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'text/plain',
-                'text/csv',
-                'image/jpeg',
-                'image/png',
-                'image/gif'
-              ],
-              fileSizeLimit: 10485760 // 10MB
-            });
+          const { error: createError } = await serviceClient.storage.createBucket('quote-files', {
+            public: true,
+            allowedMimeTypes: [
+              'application/pdf',
+              'application/vnd.ms-excel',
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              'application/msword',
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              'text/plain',
+              'text/csv',
+              'image/jpeg',
+              'image/png',
+              'image/gif',
+            ],
+            fileSizeLimit: 10485760, // 10MB
+          });
 
           if (createError) {
             console.error('[Upload] 创建存储桶失败:', createError);
@@ -173,13 +162,12 @@ export async function POST(request: NextRequest) {
         console.log('[Upload] 使用 service role 重新上传...');
 
         // 使用 service role 直接上传
-        const retryResult = await serviceClient
-          .storage
+        const retryResult = await serviceClient.storage
           .from('quote-files')
           .upload(fileKey, buffer, {
             contentType: file.type,
             cacheControl: '3600',
-            upsert: false
+            upsert: false,
           });
 
         uploadData = retryResult.data;
@@ -229,7 +217,7 @@ export async function POST(request: NextRequest) {
           file_type: file.type,
           public_url: publicUrl,
           status: 'uploaded',
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -253,16 +241,15 @@ export async function POST(request: NextRequest) {
       fileName: file.name,
       safeName: safeName,
       size: buffer.length,
-      type: file.type
+      type: file.type,
     });
-
   } catch (error: any) {
     console.error('[Upload] 上传失败:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to upload file',
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
       },
       { status: 500 }
     );

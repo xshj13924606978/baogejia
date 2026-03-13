@@ -8,10 +8,7 @@ export async function POST(request: NextRequest) {
     const { user_id } = body;
 
     if (!user_id) {
-      return NextResponse.json(
-        { error: '缺少用户ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
     const db = getSupabaseClient();
@@ -24,10 +21,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[NotificationsReadAll] 标记失败:', error);
-      return NextResponse.json(
-        { error: '标记失败' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '标记失败' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -36,9 +30,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[NotificationsReadAll] 请求失败:', error);
-    return NextResponse.json(
-      { error: '服务器错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
