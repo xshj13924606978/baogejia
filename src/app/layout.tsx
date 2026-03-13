@@ -1,3 +1,4 @@
+import '@/lib/console-filter';
 import { UserProvider } from '@/contexts/UserContext';
 import { SwitchProvider } from '@/components/switch-manager';
 import { Inter } from 'next/font/google';
