@@ -546,6 +546,44 @@ export class TokenBillingService {
   }
 
   /**
+   * 设置用户积分（管理员功能）
+   */
+  async setUserPoints(userId: number, points: number): Promise<boolean> {
+    try {
+      const balance = await this.getUserBalance(userId);
+      
+      if (!balance) {
+        console.error('[TokenBillingService] 用户余额不存在，尝试创建');
+        // 尝试创建新记录
+        const newBalance = await this.createUserBalance(userId);
+        if (!newBalance) {
+          return false;
+        }
+      }
+
+      // 更新余额
+      const { error: updateError } = await this.supabase
+        .from('user_token_balance')
+        .update({
+          points_balance: points,
+          last_updated: new Date(),
+        })
+        .eq('user_id', userId);
+
+      if (updateError) {
+        console.error('[TokenBillingService] 设置用户积分失败:', updateError);
+        return false;
+      }
+
+      console.log(`[TokenBillingService] 用户 ${userId} 积分已设置为: ${points}`);
+      return true;
+    } catch (error) {
+      console.error('[TokenBillingService] 设置用户积分异常:', error);
+      return false;
+    }
+  }
+
+  /**
    * 获取可用套餐列表
    */
   getPaymentPlans(): PaymentPlan[] {

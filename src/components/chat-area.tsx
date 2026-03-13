@@ -1114,6 +1114,13 @@ export default function ChatArea({
     } finally {
       setLoading(false);
       abortControllerRef.current = null;
+      
+      // 通知其他组件更新积分显示
+      try {
+        window.dispatchEvent(new CustomEvent('points-updated'));
+      } catch (e) {
+        console.error('[ChatArea] 触发积分更新事件失败:', e);
+      }
     }
   };
 

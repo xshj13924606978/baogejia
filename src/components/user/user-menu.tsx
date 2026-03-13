@@ -78,6 +78,41 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   const [showSupplierDialog, setShowSupplierDialog] = useState(false);
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [showTermsDialog, setShowTermsDialog] = useState(false);
+  
+  // 用户积分
+  const [userPoints, setUserPoints] = useState(0);
+  
+  // 加载用户积分
+  useEffect(() => {
+    const loadUserPoints = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const response = await fetch('/api/admin/users/6/points'); // 暂时写死管理员ID，后续应该用user.id
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          setUserPoints(data.data.pointsBalance || 0);
+        }
+      } catch (error) {
+        console.error('获取用户积分失败:', error);
+      }
+    };
+    
+    loadUserPoints();
+    
+    // 监听积分更新事件
+    const handlePointsUpdate = () => {
+      console.log('[UserMenu] 收到积分更新事件，刷新积分');
+      loadUserPoints();
+    };
+    
+    window.addEventListener('points-updated', handlePointsUpdate);
+    
+    return () => {
+      window.removeEventListener('points-updated', handlePointsUpdate);
+    };
+  }, [user?.id]);
 
   // 编辑状态
   const [_editingProfile,_setEditingProfilee] = useState(false);
@@ -761,7 +796,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <CreditCard className="mr-2 h-4 w-4" />
                 <span>积分明细</span>
                 <Badge variant="secondary" className="ml-auto bg-amber-50 text-amber-700 border-0">
-                  1000
+                  {userPoints}
                 </Badge>
               </DropdownMenuItem>
 
@@ -992,7 +1027,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm opacity-90">当前积分</p>
-                    <p className="text-2xl font-bold">1000</p>
+                    <p className="text-2xl font-bold">{userPoints}</p>
                   </div>
                   <Sparkles className="h-8 w-8 opacity-90" />
                 </div>
