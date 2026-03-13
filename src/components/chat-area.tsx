@@ -1229,6 +1229,8 @@ export default function ChatArea({
       if (error instanceof Error) {
         if (error.message.includes('500')) {
           userMessage = '服务器内部错误，请稍后重试。';
+        } else if (error.message.includes('402')) {
+          userMessage = '积分不足，请充值后继续使用。';
         } else if (error.message.includes('401') || error.message.includes('403')) {
           userMessage = '认证失败，请检查您的登录状态。';
         } else if (error.message.includes('404')) {
