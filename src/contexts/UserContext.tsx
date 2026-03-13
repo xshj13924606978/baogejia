@@ -1178,7 +1178,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  const resetPassword = async (email: string): Promise<boolean> => {
+  const resetPassword = async (_email_emailemail: string): Promise<boolean> => {
     return true;
   };
 
@@ -1251,7 +1251,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const enterpriseLogin = async (
     enterpriseId: string,
     employeeId: string,
-    token: string
+    _tokentoken: string
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);

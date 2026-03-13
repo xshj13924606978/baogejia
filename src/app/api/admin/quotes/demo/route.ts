@@ -192,7 +192,7 @@ export const DELETE = withAnyPermission(
  * 使用 withQuoteExport 包装器
  */
 export async function OPTIONS(request: NextRequest) {
-  return withQuoteExport(async (req: NextRequest, _context: any) => {
+  return withQuoteExport(async (_req_reqreq: NextRequest, _context: any) => {
     return NextResponse.json({
       success: true,
       message: '导出报价功能可用'});

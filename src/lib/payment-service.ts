@@ -257,7 +257,7 @@ export class PaymentService {
     orderNo: string,
     transactionId: string,
     amount: number,
-    notifyData: any
+    _notifyDatanotifyData: any
   ): Promise<void> {
     // 更新订单和支付记录
     // 这里需要调用订单服务的方法

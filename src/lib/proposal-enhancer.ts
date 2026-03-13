@@ -478,7 +478,7 @@ ${proposal}
   private async enhanceEquipmentConfig(
     context: ProposalContext,
     proposal: string,
-    enableMarketData: boolean
+    _enableMarketDataenableMarketData: boolean
   ): Promise<EquipmentConfig[]> {
     Logger.info('[ProposalEnhancer] 增强设备配置');
 

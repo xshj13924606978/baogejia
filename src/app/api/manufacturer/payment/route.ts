@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PUT(_request_requestrequest: NextRequest) {
   return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { POST as awardPoints } from '../points/route';
+import { POST as _awardPoints } from '../points/route';
 
 // 创建邀请链接
 export async function POST(request: NextRequest) {

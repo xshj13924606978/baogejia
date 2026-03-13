@@ -115,7 +115,7 @@ export default function RealtimeDemoPage() {
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">用户列表在线状态</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {onlineUsers.slice(0, 8).map((user: any, index: number) => (
+              {onlineUsers.slice(0, 8).map((user: any, _index_indexindex: number) => (
                 <UserOnlineStatus
                   key={user.userId}
                   userId={typeof user.userId === 'number' ? user.userId : Number(user.userId)}

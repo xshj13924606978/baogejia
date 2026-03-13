@@ -285,7 +285,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   };
 
   // 下载文件
-  const handleDownload = (fileName: string, fileType: string) => {
+  const handleDownload = (fileName: string, _fileType_fileTypefileType: string) => {
     toast({
       title: '下载中',
       description: `正在下载 ${fileName}`,

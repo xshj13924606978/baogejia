@@ -82,7 +82,7 @@ export class OAuthService {
   /**
    * 微信登录回调处理
    */
-  async handleWechatCallback(code: string, state: string): Promise<OAuthUserInfo | null> {
+  async handleWechatCallback(code: string, _statestate: string): Promise<OAuthUserInfo | null> {
     try {
       // 检查配置
       if (!this.wechatConfig.app_id || !this.wechatConfig.app_secret) {
@@ -181,7 +181,7 @@ export class OAuthService {
   /**
    * QQ登录回调处理
    */
-  async handleQQCallback(code: string, state: string): Promise<OAuthUserInfo | null> {
+  async handleQQCallback(code: string, _statestate: string): Promise<OAuthUserInfo | null> {
     try {
       // 检查配置
       if (!this.qqConfig.app_id || !this.qqConfig.app_key) {

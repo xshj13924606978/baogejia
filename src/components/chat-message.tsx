@@ -491,7 +491,7 @@ const parseMarkdownToHtml = (text: string): string => {
         }
 
         // 处理每个单元格的内容
-        const processedCells = cells.map((c: string, idx: number) => {
+        const processedCells = cells.map((c: string, _idx_idxidx: number) => {
           let cellText = c.trim();
           // 保留单元格中的<br>标签，并确保使用<br/>
           cellText = cellText.replace(/<br>/gi, '<br/>');

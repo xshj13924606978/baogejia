@@ -2424,7 +2424,7 @@ class ProfessionalDialogueEngine {
    */
   private handleComparison(
     _message: any,
-    conversationId: string
+    _conversationIdconversationId: string
   ): {
     content: string;
     suggestions: string[];
@@ -2503,7 +2503,7 @@ class ProfessionalDialogueEngine {
    */
   private handleGeneralQuery(
     _message: any,
-    conversationId: string
+    _conversationIdconversationId: string
   ): {
     content: string;
     suggestions: string[];
@@ -2847,7 +2847,7 @@ class DetailedProposalGenerator {
   async generateDetailedProposal(
     projectInfo: any,
     products: Product[],
-    message: string
+    _messagemessage: string
   ): Promise<string> {
     console.log('[DetailedProposalGenerator] 开始生成详细方案');
 

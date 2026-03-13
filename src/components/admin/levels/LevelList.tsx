@@ -569,7 +569,7 @@ export const LevelList: React.FC = () => {
         const errorText = await res.text();
         console.error('[LevelList] 默认配置API错误:', errorText);
         // 如果API失败，使用硬编码默认值
-        useHardcodedDefaults();
+        applyHardcodedDefaults();
         return;
       }
 
@@ -843,17 +843,17 @@ export const LevelList: React.FC = () => {
       } else {
         console.warn('[LevelList] API返回无默认配置，使用硬编码默认值');
         // API 返回空数据，使用硬编码默认值
-        useHardcodedDefaults();
+        applyHardcodedDefaults();
       }
     } catch (error) {
       console.error('[LevelList] 恢复默认配置失败:', error);
       // 异常时使用硬编码默认值
-      useHardcodedDefaults();
+      applyHardcodedDefaults();
     }
   };
 
   // 使用硬编码默认值（fallback）- 每个等级有不同的默认配置
-  const useHardcodedDefaults = async () => {
+  const applyHardcodedDefaults = async () => {
     console.log('[LevelList] 使用硬编码默认值');
     const newValues: Record<string, string> = {};
     const newChecked = new Set<string>();

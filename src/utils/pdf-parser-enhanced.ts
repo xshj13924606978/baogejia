@@ -321,7 +321,7 @@ ${extractedText.substring(0, 3000)}
     return noisePatterns.some((pattern) => pattern.test(text));
   }
 
-  private calculateConfidence(products: Product[], rawText: string): number {
+  private calculateConfidence(products: Product[], _rawTextrawText: string): number {
     if (products.length === 0) return 0;
 
     let score = 50;

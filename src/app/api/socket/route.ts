@@ -15,7 +15,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export async function GET(req: NextRequest) {
+export async function GET(_req_reqreq: NextRequest) {
   // 如果服务器已存在，返回状态
   if (global._socketServer) {
     return NextResponse.json({
