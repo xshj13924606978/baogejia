@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ServerDatabaseUtils } from '@/lib/server-utils';
 import { OcrHelper } from '@/utils/ocr-helper';
 import * as XLSX from 'xlsx';
 import * as mammoth from 'mammoth';
 import { PriceMatcher, ProductMatch } from '@/lib/price-matching';
 import { InputProcessor, ProcessedInput } from '@/lib/input-processor';
-import { IntentDetector, IntentResult } from '@/lib/intent-detector';
+import {  IntentResult } from '@/lib/intent-detector';
 import { Logger } from '@/lib/logger';
 // 导入 DeepSeek 客户端
-import { aiClient, callDeepSeekChat, streamDeepSeekChat } from '@/lib/deepseek-client';
+import { aiClient } from '@/lib/deepseek-client';
 // 导入智能对话处理器（替代固定意图检测）
 import { smartChatProcessor } from '@/lib/smart-chat-processor';
 
@@ -395,7 +394,7 @@ class WebSearchService {
 
     for (let i = 0; i < matchedProducts.length; i++) {
       const p = matchedProducts[i];
-      const original = originalProducts[i];
+      const _original = originalProducts[i];
 
       content += `**${i + 1}. ${p.name}**`;
       if (p.specs) content += ` ${p.specs}`;
@@ -571,7 +570,7 @@ class WebSearchService {
   /**
    * 生成跟进问题
    */
-  private generateFollowUpQuestions(query: string): string[] {
+  private generateFollowUpQuestions(_query: string): string[] {
     const questions = [
       '您需要处理的是什么类型的水？（生活污水/工业废水）',
       '对出水水质有什么要求？（排放标准/回用标准）',
@@ -586,7 +585,7 @@ class WebSearchService {
   /**
    * 提取价格信息
    */
-  private extractPriceInfo(query: string, results: any[]): string {
+  private extractPriceInfo(query: string, _results: any): string {
     // 整理价格表格
     let table = '| 设备类型 | 参考价格 | 特点 |\n|---------|---------|-----|\n';
 
@@ -612,7 +611,7 @@ class WebSearchService {
   /**
    * 提取技术信息
    */
-  private extractTechInfo(query: string, results: any[]): string {
+  private extractTechInfo(_query: string, _results: any): string {
     let info = '';
 
     // 工艺对比
@@ -630,7 +629,7 @@ class WebSearchService {
   /**
    * 提取案例信息
    */
-  private extractCaseInfo(results: any[]): string {
+  private extractCaseInfo(_results: any): string {
     let info = '';
 
     info += '**成功案例：**\n\n';
@@ -652,7 +651,7 @@ class WebSearchService {
   /**
    * 获取选购建议
    */
-  private getRecommendations(query: string, results: any[]): string {
+  private getRecommendations(query: string, _results: any): string {
     let recommendations = '### 💡 选购建议\n\n';
 
     if (query.includes('农村') || query.includes('生活污水')) {
@@ -1000,7 +999,7 @@ class TextParser {
 // ============================================================================
 
 class FileDownloader {
-  async download(file: any, fileKey: string): Promise<Buffer | null> {
+  async download(file: any, _fileKey: any): Promise<Buffer | null> {
     console.log('[Downloader] 开始下载文件:', file?.name || '未知');
 
     if (file?.buffer) {
@@ -1515,7 +1514,7 @@ class ConversationGenerator {
   /**
    * 获取价格询问回复
    */
-  private getPriceInquiryResponse(message: string): string {
+  private getPriceInquiryResponse(_message: any): string {
     return `关于您询问的价格，我可以为您：
 1. 🔍 查询数据库中的历史价格
 2. 📊 参考市场价格
@@ -1535,7 +1534,7 @@ class ConversationGenerator {
   /**
    * 获取技术咨询回复
    */
-  private getTechnicalResponse(message: string): string {
+  private getTechnicalResponse(_message: any): string {
     return `关于您咨询的技术问题，我可以为您：
 1. 🔧 提供技术方案建议
 2. 📋 分享典型案例
@@ -2424,7 +2423,7 @@ class ProfessionalDialogueEngine {
    * 处理产品对比
    */
   private handleComparison(
-    message: string,
+    _message: any,
     conversationId: string
   ): {
     content: string;
@@ -2503,7 +2502,7 @@ class ProfessionalDialogueEngine {
    * 处理通用查询
    */
   private handleGeneralQuery(
-    message: string,
+    _message: any,
     conversationId: string
   ): {
     content: string;
@@ -2943,7 +2942,7 @@ class DetailedProposalGenerator {
   /**
    * 生成工艺比选
    */
-  private async generateProcessComparison(projectInfo: any, products: Product[]): Promise<string> {
+  private async generateProcessComparison(projectInfo: any, _products: any): Promise<string> {
     const prompt = `请为污水处理项目进行工艺比选分析：
 处理规模：${projectInfo.scale || 60}吨/天
 项目类型：${projectInfo.projectType || '生活污水'}
@@ -3065,7 +3064,7 @@ class DetailedProposalGenerator {
       });
 
       return `**${product.name}**\n\n${response.text || '该设备采用先进的设计理念，结构紧凑，运行稳定，能够满足系统处理要求。'}\n\n`;
-    } catch (error) {
+    } catch (_error) {
       return `**${product.name}**\n\n${product.remark || '标准配置，运行稳定。'}\n\n`;
     }
   }
@@ -3245,7 +3244,7 @@ class QuoteGenerator {
   /**
    * 根据项目信息生成专业报价单
    */
-  async generateProfessionalQuote(projectInfo: any, message: string): Promise<string> {
+  async generateProfessionalQuote(projectInfo: any, _message: any): Promise<string> {
     const scale = projectInfo.scale || 60; // 默认60吨/天
 
     // 构建工艺流程
@@ -3264,7 +3263,7 @@ class QuoteGenerator {
   /**
    * 生成工艺流程
    */
-  private generateProcessFlow(scale: number): string {
+  private generateProcessFlow(_scale: any): string {
     return (
       `**生活污水处理工艺流程图**\n\n` +
       `格栅 → 调节池 → A²/O生化池 → 二沉池 → 消毒池 → 达标排放\n\n` +
@@ -3280,7 +3279,7 @@ class QuoteGenerator {
   /**
    * 生成设备清单
    */
-  private async generateEquipmentList(scale: number, projectInfo: any): Promise<any[]> {
+  private async generateEquipmentList(_scale: any, _projectInfo: any): Promise<any[]> {
     // 模拟设备清单数据
     const equipment = [
       {
@@ -4300,7 +4299,7 @@ export async function POST(request: NextRequest) {
 }
 
 // 添加 GET 方法以支持模型查询
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // 获取可用模型列表
     const availableModels = aiClient.getAvailableModels();

@@ -89,7 +89,7 @@ export default function ManufacturerPaymentPanel({
     loadRankings();
   }, [category]);
 
-  const formatAmount = (amount: number) => {
+  const _formatAmount = (amount: number) => {
     return new Intl.NumberFormat('zh-CN', {
       style: 'currency',
       currency: 'CNY',
@@ -108,7 +108,7 @@ export default function ManufacturerPaymentPanel({
     }).format(amount);
   };
 
-  const getStatusBadge = (status?: string) => {
+  const _getStatusBadge = (status?: string) => {
     switch (status) {
       case 'completed':
         return (

@@ -59,7 +59,7 @@ export const PointsLog: React.FC = () => {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: '错误',
         description: '获取积分流水失败',

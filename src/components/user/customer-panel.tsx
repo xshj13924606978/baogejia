@@ -28,7 +28,7 @@ export default function CustomerPanel() {
   const { quoteData, updateCustomerInfo } = useQuote();
   const { toast } = useToast();
   const [showCustomerList, setShowCustomerList] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [_loading,_setLoadingg] = useState(false);
 
   // 本地状态 - 确保所有字段都初始化为空字符串
   const customerInfo = quoteData?.customerInfo;

@@ -9,7 +9,7 @@
  */
 
 import { S3Storage } from 'coze-coding-dev-sdk';
-import { EmbeddingClient, HeaderUtils } from 'coze-coding-dev-sdk';
+import { EmbeddingClient } from 'coze-coding-dev-sdk';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { PriceMatcher } from './price-matching';
 

@@ -1,16 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
   Select,
   SelectContent,
@@ -18,33 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Upload,
-  Send,
-  Paperclip,
-  Sparkles,
-  Square,
-  Loader2,
-  Plus,
-  Code,
-  ArrowUp,
-  ChevronDown,
-  Layers,
-  ArrowDownToLine,
-  MessageSquare,
-  Zap,
-  FileText,
-  Sparkle,
-  Info,
-  Brain,
-  FileSpreadsheet,
-  FileText as FileTextIcon,
-  Image as ImageIcon,
-} from 'lucide-react';
+import { Upload, Paperclip, Sparkles, Square, Loader2, Plus, Code, ArrowUp, ChevronDown, Layers, ArrowDownToLine, MessageSquare, Zap, FileText, Sparkle, Info, Brain, FileSpreadsheet, FileText as FileTextIcon, Image as ImageIcon } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-import QuoteTable from '@/components/quote-table';
 import ChatMessage from '@/components/chat-message';
-import IntentSelector from '@/components/intent-selector';
 import FixedSwitcher from '@/components/fixed-switcher';
 import FloatingSwitcher from '@/components/floating-switcher';
 import KnowledgeCenter from '@/components/knowledge-center';
@@ -270,8 +241,8 @@ export default function ChatArea({
 
   const shouldAllowCreation = useRef(false);
 
-  const [pendingFiles, setPendingFiles] = useState<FileUpload[]>([]);
-  const [showIntentButtons, setShowIntentButtons] = useState(false);
+  const [_pendingFiles,_setPendingFiless] = useState<FileUpload[]>([]);
+  const [_showIntentButtons,_setShowIntentButtonss] = useState(false);
   const [uploadedFilesData, setUploadedFilesData] = useState<any[]>([]);
   const [parsedFilesMap, setParsedFilesMap] = useState<Record<string, any[]>>({});
   const parsedFilesMapRef = useRef(parsedFilesMap);
@@ -557,7 +528,7 @@ export default function ChatArea({
   });
 
   const dropzoneProps = getRootPropsForInput();
-  const { onKeyDown: dropzoneKeyDown, ...dropzonePropsWithoutKeyboard } = dropzoneProps;
+  const { onKeyDown: _dropzoneKeyDown, ...dropzonePropsWithoutKeyboard } = dropzoneProps;
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 B';

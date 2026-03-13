@@ -155,7 +155,7 @@ export default function PointsMall({ user }: PointsMallProps) {
           text: data.error || '兑换失败',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       setMessage({
         type: 'error',
         text: '网络错误，请重试',

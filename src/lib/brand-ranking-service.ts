@@ -237,7 +237,7 @@ export class BrandRankingService {
     });
 
     // 对每个等级内的品牌进行排序
-    levelGroups.forEach((brands, level) => {
+    levelGroups.forEach((brands, _level) => {
       if (rules.enable_same_level_random) {
         // 随机排序
         this.shuffleArray(brands);

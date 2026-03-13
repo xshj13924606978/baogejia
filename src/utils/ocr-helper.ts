@@ -33,7 +33,7 @@ export class OcrHelper {
       Logger.info('[OCR] pdftotext 可用');
       this.toolsAvailable = true;
       return true;
-    } catch (error) {
+    } catch (_error) {
       Logger.warn('[OCR] pdftotext 不可用，建议安装 poppler-utils');
       this.toolsAvailable = false;
       return false;
@@ -90,10 +90,10 @@ export class OcrHelper {
       // 清理临时文件
       try {
         fs.unlinkSync(tempPdf);
-      } catch (e) {}
+      } catch (_e) {}
       try {
         fs.unlinkSync(tempTxt);
-      } catch (e) {}
+      } catch (_e) {}
     }
   }
 

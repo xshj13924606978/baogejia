@@ -38,7 +38,7 @@ export function MessageReadReceipt({
   className = '',
 }: MessageReadReceiptProps) {
   const [readStatuses, setReadStatuses] = useState<ReadStatus[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, _setIsLoading] = useState(false);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
 
   const currentUserId =
@@ -227,13 +227,13 @@ export function BatchMessageReadReceipt({
       <span className="text-xs text-gray-500">
         {allReadCount}/{messages.length} 条已读
       </span>
-      {messages.map((message, index) => {
+      {messages.map((message, _index) => {
         const key = `${message.messageType}:${message.messageId}`;
         const statuses = readStatuses[key] || {};
         const recipients = message.recipients || [];
         const readCount = Object.values(statuses).filter((r) => r).length;
         const totalCount = recipients.length || 1;
-        const allRead = readCount === totalCount;
+        const _allRead = readCount === totalCount;
 
         return (
           <MessageReadReceipt
@@ -272,7 +272,7 @@ export function ChatMessageReadReceipt({
   sentTime,
 }: ChatMessageReadReceiptProps) {
   const [readUsers, setReadUsers] = useState<number[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, _setIsLoading] = useState(false);
 
   const currentUserId =
     typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : null;

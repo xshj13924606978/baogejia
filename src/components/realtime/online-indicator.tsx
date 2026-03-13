@@ -73,7 +73,7 @@ export function UserOnlineStatus({
 }: UserOnlineStatusProps) {
   const { onlineUsers } = useWebSocket();
 
-  const isOnline = onlineUsers.some((u) => u.user_id === userId);
+  const _isOnline = onlineUsers.some((u) => u.user_id === userId);
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>

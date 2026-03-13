@@ -8,9 +8,9 @@ import { SwitchProvider } from '@/components/switch-manager';
 import { QuoteProvider } from '@/contexts/QuoteContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, MessageSquare, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Menu, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 

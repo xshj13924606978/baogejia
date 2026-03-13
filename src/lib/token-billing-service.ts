@@ -500,7 +500,7 @@ export class TokenBillingService {
     try {
       const levelData = await userLevelService.getUserLevel(userId.toString());
       return levelData?.level || 1;
-    } catch (error) {
+    } catch (_error) {
       return 1;
     }
   }

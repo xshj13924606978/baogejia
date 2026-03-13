@@ -1,12 +1,50 @@
 {
   "date": "2026-03-13",
-  "timestamp": "2026-03-13T02:08:38.473Z",
-  "stats": {
-    "eslintWarnings": 338,
-    "tscErrors": 0,
-    "trend": 338,
-    "topFiles": []
-  },
+  "eslintWarnings": 136,
+  "tscErrors": 0,
+  "trend": 0,
+  "topFiles": [
+    {
+      "file": "src/app/team/[id]/page.tsx",
+      "count": 15
+    },
+    {
+      "file": "src/components/chat-area.tsx",
+      "count": 11
+    },
+    {
+      "file": "src/app/api/chat/route.ts",
+      "count": 9
+    },
+    {
+      "file": "src/components/admin/levels/LevelEditor.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/components/sidebar.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/components/team/comment-section.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/components/team/shared-quotes-list.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/lib/payment-service.ts",
+      "count": 5
+    },
+    {
+      "file": "src/components/user/customer-list-panel.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/components/admin/levels/LevelList.tsx",
+      "count": 3
+    }
+  ],
   "history": [
     {
       "date": "2026-03-13",
@@ -16,6 +54,76 @@
     {
       "date": "2026-03-13",
       "warnings": 338,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 338,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 186,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 187,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 187,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 169,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 169,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 169,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 169,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 136,
+      "errors": 0
+    },
+    {
+      "date": "2026-03-13",
+      "warnings": 136,
       "errors": 0
     }
   ]

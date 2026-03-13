@@ -1,7 +1,7 @@
 import { getSupabaseClient } from './supabase-client';
 
 // 积分奖励规则
-const POINTS_RULES = {
+const _POINTS_RULES = {
   register: 10,
   daily_login: 1,
   upload_price: 5,

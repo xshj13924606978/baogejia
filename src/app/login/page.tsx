@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { useUser } from '@/contexts/UserContext';
-import { Mail, Phone, QrCode, Github, Chrome, Building2 } from 'lucide-react';
+import {  Phone, Github, Chrome, Building2 , QrCode} from 'lucide-react';
 
 // 验证手机号格式
 const validatePhone = (phone: string): boolean => {
@@ -138,7 +138,7 @@ function LoginPage() {
           duration: 3000,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: '发送失败',
         description: '网络错误，请检查网络连接',
@@ -180,7 +180,7 @@ function LoginPage() {
           duration: 3000,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: '登录失败',
         description: '请稍后重试',
@@ -223,7 +223,7 @@ function LoginPage() {
           duration: 3000,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: '登录失败',
         description: '请稍后重试',

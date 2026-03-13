@@ -13,7 +13,7 @@ import {
  * GET - 查看用户列表
  * 使用 withAdmin 包装器（需要管理员权限）
  */
-export const GET = withAdmin(async (request: NextRequest, _context: any) => {
+export const GET = withAdmin(async (_request: NextRequest, _context: any) => {
   try {
     // 获取用户列表（业务逻辑）
     const { getSupabaseClient } = await import('@/storage/database/supabase-client');

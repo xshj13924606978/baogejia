@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id: teamId } = await params;
+    const { id: _teamId } = await params;
     const userId = request.headers.get('x-user-id') || 'demo_user_1';
 
     const body: ShareQuoteRequest = await request.json();

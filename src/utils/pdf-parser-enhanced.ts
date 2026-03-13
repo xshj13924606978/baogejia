@@ -108,7 +108,7 @@ export class EnhancedPdfParser {
         parseLevel: 'local',
         confidence,
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         products: [],
         globalRemarks: ['pdf-parse解析失败'],
@@ -131,7 +131,7 @@ export class EnhancedPdfParser {
         await execAsync(
           `pdftoppm -png -f 1 -singlefile ${tempPdf} ${tempImage.replace('.png', '')}`
         );
-      } catch (e) {
+      } catch (_e) {
         console.log('[PDF] pdftoppm可能未安装，跳过OCR');
         return {
           products: [],
@@ -182,7 +182,7 @@ export class EnhancedPdfParser {
       try {
         fs.unlinkSync(tempPdf);
         fs.unlinkSync(tempImage);
-      } catch (e) {}
+      } catch (_e) {}
 
       const jsonMatch = response.content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {

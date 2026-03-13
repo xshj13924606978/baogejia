@@ -1,6 +1,6 @@
 import { ServerDatabaseUtils } from './server-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { brandRankingService, RankedBrand } from './brand-ranking-service';
+import { brandRankingService } from './brand-ranking-service';
 import { userLevelService } from './user-level-service';
 
 export interface PriceMatchResult {
@@ -1950,7 +1950,7 @@ export class PriceMatcher {
           console.log('[PriceMatcher] 使用description中的min_price:', finalPrice);
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // 解析失败，继续使用display_price的值
     }
 
@@ -2426,7 +2426,7 @@ export class PriceMatcher {
 
     const len1 = str1.length;
     const len2 = str2.length;
-    const maxLen = Math.max(len1, len2);
+    const _maxLen = Math.max(len1, len2);
 
     // 如果字符串包含关系
     if (str1.includes(str2) || str2.includes(str1)) {

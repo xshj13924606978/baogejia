@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { url, moduleType } = await request.json();
+    const { url, _moduleType } = await request.json();
 
     if (!url) {
       return NextResponse.json({ success: false, error: '请提供有效的网盘链接' }, { status: 400 });
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const shareId = shareIdMatch[1];
+    const _shareId = shareIdMatch[1];
 
     // 提取提取码
     const extractCodeMatch = url.match(/[?&]surl=([a-zA-Z0-9]+)/);

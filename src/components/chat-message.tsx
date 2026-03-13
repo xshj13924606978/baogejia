@@ -194,7 +194,7 @@ const addSectionNumbers = (html: string): string => {
   const h2Counters: { [key: number]: number } = {};
 
   // 计算每个H2所属的章节编号
-  h2Matches.forEach((match, index) => {
+  h2Matches.forEach((match, _index) => {
     const h1Before = (html.substring(0, match.index).match(/<h1/g) || []).length;
     const currentChapter = chapterInfo[h1Before - 1];
 
@@ -240,7 +240,7 @@ const addSectionNumbers = (html: string): string => {
   });
 
   // 第四步：处理H3标题
-  const h3Matches = Array.from(html.matchAll(h3Regex));
+  const _h3Matches = Array.from(html.matchAll(h3Regex));
   const h3Counters: { [key: string]: number } = {};
 
   html = html.replace(h3Regex, (match, content, offset) => {

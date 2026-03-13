@@ -167,7 +167,7 @@ export class InputProcessor {
               pageCount: 0,
             },
           };
-        } catch (fallbackError) {
+        } catch (_fallbackError) {
           return {
             type: 'unknown',
             rawContent: fileBuffer,

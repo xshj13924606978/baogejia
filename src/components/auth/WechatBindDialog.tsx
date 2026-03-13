@@ -30,7 +30,7 @@ export function WechatBindDialog({ open, onOpenChange, onBound }: WechatBindDial
       await bindWechat();
       // bindWechat 会跳转到微信授权页，绑定成功后返回
       onBound();
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: '绑定失败',
         description: '请稍后重试',

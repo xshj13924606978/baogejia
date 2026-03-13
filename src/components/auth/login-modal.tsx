@@ -128,7 +128,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
       } else {
         setError(data.error || '登录失败');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('网络错误，请重试');
     } finally {
       setLoading(false);
@@ -169,7 +169,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
       } else {
         setError(data.error || '注册失败');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('网络错误，请重试');
     } finally {
       setLoading(false);
@@ -208,7 +208,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
       } else {
         setError(data.error || '绑定失败');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('网络错误，请重试');
     } finally {
       setLoading(false);
@@ -226,7 +226,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
       } else {
         setError('获取微信登录二维码失败');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('网络错误，请重试');
     }
   };
@@ -242,7 +242,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
       } else {
         setError('获取QQ登录链接失败');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('网络错误，请重试');
     }
   };

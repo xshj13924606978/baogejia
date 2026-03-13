@@ -62,9 +62,9 @@ export const LevelList: React.FC = () => {
   const [batchUpdateOpen, setBatchUpdateOpen] = useState(false);
   const [batchUpdating, setBatchUpdating] = useState(false);
   const [batchUpdateReason, setBatchUpdateReason] = useState('');
-  const [selectedLevelForBatch, setSelectedLevelForBatch] = useState<number | null>(null);
-  const [batchUpdateField, setBatchUpdateField] = useState<string>('');
-  const [batchUpdateValue, setBatchUpdateValue] = useState<string>('');
+  const [_selectedLevelForBatch,_setSelectedLevelForBatchh] = useState<number | null>(null);
+  const [_batchUpdateField,_setBatchUpdateFieldd] = useState<string>('');
+  const [_batchUpdateValue,_setBatchUpdateValuee] = useState<string>('');
 
   // 历史记录相关状态
   const [historyLevel, setHistoryLevel] = useState<number | null>(null);
@@ -208,7 +208,7 @@ export const LevelList: React.FC = () => {
           title: '获取等级列表失败',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: '获取等级列表失败',
@@ -240,7 +240,7 @@ export const LevelList: React.FC = () => {
           title: '更新失败',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: '更新失败',
@@ -533,8 +533,8 @@ export const LevelList: React.FC = () => {
     } else {
       newChecked.add(itemKey);
       // 设置默认值
-      const [levelStr, field] = itemKey.split('-');
-      const category = Object.keys(configCategories).find((cat) =>
+      const [_levelStr, field] = itemKey.split('-');
+      const _category = Object.keys(configCategories).find((cat) =>
         configCategories[cat as keyof typeof configCategories].items.some(
           (item) => item.field === field
         )

@@ -3,7 +3,7 @@ import { withPermissionCheck } from '@/lib/permission-check';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['user.view'] },
-  async (request: NextRequest, _context: any) => {
+  async (_request: NextRequest, _context: any) => {
     try {
       // 模拟用户数据
       const mockUsers = [

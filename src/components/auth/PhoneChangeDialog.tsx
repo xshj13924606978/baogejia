@@ -127,7 +127,7 @@ export function PhoneChangeDialog({
           duration: 3000,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: currentPhone ? '修改失败' : '绑定失败',
         description: '请稍后重试',

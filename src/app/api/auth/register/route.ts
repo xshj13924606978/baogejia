@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const db = getSupabaseClient();
 
     // 检查用户名是否已存在
-    const { data: existingUser, error: checkError } = await db
+    const { data: existingUser, error: _checkError } = await db
       .from('users')
       .select('id')
       .eq('username', username)

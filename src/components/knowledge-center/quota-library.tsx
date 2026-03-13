@@ -18,7 +18,7 @@ interface Quota {
 }
 
 export default function QuotaLibrary() {
-  const [quotas, setQuotas] = useState<Quota[]>([
+  const [quotas, _setQuotas] = useState<Quota[]>([
     {
       id: '1',
       type: '全国',

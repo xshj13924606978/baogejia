@@ -53,7 +53,7 @@ export const PointsConfig: React.FC = () => {
         form.setValue('pointsToTokens', data.data.pointsToTokens);
         form.setValue('yuanToTokens', data.data.yuanToTokens);
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: '错误',
         description: '获取配置失败',
@@ -85,7 +85,7 @@ export const PointsConfig: React.FC = () => {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: '错误',
         description: '保存失败',

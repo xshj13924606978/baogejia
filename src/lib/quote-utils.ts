@@ -89,7 +89,7 @@ export const groupProducts = (products: Product[], groupType: GroupType): GroupI
 export const formatAmountToChinese = (amount: number): string => {
   const digits = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
   const units = ['', '拾', '佰', '仟', '万', '拾', '佰', '仟', '亿'];
-  const decimalUnits = ['角', '分'];
+  const _decimalUnits = ['角', '分'];
 
   if (amount === 0) return '零元整';
 

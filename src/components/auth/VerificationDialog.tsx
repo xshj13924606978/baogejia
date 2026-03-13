@@ -72,7 +72,7 @@ export function VerificationDialog({
         });
         setTimeout(() => setStep('input'), 2000);
       }
-    } catch (error) {
+    } catch (_error) {
       setStep('error');
       setTimeout(() => setStep('input'), 2000);
     }

@@ -139,7 +139,7 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
           }));
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // API 路由不存在时使用默认值，不显示错误堆栈
       console.warn('[QuoteContext] 商务信息 API 不可用，使用默认值');
     }
@@ -165,7 +165,7 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
       } else {
         console.warn('[QuoteContext] 供应商信息保存失败，API 返回错误');
       }
-    } catch (error) {
+    } catch (_error) {
       // API 不可用时静默失败，不影响用户体验
       console.warn('[QuoteContext] 商务信息 API 不可用，未保存到数据库');
     }
@@ -198,7 +198,7 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
       } else {
         console.warn('[QuoteContext] 客户信息保存失败，API 返回错误');
       }
-    } catch (error) {
+    } catch (_error) {
       // API 不可用时静默失败，不影响用户体验
       console.warn('[QuoteContext] 商务信息 API 不可用，未保存到数据库');
     }
@@ -220,12 +220,12 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (response.ok) {
-        const result = await response.json();
+        const _result = await response.json();
         console.log('[QuoteContext] 商务条款保存成功');
       } else {
         console.warn('[QuoteContext] 商务条款保存失败，API 返回错误');
       }
-    } catch (error) {
+    } catch (_error) {
       // API 不可用时静默失败，不影响用户体验
       console.warn('[QuoteContext] 商务信息 API 不可用，未保存到数据库');
     }

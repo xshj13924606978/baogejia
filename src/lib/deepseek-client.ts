@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { ChatCompletion, ChatCompletionChunk } from 'openai/resources/chat/completions';
+import {  ChatCompletionChunk } from 'openai/resources/chat/completions';
 import { Stream } from 'openai/streaming';
 
 // 定义支持的AI模型类型

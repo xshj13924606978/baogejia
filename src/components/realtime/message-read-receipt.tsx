@@ -129,7 +129,7 @@ export function BatchMessageReadReceipt({
   className = '',
 }: BatchMessageReadReceiptProps) {
   const [readStatuses, setReadStatuses] = useState<Record<string, Record<number, boolean>>>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading,_setIsLoadingg] = useState(false);
   const currentUserId =
     typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : userId;
 
@@ -143,7 +143,7 @@ export function BatchMessageReadReceipt({
 
     // 模拟批量已读状态
     const statusMap: Record<string, Record<number, boolean>> = {};
-    messages.forEach((message, index) => {
+    messages.forEach((message, _index) => {
       const key = `${message.messageType}:${message.messageId}`;
       statusMap[key] = {};
       const recipients = message.recipients || [currentUserId || 0];
@@ -163,7 +163,7 @@ export function BatchMessageReadReceipt({
         const recipients = message.recipients || [];
         const readCount = Object.values(statuses).filter((r) => r).length;
         const totalCount = recipients.length || 1;
-        const allRead = readCount === totalCount;
+        const _allRead = readCount === totalCount;
 
         return (
           <div key={key} className="flex items-center gap-2">
@@ -199,7 +199,7 @@ export function ChatMessageReadReceipt({
   className = '',
 }: ChatMessageReadReceiptProps) {
   const [readUsers, setReadUsers] = useState<number[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, _setIsLoading] = useState(false);
   const currentUserId =
     typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}')?.id : null;
 

@@ -8,7 +8,7 @@ import { tokenBillingService } from '@/lib/token-billing-service';
  * - GET: 获取套餐列表
  */
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     console.log('[PaymentPlans API] 获取套餐列表');
 

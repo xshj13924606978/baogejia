@@ -454,7 +454,7 @@ export class TeamService {
 
     // 如果有父评论，更新父评论的回复列表
     if (data.parentId) {
-      for (const [targetId, commentList] of comments.entries()) {
+      for (const [_targetId, commentList] of comments.entries()) {
         const parentComment = commentList.find((c) => c.id === data.parentId);
         if (parentComment) {
           if (!parentComment.replies) {
@@ -487,7 +487,7 @@ export class TeamService {
     userId: string,
     data: UpdateCommentRequest
   ): Promise<Comment | null> {
-    for (const [targetId, commentList] of comments.entries()) {
+    for (const [_targetId, commentList] of comments.entries()) {
       const comment = commentList.find((c) => c.id === commentId);
       if (comment && comment.userId === userId) {
         comment.content = data.content;

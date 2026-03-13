@@ -7,7 +7,7 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // 测试用户 ID（用于开发环境）
-const TEST_USER_ID = '123e4567-e89b-12d3-a456-426614174000';
+const _TEST_USER_ID = '123e4567-e89b-12d3-a456-426614174000';
 
 export async function getCurrentUser(request: NextRequest) {
   try {
@@ -28,7 +28,7 @@ export async function getCurrentUser(request: NextRequest) {
       // 尝试从 Authorization header 获取
       const authHeader = request.headers.get('authorization');
       if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
+        const _token = authHeader.substring(7);
         return { id: 6, email: 'admin2@test.com' };
       }
       return null;

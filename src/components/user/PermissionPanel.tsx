@@ -20,11 +20,11 @@ export const PermissionPanel: React.FC = () => {
   const { user } = useUser();
   const { toast } = useToast();
   const [levelConfig, setLevelConfig] = useState<any>(null);
-  const [nextLevelConfig, setNextLevelConfig] = useState<any>(null);
+  const [_nextLevelConfig, setNextLevelConfig] = useState<any>(null);
   const [recommendation, setRecommendation] = useState<any>(null);
   const [upgradeModal, setUpgradeModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [quotaUsed, setQuotaUsed] = useState(0);
+  const [quotaUsed, _setQuotaUsed] = useState(0);
 
   useEffect(() => {
     if (user?.level) {
@@ -111,7 +111,7 @@ export const PermissionPanel: React.FC = () => {
           description: data.error || '积分不足',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: '升级失败',
@@ -150,7 +150,7 @@ export const PermissionPanel: React.FC = () => {
           description: data.error || '支付失败',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: '购买失败',

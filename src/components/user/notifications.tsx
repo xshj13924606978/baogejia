@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bell, Check } from 'lucide-react';
+import { Bell } from 'lucide-react';
 
 interface NotificationsProps {
   user: any;

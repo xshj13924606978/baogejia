@@ -26,15 +26,15 @@ export default function PriceLibrary() {
   const [showConfigMenu, setShowConfigMenu] = useState(false);
 
   // 下拉菜单 refs 和 timers
-  const importMenuRef = useRef<HTMLDivElement>(null);
-  const exportMenuRef = useRef<HTMLDivElement>(null);
-  const configMenuRef = useRef<HTMLDivElement>(null);
+  const _importMenuRef = useRef<HTMLDivElement>(null);
+  const _exportMenuRef = useRef<HTMLDivElement>(null);
+  const _configMenuRef = useRef<HTMLDivElement>(null);
   const importMenuTimerRef = useRef<NodeJS.Timeout | null>(null);
   const exportMenuTimerRef = useRef<NodeJS.Timeout | null>(null);
   const configMenuTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
+  const [_deletingProductId,_setDeletingProductIdd] = useState<number | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
   const [showFieldMapping, setShowFieldMapping] = useState(false);
   const [pendingExcelData, setPendingExcelData] = useState<{

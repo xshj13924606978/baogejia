@@ -8,7 +8,7 @@ export default function InviteFriends({ user }: any) {
   const [activeTab, setActiveTab] = useState('link');
   const [inviteCode, setInviteCode] = useState(`INVITE${user?.id || 0}${Date.now().toString(36)}`);
   const [copied, setCopied] = useState(false);
-  const [posterStyle, setPosterStyle] = useState('simple');
+  const [posterStyle, _setPosterStyle] = useState('simple');
   const [rankPeriod, setRankPeriod] = useState('week');
   const [showPosterGenerator, setShowPosterGenerator] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);

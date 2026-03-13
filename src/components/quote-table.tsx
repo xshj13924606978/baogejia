@@ -369,7 +369,7 @@ export default function QuoteTable({
     fieldIndex: number;
     value: string;
   } | null>(null);
-  const [searchingMarketPrice, setSearchingMarketPrice] = useState<number | null>(null);
+  const [_searchingMarketPrice, setSearchingMarketPrice] = useState<number | null>(null);
   const [isSearchingAll, setIsSearchingAll] = useState(false);
   const [marketPrices, setMarketPrices] = useState<
     Record<
@@ -384,7 +384,7 @@ export default function QuoteTable({
   >({});
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [groupBy, setGroupBy] = useState<string>('none');
-  const [showNotes, setShowNotes] = useState<Record<number, boolean>>({});
+  const [_showNotes, setShowNotes] = useState<Record<number, boolean>>({});
   const [selectedColumns, setSelectedColumns] = useState<string[]>(() => {
     // 初始化列配置，确保单价和总价列始终包含在内
     const columns = ALL_COLUMNS.filter((col) => col.visible).map((col) => col.key);
@@ -413,7 +413,7 @@ export default function QuoteTable({
   const [showProjectConfig, setShowProjectConfig] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [fillPricesLoading, setFillPricesLoading] = useState(false);
-  const [marketPriceStats, setMarketPriceStats] = useState<{
+  const [_marketPriceStats, setMarketPriceStats] = useState<{
     total: number;
     matched: number;
     averageDiff: number;

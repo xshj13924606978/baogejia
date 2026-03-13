@@ -51,7 +51,7 @@ class EnterpriseAuthService {
       }, 5000);
 
       return { success: true, applicationId: application.id };
-    } catch (error) {
+    } catch (_error) {
       return { success: false, error: '提交失败' };
     }
   }

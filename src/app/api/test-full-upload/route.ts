@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
  * 完整上传流程测试
  * 模拟真实上传+下载+解析流程
  */
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     console.log('[FullUploadTest] ========== 开始完整流程测试 ==========');
 

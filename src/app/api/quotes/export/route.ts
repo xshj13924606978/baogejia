@@ -302,7 +302,7 @@ function generateExcel(data: any) {
   }
 }
 
-function generatePDF(data: any): Response {
+function _generatePDF(data: any): Response {
   try {
     console.log('[Export] Generating PDF with jsPDF...');
 

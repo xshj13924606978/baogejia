@@ -61,9 +61,9 @@ import { useRouter } from 'next/navigation';
 
 export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   const { user, loading, updateUser, logout, changePassword } = useUser();
-  const router = useRouter();
+  const _router = useRouter();
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const _fileInputRef = useRef<HTMLInputElement>(null);
 
   // 对话框状态
   const [showPaymentPanel, setShowPaymentPanel] = useState(false);
@@ -80,11 +80,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   const [showTermsDialog, setShowTermsDialog] = useState(false);
 
   // 编辑状态
-  const [editingProfile, setEditingProfile] = useState(false);
+  const [_editingProfile,_setEditingProfilee] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState(false);
+  const [_editingCustomer, setEditingCustomer] = useState(false);
   const [editingTerms, setEditingTerms] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [_uploadingAvatar,_setUploadingAvatarr] = useState(false);
 
   // 密码表单状态
   const [passwordForm, setPasswordForm] = useState({
@@ -101,7 +101,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   const [showInviteRecordsDialog, setShowInviteRecordsDialog] = useState(false);
 
   // 表单数据 - 从user加载初始值
-  const [profileForm, setProfileForm] = useState({
+  const [_profileForm, setProfileForm] = useState({
     name: '',
     email: '',
     phone: '',
@@ -143,7 +143,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     taxNumber: '91310115MA1H123456',
   });
 
-  const [customerForm, setCustomerForm] = useState({
+  const [_customerForm,_setCustomerFormm] = useState({
     name: 'XX工程项目部',
     projectName: '污水处理设备采购项目',
     contactPerson: '李工',
@@ -206,14 +206,14 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   ]);
 
   // 邀请记录数据
-  const [inviteRecords, setInviteRecords] = useState([
+  const [inviteRecords, _setInviteRecords] = useState([
     { id: 1, name: '张三', time: '2024-02-26', status: '已注册', points: 50 },
     { id: 2, name: '李四', time: '2024-02-25', status: '已注册', points: 50 },
     { id: 3, name: '王五', time: '2024-02-24', status: '待激活', points: 0 },
   ]);
 
   // 最近记录数据
-  const [recentRecords, setRecentRecords] = useState([
+  const [recentRecords, _setRecentRecords] = useState([
     {
       id: 1,
       name: '搅拌设备报价单.pdf',
@@ -396,7 +396,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   };
 
   // 保存客户信息
-  const handleSaveCustomer = () => {
+  const _handleSaveCustomer = () => {
     setEditingCustomer(false);
     setShowCustomerDialog(false);
     toast({
@@ -436,7 +436,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
           text: '加入报个价，一起生成报价',
           url: text,
         });
-      } catch (error) {
+      } catch (_error) {
         copyToClipboard(text, '邀请链接已复制到剪贴板');
       }
     } else {

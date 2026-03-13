@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // 返回 WebSocket 服务器配置信息
     const wsPort = process.env.WS_PORT || 6000;

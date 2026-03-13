@@ -57,7 +57,7 @@ interface Module {
 
 export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCancel }) => {
   const [loading, setLoading] = useState(false);
-  const [config, setConfig] = useState<Config | null>(null);
+  const [_config, setConfig] = useState<Config | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
@@ -106,7 +106,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
           reason: '',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: '获取配置失败',
@@ -121,7 +121,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
       if (data.success) {
         setModules(data.modules || []);
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: '获取模块列表失败',
@@ -172,7 +172,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
           title: '预览失败',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: '预览失败',
@@ -209,7 +209,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
       };
 
       await onSave(level, changes, formData.reason);
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: '保存失败',

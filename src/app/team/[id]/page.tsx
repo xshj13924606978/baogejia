@@ -3,41 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  Users,
-  UserPlus,
-  Settings,
-  MessageSquare,
-  Share2,
-  FileText,
-  Crown,
-  Shield,
-  UserMinus,
-  MoreVertical,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ArrowLeft, Users, Settings, MessageSquare, Share2, FileText, Crown, Shield, UserMinus, MoreVertical } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Team, TeamMember, TeamRole, TeamStats } from '@/types/team';
-import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Team, TeamStats } from '@/types/team';
+import { DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CommentSection } from '@/components/team/comment-section';
 import { MemberManagement } from '@/components/team/member-management';

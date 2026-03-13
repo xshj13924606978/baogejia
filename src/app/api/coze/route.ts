@@ -19,7 +19,7 @@ import { Logger } from '@/lib/logger';
 // GET - 获取工具状态
 // ============================================================================
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const status = cozeToolsService.getStatus();
 
@@ -144,7 +144,7 @@ async function handleSearchMarketPrice(body: any) {
  * 处理产品图生成
  */
 async function handleGenerateProductImage(body: any) {
-  const { productName, specs, _theme, type } = body;
+  const { productName, specs, _theme, _type } = body;
 
   if (!productName) {
     return NextResponse.json(

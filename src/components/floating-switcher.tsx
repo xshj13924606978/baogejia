@@ -12,7 +12,7 @@ export default function FloatingSwitcher() {
   const [isHovered, setIsHovered] = useState(false);
   const [position, setPosition] = useState({ top: 0, right: 0 });
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const inputAreaRef = useRef<HTMLDivElement>(null);
+  const _inputAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     console.log('[Floating] 状态:', { fileGroupId, currentChoice, isLoading, hasFiles });

@@ -18,7 +18,7 @@
  * 5. 混合任务 → 组合使用
  */
 
-import { callDeepSeekChat, streamDeepSeekChat } from './deepseek-client';
+import {  streamDeepSeekChat } from './deepseek-client';
 import { cozeToolsService } from './coze-tools';
 import { Logger } from './logger';
 

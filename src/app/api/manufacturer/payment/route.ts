@@ -103,6 +103,6 @@ export async function PUT(request: NextRequest) {
   return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(_request: NextRequest) {
   return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }

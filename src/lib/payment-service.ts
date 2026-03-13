@@ -1,15 +1,6 @@
 // 支付服务层 - 集成微信支付和支付宝支付
 
-import crypto from 'crypto';
-import {
-  PaymentMethod,
-  PaymentStatus,
-  PaymentRequest,
-  PaymentResponse,
-  WechatPaymentConfig,
-  AlipayPaymentConfig,
-  PaymentNotify,
-} from '@/types/payment';
+import { PaymentMethod, PaymentStatus, PaymentRequest, PaymentResponse, WechatPaymentConfig, AlipayPaymentConfig } from '@/types/payment';
 
 /**
  * 支付服务类
@@ -281,7 +272,7 @@ export class PaymentService {
   /**
    * 计算微信支付签名
    */
-  private calculateWechatSign(data: any): string {
+  private calculateWechatSign(_data: any): string {
     // TODO: 实现微信支付签名算法
     return 'mock_sign';
   }
@@ -289,7 +280,7 @@ export class PaymentService {
   /**
    * 计算支付宝签名
    */
-  private calculateAlipaySign(data: any): string {
+  private calculateAlipaySign(_data: any): string {
     // TODO: 实现支付宝签名算法
     return 'mock_sign';
   }
@@ -324,7 +315,7 @@ export class PaymentService {
    * 获取模拟支付数据
    */
   private getMockPaymentData(method: PaymentMethod, order: any): any {
-    const mockPaymentUrl = `https://example.com/payment/${method}`;
+    const _mockPaymentUrl = `https://example.com/payment/${method}`;
 
     switch (method) {
       case PaymentMethod.WECHAT_JSAPI:

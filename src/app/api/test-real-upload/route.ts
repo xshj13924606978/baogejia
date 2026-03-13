@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
  * 模拟真实文件上传的测试 API
  * 使用真实的 Excel 文件测试上传流程
  */
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;

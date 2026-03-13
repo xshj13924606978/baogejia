@@ -138,7 +138,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           duration: 3000,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: '上传失败',
         description: '请稍后重试',
@@ -183,7 +183,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           duration: 3000,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: '保存失败',
         description: '请稍后重试',
@@ -238,7 +238,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           duration: 3000,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: '解绑失败',
         description: '请稍后重试',

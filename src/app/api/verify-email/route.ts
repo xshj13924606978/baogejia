@@ -326,7 +326,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { _email, code } = body;
+    const { _email, _code } = body;
     return NextResponse.json({ success: true, message: '邮箱验证成功' });
   } catch (_error) {
     return NextResponse.json({ success: false, message: '验证失败' }, { status: 500 });

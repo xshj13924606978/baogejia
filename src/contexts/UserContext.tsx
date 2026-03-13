@@ -369,7 +369,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
 
       return { success: true, user: userWithoutPassword };
-    } catch (err) {
+    } catch (_err) {
       return { success: false, error: '登录失败' };
     } finally {
       setLoading(false);
@@ -553,7 +553,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
 
       return { success: true, user: userWithoutPassword };
-    } catch (err) {
+    } catch (_err) {
       return { success: false, error: '登录失败' };
     } finally {
       setLoading(false);
@@ -601,7 +601,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         user: { ...newUser, password: undefined },
         requiresTwoFactor: true,
       };
-    } catch (err) {
+    } catch (_err) {
       return { success: false, error: '注册失败' };
     } finally {
       setLoading(false);
@@ -776,7 +776,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           bindingType: provider as 'email' | 'phone' | 'wechat' | 'github' | 'google' | 'qq',
         };
       }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, error: '第三方登录失败' };
     } finally {
       setLoading(false);

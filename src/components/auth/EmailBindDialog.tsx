@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { useUser } from '@/contexts/UserContext';
-import { Mail, Lock, Loader2, CheckCircle } from 'lucide-react';
+import { Mail, Loader2, CheckCircle } from 'lucide-react';
 
 interface EmailBindDialogProps {
   open: boolean;
@@ -97,7 +97,7 @@ export function EmailBindDialog({ open, onOpenChange, onBound }: EmailBindDialog
           duration: 3000,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: '绑定失败',
         description: '请稍后重试',

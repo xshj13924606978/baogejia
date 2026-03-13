@@ -76,7 +76,7 @@ function formatTime(dateStr: string): string {
     } else {
       return format(date, 'yyyy/MM/dd');
     }
-  } catch (error) {
+  } catch (_error) {
     return '';
   }
 }
@@ -323,7 +323,7 @@ export default function ConversationList({
         return;
       }
 
-      const { conversation } = await response.json();
+      const { _conversation } = await response.json();
       const shareUrl = `${window.location.origin}/?conversation=${conversationId}`;
 
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -339,7 +339,7 @@ export default function ConversationList({
         try {
           document.execCommand('copy');
           alert('分享链接已复制到剪贴板！');
-        } catch (err) {
+        } catch (_err) {
           prompt('请复制以下分享链接：', shareUrl);
         }
         document.body.removeChild(textarea);

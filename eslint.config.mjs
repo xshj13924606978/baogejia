@@ -1,37 +1,12 @@
 import nextVitals from 'eslint-config-next/core-web-vitals';
-import { defineConfig, globalIgnores } from 'eslint/config';
 
-const eslintConfig = defineConfig([
+const eslintConfig = [
+  // 使用 Next.js 的核心配置
   ...nextVitals,
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    '.next/**',
-    'out/**',
-    'build/**',
-    'next-env.d.ts',
-    // Additional ignores:
-    'node_modules/**',
-    'dist/**',
-    'public/**',
-    '*.config.js',
-    '*.config.ts',
-    '*.lock',
-    '*.log',
-    'coverage/**',
-    '.nyc_output/**',
-    '.turbo/**',
-    '.vercel/**',
-    '.env*',
-    '!env.example',
-    'scripts/**',
-    '*.js',
-    'tmp_read_excel.js',
-    'check-messages.js',
-    'check-messages-for-conversation.js',
-    'read_excel.js',
-  ]),
+  
+  // 添加自定义规则（不重复定义插件）
   {
+    files: ['**/*.ts', '**/*.tsx'],
     rules: {
       '@typescript-eslint/no-unused-vars': [
         'warn',
@@ -71,6 +46,34 @@ const eslintConfig = defineConfig([
       '@typescript-eslint/await-thenable': 'off',
     },
   },
-]);
+  // 全局忽略
+  {
+    ignores: [
+      '.next/**',
+      'out/**',
+      'build/**',
+      'next-env.d.ts',
+      'node_modules/**',
+      'dist/**',
+      'public/**',
+      '*.config.js',
+      '*.config.ts',
+      '*.lock',
+      '*.log',
+      'coverage/**',
+      '.nyc_output/**',
+      '.turbo/**',
+      '.vercel/**',
+      '.env*',
+      '!env.example',
+      'scripts/**',
+      '*.js',
+      'tmp_read_excel.js',
+      'check-messages.js',
+      'check-messages-for-conversation.js',
+      'read_excel.js',
+    ],
+  },
+];
 
 export default eslintConfig;

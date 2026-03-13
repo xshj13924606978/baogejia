@@ -12,9 +12,9 @@ interface OnlineUser {
   avatar?: string;
 }
 
-export function useSocket(options?: { userId?: number }) {
+export function useSocket(_options?: { userId?: number }) {
   const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [_socket, setSocket] = useState<Socket | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [onlineCount, setOnlineCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
