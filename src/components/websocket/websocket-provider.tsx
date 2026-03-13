@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useWebSocket as useSocket } from '@/hooks/useWebSocket';
-import { NotificationPanel } from '@/components/notification-panel/notification-panel';
 
 interface WebSocketProviderProps {
   children: React.ReactNode;
@@ -15,8 +14,8 @@ interface WebSocketProviderProps {
  */
 export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const [userId, setUserId] = useState<number | null>(null);
-  const [username, setUsername] = useState<string>('');
-  const [avatar, setAvatar] = useState<string>('');
+  const [_username, _setUsername] = useState<string>('');
+  const [_avatar, _setAvatar] = useState<string>('');
 
   useEffect(() => {
     // 从 localStorage 获取用户信息
@@ -25,8 +24,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       try {
         const user = JSON.parse(userStr);
         setUserId(user.id);
-        setUsername(user.username || '');
-        setAvatar(user.avatar || '');
+        _setUsername(user.username || '');
+        _setAvatar(user.avatar || '');
       } catch (error) {
         console.error('[WebSocketProvider] 解析用户信息失败:', error);
       }
@@ -35,7 +34,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
   // 使用 WebSocket hook，但不直接渲染任何内容
   // 这里的 WebSocketProvider 主要是为了在全局初始化 WebSocket 连接
-  const { isConnected } = useSocket({
+  const { isConnected: _isConnected } = useSocket({
     userId: userId || undefined,
     onConnect: () => {
       console.log('[WebSocketProvider] WebSocket 连接成功');

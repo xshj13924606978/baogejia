@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Table,
   TableBody,
@@ -31,7 +31,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -49,26 +48,19 @@ import {
   Shield,
   Clock,
   Calendar,
-  Mail,
-  Phone,
-  MapPin,
   Edit2,
   Trash2,
   Ban,
   CheckCircle,
-  AlertCircle,
   Key,
   History,
-  Settings,
   Users as UsersIcon,
   Building2,
   Star,
   Gift,
-  TrendingUp,
-  DollarSign,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { UserRole, UserStatus, UserType, getRoleDisplayName, getRoleLevel } from '@/lib/auth/roles';
+import { UserRole, UserStatus, UserType, getRoleDisplayName } from '@/lib/auth/roles';
 
 interface User {
   id: string;
@@ -97,6 +89,155 @@ interface User {
   invitedBy?: string;
 }
 
+// 模拟用户数据（丰富版，包含各种类型）
+const mockUsers: User[] = [
+  // 超级管理员
+  {
+    id: '1',
+    name: '系统管理员',
+    email: 'admin@baogejia.com',
+    role: 'super_admin' as UserRole,
+    userType: 'personal' as UserType,
+    status: 'active' as UserStatus,
+    phone: '13800138001',
+    lastActive: '2024-02-26 14:30',
+    createdAt: '2024-01-01',
+    points: 9999,
+    uploadCount: 999,
+    quoteCount: 999,
+    storageUsed: '5 GB',
+    storageLimit: '无限',
+    permissions: ['all'],
+    tags: ['创始人', '超级管理员'],
+  },
+  // 企业管理员
+  {
+    id: '2',
+    name: '张三',
+    email: 'zhangsan@enterprise.com',
+    role: 'enterprise_admin' as UserRole,
+    userType: 'enterprise' as UserType,
+    status: 'active' as UserStatus,
+    company: '某某制造企业',
+    department: '采购部',
+    phone: '13800138002',
+    lastActive: '2024-02-26 13:45',
+    createdAt: '2024-01-15',
+    points: 8500,
+    uploadCount: 450,
+    quoteCount: 230,
+    storageUsed: '2.3 GB',
+    storageLimit: '50 GB',
+    teamSize: 15,
+    teamMembers: ['user3', 'user4', 'user5'],
+    permissions: ['upload', 'quote', 'team_manage'],
+    tags: ['企业VIP', '大客户'],
+  },
+  // 普通管理员
+  {
+    id: '3',
+    name: '李四',
+    email: 'lisi@company.com',
+    role: 'admin' as UserRole,
+    userType: 'personal' as UserType,
+    status: 'active' as UserStatus,
+    company: '某某科技公司',
+    department: '技术部',
+    phone: '13800138003',
+    lastActive: '2024-02-26 12:30',
+    createdAt: '2024-02-01',
+    points: 5200,
+    uploadCount: 280,
+    quoteCount: 140,
+    storageUsed: '1.2 GB',
+    storageLimit: '20 GB',
+    permissions: ['upload', 'quote'],
+    tags: ['资深用户'],
+  },
+  // 产品厂家
+  {
+    id: '4',
+    name: '王五',
+    email: 'wangwu@factory.com',
+    role: 'manufacturer' as UserRole,
+    userType: 'manufacturer' as UserType,
+    status: 'active' as UserStatus,
+    company: '某某设备制造厂',
+    department: '销售部',
+    phone: '13800138004',
+    lastActive: '2024-02-26 11:20',
+    createdAt: '2024-02-10',
+    points: 3800,
+    uploadCount: 180,
+    quoteCount: 95,
+    storageUsed: '850 MB',
+    storageLimit: '10 GB',
+    permissions: ['upload', 'quote', 'view_analytics'],
+    tags: ['厂家认证'],
+  },
+  // VIP会员
+  {
+    id: '5',
+    name: '赵六',
+    email: 'zhaoliu@vip.com',
+    role: 'vip' as UserRole,
+    userType: 'personal' as UserType,
+    status: 'active' as UserStatus,
+    phone: '13800138005',
+    lastActive: '2024-02-26 10:15',
+    createdAt: '2024-02-18',
+    points: 6800,
+    uploadCount: 350,
+    quoteCount: 175,
+    storageUsed: '1.8 GB',
+    storageLimit: '15 GB',
+    membershipLevel: 'VIP',
+    permissions: ['upload', 'quote', 'export'],
+    tags: ['VIP用户', '活跃'],
+  },
+  // 付费会员
+  {
+    id: '6',
+    name: '孙七',
+    email: 'sunqi@premium.com',
+    role: 'premium' as UserRole,
+    userType: 'personal' as UserType,
+    status: 'active' as UserStatus,
+    phone: '13800138006',
+    lastActive: '2024-02-26 08:45',
+    createdAt: '2024-02-20',
+    points: 2100,
+    uploadCount: 95,
+    quoteCount: 47,
+    storageUsed: '450 MB',
+    storageLimit: '5 GB',
+    membershipLevel: 'Premium',
+    permissions: ['upload', 'quote'],
+    tags: ['付费用户'],
+  },
+  // 待审核用户
+  {
+    id: '7',
+    name: '周八',
+    email: 'zhouba@pending.com',
+    role: 'pending' as UserRole,
+    userType: 'personal' as UserType,
+    status: 'pending' as UserStatus,
+    phone: '13800138007',
+    lastActive: '2024-02-26 08:00',
+    createdAt: '2024-02-26',
+    points: 0,
+    uploadCount: 0,
+    quoteCount: 0,
+    storageUsed: '0 MB',
+    storageLimit: '10 MB',
+    permissions: [],
+    tags: ['待审核'],
+    inviteCode: 'INVITE123',
+    invitedBy: 'user2',
+  },
+];
+
 export default function UsersPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -104,173 +245,19 @@ export default function UsersPage() {
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
-  const [showMembershipDialog, setShowMembershipDialog] = useState(false);
-  const [showPointsDialog, setShowPointsDialog] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [_currentUser, _setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
     // 获取当前登录用户
     try {
       const userStr = localStorage.getItem('user');
       if (userStr) {
-        setCurrentUser(JSON.parse(userStr));
+        _setCurrentUser(JSON.parse(userStr));
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Failed to parse user data');
     }
   }, []);
-
-  // 模拟用户数据（丰富版，包含各种类型）
-  const [users, setUsers] = useState<User[]>([
-    // 超级管理员
-    {
-      id: '1',
-      name: '系统管理员',
-      email: 'admin@baogejia.com',
-      role: 'super_admin',
-      userType: 'personal',
-      status: 'active',
-      phone: '13800138001',
-      lastActive: '2024-02-26 14:30',
-      createdAt: '2024-01-01',
-      points: 9999,
-      uploadCount: 999,
-      quoteCount: 999,
-      storageUsed: '5 GB',
-      storageLimit: '无限',
-      permissions: ['all'],
-      tags: ['创始人', '超级管理员'],
-    },
-    // 企业管理员
-    {
-      id: '2',
-      name: '张三',
-      email: 'zhangsan@enterprise.com',
-      role: 'enterprise_admin',
-      userType: 'enterprise',
-      status: 'active',
-      company: '兴晟环境科技',
-      department: '采购部',
-      phone: '13800138002',
-      lastActive: '2024-02-26 09:15',
-      createdAt: '2024-01-15',
-      points: 5000,
-      uploadCount: 167,
-      quoteCount: 289,
-      storageUsed: '2.5 GB',
-      storageLimit: '10 GB',
-      teamSize: 8,
-      teamMembers: ['user3', 'user4', 'user5'],
-      permissions: ['manage_team', 'view_stats', 'create_quotes'],
-      tags: ['企业客户', '年费'],
-    },
-    // 产品厂家
-    {
-      id: '3',
-      name: '李四',
-      email: 'lisi@manufacturer.com',
-      role: 'manufacturer',
-      userType: 'manufacturer',
-      status: 'active',
-      company: '工业设备厂',
-      department: '销售部',
-      phone: '13800138003',
-      lastActive: '2024-02-26 11:20',
-      createdAt: '2024-01-20',
-      points: 3500,
-      uploadCount: 89,
-      quoteCount: 156,
-      storageUsed: '3.8 GB',
-      storageLimit: '20 GB',
-      permissions: ['manage_products', 'view_quotes'],
-      tags: ['厂家', '金牌供应商'],
-    },
-    // VIP个人用户
-    {
-      id: '4',
-      name: '王五',
-      email: 'wangwu@vip.com',
-      role: 'vip',
-      userType: 'personal',
-      status: 'active',
-      membershipLevel: 'VIP',
-      phone: '13800138004',
-      lastActive: '2024-02-25 16:45',
-      createdAt: '2024-02-01',
-      expiresAt: '2025-02-01',
-      points: 2000,
-      uploadCount: 45,
-      quoteCount: 78,
-      storageUsed: '512 MB',
-      storageLimit: '5 GB',
-      permissions: ['priority_support', 'advanced_features'],
-      tags: ['年费VIP'],
-    },
-    // 付费个人用户
-    {
-      id: '5',
-      name: '赵六',
-      email: 'zhaoliu@premium.com',
-      role: 'premium',
-      userType: 'personal',
-      status: 'active',
-      membershipLevel: 'Premium',
-      phone: '13800138005',
-      lastActive: '2024-02-24 10:30',
-      createdAt: '2024-02-10',
-      expiresAt: '2024-03-10',
-      points: 500,
-      uploadCount: 23,
-      quoteCount: 45,
-      storageUsed: '256 MB',
-      storageLimit: '2 GB',
-      permissions: ['more_quotes', 'more_uploads'],
-      tags: ['月费'],
-    },
-    // 免费个人用户
-    {
-      id: '6',
-      name: '孙七',
-      email: 'sunqi@free.com',
-      role: 'free',
-      userType: 'personal',
-      status: 'active',
-      phone: '13800138006',
-      lastActive: '2024-02-23 14:20',
-      createdAt: '2024-02-20',
-      points: 100,
-      uploadCount: 5,
-      quoteCount: 12,
-      storageUsed: '45 MB',
-      storageLimit: '100 MB',
-      permissions: ['basic_features'],
-      tags: ['新用户'],
-    },
-    // 待审核用户
-    {
-      id: '7',
-      name: '周八',
-      email: 'zhouba@pending.com',
-      role: 'pending',
-      userType: 'personal',
-      status: 'pending',
-      phone: '13800138007',
-      lastActive: '2024-02-26 08:00',
-      createdAt: '2024-02-26',
-      points: 0,
-      uploadCount: 0,
-      quoteCount: 0,
-      storageUsed: '0 MB',
-      storageLimit: '10 MB',
-      permissions: [],
-      tags: ['待审核'],
-      inviteCode: 'INVITE123',
-      invitedBy: 'user2',
-    },
-  ]);
 
   // 角色选项
   const roleOptions = [
@@ -301,7 +288,7 @@ export default function UsersPage() {
   ];
 
   // 筛选用户
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = mockUsers.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -331,19 +318,6 @@ export default function UsersPage() {
     return option?.label || status;
   };
 
-  // 检查当前用户是否有权限管理目标用户
-  const canManageUser = (targetUser: User) => {
-    if (!currentUser) return false;
-    if (currentUser.role === 'super_admin') return true;
-    if (currentUser.role === 'admin') {
-      return getRoleLevel(targetUser.role) < getRoleLevel(currentUser.role);
-    }
-    if (currentUser.role === 'enterprise_admin') {
-      return targetUser.teamMembers?.includes(currentUser.id) || targetUser.id === currentUser.id;
-    }
-    return false;
-  };
-
   // 处理添加用户
   const handleAddUser = () => {
     toast({
@@ -355,19 +329,25 @@ export default function UsersPage() {
   };
 
   // 处理升级会员
-  const handleUpgradeMembership = (user: User) => {
-    setSelectedUser(user);
-    setShowMembershipDialog(true);
+  const handleUpgradeMembership = (_user: User) => {
+    toast({
+      title: '升级会员',
+      description: '会员升级功能即将推出',
+      duration: 2000,
+    });
   };
 
   // 处理调整积分
-  const handleAdjustPoints = (user: User) => {
-    setSelectedUser(user);
-    setShowPointsDialog(true);
+  const handleAdjustPoints = (_user: User) => {
+    toast({
+      title: '调整积分',
+      description: '积分调整功能即将推出',
+      duration: 2000,
+    });
   };
 
   // 处理邀请记录
-  const handleViewInvites = (user: User) => {
+  const handleViewInvites = (_user: User) => {
     toast({
       title: '邀请记录',
       description: `该用户邀请了 ${Math.floor(Math.random() * 10)} 人`,
@@ -377,12 +357,12 @@ export default function UsersPage() {
 
   // 统计信息
   const stats = {
-    total: users.length,
-    active: users.filter((u) => u.status === 'active').length,
-    pending: users.filter((u) => u.status === 'pending').length,
-    enterprise: users.filter((u) => u.userType === 'enterprise').length,
-    vip: users.filter((u) => u.role === 'vip').length,
-    totalPoints: users.reduce((sum, u) => sum + u.points, 0),
+    total: mockUsers.length,
+    active: mockUsers.filter((u: User) => u.status === 'active').length,
+    pending: mockUsers.filter((u: User) => u.status === 'pending').length,
+    enterprise: mockUsers.filter((u: User) => u.userType === 'enterprise').length,
+    vip: mockUsers.filter((u: User) => u.role === 'vip').length,
+    totalPoints: mockUsers.reduce((sum: number, u: User) => sum + u.points, 0),
   };
 
   return (

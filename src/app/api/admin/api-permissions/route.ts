@@ -20,7 +20,7 @@ import { getCurrentUser } from '@/lib/auth-utils';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.permissions.view'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _user: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -76,7 +76,7 @@ export const GET = withPermissionCheck(
 
 export const POST = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.access'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _user: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -151,7 +151,7 @@ export const POST = withPermissionCheck(
 
 export const PUT = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.access'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _user: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -226,7 +226,7 @@ export const PUT = withPermissionCheck(
 
 export const DELETE = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.access'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _user: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);

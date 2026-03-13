@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Users,
   Settings,
-  Shield,
   BarChart3,
   FileText,
   Database,
@@ -17,14 +16,10 @@ import {
   X,
   Home,
   ChevronLeft,
-  Upload,
-  Clock,
   CheckCircle,
-  AlertCircle,
   Building2,
   Star,
   Gift,
-  TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

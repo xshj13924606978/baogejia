@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withPermissionCheck } from '@/lib/permission-check';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { hasPermission, UserRole } from '@/lib/auth/roles';
 
