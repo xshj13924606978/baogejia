@@ -119,7 +119,7 @@ export class SmartChatProcessor {
       };
 
       // 调用价格匹配器（启用品牌排序）
-      const priceResult = await PriceMatcher.matchPrice(productMatch, undefined, true);
+      const priceResult = await PriceMatcher.matchPrice(productMatch, undefined);
 
       console.log('[SmartChatProcessor] 价格查询结果:', priceResult);
 

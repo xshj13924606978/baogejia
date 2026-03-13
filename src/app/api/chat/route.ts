@@ -2220,7 +2220,7 @@ class ProfessionalDialogueEngine {
           unit: product.unit,
         };
 
-        const matchResult = await PriceMatcher.matchPrice(productMatch, undefined, true);
+        const matchResult = await PriceMatcher.matchPrice(productMatch, undefined);
         matchResults.push(matchResult);
 
         matchedProducts.push({
@@ -2649,7 +2649,7 @@ async function generateQuoteData(products: Product[]) {
     };
 
     console.log('[QuoteGen] 调用 PriceMatcher.matchPrice');
-    const matchResult = await PriceMatcher.matchPrice(productMatch, undefined, true);
+    const matchResult = await PriceMatcher.matchPrice(productMatch, undefined);
     // 简化匹配结果输出，只输出关键信息
     console.log('[QuoteGen] 匹配结果:', {
       price: matchResult.price,

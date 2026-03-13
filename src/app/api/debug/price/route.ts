@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     console.log('[Debug API] 查询参数:', { name, model });
 
-    const result = await PriceMatcher.matchPrice({ name, model }, undefined, true);
+    const result = await PriceMatcher.matchPrice({ name, model }, undefined);
 
     console.log('[Debug API] 查询结果:', result);
 
