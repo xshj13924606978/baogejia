@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -22,12 +22,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -39,22 +37,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 // 图标导入 - 只保留实际使用的图标
 import {
@@ -62,138 +46,26 @@ import {
   FileSpreadsheet,
   Download,
   Edit,
-  Save,
   X,
   Plus,
   Trash2,
   ChevronDown,
   ChevronUp,
-  ChevronLeft,
-  ChevronRight,
   MoreVertical,
-  MoreHorizontal,
   Settings,
-  Filter,
   Search,
   RefreshCw,
-  Copy,
-  Printer,
-  Mail,
-  Share2,
-  Link,
-  ExternalLink,
-  Upload,
-  DownloadCloud,
-  FileUp,
-  FileDown,
-  Eye,
-  EyeOff,
-  Lock,
-  Unlock,
-  Shield,
-  AlertCircle,
   CheckCircle2,
-  XCircle,
   Info,
-  HelpCircle,
   Loader2,
+  Building2,
+  Phone,
+  Mail as MailIcon,
   Sparkles,
   TrendingUp,
   TrendingDown,
-  DollarSign,
-  Percent,
-  Calendar,
-  Clock,
-  Truck,
   Package,
-  Building2,
-  Users,
-  User,
-  Phone,
-  Mail as MailIcon,
-  MapPin,
-  Globe,
-  CreditCard,
-  Banknote,
-  Receipt,
   Calculator,
-  PieChart,
-  BarChart3,
-  LineChart,
-  Activity,
-  Zap,
-  Flame,
-  Snowflake,
-  Wind,
-  Sun,
-  Moon,
-  Cloud,
-  CloudRain,
-  CloudSnow,
-  CloudLightning,
-  Droplets,
-  Waves,
-  Mountain,
-  TreePine,
-  Leaf,
-  Flower2,
-  Sprout,
-  Wheat,
-  Coffee,
-  Pizza,
-  Apple,
-  Banana,
-  Citrus,
-  Cherry,
-  Grape,
-  Wine,
-  Beer,
-  Coffee as CoffeeIcon,
-  Utensils,
-  ChefHat,
-  ShoppingBag,
-  ShoppingCart,
-  Gift,
-  Package2,
-  Box,
-  PackageOpen,
-  PackageCheck,
-  PackageX,
-  PackagePlus,
-  PackageMinus,
-  PackageSearch,
-  Container,
-  FlaskConical,
-  FlaskRound,
-  Beaker,
-  TestTube,
-  Dna,
-  Pill,
-  Tablet,
-  Syringe,
-  Stethoscope,
-  HeartPulse,
-  Thermometer,
-  PillBottle,
-  Hospital,
-  Ambulance,
-  Atom,
-  TestTubes,
-  ThermometerSun,
-  ThermometerSnowflake,
-  Fan,
-  AirVent,
-  Factory,
-  Warehouse,
-  Building,
-  Home,
-  Hotel,
-  School,
-  Church,
-  Landmark,
-  Castle,
-  Tent,
-  Palmtree,
   CheckCircle,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -349,11 +221,6 @@ const formatCurrency = (value: number) => {
     currency: 'CNY',
     minimumFractionDigits: 2,
   }).format(value);
-};
-
-// 格式化数字
-const formatNumber = (value: number) => {
-  return new Intl.NumberFormat('zh-CN').format(value);
 };
 
 // 格式化日期
@@ -525,7 +392,6 @@ export default function QuoteTable({
     const uniqueColumns = Array.from(new Set([...requiredColumns, ...columns]));
     return uniqueColumns;
   });
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [projectFields, setProjectFields] = useState<CustomField[]>([
     { id: '1', name: '联系人', value: data?.customerInfo?.contactPerson || '' },
     { id: '2', name: '电话', value: data?.customerInfo?.phone || '' },
