@@ -21,6 +21,7 @@
     "ts-check": "tsc -p tsconfig.json",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
+    "verify-points": "bash scripts/verify-points-protection.sh",
     "prebuild": "pnpm run type-check",
     "prepare": "husky"
   },

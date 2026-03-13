@@ -1,0 +1,32 @@
+# 积分系统核心文件 - 禁止修改
+# 版本: cf68f5e
+# 锁定日期: 2026-03-13
+# 说明: 这些文件是积分系统的核心功能，已稳定运行，禁止随意修改
+
+src/lib/user-level-service.ts
+src/storage/database/points-utils.ts
+src/app/api/points/route.ts
+src/app/api/points/exchange/route.ts
+src/app/api/user/points/route.ts
+src/app/api/user/level/route.ts
+src/app/api/user/level/check-upgrade/route.ts
+src/app/api/user/level/exchange/route.ts
+src/app/api/user/level/history/route.ts
+src/app/api/user/level/purchase/route.ts
+src/app/api/user/level/recommendation/route.ts
+src/app/api/admin/points/logs/route.ts
+src/app/api/admin/points/route.ts
+src/app/api/admin/levels/route.ts
+src/app/api/admin/levels/[level]/route.ts
+src/app/api/admin/levels/[level]/history/route.ts
+src/app/api/admin/levels/batch/route.ts
+src/app/api/admin/levels/defaults/route.ts
+src/components/points-panel.tsx
+src/components/user/points-panel.tsx
+src/components/user/points-mall.tsx
+src/components/admin/points/PointsConfig.tsx
+src/components/admin/points/PointsLog.tsx
+src/components/admin/points/PointsManagement.tsx
+src/components/admin/levels/LevelEditor.tsx
+src/components/admin/levels/LevelList.tsx
+src/components/ui/progress.tsx
