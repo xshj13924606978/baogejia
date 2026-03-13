@@ -2,14 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,10 +39,10 @@ export const PointsLog: React.FC = () => {
       if (start) params.append('start', start);
       if (end) params.append('end', end);
       if (params.toString()) url += `?${params.toString()}`;
-
+      
       const res = await fetch(url);
       const data = await res.json();
-
+      
       if (data.success) {
         setLogs(data.logs || []);
       } else {
@@ -59,7 +52,7 @@ export const PointsLog: React.FC = () => {
           variant: 'destructive',
         });
       }
-    } catch (_error) {
+    } catch (error) {
       toast({
         title: '错误',
         description: '获取积分流水失败',

@@ -39,7 +39,7 @@ export default function PointsMall({ user }: PointsMallProps) {
       price: 29.9, // 现金价格
       icon: '💎',
       color: 'purple',
-      type: 'vip',
+      type: 'vip'
     },
     {
       id: 2,
@@ -49,7 +49,7 @@ export default function PointsMall({ user }: PointsMallProps) {
       price: 12.9,
       icon: '📈',
       color: 'green',
-      type: 'rank',
+      type: 'rank'
     },
     {
       id: 3,
@@ -59,7 +59,7 @@ export default function PointsMall({ user }: PointsMallProps) {
       price: 45,
       icon: '🎁',
       color: 'red',
-      type: 'gift',
+      type: 'gift'
     },
     {
       id: 4,
@@ -69,7 +69,7 @@ export default function PointsMall({ user }: PointsMallProps) {
       price: 9.9,
       icon: '📄',
       color: 'blue',
-      type: 'template',
+      type: 'template'
     },
     {
       id: 5,
@@ -79,7 +79,7 @@ export default function PointsMall({ user }: PointsMallProps) {
       price: 299,
       icon: '👑',
       color: 'purple',
-      type: 'vip',
+      type: 'vip'
     },
     {
       id: 6,
@@ -89,7 +89,7 @@ export default function PointsMall({ user }: PointsMallProps) {
       price: 79.9,
       icon: '🚀',
       color: 'green',
-      type: 'rank',
+      type: 'rank'
     },
     {
       id: 7,
@@ -99,7 +99,7 @@ export default function PointsMall({ user }: PointsMallProps) {
       price: 88,
       icon: '🪙',
       color: 'yellow',
-      type: 'gift',
+      type: 'gift'
     },
     {
       id: 8,
@@ -109,7 +109,7 @@ export default function PointsMall({ user }: PointsMallProps) {
       price: 398,
       icon: '💰',
       color: 'yellow',
-      type: 'gift',
+      type: 'gift'
     },
   ];
 
@@ -155,7 +155,7 @@ export default function PointsMall({ user }: PointsMallProps) {
           text: data.error || '兑换失败',
         });
       }
-    } catch (_error) {
+    } catch (error) {
       setMessage({
         type: 'error',
         text: '网络错误，请重试',
@@ -250,7 +250,9 @@ export default function PointsMall({ user }: PointsMallProps) {
             </div>
             <div className="text-right">
               <div className="text-sm text-orange-600">累计获得</div>
-              <div className="text-lg font-bold text-orange-700">{user.total_points || 0}</div>
+              <div className="text-lg font-bold text-orange-700">
+                {user.total_points || 0}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -270,7 +272,10 @@ export default function PointsMall({ user }: PointsMallProps) {
             const canAffordByPoints = user.points >= item.points;
 
             return (
-              <Card key={item.id} className="hover:shadow-md transition-all">
+              <Card
+                key={item.id}
+                className="hover:shadow-md transition-all"
+              >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
                     <div className="text-4xl">{item.icon}</div>
@@ -278,9 +283,13 @@ export default function PointsMall({ user }: PointsMallProps) {
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="font-bold text-base">{item.name}</div>
-                          <div className="text-xs text-gray-500 mt-1">{item.desc}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {item.desc}
+                          </div>
                         </div>
-                        <Badge className={`bg-${item.color}-100 text-${item.color}-700`}>
+                        <Badge
+                          className={`bg-${item.color}-100 text-${item.color}-700`}
+                        >
                           {item.type === 'vip' && '会员'}
                           {item.type === 'rank' && '推广'}
                           {item.type === 'gift' && '礼品'}
@@ -290,7 +299,9 @@ export default function PointsMall({ user }: PointsMallProps) {
 
                       <div className="flex items-center justify-between mt-3">
                         <div className="flex items-baseline gap-2">
-                          <span className={`text-xl font-bold text-${item.color}-600`}>
+                          <span
+                            className={`text-xl font-bold text-${item.color}-600`}
+                          >
                             {item.price ? `¥${item.price}` : `${item.points}积分`}
                           </span>
                           {item.price && (

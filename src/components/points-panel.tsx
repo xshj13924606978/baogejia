@@ -1,7 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -9,7 +15,7 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
+  TableRow
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,7 +39,7 @@ const POINT_RULES = [
   { type: '每日登录', points: 10, description: '每日首次登录奖励' },
   { type: '产品审核', points: 50, description: '产品通过审核奖励' },
   { type: '数据贡献', points: 20, description: '贡献产品数据' },
-  { type: '分享案例', points: 15, description: '分享成功案例' },
+  { type: '分享案例', points: 15, description: '分享成功案例' }
 ];
 
 export default function PointsPanel({ userId }: PointsPanelProps) {
@@ -72,7 +78,7 @@ export default function PointsPanel({ userId }: PointsPanelProps) {
   };
 
   const getTypeLabel = (type: string) => {
-    const rule = POINT_RULES.find((r) => r.type.toLowerCase().replace(' ', '_') === type);
+    const rule = POINT_RULES.find(r => r.type.toLowerCase().replace(' ', '_') === type);
     return rule?.type || type;
   };
 
@@ -100,8 +106,7 @@ export default function PointsPanel({ userId }: PointsPanelProps) {
           </div>
           <div className="flex gap-2">
             <Badge variant="outline" className="text-sm">
-              等级:{' '}
-              {points >= 1000 ? '钻石' : points >= 500 ? '黄金' : points >= 100 ? '白银' : '青铜'}
+              等级: {points >= 1000 ? '钻石' : points >= 500 ? '黄金' : points >= 100 ? '白银' : '青铜'}
             </Badge>
             <Badge variant="outline" className="text-sm">
               等级进度: {Math.min(100, Math.floor(points / 10))}%
@@ -181,14 +186,15 @@ export default function PointsPanel({ userId }: PointsPanelProps) {
                             {getTypeLabel(record.type)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="max-w-xs truncate">{record.description}</TableCell>
+                        <TableCell className="max-w-xs truncate">
+                          {record.description}
+                        </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {new Date(record.created_at).toLocaleString('zh-CN')}
                         </TableCell>
                         <TableCell className="text-right font-bold">
                           <span className={record.points > 0 ? 'text-[#2c8c99]' : 'text-red-500'}>
-                            {record.points > 0 ? '+' : ''}
-                            {record.points}
+                            {record.points > 0 ? '+' : ''}{record.points}
                           </span>
                         </TableCell>
                       </TableRow>

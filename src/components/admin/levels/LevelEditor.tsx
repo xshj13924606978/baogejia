@@ -57,7 +57,7 @@ interface Module {
 
 export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCancel }) => {
   const [loading, setLoading] = useState(false);
-  const [_config, setConfig] = useState<Config | null>(null);
+  const [config, setConfig] = useState<Config | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
@@ -106,7 +106,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
           reason: '',
         });
       }
-    } catch (_error) {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: '获取配置失败',
@@ -121,7 +121,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
       if (data.success) {
         setModules(data.modules || []);
       }
-    } catch (_error) {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: '获取模块列表失败',
@@ -172,7 +172,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
           title: '预览失败',
         });
       }
-    } catch (_error) {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: '预览失败',
@@ -209,7 +209,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
       };
 
       await onSave(level, changes, formData.reason);
-    } catch (_error) {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: '保存失败',
@@ -247,7 +247,12 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
 
           <div className="space-y-2">
             <Label htmlFor="requiredPoints">所需积分</Label>
-            <Input id="requiredPoints" type="number" value={formData.requiredPoints} disabled />
+            <Input
+              id="requiredPoints"
+              type="number"
+              value={formData.requiredPoints}
+              disabled
+            />
           </div>
         </TabsContent>
 
@@ -290,7 +295,9 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
             <Switch
               id="can_view_contact"
               checked={formData.can_view_contact}
-              onCheckedChange={(checked) => setFormData({ ...formData, can_view_contact: checked })}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, can_view_contact: checked })
+              }
             />
           </div>
 
@@ -299,7 +306,9 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
             <Switch
               id="can_view_phone"
               checked={formData.can_view_phone}
-              onCheckedChange={(checked) => setFormData({ ...formData, can_view_phone: checked })}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, can_view_phone: checked })
+              }
             />
           </div>
         </TabsContent>
@@ -314,7 +323,9 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
               >
                 <div>
                   <div className="font-medium">{module.module_name}</div>
-                  <div className="text-sm text-muted-foreground">{module.module_code}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {module.module_code}
+                  </div>
                 </div>
                 <Switch
                   checked={formData.modulePermissions.includes(module.module_code)}
@@ -376,7 +387,9 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
               rows={4}
               placeholder="请输入修改原因..."
               value={formData.reason}
-              onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, reason: e.target.value })
+              }
             />
           </div>
         </TabsContent>

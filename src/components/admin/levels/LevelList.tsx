@@ -16,20 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Edit, History, Upload, ChevronDown, ChevronRight, LayoutGrid, Eye } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { LevelEditor } from './LevelEditor';
@@ -62,22 +50,22 @@ export const LevelList: React.FC = () => {
   const [batchUpdateOpen, setBatchUpdateOpen] = useState(false);
   const [batchUpdating, setBatchUpdating] = useState(false);
   const [batchUpdateReason, setBatchUpdateReason] = useState('');
-  const [_selectedLevelForBatch,_setSelectedLevelForBatchh] = useState<number | null>(null);
-  const [_batchUpdateField,_setBatchUpdateFieldd] = useState<string>('');
-  const [_batchUpdateValue,_setBatchUpdateValuee] = useState<string>('');
-
+  const [selectedLevelForBatch, setSelectedLevelForBatch] = useState<number | null>(null);
+  const [batchUpdateField, setBatchUpdateField] = useState<string>('');
+  const [batchUpdateValue, setBatchUpdateValue] = useState<string>('');
+  
   // 历史记录相关状态
   const [historyLevel, setHistoryLevel] = useState<number | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-
+  
   const { toast } = useToast();
 
   // 树状展开状态
   const [expandedLevels, setExpandedLevels] = useState<Set<number>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Record<number, Set<string>>>({});
-
+  
   // 勾选状态
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [itemValues, setItemValues] = useState<Record<string, string>>({});
@@ -91,7 +79,7 @@ export const LevelList: React.FC = () => {
         { field: 'daily_quota', label: '每日查询配额', type: 'number' },
         { field: 'max_files', label: '最大文件数量', type: 'number' },
         { field: 'max_chat_messages', label: '最大聊天消息数', type: 'number' },
-      ],
+      ]
     },
     fieldPermissions: {
       name: '字段权限',
@@ -102,8 +90,8 @@ export const LevelList: React.FC = () => {
         { field: 'can_view_manufacturer', label: '查看厂家信息', type: 'boolean' },
         { field: 'can_view_contact', label: '查看联系人', type: 'boolean' },
         { field: 'can_view_phone', label: '查看联系电话', type: 'boolean' },
-      ],
-    },
+      ]
+    }
   };
 
   // 模块名称映射 - 完整版
@@ -115,7 +103,7 @@ export const LevelList: React.FC = () => {
     'user.delete': '用户删除',
     'user.create': '用户新建',
     'user.search': '用户搜索',
-
+    
     // 产品相关
     'product.search': '产品搜索',
     'product.detail': '产品详情',
@@ -124,7 +112,7 @@ export const LevelList: React.FC = () => {
     'product.delete': '产品删除',
     'product.export': '产品导出',
     'product.create': '产品新建',
-
+    
     // 报价相关
     'quote.create': '报价创建',
     'quote.view': '报价查看',
@@ -132,63 +120,63 @@ export const LevelList: React.FC = () => {
     'quote.delete': '报价删除',
     'quote.export': '报价导出',
     'quote.generate': '报价生成',
-    quote_generation: '报价生成',
-    quote_export: '报价导出',
+    'quote_generation': '报价生成',
+    'quote_export': '报价导出',
     'quote.manage': '报价管理',
-
+    
     // 文档相关
     'excel.export': 'Excel导出',
     'pdf.export': 'PDF导出',
     'word.export': 'Word导出',
     'doc.export': '文档导出',
-
+    
     // 成本相关
     'cost_price.view': '成本价查看',
     'cost_price.edit': '成本价编辑',
-    cost_analysis: '成本分析',
+    'cost_analysis': '成本分析',
     'cost.view': '成本查看',
-
+    
     // 厂家相关
     'manufacturer.view': '厂家信息查看',
     'manufacturer.edit': '厂家信息编辑',
     'manufacturer.manage': '厂家管理',
     'manufacturer.create': '厂家新建',
-
+    
     // 联系人相关
     'contact.view': '联系人查看',
     'contact.edit': '联系人编辑',
     'contact.manage': '联系人管理',
     'contact.create': '联系人新建',
-
+    
     // 电话相关
     'phone.view': '联系电话查看',
     'phone.edit': '联系电话编辑',
     'phone.manage': '电话管理',
-
+    
     // 系统相关
     'api.access': 'API调用',
     'api.manage': 'API管理',
-    admin_panel: '管理面板',
-    brand_recommend: '品牌推荐',
+    'admin_panel': '管理面板',
+    'brand_recommend': '品牌推荐',
     'system.manage': '系统管理',
     'system.config': '系统配置',
     'system.view': '系统查看',
-
+    
     // 特殊权限
     '*': '全部权限',
-    all: '全部权限',
+    'all': '全部权限'
   };
 
   // 角色名称映射
   const roleNameMap: Record<string, string> = {
-    super_admin: '超级管理员',
-    admin: '管理员',
-    enterprise_admin: '企业管理员',
-    manufacturer: '厂家',
-    vip: 'VIP用户',
-    premium: '付费用户',
-    free: '免费用户',
-    pending: '待审核',
+    'super_admin': '超级管理员',
+    'admin': '管理员',
+    'enterprise_admin': '企业管理员',
+    'manufacturer': '厂家',
+    'vip': 'VIP用户',
+    'premium': '付费用户',
+    'free': '免费用户',
+    'pending': '待审核'
   };
 
   useEffect(() => {
@@ -208,7 +196,7 @@ export const LevelList: React.FC = () => {
           title: '获取等级列表失败',
         });
       }
-    } catch (_error) {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: '获取等级列表失败',
@@ -223,7 +211,7 @@ export const LevelList: React.FC = () => {
       const res = await fetch(`/api/admin/levels/${level}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ changes, reason }),
+        body: JSON.stringify({ changes, reason })
       });
 
       const data = await res.json();
@@ -240,7 +228,7 @@ export const LevelList: React.FC = () => {
           title: '更新失败',
         });
       }
-    } catch (_error) {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: '更新失败',
@@ -250,19 +238,19 @@ export const LevelList: React.FC = () => {
 
   const showHistory = async (level: number) => {
     console.log('[LevelList] 显示历史记录, level:', level);
-
+    
     // 设置当前查看的等级和加载状态
     setHistoryLevel(level);
     setHistoryLoading(true);
     setHistoryOpen(true);
-
+    
     try {
       const res = await fetch(`/api/admin/levels/${level}/history`, {
-        credentials: 'include',
+        credentials: 'include'
       });
-
+      
       console.log('[LevelList] 历史API响应状态:', res.status);
-
+      
       if (!res.ok) {
         const errorText = await res.text();
         console.error('[LevelList] 历史API错误:', errorText);
@@ -275,10 +263,10 @@ export const LevelList: React.FC = () => {
         setHistoryLoading(false);
         return;
       }
-
+      
       const data = await res.json();
       console.log('[LevelList] 历史数据:', data);
-
+      
       if (!data.success) {
         toast({
           variant: 'destructive',
@@ -295,11 +283,11 @@ export const LevelList: React.FC = () => {
         setHistoryLoading(false);
         return;
       }
-
+      
       // 格式化历史记录数据
       const formattedHistory = data.history.map((item: any) => {
         const date = item.created_at || item.createdAt;
-
+        
         // 格式化时间为更清晰的格式：YYYY年MM月DD日 HH:mm:ss
         let timeStr = '未知时间';
         if (date) {
@@ -313,21 +301,20 @@ export const LevelList: React.FC = () => {
           const seconds = dateObj.getSeconds().toString().padStart(2, '0');
           timeStr = `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
         }
-
-        const admin =
-          item.admin_name || item.adminName || item.admin?.username || item.admin?.email || '系统';
+        
+        const admin = item.admin_name || item.adminName || item.admin?.username || item.admin?.email || '系统';
         const reason = item.reason || '无说明';
         const changes = item.changes;
-
+        
         return {
           id: item.id,
           time: timeStr,
           admin: admin,
           reason: reason,
-          changes: changes,
+          changes: changes
         };
       });
-
+      
       setHistoryData(formattedHistory);
       setHistoryLoading(false);
     } catch (error) {
@@ -345,7 +332,7 @@ export const LevelList: React.FC = () => {
   // 预览效果
   const showPreview = (level: number) => {
     console.log('[LevelList] 预览等级:', level);
-    const levelData = levels.find((l) => l.level === level);
+    const levelData = levels.find(l => l.level === level);
     if (!levelData) {
       console.error('[LevelList] 未找到等级数据:', level);
       toast({
@@ -400,8 +387,8 @@ export const LevelList: React.FC = () => {
             level,
             changes: {
               quotas: {},
-              fieldPermissions: {},
-            },
+              fieldPermissions: {}
+            }
           };
         }
 
@@ -416,7 +403,7 @@ export const LevelList: React.FC = () => {
       // 构建更新数组
       const updates = Object.values(updatesByLevel).map((update: any) => ({
         ...update,
-        reason: batchUpdateReason,
+        reason: batchUpdateReason
       }));
 
       console.log('[LevelList] 批量更新数据:', updates);
@@ -425,7 +412,7 @@ export const LevelList: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ updates }),
+        body: JSON.stringify({ updates })
       });
 
       if (!res.ok) {
@@ -441,13 +428,13 @@ export const LevelList: React.FC = () => {
         toast({
           title: `批量更新成功，共更新 ${updates.length} 个等级`,
         });
-
+        
         // 关闭弹窗
         setBatchUpdateOpen(false);
-
+        
         // 刷新列表
         await fetchLevels();
-
+        
         // 重置表单（延迟执行，避免影响弹窗关闭动画）
         setTimeout(() => {
           resetBatchForm();
@@ -456,7 +443,7 @@ export const LevelList: React.FC = () => {
         toast({
           variant: 'destructive',
           title: '批量更新失败',
-          description: data.error || '未知错误',
+          description: data.error || '未知错误'
         });
       }
     } catch (error) {
@@ -464,7 +451,7 @@ export const LevelList: React.FC = () => {
       toast({
         variant: 'destructive',
         title: '批量更新失败',
-        description: error instanceof Error ? error.message : '未知错误',
+        description: error instanceof Error ? error.message : '未知错误'
       });
     } finally {
       setBatchUpdating(false);
@@ -474,16 +461,16 @@ export const LevelList: React.FC = () => {
   // 打开批量更新弹窗
   const openBatchUpdateModal = () => {
     // 自动展开所有等级的配置项
-    const allLevels = new Set(levels.map((l) => l.level));
+    const allLevels = new Set(levels.map(l => l.level));
     setExpandedLevels(allLevels);
-
+    
     // 自动展开所有类别的配置项
     const allCategories: Record<number, Set<string>> = {};
-    levels.forEach((level) => {
+    levels.forEach(level => {
       allCategories[level.level] = new Set(Object.keys(configCategories));
     });
     setExpandedCategories(allCategories);
-
+    
     // 打开弹窗
     setBatchUpdateOpen(true);
   };
@@ -517,7 +504,7 @@ export const LevelList: React.FC = () => {
     }
     setExpandedCategories({
       ...expandedCategories,
-      [level]: newCategories,
+      [level]: newCategories
     });
   };
 
@@ -533,15 +520,11 @@ export const LevelList: React.FC = () => {
     } else {
       newChecked.add(itemKey);
       // 设置默认值
-      const [_levelStr, field] = itemKey.split('-');
-      const _category = Object.keys(configCategories).find((cat) =>
-        configCategories[cat as keyof typeof configCategories].items.some(
-          (item) => item.field === field
-        )
+      const [levelStr, field] = itemKey.split('-');
+      const category = Object.keys(configCategories).find(cat =>
+        configCategories[cat as keyof typeof configCategories].items.some(item => item.field === field)
       );
-      const itemConfig = Object.values(configCategories)
-        .flatMap((cat) => cat.items)
-        .find((item) => item.field === field);
+      const itemConfig = Object.values(configCategories).flatMap(cat => cat.items).find(item => item.field === field);
       if (itemConfig?.type === 'boolean') {
         setItemValues({ ...itemValues, [itemKey]: 'true' });
       }
@@ -557,7 +540,7 @@ export const LevelList: React.FC = () => {
   // 恢复默认配置
   const restoreDefaults = async () => {
     console.log('[LevelList] 开始恢复默认配置');
-
+    
     try {
       // 从 level_definitions 表获取系统默认配置
       const res = await fetch('/api/admin/levels/defaults', {
@@ -569,7 +552,7 @@ export const LevelList: React.FC = () => {
         const errorText = await res.text();
         console.error('[LevelList] 默认配置API错误:', errorText);
         // 如果API失败，使用硬编码默认值
-        applyHardcodedDefaults();
+        useHardcodedDefaults();
         return;
       }
 
@@ -598,42 +581,32 @@ export const LevelList: React.FC = () => {
 
           // 字段权限默认值 - 关键修复点：同时支持嵌套和扁平结构
           const fieldPerms = levelConfig.fieldPermissions || levelConfig.field_permissions || {};
-
+          
           // 先尝试从嵌套对象读取，如果不存在则从扁平结构读取
           newValues[`${level.level}-can_view_cost_price`] = String(
-            fieldPerms.can_view_cost_price !== undefined
-              ? fieldPerms.can_view_cost_price
-              : levelConfig.can_view_cost_price !== undefined
-                ? levelConfig.can_view_cost_price
-                : false
+            fieldPerms.can_view_cost_price !== undefined 
+              ? fieldPerms.can_view_cost_price 
+              : (levelConfig.can_view_cost_price !== undefined ? levelConfig.can_view_cost_price : false)
           );
           newValues[`${level.level}-can_view_min_price`] = String(
-            fieldPerms.can_view_min_price !== undefined
-              ? fieldPerms.can_view_min_price
-              : levelConfig.can_view_min_price !== undefined
-                ? levelConfig.can_view_min_price
-                : false
+            fieldPerms.can_view_min_price !== undefined 
+              ? fieldPerms.can_view_min_price 
+              : (levelConfig.can_view_min_price !== undefined ? levelConfig.can_view_min_price : false)
           );
           newValues[`${level.level}-can_view_manufacturer`] = String(
-            fieldPerms.can_view_manufacturer !== undefined
-              ? fieldPerms.can_view_manufacturer
-              : levelConfig.can_view_manufacturer !== undefined
-                ? levelConfig.can_view_manufacturer
-                : false
+            fieldPerms.can_view_manufacturer !== undefined 
+              ? fieldPerms.can_view_manufacturer 
+              : (levelConfig.can_view_manufacturer !== undefined ? levelConfig.can_view_manufacturer : false)
           );
           newValues[`${level.level}-can_view_contact`] = String(
-            fieldPerms.can_view_contact !== undefined
-              ? fieldPerms.can_view_contact
-              : levelConfig.can_view_contact !== undefined
-                ? levelConfig.can_view_contact
-                : false
+            fieldPerms.can_view_contact !== undefined 
+              ? fieldPerms.can_view_contact 
+              : (levelConfig.can_view_contact !== undefined ? levelConfig.can_view_contact : false)
           );
           newValues[`${level.level}-can_view_phone`] = String(
-            fieldPerms.can_view_phone !== undefined
-              ? fieldPerms.can_view_phone
-              : levelConfig.can_view_phone !== undefined
-                ? levelConfig.can_view_phone
-                : false
+            fieldPerms.can_view_phone !== undefined 
+              ? fieldPerms.can_view_phone 
+              : (levelConfig.can_view_phone !== undefined ? levelConfig.can_view_phone : false)
           );
 
           console.log(`[LevelList] 等级 ${level.level} 字段权限配置:`, {
@@ -678,18 +651,17 @@ export const LevelList: React.FC = () => {
                 fieldPermissions: {
                   can_view_cost_price: newValues[`${level.level}-can_view_cost_price`] === 'true',
                   can_view_min_price: newValues[`${level.level}-can_view_min_price`] === 'true',
-                  can_view_manufacturer:
-                    newValues[`${level.level}-can_view_manufacturer`] === 'true',
+                  can_view_manufacturer: newValues[`${level.level}-can_view_manufacturer`] === 'true',
                   can_view_contact: newValues[`${level.level}-can_view_contact`] === 'true',
                   can_view_phone: newValues[`${level.level}-can_view_phone`] === 'true',
-                },
-              },
+                }
+              }
             };
           });
 
           const updates = Object.values(updatesByLevel).map((update: any) => ({
             ...update,
-            reason: '恢复系统默认配置',
+            reason: '恢复系统默认配置'
           }));
 
           console.log('[LevelList] 恢复默认配置数据:', updates);
@@ -698,7 +670,7 @@ export const LevelList: React.FC = () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ updates }),
+            body: JSON.stringify({ updates })
           });
 
           if (!res.ok) {
@@ -719,25 +691,20 @@ export const LevelList: React.FC = () => {
 
             // 刷新列表
             await fetchLevels();
-
+            
             // 添加验证日志
             setTimeout(() => {
               console.log('[LevelList] 恢复后当前等级列表:', levels);
               if (levels.length > 0) {
                 const firstLevel = levels[0].level;
-                const updatedLevel = levels.find((l) => l.level === firstLevel);
+                const updatedLevel = levels.find(l => l.level === firstLevel);
                 if (updatedLevel) {
-                  console.log(
-                    '[LevelList] 等级',
-                    firstLevel,
-                    '的字段权限:',
-                    updatedLevel.fieldPermissions
-                  );
+                  console.log('[LevelList] 等级', firstLevel, '的字段权限:', updatedLevel.fieldPermissions);
                   console.log('[LevelList] 等级', firstLevel, '的配额设置:', updatedLevel.quotas);
                 }
               }
             }, 500);
-
+            
             // 如果弹窗打开，重新加载默认配置到表单（不清空表单）
             if (batchUpdateOpen) {
               // 重新获取默认配置
@@ -745,77 +712,60 @@ export const LevelList: React.FC = () => {
                 const defaultRes = await fetch('/api/admin/levels/defaults', {
                   credentials: 'include',
                 });
-
+                
                 if (defaultRes.ok) {
                   const defaultConfig = await defaultRes.json();
-
+                  
                   // 重新构建表单数据
                   const refreshedValues: Record<string, string> = {};
                   const refreshedChecked = new Set<string>();
-
+                  
                   levels.forEach((level) => {
                     const levelConfig = defaultConfig.find((c: any) => c.level === level.level);
                     if (!levelConfig) return;
-
+                    
                     // 配额默认值
                     const quotas = levelConfig.quotas || levelConfig;
-                    refreshedValues[`${level.level}-daily_quota`] = String(
-                      quotas.daily_quota ?? 10
-                    );
+                    refreshedValues[`${level.level}-daily_quota`] = String(quotas.daily_quota ?? 10);
                     refreshedValues[`${level.level}-max_files`] = String(quotas.max_files ?? 5);
-                    refreshedValues[`${level.level}-max_chat_messages`] = String(
-                      quotas.max_chat_messages ?? 20
-                    );
-
+                    refreshedValues[`${level.level}-max_chat_messages`] = String(quotas.max_chat_messages ?? 20);
+                    
                     // 字段权限默认值
-                    const fieldPerms =
-                      levelConfig.fieldPermissions || levelConfig.field_permissions || {};
+                    const fieldPerms = levelConfig.fieldPermissions || levelConfig.field_permissions || {};
                     refreshedValues[`${level.level}-can_view_cost_price`] = String(
-                      fieldPerms.can_view_cost_price !== undefined
-                        ? fieldPerms.can_view_cost_price
-                        : levelConfig.can_view_cost_price !== undefined
-                          ? levelConfig.can_view_cost_price
-                          : false
+                      fieldPerms.can_view_cost_price !== undefined 
+                        ? fieldPerms.can_view_cost_price 
+                        : (levelConfig.can_view_cost_price !== undefined ? levelConfig.can_view_cost_price : false)
                     );
                     refreshedValues[`${level.level}-can_view_min_price`] = String(
-                      fieldPerms.can_view_min_price !== undefined
-                        ? fieldPerms.can_view_min_price
-                        : levelConfig.can_view_min_price !== undefined
-                          ? levelConfig.can_view_min_price
-                          : false
+                      fieldPerms.can_view_min_price !== undefined 
+                        ? fieldPerms.can_view_min_price 
+                        : (levelConfig.can_view_min_price !== undefined ? levelConfig.can_view_min_price : false)
                     );
                     refreshedValues[`${level.level}-can_view_manufacturer`] = String(
-                      fieldPerms.can_view_manufacturer !== undefined
-                        ? fieldPerms.can_view_manufacturer
-                        : levelConfig.can_view_manufacturer !== undefined
-                          ? levelConfig.can_view_manufacturer
-                          : false
+                      fieldPerms.can_view_manufacturer !== undefined 
+                        ? fieldPerms.can_view_manufacturer 
+                        : (levelConfig.can_view_manufacturer !== undefined ? levelConfig.can_view_manufacturer : false)
                     );
                     refreshedValues[`${level.level}-can_view_contact`] = String(
-                      fieldPerms.can_view_contact !== undefined
-                        ? fieldPerms.can_view_contact
-                        : levelConfig.can_view_contact !== undefined
-                          ? levelConfig.can_view_contact
-                          : false
+                      fieldPerms.can_view_contact !== undefined 
+                        ? fieldPerms.can_view_contact 
+                        : (levelConfig.can_view_contact !== undefined ? levelConfig.can_view_contact : false)
                     );
                     refreshedValues[`${level.level}-can_view_phone`] = String(
-                      fieldPerms.can_view_phone !== undefined
-                        ? fieldPerms.can_view_phone
-                        : levelConfig.can_view_phone !== undefined
-                          ? levelConfig.can_view_phone
-                          : false
+                      fieldPerms.can_view_phone !== undefined 
+                        ? fieldPerms.can_view_phone 
+                        : (levelConfig.can_view_phone !== undefined ? levelConfig.can_view_phone : false)
                     );
-
+                    
                     // 添加到勾选列表
                     Object.keys(configCategories).forEach((categoryKey) => {
-                      configCategories[categoryKey as keyof typeof configCategories].items.forEach(
-                        (item) => {
-                          refreshedChecked.add(`${level.level}-${item.field}`);
-                        }
-                      );
+                      configCategories[categoryKey as keyof typeof configCategories].items.forEach((item) => {
+                        refreshedChecked.add(`${level.level}-${item.field}`);
+                      });
                     });
                   });
-
+                  
                   // 重新填充表单（不清空）
                   setItemValues(refreshedValues);
                   setCheckedItems(refreshedChecked);
@@ -829,7 +779,7 @@ export const LevelList: React.FC = () => {
             toast({
               variant: 'destructive',
               title: '恢复默认配置失败',
-              description: data.error || '未知错误',
+              description: data.error || '未知错误'
             });
           }
         } catch (error) {
@@ -837,41 +787,38 @@ export const LevelList: React.FC = () => {
           toast({
             variant: 'destructive',
             title: '恢复默认配置失败',
-            description: error instanceof Error ? error.message : '未知错误',
+            description: error instanceof Error ? error.message : '未知错误'
           });
         }
       } else {
         console.warn('[LevelList] API返回无默认配置，使用硬编码默认值');
         // API 返回空数据，使用硬编码默认值
-        applyHardcodedDefaults();
+        useHardcodedDefaults();
       }
     } catch (error) {
       console.error('[LevelList] 恢复默认配置失败:', error);
       // 异常时使用硬编码默认值
-      applyHardcodedDefaults();
+      useHardcodedDefaults();
     }
   };
 
   // 使用硬编码默认值（fallback）- 每个等级有不同的默认配置
-  const applyHardcodedDefaults = async () => {
+  const useHardcodedDefaults = async () => {
     console.log('[LevelList] 使用硬编码默认值');
     const newValues: Record<string, string> = {};
     const newChecked = new Set<string>();
 
     // 定义每个等级的硬编码默认配置
-    const hardcodedLevelConfigs: Record<
-      number,
-      {
-        daily_quota: number;
-        max_files: number;
-        max_chat_messages: number;
-        can_view_cost_price: boolean;
-        can_view_min_price: boolean;
-        can_view_manufacturer: boolean;
-        can_view_contact: boolean;
-        can_view_phone: boolean;
-      }
-    > = {
+    const hardcodedLevelConfigs: Record<number, {
+      daily_quota: number;
+      max_files: number;
+      max_chat_messages: number;
+      can_view_cost_price: boolean;
+      can_view_min_price: boolean;
+      can_view_manufacturer: boolean;
+      can_view_contact: boolean;
+      can_view_phone: boolean;
+    }> = {
       1: {
         daily_quota: 10,
         max_files: 5,
@@ -976,14 +923,14 @@ export const LevelList: React.FC = () => {
               can_view_manufacturer: newValues[`${level.level}-can_view_manufacturer`] === 'true',
               can_view_contact: newValues[`${level.level}-can_view_contact`] === 'true',
               can_view_phone: newValues[`${level.level}-can_view_phone`] === 'true',
-            },
-          },
+            }
+          }
         };
       });
 
       const updates = Object.values(updatesByLevel).map((update: any) => ({
         ...update,
-        reason: '恢复系统默认配置',
+        reason: '恢复系统默认配置'
       }));
 
       console.log('[LevelList] 恢复默认配置数据:', updates);
@@ -992,7 +939,7 @@ export const LevelList: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ updates }),
+        body: JSON.stringify({ updates })
       });
 
       if (!res.ok) {
@@ -1013,7 +960,7 @@ export const LevelList: React.FC = () => {
 
         // 刷新列表
         await fetchLevels();
-
+        
         // 只在弹窗打开时重置表单
         if (batchUpdateOpen) {
           resetBatchForm();
@@ -1022,7 +969,7 @@ export const LevelList: React.FC = () => {
         toast({
           variant: 'destructive',
           title: '恢复默认配置失败',
-          description: data.error || '未知错误',
+          description: data.error || '未知错误'
         });
       }
     } catch (error) {
@@ -1030,7 +977,7 @@ export const LevelList: React.FC = () => {
       toast({
         variant: 'destructive',
         title: '恢复默认配置失败',
-        description: error instanceof Error ? error.message : '未知错误',
+        description: error instanceof Error ? error.message : '未知错误'
       });
     }
   };
@@ -1064,7 +1011,9 @@ export const LevelList: React.FC = () => {
               {levels.map((record) => (
                 <TableRow key={record.level}>
                   <TableCell className="whitespace-nowrap">
-                    <Badge className={getLevelColor(record.level)}>Lv.{record.level}</Badge>
+                    <Badge className={getLevelColor(record.level)}>
+                      Lv.{record.level}
+                    </Badge>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{record.name}</TableCell>
                   <TableCell className="whitespace-nowrap">{record.requiredPoints}</TableCell>
@@ -1088,12 +1037,12 @@ export const LevelList: React.FC = () => {
                             <Badge variant="outline">电话</Badge>
                           )}
                           {!record.fieldPermissions.can_view_cost_price &&
-                            !record.fieldPermissions.can_view_min_price &&
-                            !record.fieldPermissions.can_view_manufacturer &&
-                            !record.fieldPermissions.can_view_contact &&
-                            !record.fieldPermissions.can_view_phone && (
-                              <span className="text-muted-foreground text-sm">无权限</span>
-                            )}
+                           !record.fieldPermissions.can_view_min_price &&
+                           !record.fieldPermissions.can_view_manufacturer &&
+                           !record.fieldPermissions.can_view_contact &&
+                           !record.fieldPermissions.can_view_phone && (
+                            <span className="text-muted-foreground text-sm">无权限</span>
+                          )}
                         </>
                       )}
                       {!record.fieldPermissions && (
@@ -1111,7 +1060,9 @@ export const LevelList: React.FC = () => {
                             </Badge>
                           ))}
                           {record.modulePermissions.length > 3 && (
-                            <Badge variant="outline">+{record.modulePermissions.length - 3}</Badge>
+                            <Badge variant="outline">
+                              +{record.modulePermissions.length - 3}
+                            </Badge>
                           )}
                         </>
                       ) : (
@@ -1129,11 +1080,19 @@ export const LevelList: React.FC = () => {
                         <Edit className="h-4 w-4 mr-1" />
                         编辑
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => showHistory(record.level)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => showHistory(record.level)}
+                      >
                         <History className="h-4 w-4 mr-1" />
                         历史
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => showPreview(record.level)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => showPreview(record.level)}
+                      >
                         <Eye className="h-4 w-4 mr-1" />
                         预览
                       </Button>
@@ -1157,7 +1116,9 @@ export const LevelList: React.FC = () => {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>编辑等级 Lv.{editingLevel} 权限</DialogTitle>
-            <DialogDescription>修改等级的配额设置、字段权限和模块权限</DialogDescription>
+            <DialogDescription>
+              修改等级的配额设置、字段权限和模块权限
+            </DialogDescription>
           </DialogHeader>
           {editingLevel && (
             <LevelEditor
@@ -1170,155 +1131,158 @@ export const LevelList: React.FC = () => {
       </Dialog>
 
       {/* 预览弹窗 */}
-      {previewLevel &&
-        (() => {
-          const levelData = levels.find((l) => l.level === previewLevel);
-          if (!levelData) return null;
+      {previewLevel && (() => {
+        const levelData = levels.find(l => l.level === previewLevel);
+        if (!levelData) return null;
 
-          return (
-            <Dialog open={!!previewLevel} onOpenChange={() => setPreviewLevel(null)}>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>等级权限预览</DialogTitle>
-                  <DialogDescription>查看等级的详细权限配置</DialogDescription>
-                </DialogHeader>
+        return (
+          <Dialog open={!!previewLevel} onOpenChange={() => setPreviewLevel(null)}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>等级权限预览</DialogTitle>
+                <DialogDescription>
+                  查看等级的详细权限配置
+                </DialogDescription>
+              </DialogHeader>
 
-                <div className="py-4">
-                  <h3 className="text-lg font-semibold">Lv.{levelData.level}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">{levelData.name}</p>
+              <div className="py-4">
+                <h3 className="text-lg font-semibold">Lv.{levelData.level}</h3>
+                <p className="text-sm text-muted-foreground mb-4">{levelData.name}</p>
 
-                  {/* 基础信息 */}
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-2">基础信息</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <span className="text-muted-foreground">所需积分：</span>
-                      <span>{levelData.requiredPoints}</span>
-                      <span className="text-muted-foreground">角色：</span>
-                      <span>{roleNameMap[levelData.role] || levelData.role}</span>
-                    </div>
-                  </div>
-
-                  {/* 配额设置 */}
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-2">配额设置</h4>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                      <li>
-                        每日查询配额：{levelData.quotas?.daily_quota || 0} 次
-                        {levelData.quotas?.daily_quota === 0 && (
-                          <span className="text-muted-foreground ml-2">（不限制）</span>
-                        )}
-                      </li>
-                      <li>
-                        最大文件数量：{levelData.quotas?.max_files || 0} 个
-                        {levelData.quotas?.max_files === 0 && (
-                          <span className="text-muted-foreground ml-2">（不限制）</span>
-                        )}
-                      </li>
-                      <li>
-                        最大聊天消息数：{levelData.quotas?.max_chat_messages || 0} 条
-                        {levelData.quotas?.max_chat_messages === 0 && (
-                          <span className="text-muted-foreground ml-2">（不限制）</span>
-                        )}
-                      </li>
-                    </ul>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      注：配额设置为 0 时代表不限制
-                    </p>
-                  </div>
-
-                  {/* 字段权限 */}
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-2">字段权限</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {levelData.fieldPermissions?.can_view_cost_price && (
-                        <span className="text-green-600">✅ 查看成本价</span>
-                      )}
-                      {levelData.fieldPermissions?.can_view_min_price && (
-                        <span className="text-green-600">✅ 查看最低售价</span>
-                      )}
-                      {levelData.fieldPermissions?.can_view_manufacturer && (
-                        <span className="text-green-600">✅ 查看厂家信息</span>
-                      )}
-                      {levelData.fieldPermissions?.can_view_contact && (
-                        <span className="text-green-600">✅ 查看联系人</span>
-                      )}
-                      {levelData.fieldPermissions?.can_view_phone && (
-                        <span className="text-green-600">✅ 查看联系电话</span>
-                      )}
-                    </div>
-                    {!levelData.fieldPermissions?.can_view_cost_price &&
-                      !levelData.fieldPermissions?.can_view_min_price &&
-                      !levelData.fieldPermissions?.can_view_manufacturer &&
-                      !levelData.fieldPermissions?.can_view_contact &&
-                      !levelData.fieldPermissions?.can_view_phone && (
-                        <p className="text-sm text-muted-foreground">无权限</p>
-                      )}
-                  </div>
-
-                  {/* 模块权限 */}
-                  <div>
-                    <h4 className="font-medium mb-2">模块权限</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {levelData.modulePermissions?.map((code: string) => (
-                        <span key={code} className="px-2 py-1 bg-gray-100 rounded text-sm">
-                          {moduleNameMap[code] || code}
-                        </span>
-                      ))}
-                      {!levelData.modulePermissions ||
-                        (levelData.modulePermissions.length === 0 && (
-                          <p className="text-sm text-muted-foreground">无权限</p>
-                        ))}
-                    </div>
+                {/* 基础信息 */}
+                <div className="mb-4">
+                  <h4 className="font-medium mb-2">基础信息</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <span className="text-muted-foreground">所需积分：</span>
+                    <span>{levelData.requiredPoints}</span>
+                    <span className="text-muted-foreground">角色：</span>
+                    <span>{roleNameMap[levelData.role] || levelData.role}</span>
                   </div>
                 </div>
-              </DialogContent>
-            </Dialog>
-          );
-        })()}
+
+                {/* 配额设置 */}
+                <div className="mb-4">
+                  <h4 className="font-medium mb-2">配额设置</h4>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    <li>
+                      每日查询配额：{levelData.quotas?.daily_quota || 0} 次
+                      {levelData.quotas?.daily_quota === 0 && (
+                        <span className="text-muted-foreground ml-2">（不限制）</span>
+                      )}
+                    </li>
+                    <li>
+                      最大文件数量：{levelData.quotas?.max_files || 0} 个
+                      {levelData.quotas?.max_files === 0 && (
+                        <span className="text-muted-foreground ml-2">（不限制）</span>
+                      )}
+                    </li>
+                    <li>
+                      最大聊天消息数：{levelData.quotas?.max_chat_messages || 0} 条
+                      {levelData.quotas?.max_chat_messages === 0 && (
+                        <span className="text-muted-foreground ml-2">（不限制）</span>
+                      )}
+                    </li>
+                  </ul>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    注：配额设置为 0 时代表不限制
+                  </p>
+                </div>
+
+                {/* 字段权限 */}
+                <div className="mb-4">
+                  <h4 className="font-medium mb-2">字段权限</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {levelData.fieldPermissions?.can_view_cost_price && (
+                      <span className="text-green-600">✅ 查看成本价</span>
+                    )}
+                    {levelData.fieldPermissions?.can_view_min_price && (
+                      <span className="text-green-600">✅ 查看最低售价</span>
+                    )}
+                    {levelData.fieldPermissions?.can_view_manufacturer && (
+                      <span className="text-green-600">✅ 查看厂家信息</span>
+                    )}
+                    {levelData.fieldPermissions?.can_view_contact && (
+                      <span className="text-green-600">✅ 查看联系人</span>
+                    )}
+                    {levelData.fieldPermissions?.can_view_phone && (
+                      <span className="text-green-600">✅ 查看联系电话</span>
+                    )}
+                  </div>
+                  {!levelData.fieldPermissions?.can_view_cost_price &&
+                   !levelData.fieldPermissions?.can_view_min_price &&
+                   !levelData.fieldPermissions?.can_view_manufacturer &&
+                   !levelData.fieldPermissions?.can_view_contact &&
+                   !levelData.fieldPermissions?.can_view_phone && (
+                    <p className="text-sm text-muted-foreground">无权限</p>
+                  )}
+                </div>
+
+                {/* 模块权限 */}
+                <div>
+                  <h4 className="font-medium mb-2">模块权限</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {levelData.modulePermissions?.map((code: string) => (
+                      <span key={code} className="px-2 py-1 bg-gray-100 rounded text-sm">
+                        {moduleNameMap[code] || code}
+                      </span>
+                    ))}
+                    {!levelData.modulePermissions || levelData.modulePermissions.length === 0 && (
+                      <p className="text-sm text-muted-foreground">无权限</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       {/* 历史记录 Dialog */}
       <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>等级 {historyLevel} 修改历史</DialogTitle>
-            <DialogDescription>查看该等级的权限配置修改记录</DialogDescription>
+            <DialogDescription>
+              查看该等级的权限配置修改记录
+            </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
             {historyLoading ? (
-              <div className="text-center py-8 text-muted-foreground">加载中...</div>
+              <div className="text-center py-8 text-muted-foreground">
+                加载中...
+              </div>
             ) : historyData.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">暂无历史记录</div>
+              <div className="text-center py-8 text-muted-foreground">
+                暂无历史记录
+              </div>
             ) : (
               <div className="space-y-4">
                 {historyData.map((item, index) => (
-                  <div
-                    key={item.id || index}
-                    className="p-4 bg-muted/30 rounded-lg border border-border"
-                  >
+                  <div key={item.id || index} className="p-4 bg-muted/30 rounded-lg border border-border">
                     <div className="flex items-start justify-between mb-2">
                       <div className="text-sm text-muted-foreground">{item.time}</div>
                       <Badge variant="outline">{index + 1}</Badge>
                     </div>
-
+                    
                     <div className="mb-2">
                       <span className="font-medium">操作人：</span>
                       <span>{item.admin}</span>
                     </div>
-
+                    
                     <div className="mb-2">
                       <span className="font-medium">修改原因：</span>
                       <span>{item.reason}</span>
                     </div>
-
+                    
                     {item.changes && (
                       <details className="mt-3">
                         <summary className="text-sm text-primary cursor-pointer hover:underline">
                           查看修改详情
                         </summary>
                         <pre className="mt-2 p-3 bg-background rounded text-xs overflow-auto max-h-64 border border-border">
-                          {typeof item.changes === 'string'
-                            ? item.changes
+                          {typeof item.changes === 'string' 
+                            ? item.changes 
                             : JSON.stringify(item.changes, null, 2)}
                         </pre>
                       </details>
@@ -1335,7 +1299,9 @@ export const LevelList: React.FC = () => {
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>批量更新等级配置</DialogTitle>
-            <DialogDescription>勾选需要修改的配置项，设置新值后批量提交</DialogDescription>
+            <DialogDescription>
+              勾选需要修改的配置项，设置新值后批量提交
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -1358,20 +1324,16 @@ export const LevelList: React.FC = () => {
                         ) : (
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         )}
-                        <Badge className={getLevelColor(level.level)}>Lv.{level.level}</Badge>
+                        <Badge className={getLevelColor(level.level)}>
+                          Lv.{level.level}
+                        </Badge>
                         <span className="font-medium">{level.name}</span>
                         <span className="text-sm text-muted-foreground">
                           (所需积分: {level.requiredPoints})
                         </span>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        已勾选{' '}
-                        {
-                          Array.from(checkedItems).filter((item) =>
-                            item.startsWith(`${level.level}-`)
-                          ).length
-                        }{' '}
-                        项
+                        已勾选 {Array.from(checkedItems).filter(item => item.startsWith(`${level.level}-`)).length} 项
                       </span>
                     </div>
 
@@ -1397,9 +1359,7 @@ export const LevelList: React.FC = () => {
                                 <CategoryIcon className="h-4 w-4 text-muted-foreground" />
                                 <span className="font-medium text-sm">{category.name}</span>
                                 {categoryKey === 'quotas' && (
-                                  <span className="text-xs text-muted-foreground">
-                                    （设为0表示不限制）
-                                  </span>
+                                  <span className="text-xs text-muted-foreground">（设为0表示不限制）</span>
                                 )}
                               </div>
 
@@ -1432,9 +1392,7 @@ export const LevelList: React.FC = () => {
                                             {item.type === 'boolean' ? (
                                               <Select
                                                 value={currentValue || 'true'}
-                                                onValueChange={(value) =>
-                                                  updateItemValue(itemKey, value)
-                                                }
+                                                onValueChange={(value) => updateItemValue(itemKey, value)}
                                               >
                                                 <SelectTrigger className="w-32 h-8 text-xs">
                                                   <SelectValue />
@@ -1449,9 +1407,7 @@ export const LevelList: React.FC = () => {
                                                 type="number"
                                                 min="0"
                                                 value={currentValue || ''}
-                                                onChange={(e) =>
-                                                  updateItemValue(itemKey, e.target.value)
-                                                }
+                                                onChange={(e) => updateItemValue(itemKey, e.target.value)}
                                                 placeholder="输入数值"
                                                 className="w-32 h-8 text-xs"
                                               />
@@ -1476,20 +1432,16 @@ export const LevelList: React.FC = () => {
             {/* 统计信息 */}
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md text-sm">
               <span className="text-muted-foreground">
-                已勾选 <span className="font-bold text-foreground">{checkedItems.size}</span>{' '}
-                个配置项， 涉及{' '}
-                <span className="font-bold text-foreground">
-                  {new Set(Array.from(checkedItems).map((item) => item.split('-')[0])).size}
-                </span>{' '}
-                个等级
+                已勾选 <span className="font-bold text-foreground">{checkedItems.size}</span> 个配置项，
+                涉及 <span className="font-bold text-foreground">
+                  {new Set(Array.from(checkedItems).map(item => item.split('-')[0])).size}
+                </span> 个等级
               </span>
             </div>
 
             {/* 修改原因 */}
             <div className="space-y-2">
-              <Label>
-                修改原因 <span className="text-destructive">*</span>
-              </Label>
+              <Label>修改原因 <span className="text-destructive">*</span></Label>
               <Textarea
                 value={batchUpdateReason}
                 onChange={(e) => setBatchUpdateReason(e.target.value)}
@@ -1511,11 +1463,10 @@ export const LevelList: React.FC = () => {
               <Button variant="outline" onClick={() => setBatchUpdateOpen(false)}>
                 取消
               </Button>
-              <Button
-                onClick={handleBatchUpdate}
-                disabled={batchUpdating || checkedItems.size === 0}
-              >
-                {batchUpdating && <Upload className="mr-2 h-4 w-4 animate-spin" />}
+              <Button onClick={handleBatchUpdate} disabled={batchUpdating || checkedItems.size === 0}>
+                {batchUpdating && (
+                  <Upload className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 确认批量更新
               </Button>
             </div>
