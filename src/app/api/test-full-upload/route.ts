@@ -36,8 +36,7 @@ export async function POST(request: Request) {
       .upload(fileKey, buffer, {
         contentType: 'text/plain',
         cacheControl: '3600',
-        upsert: true,
-      });
+        upsert: true});
 
     if (uploadError) {
       console.error('[FullUploadTest] 上传失败:', uploadError);
@@ -45,8 +44,7 @@ export async function POST(request: Request) {
         {
           success: false,
           error: '上传失败',
-          details: uploadError.message,
-        },
+          details: uploadError.message},
         { status: 500 }
       );
     }
@@ -71,8 +69,7 @@ export async function POST(request: Request) {
           success: false,
           error: '下载失败',
           status: downloadResponse.status,
-          errorText: errorText,
-        },
+          errorText: errorText},
         { status: 500 }
       );
     }
@@ -97,16 +94,12 @@ export async function POST(request: Request) {
       results: {
         upload: {
           success: !!uploadData,
-          path: uploadData?.path,
-        },
+          path: uploadData?.path},
         download: {
           success: true,
           url: publicUrl,
           size: downloadBuffer.length,
-          contentMatches,
-        },
-      },
-    });
+          contentMatches}}});
   } catch (error: any) {
     console.error('[FullUploadTest] 测试失败:', error);
     return NextResponse.json(
@@ -114,8 +107,7 @@ export async function POST(request: Request) {
         success: false,
         error: '测试失败',
         message: error.message,
-        stack: error.stack,
-      },
+        stack: error.stack},
       { status: 500 }
     );
   }

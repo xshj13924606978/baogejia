@@ -12,7 +12,7 @@ import { getCurrentUser } from '@/lib/auth-utils';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.points.defaults'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);

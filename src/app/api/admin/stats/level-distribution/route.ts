@@ -13,7 +13,7 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.stats.view'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -52,7 +52,7 @@ export const GET = withPermissionCheck(
       }
 
       // 获取用户基本信息（用于统计）
-      const { data: users, error: usersError } = await supabase
+      const { data: _users, error: usersError } = await supabase
         .from('users')
         .select('id, created_at');
 
@@ -76,9 +76,7 @@ export const GET = withPermissionCheck(
           totalUsers: userLevels?.length || 0,
           averageLevel: 0,
           mostCommonLevel: 1,
-          upgradeRate: 0,
-        },
-      };
+          upgradeRate: 0}};
 
       const totalUsers = userLevels?.length || 0;
       if (totalUsers === 0) {
@@ -131,8 +129,7 @@ export const GET = withPermissionCheck(
 
         distribution.conversion[`${i}->${i + 1}`] = {
           rate,
-          count: toLevel,
-        };
+          count: toLevel};
       }
 
       // 计算升级所需时间
@@ -165,8 +162,7 @@ export const GET = withPermissionCheck(
           distribution.upgradeTime[level] = {
             avgDays,
             minDays,
-            maxDays,
-          };
+            maxDays};
         }
       });
 
@@ -196,15 +192,13 @@ export const GET = withPermissionCheck(
           Array.from(levelMap.entries()).map(([level, count]) => ({
             date,
             level,
-            count,
-          }))
+            count}))
         );
 
       console.log('[LevelDistribution API] 等级分布统计完成:', {
         totalUsers: distribution.summary.totalUsers,
         levels: distribution.levels.length,
-        averageLevel: distribution.summary.averageLevel,
-      });
+        averageLevel: distribution.summary.averageLevel});
 
       return NextResponse.json(distribution);
     } catch (error) {

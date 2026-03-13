@@ -3,7 +3,7 @@ import { withPermissionCheck } from '@/lib/permission-check';
 
 export const POST = withPermissionCheck(
   { requiresAuth: true, permissions: ['user.disable'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 从 URL 中提取 id
       const url = new URL(request.url);
@@ -16,8 +16,7 @@ export const POST = withPermissionCheck(
 
       return NextResponse.json({
         success: true,
-        status: 'disabled',
-      });
+        status: 'disabled'});
     } catch (error) {
       console.error('更新用户状态失败:', error);
       return NextResponse.json({ error: '更新用户状态失败' }, { status: 500 });

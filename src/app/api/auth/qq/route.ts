@@ -1,6 +1,6 @@
 // QQ 登录 API 路由 - 创建授权链接
 
-import { NextRequest, NextResponse } from 'next/server';
+import {  NextResponse } from 'next/server';
 import { oauthService } from '@/lib/oauth-service';
 
 /**

@@ -40,8 +40,7 @@ export async function POST(request: NextRequest) {
         company,
         contact,
         verified: false,
-        created_at: new Date().toISOString(),
-      })
+        created_at: new Date().toISOString()})
       .select()
       .single();
 
@@ -58,9 +57,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           user_id: user.id,
           type: 'register',
-          description: '注册账号奖励',
-        }),
-      });
+          description: '注册账号奖励'})});
     } catch (pointsError) {
       console.error('[Auth] 注册积分奖励失败:', pointsError);
     }
@@ -73,10 +70,8 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role,
         points: user.points,
-        total_points: user.total_points,
-      },
-      message: '注册成功，请等待审核',
-    });
+        total_points: user.total_points},
+      message: '注册成功，请等待审核'});
   } catch (error) {
     console.error('[Auth] 注册请求失败:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });

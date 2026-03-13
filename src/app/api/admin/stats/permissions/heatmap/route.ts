@@ -13,7 +13,7 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.stats.view'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -79,9 +79,7 @@ export const GET = withPermissionCheck(
           totalTokens: 0,
           totalDenied: 0,
           activeUsers: new Set<number>(),
-          averageDailyUsage: 0,
-        },
-      };
+          averageDailyUsage: 0}};
 
       // 处理每日使用量
       const dailyMap = new Map<string, { points: number; tokens: number; users: Set<number> }>();
@@ -106,8 +104,7 @@ export const GET = withPermissionCheck(
       heatmap.daily = Array.from(dailyMap.entries()).map(([date, data]) => ({
         date,
         value: data.points,
-        tokenUsage: data.tokens,
-      }));
+        tokenUsage: data.tokens}));
 
       // 处理权限拒绝统计
       denyStats?.forEach((log) => {
@@ -128,8 +125,7 @@ export const GET = withPermissionCheck(
       console.log('[Heatmap API] 热力图数据统计完成:', {
         dailyPoints: heatmap.daily.length,
         deniedApis: Object.keys(heatmap.deniedApis).length,
-        totalUsage: heatmap.summary.totalUsage,
-      });
+        totalUsage: heatmap.summary.totalUsage});
 
       return NextResponse.json(heatmap);
     } catch (error) {

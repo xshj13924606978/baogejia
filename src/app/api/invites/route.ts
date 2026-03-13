@@ -26,8 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         inviteLink: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5000'}/register?code=${existingInvite.invite_code}`,
-        inviteCode: existingInvite.invite_code,
-      });
+        inviteCode: existingInvite.invite_code});
     }
 
     // 生成新的邀请码
@@ -39,8 +38,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id,
         invite_code: inviteCode,
-        status: 'pending',
-      })
+        status: 'pending'})
       .select()
       .single();
 
@@ -52,8 +50,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       inviteLink: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5000'}/register?code=${inviteCode}`,
-      inviteCode: invite.invite_code,
-    });
+      inviteCode: invite.invite_code});
   } catch (error) {
     console.error('[Invite] 请求失败:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
@@ -103,11 +100,9 @@ export async function GET(request: NextRequest) {
       stats: {
         total,
         registered,
-        points,
-      },
+        points},
       invites: invites || [],
-      inviteCode: latestInvite?.invite_code,
-    });
+      inviteCode: latestInvite?.invite_code});
   } catch (error) {
     console.error('[Invite] 请求失败:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });

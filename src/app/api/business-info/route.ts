@@ -4,8 +4,7 @@ import { Pool } from 'pg';
 // 从环境变量获取数据库连接信息
 const pool = new Pool({
   connectionString:
-    process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres',
-});
+    process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres'});
 
 // ============================================================================
 // GET - 获取商务信息
@@ -17,8 +16,7 @@ export async function GET(request: NextRequest) {
 
     let result: any = {
       success: true,
-      data: {},
-    };
+      data: {}};
 
     // 获取供应商信息
     if (type === 'all' || type === 'supplier') {
@@ -36,10 +34,9 @@ export async function GET(request: NextRequest) {
             address: supplierResult.rows[0].address,
             bankName: supplierResult.rows[0].bank_name,
             bankAccount: supplierResult.rows[0].bank_account,
-            taxNumber: supplierResult.rows[0].tax_id,
-          };
+            taxNumber: supplierResult.rows[0].tax_id};
         }
-      } catch (err) {
+      } catch (_err) {
         // 表不存在，跳过
         console.warn('[business-info] suppliers 表不存在，跳过');
       }
@@ -58,10 +55,9 @@ export async function GET(request: NextRequest) {
             contactPerson: customerResult.rows[0].contact_person,
             phone: customerResult.rows[0].phone,
             email: customerResult.rows[0].email,
-            address: customerResult.rows[0].address,
-          };
+            address: customerResult.rows[0].address};
         }
-      } catch (err) {
+      } catch (_err) {
         // 表不存在，跳过
         console.warn('[business-info] customers 表不存在，跳过');
       }
@@ -82,10 +78,9 @@ export async function GET(request: NextRequest) {
             taxRate: termsResult.rows[0].tax_rate,
             shipping: termsResult.rows[0].shipping,
             installation: termsResult.rows[0].installation,
-            otherFees: termsResult.rows[0].other_fees,
-          };
+            otherFees: termsResult.rows[0].other_fees};
         }
-      } catch (err) {
+      } catch (_err) {
         // 表不存在，跳过
         console.warn('[business-info] quote_terms 表不存在，跳过');
       }
@@ -147,8 +142,8 @@ export async function POST(request: NextRequest) {
             ]
           );
         }
-      } catch (err) {
-        console.warn('[business-info] 保存供应商信息失败，表可能不存在:', err);
+      } catch (_err) {
+        console.warn('[business-info] 保存供应商信息失败，表可能不存在:');
       }
     }
 
@@ -185,8 +180,8 @@ export async function POST(request: NextRequest) {
             ]
           );
         }
-      } catch (err) {
-        console.warn('[business-info] 保存客户信息失败，表可能不存在:', err);
+      } catch (_err) {
+        console.warn('[business-info] 保存客户信息失败，表可能不存在:');
       }
     }
 
@@ -227,8 +222,8 @@ export async function POST(request: NextRequest) {
             ]
           );
         }
-      } catch (err) {
-        console.warn('[business-info] 保存报价条款失败，表可能不存在:', err);
+      } catch (_err) {
+        console.warn('[business-info] 保存报价条款失败，表可能不存在:');
       }
     }
 

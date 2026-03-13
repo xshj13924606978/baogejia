@@ -3,7 +3,7 @@ import { LLMClient, Config } from 'coze-coding-dev-sdk';
 
 export async function POST(req: Request) {
   try {
-    const { fileUrl, fileName, fileType } = await req.json();
+    const {  fileName, fileType, fileUrl } = await req.json();
 
     console.log(`[Parse] 开始解析文件: ${fileName} 类型: ${fileType}`);
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
     let result = null;
     let parseMethod = '';
-    let parseError = null;
+    let _parseError = null;
 
     // 方案一：优先使用TextIn解析
     try {
@@ -31,12 +31,12 @@ export async function POST(req: Request) {
         '[Parse] TextIn解析失败:',
         textInError instanceof Error ? textInError.message : String(textInError)
       );
-      parseError = textInError;
+      _parseError = textInError;
 
       // 方案二：TextIn失败时使用Coze Vision
       try {
         console.log('[Parse] 切换到Coze Vision解析...');
-        result = await parseWithCozeVision(fileBuffer, fileName, fileType, fileUrl);
+        result = await parseWithCozeVision(fileBuffer, fileName, fileType);
         parseMethod = 'Coze Vision';
         console.log('[Parse] Coze Vision解析成功，产品数量:', result.products.length);
       } catch (cozeError) {
@@ -62,8 +62,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       error: '解析失败',
       products: [],
-      remarks: [`解析失败: ${error instanceof Error ? error.message : '未知错误'}`],
-    });
+      remarks: [`解析失败: ${error instanceof Error ? error.message : '未知错误'}`]});
   }
 }
 
@@ -97,10 +96,8 @@ async function parseWithTextIn(fileBuffer: ArrayBuffer, fileName: string, fileTy
     headers: {
       'x-ti-app-id': appId,
       'x-ti-secret-code': secretCode,
-      'Content-Type': 'application/octet-stream',
-    },
-    body: fileBuffer,
-  });
+      'Content-Type': 'application/octet-stream'},
+    body: fileBuffer});
 
   const textInResult = await response.json();
   console.log(`[TextIn] API响应状态: ${response.status}`);
@@ -156,16 +153,14 @@ async function parseWithTextIn(fileBuffer: ArrayBuffer, fileName: string, fileTy
   return {
     products,
     remarks: products.length === 0 ? ['未从文件中提取到产品信息'] : [],
-    rawContent: markdown.substring(0, 5000),
-  };
+    rawContent: markdown.substring(0, 5000)};
 }
 
 // Coze Vision解析（备用方案）
 async function parseWithCozeVision(
   fileBuffer: ArrayBuffer,
   fileName: string,
-  fileType: string,
-  fileUrl: string
+  fileType: string
 ) {
   const visionConfig = new Config();
   const visionClient = new LLMClient(visionConfig);
@@ -203,25 +198,20 @@ async function parseWithCozeVision(
 | 产品1   | xxx  | xxx  | xxx     | xxx  | xxx  |
 | 产品2   | xxx  | xxx  | xxx     | xxx  | xxx  |
 
-4. 确保包含所有产品行，不要遗漏任何产品`,
-        },
+4. 确保包含所有产品行，不要遗漏任何产品`},
         {
           type: 'image_url' as const,
           image_url: {
             url: dataUrl,
-            detail: 'high' as const,
-          },
-        },
-      ],
-    },
+            detail: 'high' as const}},
+      ]},
   ];
 
   try {
     // 使用Vision模型处理图片
     const response = await visionClient.invoke(visionMessages, {
       model: 'doubao-seed-1-6-vision-250815',
-      temperature: 0.1,
-    });
+      temperature: 0.1});
 
     console.log(`[Coze Vision] 识别成功，内容长度: ${response.content?.length || 0}`);
 
@@ -238,8 +228,7 @@ async function parseWithCozeVision(
     return {
       products,
       remarks: products.length === 0 ? ['未从图片中识别到产品信息'] : [],
-      rawContent: extractedText.substring(0, 5000),
-    };
+      rawContent: extractedText.substring(0, 5000)};
   } catch (error) {
     console.error('[Coze Vision] 识别失败:', error);
     throw error;
@@ -301,8 +290,7 @@ ${contentSample}
       [
         {
           role: 'system',
-          content: '你是一个专业的产品信息提取助手，擅长从HTML表格和Markdown表格中提取产品信息。',
-        },
+          content: '你是一个专业的产品信息提取助手，擅长从HTML表格和Markdown表格中提取产品信息。'},
         { role: 'user', content: prompt },
       ],
       { temperature: 0.1 }

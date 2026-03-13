@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { url, extractCode, moduleType } = await request.json();
+    const { url, moduleType } = await request.json();
 
     if (!url) {
       return NextResponse.json({ success: false, error: '请提供有效的网盘链接' }, { status: 400 });
@@ -16,8 +16,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: '当前仅支持百度网盘链接，其他网盘（阿里云盘、腾讯云盘等）请先下载文件后上传',
-          requiresManualDownload: true,
-        },
+          requiresManualDownload: true},
         { status: 400 }
       );
     }
@@ -33,10 +32,14 @@ export async function POST(request: NextRequest) {
 
     const shareId = shareIdMatch[1];
 
+    // 提取提取码
+    const extractCodeMatch = url.match(/[?&]surl=([a-zA-Z0-9]+)/);
+    const extractCode = extractCodeMatch ? extractCodeMatch[1] : '';
+
     // 尝试下载百度网盘文件
     try {
       // 调用百度网盘 API 下载文件
-      const fileData = await downloadBaiduPanFile(shareId, extractCode || '');
+      const fileData = await downloadBaiduPanFile(extractCode || '');
 
       if (!fileData) {
         return NextResponse.json(
@@ -44,8 +47,7 @@ export async function POST(request: NextRequest) {
             success: false,
             error:
               '无法自动下载网盘文件，可能的原因：\n1. 提取码错误\n2. 文件已失效或被删除\n3. 分享者设置了下载限制\n\n请手动下载文件后上传',
-            requiresManualDownload: true,
-          },
+            requiresManualDownload: true},
           { status: 400 }
         );
       }
@@ -64,8 +66,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: `下载网盘文件失败：${error instanceof Error ? error.message : '未知错误'}\n\n提示：\n1. 请检查提取码是否正确\n2. 请确认网盘分享链接是否有效\n3. 如果仍然失败，请手动下载文件后上传`,
-          requiresManualDownload: true,
-        },
+          requiresManualDownload: true},
         { status: 500 }
       );
     }
@@ -77,8 +78,7 @@ export async function POST(request: NextRequest) {
 
 // 下载百度网盘文件
 async function downloadBaiduPanFile(
-  shareId: string,
-  extractCode: string
+  shareId: string
 ): Promise<{
   fileName: string;
   fileType: string;

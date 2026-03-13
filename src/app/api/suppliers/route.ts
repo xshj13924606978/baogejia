@@ -54,8 +54,7 @@ export async function POST(request: NextRequest) {
         .from('suppliers')
         .update({
           ...snakeCaseData,
-          updated_at: now,
-        })
+          updated_at: now})
         .eq('id', existing.id)
         .select()
         .single();
@@ -69,8 +68,7 @@ export async function POST(request: NextRequest) {
         .insert({
           ...snakeCaseData,
           created_at: now,
-          updated_at: now,
-        })
+          updated_at: now})
         .select()
         .single();
 

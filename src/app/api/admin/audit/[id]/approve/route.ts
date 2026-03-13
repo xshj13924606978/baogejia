@@ -3,7 +3,7 @@ import { withPermissionCheck } from '@/lib/permission-check';
 
 export const POST = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.audit.approve'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 从 URL 中提取 id
       const url = new URL(request.url);

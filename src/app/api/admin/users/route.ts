@@ -3,7 +3,7 @@ import { withPermissionCheck } from '@/lib/permission-check';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['user.view'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 模拟用户数据
       const mockUsers = [
@@ -14,8 +14,7 @@ export const GET = withPermissionCheck(
           role: 'super_admin',
           points: 1000,
           status: 'active',
-          created_at: '2024-01-01T00:00:00Z',
-        },
+          created_at: '2024-01-01T00:00:00Z'},
         {
           id: 2,
           username: 'user1',
@@ -23,8 +22,7 @@ export const GET = withPermissionCheck(
           role: 'vip',
           points: 500,
           status: 'active',
-          created_at: '2024-01-15T00:00:00Z',
-        },
+          created_at: '2024-01-15T00:00:00Z'},
         {
           id: 3,
           username: 'user2',
@@ -32,8 +30,7 @@ export const GET = withPermissionCheck(
           role: 'manufacturer',
           points: 300,
           status: 'active',
-          created_at: '2024-02-01T00:00:00Z',
-        },
+          created_at: '2024-02-01T00:00:00Z'},
         {
           id: 4,
           username: 'user3',
@@ -41,8 +38,7 @@ export const GET = withPermissionCheck(
           role: 'user',
           points: 50,
           status: 'active',
-          created_at: '2024-02-10T00:00:00Z',
-        },
+          created_at: '2024-02-10T00:00:00Z'},
         {
           id: 5,
           username: 'user4',
@@ -50,8 +46,7 @@ export const GET = withPermissionCheck(
           role: 'pending',
           points: 0,
           status: 'active',
-          created_at: '2024-02-15T00:00:00Z',
-        },
+          created_at: '2024-02-15T00:00:00Z'},
       ];
 
       return NextResponse.json(mockUsers);

@@ -3,7 +3,7 @@ import { withPermissionCheck } from '@/lib/permission-check';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.audit.view'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       const searchParams = request.nextUrl.searchParams;
       const status = searchParams.get('status') || 'pending';
@@ -20,8 +20,7 @@ export const GET = withPermissionCheck(
           status: status === 'all' ? 'pending' : status,
           points: 0,
           reason: '',
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-        },
+          created_at: new Date(Date.now() - 86400000).toISOString()},
         {
           id: 2,
           type: 'document',
@@ -32,8 +31,7 @@ export const GET = withPermissionCheck(
           status: status === 'all' ? 'approved' : status,
           points: 5,
           reason: '',
-          created_at: new Date(Date.now() - 172800000).toISOString(),
-        },
+          created_at: new Date(Date.now() - 172800000).toISOString()},
         {
           id: 3,
           type: 'case',
@@ -44,8 +42,7 @@ export const GET = withPermissionCheck(
           status: status === 'all' ? 'rejected' : status,
           points: 0,
           reason: '内容不够详细，请补充更多技术细节',
-          created_at: new Date(Date.now() - 259200000).toISOString(),
-        },
+          created_at: new Date(Date.now() - 259200000).toISOString()},
         {
           id: 4,
           type: 'product',
@@ -56,8 +53,7 @@ export const GET = withPermissionCheck(
           status: 'pending',
           points: 0,
           reason: '',
-          created_at: new Date(Date.now() - 345600000).toISOString(),
-        },
+          created_at: new Date(Date.now() - 345600000).toISOString()},
       ];
 
       // 根据状态过滤

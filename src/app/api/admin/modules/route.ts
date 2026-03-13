@@ -16,7 +16,7 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.modules.view'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -57,8 +57,7 @@ export const GET = withPermissionCheck(
 
       return NextResponse.json({
         success: true,
-        modules: modules || [],
-      });
+        modules: modules || []});
     } catch (error) {
       console.error('[Modules API] 获取模块列表异常:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });

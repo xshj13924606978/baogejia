@@ -26,8 +26,7 @@ export async function GET() {
       title: conv.title || '新对话',
       updatedAt: conv.updated_at,
       createdAt: conv.created_at,
-      lastMessage: conv.last_message || '',
-    }));
+      lastMessage: conv.last_message || ''}));
 
     return NextResponse.json({ conversations });
   } catch (error) {
@@ -49,7 +48,7 @@ export async function POST(request: NextRequest) {
     try {
       const body = await request.json();
       title = body.title || '新对话';
-    } catch (e) {}
+    } catch (_e) {}
 
     const now = new Date().toISOString();
     const { data, error } = await supabase
@@ -59,8 +58,7 @@ export async function POST(request: NextRequest) {
         last_message: '',
         status: 'active',
         updated_at: now,
-        created_at: now,
-      })
+        created_at: now})
       .select()
       .single();
 
@@ -75,9 +73,7 @@ export async function POST(request: NextRequest) {
         title: data.title,
         updatedAt: data.updated_at,
         createdAt: data.created_at,
-        lastMessage: '',
-      },
-    });
+        lastMessage: ''}});
   } catch (error) {
     console.error('[Conversations] 异常:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });

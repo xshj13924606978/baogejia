@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   withAdmin,
-  withUserView,
   withUserCreate,
-  withUserEdit,
-  withPermissionCheck,
-} from '@/lib/permission-check';
+  withPermissionCheck} from '@/lib/permission-check';
 
 /**
  * 用户管理示例 API
@@ -16,13 +13,13 @@ import {
  * GET - 查看用户列表
  * 使用 withAdmin 包装器（需要管理员权限）
  */
-export const GET = withAdmin(async (request: NextRequest, user: any) => {
+export const GET = withAdmin(async (request: NextRequest, _context: any) => {
   try {
     // 获取用户列表（业务逻辑）
     const { getSupabaseClient } = await import('@/storage/database/supabase-client');
-    const supabase = getSupabaseClient();
+    const _supabase = getSupabaseClient();
 
-    const { data: users, error } = await supabase
+    const { data: users, error } = await _supabase
       .from('users')
       .select('id, email, username, role, level, points, created_at')
       .order('created_at', { ascending: false })
@@ -35,8 +32,7 @@ export const GET = withAdmin(async (request: NextRequest, user: any) => {
     return NextResponse.json({
       success: true,
       data: users || [],
-      message: '获取用户列表成功',
-    });
+      message: '获取用户列表成功'});
   } catch (error: any) {
     console.error('[Users Demo API] 获取用户列表失败:', error);
     return NextResponse.json(
@@ -50,7 +46,7 @@ export const GET = withAdmin(async (request: NextRequest, user: any) => {
  * POST - 创建新用户
  * 使用 withUserCreate 包装器（需要 user.create 权限）
  */
-export const POST = withUserCreate(async (request: NextRequest, user: any) => {
+export const POST = withUserCreate(async (request: NextRequest, _context: any) => {
   try {
     const body = await request.json();
     const { email, username, password, role } = body;
@@ -62,7 +58,7 @@ export const POST = withUserCreate(async (request: NextRequest, user: any) => {
 
     // 创建用户（业务逻辑）
     const { getSupabaseClient } = await import('@/storage/database/supabase-client');
-    const supabase = getSupabaseClient();
+    const _supabase = getSupabaseClient();
 
     // 这里应该实现实际的用户创建逻辑
     // 例如：使用 Supabase Auth 创建用户，然后在 users 表中插入记录
@@ -73,9 +69,7 @@ export const POST = withUserCreate(async (request: NextRequest, user: any) => {
       data: {
         email,
         username,
-        role: role || 'user',
-      },
-    });
+        role: role || 'user'}});
   } catch (error: any) {
     console.error('[Users Demo API] 创建用户失败:', error);
     return NextResponse.json({ error: '创建用户失败', details: error.message }, { status: 500 });
@@ -89,9 +83,8 @@ export const POST = withUserCreate(async (request: NextRequest, user: any) => {
 export const PUT = withPermissionCheck(
   {
     permissions: 'user.edit',
-    roles: ['admin', 'super_admin'],
-  },
-  async (request: NextRequest, user: any) => {
+    roles: ['admin', 'super_admin']},
+  async (request: NextRequest, _context: any) => {
     try {
       const body = await request.json();
       const { userId, updates } = body;
@@ -103,9 +96,9 @@ export const PUT = withPermissionCheck(
 
       // 更新用户（业务逻辑）
       const { getSupabaseClient } = await import('@/storage/database/supabase-client');
-      const supabase = getSupabaseClient();
+      const _supabase = getSupabaseClient();
 
-      const { data, error } = await supabase
+      const { data, error } = await _supabase
         .from('users')
         .update(updates)
         .eq('id', userId)
@@ -119,8 +112,7 @@ export const PUT = withPermissionCheck(
       return NextResponse.json({
         success: true,
         message: '用户更新成功',
-        data,
-      });
+        data});
     } catch (error: any) {
       console.error('[Users Demo API] 更新用户失败:', error);
       return NextResponse.json({ error: '更新用户失败', details: error.message }, { status: 500 });
@@ -135,9 +127,8 @@ export const PUT = withPermissionCheck(
 export const DELETE = withPermissionCheck(
   {
     permissions: 'user.delete',
-    roles: ['super_admin'],
-  },
-  async (request: NextRequest, user: any) => {
+    roles: ['super_admin']},
+  async (request: NextRequest, _context: any) => {
     try {
       const body = await request.json();
       const { userId } = body;
@@ -149,9 +140,9 @@ export const DELETE = withPermissionCheck(
 
       // 删除用户（业务逻辑）
       const { getSupabaseClient } = await import('@/storage/database/supabase-client');
-      const supabase = getSupabaseClient();
+      const _supabase = getSupabaseClient();
 
-      const { error } = await supabase.from('users').delete().eq('id', userId);
+      const { error } = await _supabase.from('users').delete().eq('id', userId);
 
       if (error) {
         throw error;
@@ -159,8 +150,7 @@ export const DELETE = withPermissionCheck(
 
       return NextResponse.json({
         success: true,
-        message: '用户删除成功',
-      });
+        message: '用户删除成功'});
     } catch (error: any) {
       console.error('[Users Demo API] 删除用户失败:', error);
       return NextResponse.json({ error: '删除用户失败', details: error.message }, { status: 500 });

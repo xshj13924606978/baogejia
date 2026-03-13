@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ServerFileUtils, ServerDatabaseUtils } from '@/lib/server-utils';
+import {  ServerDatabaseUtils } from '@/lib/server-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 知识库类型枚举
@@ -32,8 +32,7 @@ const ALLOWED_MIME_TYPES = {
 
   // 压缩包
   'application/zip': 'zip',
-  'application/x-rar-compressed': 'rar',
-};
+  'application/x-rar-compressed': 'rar'};
 
 // 文件大小限制（50MB）
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -73,8 +72,7 @@ export async function POST(request: NextRequest) {
       type: file.type,
       knowledgeType: type,
       title: title,
-      userId: userId,
-    });
+      userId: userId});
 
     // 验证文件大小
     if (file.size > MAX_FILE_SIZE) {
@@ -105,13 +103,12 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient();
 
     // 上传到存储
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: _uploadData, error: uploadError } = await supabase.storage
       .from('knowledge-base')
       .upload(fileKey, buffer, {
         contentType: file.type,
         cacheControl: '3600',
-        upsert: false,
-      });
+        upsert: false});
 
     if (uploadError) {
       console.error('[Knowledge Upload] 上传到存储失败:', uploadError);
@@ -140,8 +137,7 @@ export async function POST(request: NextRequest) {
         file_size: buffer.length,
         file_type: file.type,
         status: 'pending', // 需要审核
-        created_at: new Date().toISOString(),
-      })
+        created_at: new Date().toISOString()})
       .select()
       .single();
 
@@ -163,15 +159,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: record,
-      message: '上传成功，等待审核',
-    });
+      message: '上传成功，等待审核'});
   } catch (error) {
     console.error('[Knowledge Upload] 上传失败:', error);
     return NextResponse.json(
       {
         error: '上传失败',
-        message: error instanceof Error ? error.message : '未知错误',
-      },
+        message: error instanceof Error ? error.message : '未知错误'},
       { status: 500 }
     );
   }
@@ -222,9 +216,7 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit),
-      },
-    });
+        totalPages: Math.ceil((count || 0) / limit)}});
   } catch (error) {
     console.error('[Knowledge Upload] 获取记录失败:', error);
     return NextResponse.json({ error: '获取记录失败' }, { status: 500 });

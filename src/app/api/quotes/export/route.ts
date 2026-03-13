@@ -25,8 +25,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to export quote',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+        details: error instanceof Error ? error.message : 'Unknown error'},
       { status: 500 }
     );
   }
@@ -120,7 +119,7 @@ function getTotalTitle(data: any): string {
 function formatAmountToChinese(amount: number): string {
   const digits = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
   const units = ['', '拾', '佰', '仟', '万', '拾', '佰', '仟', '亿', '拾', '佰', '仟'];
-  const smallUnits = ['角', '分'];
+  const _smallUnits = ['角', '分'];
 
   const yuan = Math.floor(amount);
   const jiao = Math.floor((amount - yuan) * 10);
@@ -270,20 +269,18 @@ function generateExcel(data: any) {
     if (worksheet['A1']) {
       worksheet['A1'].s = {
         font: { bold: true, sz: 14 },
-        alignment: { horizontal: 'center' },
-      };
+        alignment: { horizontal: 'center' }};
     }
 
     // 设置产品清单表头样式（居中、加粗）
     const headerRow = projectFields.length > 0 ? projectFields.length + 4 : 4;
     const headerCells = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-    headerCells.forEach((cell, index) => {
+    headerCells.forEach((cell) => {
       const cellKey = `${cell}${headerRow + 1}`;
       if (worksheet[cellKey]) {
         worksheet[cellKey].s = {
           font: { bold: true },
-          alignment: { horizontal: 'center' },
-        };
+          alignment: { horizontal: 'center' }};
       }
     });
 
@@ -298,9 +295,7 @@ function generateExcel(data: any) {
     return new Response(uint8Array, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="${encodeURIComponent(quoteTitle + '_' + data.quoteNumber)}.xlsx"`,
-      },
-    });
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(quoteTitle + '_' + data.quoteNumber)}.xlsx"`}});
   } catch (error) {
     console.error('[Export] Excel generation error:', error);
     throw error;
@@ -314,8 +309,7 @@ function generatePDF(data: any): Response {
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4',
-    });
+      format: 'a4'});
 
     // 加载中文字体
     const fontPath = path.join(process.cwd(), 'public', 'fonts', 'font_0.ttf');
@@ -349,7 +343,7 @@ function generatePDF(data: any): Response {
     const pageWidth = 210;
     const pageHeight = 297;
     const margin = 15;
-    let pageCount = 1;
+    let _pageCount = 1;
 
     // 蓝渐变页眉
     doc.setFillColor(...primaryBlue);
@@ -369,8 +363,7 @@ function generatePDF(data: any): Response {
       projectFields.find((f: any) => f.label === '报价日期')?.value ||
       new Date().toLocaleDateString('zh-CN');
     doc.text(`报价单号：${data.quoteNumber} | 日期：${quoteDate}`, pageWidth / 2, 26, {
-      align: 'center',
-    });
+      align: 'center'});
 
     yPos = 40;
 
@@ -435,7 +428,7 @@ function generatePDF(data: any): Response {
     yPos += 6;
 
     // 产品表格
-    const tableData = products.map((product: any, index: number) => [
+    const _tableData = products.map((product: any, index: number) => [
       index + 1,
       product.name,
       product.specifications || product.model || '-',
@@ -452,21 +445,19 @@ function generatePDF(data: any): Response {
     autoTable(doc, {
       startY: yPos,
       head: [['序号', '产品名称', '规格型号', '品牌', '单位', '数量', '单价', '总价']],
-      body: tableData,
+      body: _tableData,
       theme: 'grid',
       styles: {
         fontSize: 9,
         font: 'font_0',
-        cellPadding: 2,
-      },
+        cellPadding: 2},
       headStyles: {
         fillColor: primaryBlue,
         textColor: [255, 255, 255],
         font: 'font_0',
         fontStyle: 'bold',
         halign: 'center',
-        cellPadding: 3,
-      },
+        cellPadding: 3},
       columnStyles: {
         0: { cellWidth: 12, halign: 'center', valign: 'middle' },  // 序号居中
         1: { cellWidth: 45, valign: 'middle' },  // 产品名称
@@ -478,8 +469,7 @@ function generatePDF(data: any): Response {
         7: { cellWidth: 25, halign: 'right', valign: 'middle', textColor: amountRed, fontStyle: 'bold' },  // 总价右对齐，红色
       },
       alternateRowStyles: {
-        fillColor: slate100,
-      },
+        fillColor: slate100},
       didDrawPage: (data) => {
         // 添加页码
         pageCount = data.pageNumber;
@@ -491,8 +481,7 @@ function generatePDF(data: any): Response {
           pageHeight - 10,
           { align: 'center' }
         );
-      },
-    });
+      }});
 
     // 由于autoTable已注释，这里也注释掉lastAutoTable的使用
     // PDF导出已移至前端组件
@@ -530,8 +519,7 @@ function generatePDF(data: any): Response {
     doc.text('小计', margin + 5, yPos + 8);
     doc.setTextColor(15, 23, 42);
     doc.text(`¥${feeSummary.subtotal.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, {
-      align: 'right',
-    });
+      align: 'right'});
     yPos += 8;
 
     // 税费
@@ -539,8 +527,7 @@ function generatePDF(data: any): Response {
     doc.text(`税费（${feeConfig.taxRate}%）`, margin + 5, yPos + 8);
     doc.setTextColor(15, 23, 42);
     doc.text(`¥${feeSummary.taxAmount.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, {
-      align: 'right',
-    });
+      align: 'right'});
     yPos += 8;
 
     // 运费
@@ -549,8 +536,7 @@ function generatePDF(data: any): Response {
       doc.text('运费', margin + 5, yPos + 8);
       doc.setTextColor(15, 23, 42);
       doc.text(`¥${feeSummary.shippingFee.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, {
-        align: 'right',
-      });
+        align: 'right'});
       yPos += 8;
     }
 
@@ -560,8 +546,7 @@ function generatePDF(data: any): Response {
       doc.text('安装调试费', margin + 5, yPos + 8);
       doc.setTextColor(15, 23, 42);
       doc.text(`¥${feeSummary.installationFee.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, {
-        align: 'right',
-      });
+        align: 'right'});
       yPos += 8;
     }
 
@@ -571,8 +556,7 @@ function generatePDF(data: any): Response {
       doc.text('其他费用', margin + 5, yPos + 8);
       doc.setTextColor(15, 23, 42);
       doc.text(`¥${feeSummary.otherFee.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, {
-        align: 'right',
-      });
+        align: 'right'});
       yPos += 8;
     }
 
@@ -584,8 +568,7 @@ function generatePDF(data: any): Response {
     doc.setTextColor(...amountRed);
     doc.setFontSize(16);
     doc.text(`¥${feeSummary.totalAmount.toFixed(2)}`, pageWidth - margin - 5, yPos + 10, {
-      align: 'right',
-    });
+      align: 'right'});
     yPos += 12;
 
     // 大写金额（黄色背景）
@@ -826,9 +809,7 @@ function generatePDF(data: any): Response {
     return new Response(buffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${encodeURIComponent(quoteTitle + '_' + data.quoteNumber)}.pdf"`,
-      },
-    });
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(quoteTitle + '_' + data.quoteNumber)}.pdf"`}});
   } catch (error) {
     console.error('[Export] PDF generation error:', error);
     throw error;
@@ -845,7 +826,6 @@ function addWatermark(doc: jsPDF, customerName: string) {
   doc.setFont('font_0');
   doc.text(watermarkText, 105, 150, {
     align: 'center',
-    angle: 30,
-  });
+    angle: 30});
   doc.restoreGraphicsState();
 }

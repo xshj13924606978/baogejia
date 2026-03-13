@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     let notifyData;
     try {
       notifyData = JSON.parse(body);
-    } catch (error) {
+    } catch (_error) {
       // 如果不是 JSON，尝试解析 XML
       notifyData = parseWechatXml(body);
     }
@@ -34,9 +34,7 @@ export async function POST(request: NextRequest) {
         {
           status: 200,
           headers: {
-            'Content-Type': 'application/xml',
-          },
-        }
+            'Content-Type': 'application/xml'}}
       );
     } else {
       // 返回失败响应
@@ -48,13 +46,11 @@ export async function POST(request: NextRequest) {
         {
           status: 200,
           headers: {
-            'Content-Type': 'application/xml',
-          },
-        }
+            'Content-Type': 'application/xml'}}
       );
     }
-  } catch (error) {
-    console.error('[Wechat Notify] 处理微信支付回调失败:', error);
+  } catch (_error) {
+    console.error('[Wechat Notify] 处理微信支付回调失败:');
     return new NextResponse(
       `<xml>
         <return_code><![CDATA[FAIL]]></return_code>
@@ -63,9 +59,7 @@ export async function POST(request: NextRequest) {
       {
         status: 200,
         headers: {
-          'Content-Type': 'application/xml',
-        },
-      }
+          'Content-Type': 'application/xml'}}
     );
   }
 }

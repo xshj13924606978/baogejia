@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       .select('status')
       .eq('user_id', parseInt(user_id));
 
-    const inviteCount = invites?.length || 0;
+    const _inviteCount = invites?.length || 0;
     const inviteRegistered = invites?.filter((i) => i.status === 'registered').length || 0;
 
     // 获取上传统计

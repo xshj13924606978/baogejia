@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TeamService } from '@/lib/team-service';
-import { CreateTeamRequest, UpdateTeamRequest } from '@/types/team';
+import { CreateTeamRequest } from '@/types/team';
 
 /**
  * 获取用户的所有团队
@@ -14,15 +14,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: teams,
-    });
+      data: teams});
   } catch (error) {
     console.error('获取团队列表失败:', error);
     return NextResponse.json(
       {
         success: false,
-        error: '获取团队列表失败',
-      },
+        error: '获取团队列表失败'},
       { status: 500 }
     );
   }
@@ -43,8 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: '团队名称不能为空',
-        },
+          error: '团队名称不能为空'},
         { status: 400 }
       );
     }
@@ -54,15 +51,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: team,
-      message: '团队创建成功',
-    });
+      message: '团队创建成功'});
   } catch (error) {
     console.error('创建团队失败:', error);
     return NextResponse.json(
       {
         success: false,
-        error: '创建团队失败',
-      },
+        error: '创建团队失败'},
       { status: 500 }
     );
   }

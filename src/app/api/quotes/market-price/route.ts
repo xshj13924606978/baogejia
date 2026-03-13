@@ -34,8 +34,7 @@ const mockMarketPrices: Record<string, { price: number; range: string; source: s
   电机: { price: 1200, range: '800-2000', source: '市场价' },
   钢材: { price: 5000, range: '4500-6000', source: '市场价（吨）' },
   不锈钢管: { price: 80, range: '60-120', source: '市场价（米）' },
-  水泵: { price: 950, range: '700-1500', source: '行业均价' },
-};
+  水泵: { price: 950, range: '700-1500', source: '行业均价' }};
 
 /**
  * 根据产品名称计算模拟价格
@@ -77,8 +76,7 @@ function calculateMockPrice(productName: string): { price: number; range: string
     过滤器: 1200,
     曝气机: 3500,
     计量泵: 800,
-    控制器: 3500,
-  };
+    控制器: 3500};
 
   for (const [keyword, price] of Object.entries(keywords)) {
     if (name.includes(keyword)) {
@@ -87,8 +85,7 @@ function calculateMockPrice(productName: string): { price: number; range: string
       return {
         price,
         range: `${minPrice}-${maxPrice}`,
-        source: '估算价',
-      };
+        source: '估算价'};
     }
   }
 
@@ -99,8 +96,7 @@ function calculateMockPrice(productName: string): { price: number; range: string
   return {
     price: basePrice,
     range: `${minPrice}-${maxPrice}`,
-    source: '估算价',
-  };
+    source: '估算价'};
 }
 
 /**
@@ -146,8 +142,7 @@ async function searchMarketPrice(
         return {
           price: avgPrice,
           range: `${minPrice}-${maxPrice}`,
-          source: '市场搜索价',
-        };
+          source: '市场搜索价'};
       }
     }
 
@@ -180,8 +175,7 @@ async function searchMarketPrice(
         return {
           price: avgPrice,
           range: `${minPrice}-${maxPrice}`,
-          source: '市场搜索价',
-        };
+          source: '市场搜索价'};
       }
     }
 
@@ -275,8 +269,7 @@ export async function POST(request: NextRequest) {
               priceData = {
                 price: price,
                 source: '知识库价格库',
-                range: `${Math.round(price * 0.8)}-${Math.round(price * 1.2)}`,
-              };
+                range: `${Math.round(price * 0.8)}-${Math.round(price * 1.2)}`};
               console.log('[MarketPrice] 从知识库获取价格:', priceData);
             }
           } catch (dbError) {
@@ -320,14 +313,12 @@ export async function POST(request: NextRequest) {
           averageMarketPrice: priceData.price,
           minPrice: minPrice,
           maxPrice: maxPrice,
-          sampleSize: 1,
-        });
+          sampleSize: 1});
 
         console.log('[MarketPrice] 结果:', {
           name: productName,
           price: priceData.price,
-          source: priceData.source,
-        });
+          source: priceData.source});
       } catch (error) {
         console.error('[MarketPrice] 查询产品失败:', productName, error);
         // 即使失败也返回估算价
@@ -350,8 +341,7 @@ export async function POST(request: NextRequest) {
           averageMarketPrice: fallbackPrice.price,
           minPrice: minPrice,
           maxPrice: maxPrice,
-          sampleSize: 1,
-        });
+          sampleSize: 1});
       }
     }
 
@@ -362,15 +352,13 @@ export async function POST(request: NextRequest) {
     if (products.length === 1) {
       return NextResponse.json({
         success: true,
-        ...results[0],
-      });
+        ...results[0]});
     }
 
     return NextResponse.json({
       success: true,
       data: results,
-      timestamp: new Date().toISOString(),
-    });
+      timestamp: new Date().toISOString()});
   } catch (error) {
     console.error('[MarketPrice] 接口错误:', error);
     return NextResponse.json({ success: false, error: '服务器错误' }, { status: 500 });
@@ -385,9 +373,5 @@ export async function GET(request: NextRequest) {
       POST: {
         description: '批量查询产品市场价',
         body: {
-          products: [{ name: '产品名称', model: '型号', specs: '规格' }],
-        },
-      },
-    },
-  });
+          products: [{ name: '产品名称', model: '型号', specs: '规格' }]}}}});
 }

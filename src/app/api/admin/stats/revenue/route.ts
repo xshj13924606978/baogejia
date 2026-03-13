@@ -13,7 +13,7 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.stats.revenue'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -82,9 +82,7 @@ export const GET = withPermissionCheck(
           refundRate: 0,
           highestDay: { date: '', amount: 0 },
           lowestDay: { date: '', amount: Infinity },
-          growthRate: 0,
-        },
-      };
+          growthRate: 0}};
 
       const validPayments = payments || [];
       stats.totalOrders = validPayments.length;
@@ -162,8 +160,7 @@ export const GET = withPermissionCheck(
         .map(([date, data]) => ({
           date,
           amount: data.amount,
-          count: data.count,
-        }))
+          count: data.count}))
         .sort((a, b) => a.date.localeCompare(b.date));
 
       // 找出最高和最低收入日
@@ -193,8 +190,7 @@ export const GET = withPermissionCheck(
         .map(([month, data]) => ({
           month,
           amount: data.amount,
-          count: data.count,
-        }))
+          count: data.count}))
         .sort((a, b) => a.month.localeCompare(b.month));
 
       // 计算增长率（对比最近两个月）
@@ -225,16 +221,14 @@ export const GET = withPermissionCheck(
         .map(([userId, data]) => ({
           userId,
           amount: data.amount,
-          orderCount: data.orderCount,
-        }))
+          orderCount: data.orderCount}))
         .sort((a, b) => b.amount - a.amount)
         .slice(0, 10); // 取前10名
 
       console.log('[Revenue API] 收入统计完成:', {
         totalRevenue: stats.totalRevenue,
         totalOrders: stats.totalOrders,
-        successRate: stats.summary.successRate,
-      });
+        successRate: stats.summary.successRate});
 
       return NextResponse.json(stats);
     } catch (error) {

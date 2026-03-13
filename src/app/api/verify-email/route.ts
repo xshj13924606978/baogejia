@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const email = searchParams.get('email');
-  const code = searchParams.get('code');
+  const _email = searchParams.get('email');
+  const _code = searchParams.get('code');
 
-  console.log('[API] 邮箱验证请求:', { email, code });
+  console.log('[API] 邮箱验证请求:', { _email, _code });
 
-  if (!email || !code) {
+  if (!_email || !_code) {
     return new NextResponse(
       `
       <!DOCTYPE html>
@@ -59,8 +59,7 @@ export async function GET(request: NextRequest) {
     `,
       {
         status: 400,
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      }
+        headers: { 'Content-Type': 'text/html; charset=utf-8' }}
     );
   }
 
@@ -172,7 +171,7 @@ export async function GET(request: NextRequest) {
             <div class="success-icon">✓</div>
             <h1>邮箱验证成功</h1>
             <p>您的邮箱</p>
-            <div class="email">${email}</div>
+            <div class="email">${_email}</div>
             <p>已经成功验证！</p>
             
             <div class="countdown" id="countdown">3</div>
@@ -193,9 +192,9 @@ export async function GET(request: NextRequest) {
               // 保存验证状态到localStorage
               try {
                 const verifiedEmails = JSON.parse(localStorage.getItem('verified_emails') || '{}');
-                verifiedEmails['${email}'] = {
+                verifiedEmails['${_email}'] = {
                   verified: true,
-                  code: '${code}',
+                  code: '${_code}',
                   timestamp: Date.now()
                 };
                 localStorage.setItem('verified_emails', JSON.stringify(verifiedEmails));
@@ -203,14 +202,14 @@ export async function GET(request: NextRequest) {
               } catch (e) {
                 console.error('保存验证状态失败:', e);
               }
-              
+
               // 通知父窗口（原登录页）
               if (window.opener && !window.opener.closed) {
                 try {
                   window.opener.postMessage({
                     type: 'EMAIL_VERIFIED',
-                    email: '${email}',
-                    code: '${code}'
+                    email: '${_email}',
+                    code: '${_code}'
                   }, '*');
                   console.log('已通知父窗口');
                 } catch (e) {
@@ -226,7 +225,7 @@ export async function GET(request: NextRequest) {
                   if (window.opener) {
                     window.close();
                   } else {
-                    window.location.href = '/login?verified=true&email=${encodeURIComponent(email)}';
+                    window.location.href = '/login?verified=true&email=${encodeURIComponent(_email)}';
                   }
                 } catch (e) {
                   document.getElementById('warning').style.display = 'block';
@@ -268,12 +267,10 @@ export async function GET(request: NextRequest) {
         status: 200,
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-        },
-      }
+          'Cache-Control': 'no-cache, no-store, must-revalidate'}}
     );
-  } catch (error) {
-    console.error('[API] 邮箱验证失败:', error);
+  } catch (_error) {
+    console.error('[API] 邮箱验证失败:');
     return new NextResponse(
       `
       <!DOCTYPE html>
@@ -321,8 +318,7 @@ export async function GET(request: NextRequest) {
     `,
       {
         status: 500,
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      }
+        headers: { 'Content-Type': 'text/html; charset=utf-8' }}
     );
   }
 }
@@ -330,9 +326,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, code } = body;
+    const { _email, code } = body;
     return NextResponse.json({ success: true, message: '邮箱验证成功' });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: '验证失败' }, { status: 500 });
+  } catch (_error) {
+    return NextResponse.json({ success: false, message: '验证失败' }, { status: 500 });
   }
 }

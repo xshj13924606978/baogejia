@@ -12,8 +12,7 @@ export async function GET(request: NextRequest) {
       success: true,
       websocketUrl: `ws://${wsUrl}:${wsPort}`,
       port: wsPort,
-      status: 'running',
-    });
+      status: 'running'});
   } catch (error) {
     console.error('[API] 获取 WebSocket 配置失败:', error);
     return NextResponse.json({ error: '获取 WebSocket 配置失败' }, { status: 500 });

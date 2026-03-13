@@ -13,7 +13,7 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.points.view'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -52,8 +52,7 @@ export const GET = withPermissionCheck(
 
       return NextResponse.json({
         success: true,
-        levels,
-      });
+        levels});
     } catch (error) {
       console.error('[AdminLevels API] 获取等级配置失败:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });

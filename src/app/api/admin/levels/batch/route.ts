@@ -13,7 +13,7 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 export const POST = withPermissionCheck(
   { minLevel: 4, roles: ['super_admin'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -64,8 +64,7 @@ export const POST = withPermissionCheck(
 
       return NextResponse.json({
         success: true,
-        data: result,
-      });
+        data: result});
     } catch (error) {
       console.error('[AdminLevelsBatch API] 批量更新等级失败:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });

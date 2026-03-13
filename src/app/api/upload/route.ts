@@ -84,16 +84,15 @@ export async function POST(request: NextRequest) {
 
     // 上传到存储
     let uploadError: any = null;
-    let uploadData: any = null;
+    let _uploadData: any = null;
 
     try {
       const result = await supabase.storage.from('quote-files').upload(fileKey, buffer, {
         contentType: file.type,
         cacheControl: '3600',
-        upsert: false,
-      });
+        upsert: false});
 
-      uploadData = result.data;
+      _uploadData = result.data;
       uploadError = result.error;
     } catch (e: any) {
       uploadError = e;
@@ -114,9 +113,7 @@ export async function POST(request: NextRequest) {
         const serviceClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey, {
           auth: {
             autoRefreshToken: false,
-            persistSession: false,
-          },
-        });
+            persistSession: false}});
 
         // 检查 bucket 是否真的不存在
         const { data: buckets, error: listError } = await serviceClient.storage.listBuckets();
@@ -167,10 +164,9 @@ export async function POST(request: NextRequest) {
           .upload(fileKey, buffer, {
             contentType: file.type,
             cacheControl: '3600',
-            upsert: false,
-          });
+            upsert: false});
 
-        uploadData = retryResult.data;
+        _uploadData = retryResult.data;
         uploadError = retryResult.error;
 
         if (uploadError) {
@@ -207,7 +203,7 @@ export async function POST(request: NextRequest) {
 
     // 保存文件记录到数据库
     try {
-      const { data: fileRecord, error: dbError } = await supabase
+      const { data: _fileRecord, error: dbError } = await supabase
         .from('user_uploads')
         .insert({
           user_id: userId,
@@ -217,8 +213,7 @@ export async function POST(request: NextRequest) {
           file_type: file.type,
           public_url: publicUrl,
           status: 'uploaded',
-          created_at: new Date().toISOString(),
-        })
+          created_at: new Date().toISOString()})
         .select()
         .single();
 
@@ -241,16 +236,14 @@ export async function POST(request: NextRequest) {
       fileName: file.name,
       safeName: safeName,
       size: buffer.length,
-      type: file.type,
-    });
+      type: file.type});
   } catch (error: any) {
     console.error('[Upload] 上传失败:', error);
     return NextResponse.json(
       {
         error: 'Failed to upload file',
         message: error.message,
-        stack: error.stack,
-      },
+        stack: error.stack},
       { status: 500 }
     );
   }

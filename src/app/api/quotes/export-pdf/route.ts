@@ -33,8 +33,7 @@ const formatDate = (dateString?: string) => {
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
-    day: '2-digit',
-  });
+    day: '2-digit'});
 };
 
 // 金额转中文大写
@@ -127,8 +126,7 @@ export async function POST(request: NextRequest) {
       subtotal,
       taxAmount,
       totalAmount,
-      notes,
-    } = data;
+      notes} = data;
 
     // 数据验证
     if (!quoteNumber) {
@@ -160,8 +158,7 @@ export async function POST(request: NextRequest) {
         unit: formatText(product.unit) || '个',
         quantity: product.quantity || 0,
         unitPrice: product.unitPrice || 0,
-        totalPrice: product.totalPrice || 0,
-      };
+        totalPrice: product.totalPrice || 0};
       console.log(`[ExportPDF] 产品${index + 1}:`, processed.name.substring(0, 50));
       return processed;
     });
@@ -745,8 +742,7 @@ export async function POST(request: NextRequest) {
         '--disable-gpu',
         '--font-render-hinting=none',
         '--disable-features=IsolateOrigins,site-per-process',
-      ],
-    });
+      ]});
 
     const browserLaunchTime = Date.now() - browserLaunchStart;
     console.log('[ExportPDF] 浏览器启动耗时:', browserLaunchTime, 'ms');
@@ -761,8 +757,7 @@ export async function POST(request: NextRequest) {
     const setContentStart = Date.now();
     await page.setContent(htmlTemplate, {
       waitUntil: 'networkidle0',
-      timeout: 30000,
-    });
+      timeout: 30000});
     const setContentTime = Date.now() - setContentStart;
     console.log('[ExportPDF] HTML内容设置耗时:', setContentTime, 'ms');
 
@@ -776,10 +771,8 @@ export async function POST(request: NextRequest) {
         top: '15mm',
         right: '15mm',
         bottom: '15mm',
-        left: '15mm',
-      },
-      preferCSSPageSize: true,
-    });
+        left: '15mm'},
+      preferCSSPageSize: true});
     const pdfTime = Date.now() - pdfStart;
     console.log('[ExportPDF] PDF生成耗时:', pdfTime, 'ms');
 
@@ -809,9 +802,7 @@ export async function POST(request: NextRequest) {
         'Content-Length': pdfBuffer.length.toString(),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         Pragma: 'no-cache',
-        Expires: '0',
-      },
-    });
+        Expires: '0'}});
 
     console.log('[ExportPDF] 响应已准备就绪');
     return response;
@@ -828,8 +819,7 @@ export async function POST(request: NextRequest) {
       {
         error: 'PDF生成失败',
         message: error instanceof Error ? error.message : '未知错误',
-        details: error instanceof Error ? error.stack : '',
-      },
+        details: error instanceof Error ? error.stack : ''},
       { status: 500 }
     );
   }

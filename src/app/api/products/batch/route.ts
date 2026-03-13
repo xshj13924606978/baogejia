@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const userId = (formData.get('userId') as string) || 'anonymous';
+    const _userId = (formData.get('userId') as string) || 'anonymous';
 
     if (!file) {
       return NextResponse.json({ error: '请上传文件' }, { status: 400 });

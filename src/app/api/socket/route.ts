@@ -23,9 +23,7 @@ export async function GET(req: NextRequest) {
       message: 'Socket.IO server already running',
       stats: {
         onlineUsers: onlineUsers.size,
-        connections: global._socketServer.engine?.clientsCount || 0,
-      },
-    });
+        connections: global._socketServer.engine?.clientsCount || 0}});
   }
 
   try {
@@ -36,14 +34,12 @@ export async function GET(req: NextRequest) {
       global._httpServer = http.createServer((req, res) => {
         res.writeHead(200, {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        });
+          'Access-Control-Allow-Origin': '*'});
         res.end(
           JSON.stringify({
             status: 'ok',
             message: 'Socket.IO HTTP Server',
-            onlineUsers: onlineUsers.size,
-          })
+            onlineUsers: onlineUsers.size})
         );
       });
 
@@ -68,12 +64,10 @@ export async function GET(req: NextRequest) {
           process.env.NEXT_PUBLIC_APP_URL || '*',
         ].filter(Boolean),
         methods: ['GET', 'POST'],
-        credentials: true,
-      },
+        credentials: true},
       transports: ['polling', 'websocket'],
       pingTimeout: 60000,
-      pingInterval: 25000,
-    });
+      pingInterval: 25000});
 
     // 连接处理
     io.on('connection', (socket) => {
@@ -100,29 +94,26 @@ export async function GET(req: NextRequest) {
           // 广播上线
           socket.broadcast.emit('user:online', {
             userId,
-            onlineCount: onlineUsers.size,
-          });
+            onlineCount: onlineUsers.size});
 
           // 发送在线列表
           socket.emit('users:online', {
             userIds: Array.from(onlineUsers.keys()),
-            count: onlineUsers.size,
-          });
+            count: onlineUsers.size});
 
           // 尝试更新数据库（使用 UUID）
           try {
             const { error } = await supabase
               .from('users')
               .update({
-                last_login: new Date().toISOString(),
-              })
+                last_login: new Date().toISOString()})
               .eq('id', userId);
 
             if (error) {
               console.log('[Socket.IO] 数据库更新错误:', error.message);
             }
-          } catch (dbError) {
-            console.log('[Socket.IO] 数据库更新失败:', dbError);
+          } catch (_dbError) {
+            console.log('[Socket.IO] 数据库更新失败:');
           }
         } catch (error) {
           console.error('[Socket.IO] Auth error:', error);
@@ -135,8 +126,7 @@ export async function GET(req: NextRequest) {
         if (typeof callback === 'function') {
           callback({
             time: Date.now(),
-            onlineUsers: onlineUsers.size,
-          });
+            onlineUsers: onlineUsers.size});
         }
       });
 
@@ -151,18 +141,16 @@ export async function GET(req: NextRequest) {
           // 广播下线
           socket.broadcast.emit('user:offline', {
             userId,
-            onlineCount: onlineUsers.size,
-          });
+            onlineCount: onlineUsers.size});
 
           // 尝试更新数据库
           try {
             await supabase
               .from('users')
               .update({
-                last_login: new Date().toISOString(),
-              })
+                last_login: new Date().toISOString()})
               .eq('id', userId);
-          } catch (dbError) {
+          } catch (_dbError) {
             // 忽略数据库错误
           }
         }
@@ -180,8 +168,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Socket.IO server initialized',
-      port: global._httpServer.address()?.port,
-    });
+      port: global._httpServer.address()?.port});
   } catch (error: any) {
     console.error('[Socket.IO] Init error:', error);
     return NextResponse.json(

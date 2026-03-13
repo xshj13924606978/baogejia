@@ -12,7 +12,7 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 export const POST = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.access'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -86,22 +86,18 @@ export const POST = withPermissionCheck(
           before: {
             fieldPermissions: levelConfig?.field_permissions || {},
             modulePermissions: levelConfig?.module_permissions || [],
-            quotas: levelConfig?.quotas || {},
-          },
-          after: changes,
-        })) || [];
+            quotas: levelConfig?.quotas || {}},
+          after: changes})) || [];
 
       // 构建预览数据（匹配前端期望的格式）
       const preview = {
         affectedUsers: totalUsers || 0,
         sampleUsers,
-        changes,
-      };
+        changes};
 
       return NextResponse.json({
         success: true,
-        preview,
-      });
+        preview});
     } catch (error) {
       console.error('[PermissionsPreview API] 预览权限变更异常:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });

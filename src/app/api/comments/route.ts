@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TeamService } from '@/lib/team-service';
-import { CreateCommentRequest, UpdateCommentRequest } from '@/types/team';
+import { CreateCommentRequest } from '@/types/team';
 
 /**
  * 获取评论列表
@@ -14,8 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'targetId 参数不能为空',
-        },
+          error: 'targetId 参数不能为空'},
         { status: 400 }
       );
     }
@@ -24,15 +23,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: comments,
-    });
+      data: comments});
   } catch (error) {
     console.error('获取评论失败:', error);
     return NextResponse.json(
       {
         success: false,
-        error: '获取评论失败',
-      },
+        error: '获取评论失败'},
       { status: 500 }
     );
   }
@@ -54,8 +51,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'targetId 和 content 不能为空',
-        },
+          error: 'targetId 和 content 不能为空'},
         { status: 400 }
       );
     }
@@ -65,15 +61,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: comment,
-      message: '评论发布成功',
-    });
+      message: '评论发布成功'});
   } catch (error) {
     console.error('创建评论失败:', error);
     return NextResponse.json(
       {
         success: false,
-        error: '创建评论失败',
-      },
+        error: '创建评论失败'},
       { status: 500 }
     );
   }

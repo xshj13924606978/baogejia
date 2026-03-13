@@ -18,7 +18,7 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.billing.view'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -55,8 +55,7 @@ export const GET = withPermissionCheck(
 
       return NextResponse.json({
         success: true,
-        data: config,
-      });
+        data: config});
     } catch (error) {
       console.error('[BillingConfig API] 获取计费配置异常:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });
@@ -70,7 +69,7 @@ export const GET = withPermissionCheck(
 
 export const POST = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.access'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -111,8 +110,7 @@ export const POST = withPermissionCheck(
         level4InputRate,
         level4OutputRate,
         level5InputRate,
-        level5OutputRate,
-      } = body;
+        level5OutputRate} = body;
 
       // 验证必填字段
       if (!yuanToTokens || !yuanToPoints || !pointsToTokens) {
@@ -123,8 +121,7 @@ export const POST = withPermissionCheck(
         configName,
         yuanToTokens,
         yuanToPoints,
-        pointsToTokens,
-      });
+        pointsToTokens});
 
       // 更新计费配置
       const success = await tokenBillingService.updateBillingConfig({
@@ -140,8 +137,7 @@ export const POST = withPermissionCheck(
         level4InputRate,
         level4OutputRate,
         level5InputRate,
-        level5OutputRate,
-      });
+        level5OutputRate});
 
       if (!success) {
         return NextResponse.json({ error: '更新配置失败' }, { status: 500 });
@@ -149,8 +145,7 @@ export const POST = withPermissionCheck(
 
       return NextResponse.json({
         success: true,
-        message: '配置更新成功',
-      });
+        message: '配置更新成功'});
     } catch (error) {
       console.error('[BillingConfig API] 更新计费配置异常:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });

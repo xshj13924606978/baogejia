@@ -19,7 +19,7 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.points.view'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -62,8 +62,7 @@ export const GET = withPermissionCheck(
 
       return NextResponse.json({
         success: true,
-        config,
-      });
+        config});
     } catch (error) {
       console.error('[AdminLevelDetail API] 获取等级配置失败:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });
@@ -77,7 +76,7 @@ export const GET = withPermissionCheck(
 
 export const PUT = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.points.edit'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -133,8 +132,7 @@ export const PUT = withPermissionCheck(
 
       return NextResponse.json({
         success: true,
-        message: '等级权限更新成功',
-      });
+        message: '等级权限更新成功'});
     } catch (error) {
       console.error('[AdminLevelDetail API] 更新等级权限失败:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });

@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建一级邀请关系
-    const { data: relation1, error: relation1Error } = await db
+    const { data: _relation1, error: relation1Error } = await db
       .from('invite_relations')
       .insert({
         inviter_id: inviterId,

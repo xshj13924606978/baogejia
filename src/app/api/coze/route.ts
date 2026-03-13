@@ -11,12 +11,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  cozeToolsService,
-  MarketPriceInfo,
-  GeneratedImage,
-  SimilarProduct,
-} from '@/lib/coze-tools';
-import { quoteEnhancer, QuoteEnhancementResult, Product } from '@/lib/quote-enhancer';
+  cozeToolsService} from '@/lib/coze-tools';
+import { quoteEnhancer } from '@/lib/quote-enhancer';
 import { Logger } from '@/lib/logger';
 
 // ============================================================================
@@ -39,17 +35,13 @@ export async function GET(request: NextRequest) {
             !!process.env.COZE_API_KEY && process.env.COZE_API_KEY !== 'your_coze_api_key_here',
           webSearchEnabled: process.env.ENABLE_COZE_WEB_SEARCH === 'true',
           embeddingEnabled: process.env.ENABLE_COZE_EMBEDDING === 'true',
-          imageGenerationEnabled: process.env.ENABLE_COZE_IMAGE_GENERATION === 'true',
-        },
-      },
-    });
+          imageGenerationEnabled: process.env.ENABLE_COZE_IMAGE_GENERATION === 'true'}}});
   } catch (error: any) {
     Logger.error('获取工具状态失败:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || '获取工具状态失败',
-      },
+        error: error.message || '获取工具状态失败'},
       { status: 500 }
     );
   }
@@ -78,8 +70,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: '未知的操作类型',
-          },
+            error: '未知的操作类型'},
           { status: 400 }
         );
     }
@@ -88,8 +79,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error.message || '请求处理失败',
-      },
+        error: error.message || '请求处理失败'},
       { status: 500 }
     );
   }
@@ -109,8 +99,7 @@ async function handleSearchMarketPrice(body: any) {
     return NextResponse.json(
       {
         success: false,
-        error: '请提供 productName 或 productNames',
-      },
+        error: '请提供 productName 或 productNames'},
       { status: 400 }
     );
   }
@@ -122,9 +111,7 @@ async function handleSearchMarketPrice(body: any) {
       error: 'Coze工具未启用，请配置 API Key',
       data: {
         message: '请在 .env.local 中配置 COZE_API_KEY 并设置 ENABLE_COZE_TOOLS=true',
-        status,
-      },
-    });
+        status}});
   }
 
   try {
@@ -141,15 +128,13 @@ async function handleSearchMarketPrice(body: any) {
 
     return NextResponse.json({
       success: true,
-      data: result,
-    });
+      data: result});
   } catch (error: any) {
     Logger.error('搜索市场价格失败:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || '搜索失败',
-      },
+        error: error.message || '搜索失败'},
       { status: 500 }
     );
   }
@@ -159,14 +144,13 @@ async function handleSearchMarketPrice(body: any) {
  * 处理产品图生成
  */
 async function handleGenerateProductImage(body: any) {
-  const { productName, specs, theme, type } = body;
+  const { productName, specs, _theme, type } = body;
 
   if (!productName) {
     return NextResponse.json(
       {
         success: false,
-        error: '请提供 productName',
-      },
+        error: '请提供 productName'},
       { status: 400 }
     );
   }
@@ -175,8 +159,7 @@ async function handleGenerateProductImage(body: any) {
   if (!status.enabled || !status.imageGenerationEnabled) {
     return NextResponse.json({
       success: false,
-      error: 'Coze生图工具未启用，请配置 API Key 并启用图片生成',
-    });
+      error: 'Coze生图工具未启用，请配置 API Key 并启用图片生成'});
   }
 
   try {
@@ -185,15 +168,13 @@ async function handleGenerateProductImage(body: any) {
 
     return NextResponse.json({
       success: true,
-      data: result,
-    });
+      data: result});
   } catch (error: any) {
     Logger.error('生成产品图失败:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || '生成失败',
-      },
+        error: error.message || '生成失败'},
       { status: 500 }
     );
   }
@@ -209,8 +190,7 @@ async function handleSearchSimilarProducts(body: any) {
     return NextResponse.json(
       {
         success: false,
-        error: '请提供 query（搜索查询）',
-      },
+        error: '请提供 query（搜索查询）'},
       { status: 400 }
     );
   }
@@ -219,8 +199,7 @@ async function handleSearchSimilarProducts(body: any) {
     return NextResponse.json(
       {
         success: false,
-        error: '请提供 products（产品库）',
-      },
+        error: '请提供 products（产品库）'},
       { status: 400 }
     );
   }
@@ -229,8 +208,7 @@ async function handleSearchSimilarProducts(body: any) {
   if (!status.enabled || !status.embeddingEnabled) {
     return NextResponse.json({
       success: false,
-      error: 'Coze向量搜索工具未启用，请配置 API Key 并启用嵌入功能',
-    });
+      error: 'Coze向量搜索工具未启用，请配置 API Key 并启用嵌入功能'});
   }
 
   try {
@@ -238,15 +216,13 @@ async function handleSearchSimilarProducts(body: any) {
 
     return NextResponse.json({
       success: true,
-      data: result,
-    });
+      data: result});
   } catch (error: any) {
     Logger.error('搜索相似产品失败:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || '搜索失败',
-      },
+        error: error.message || '搜索失败'},
       { status: 500 }
     );
   }
@@ -262,8 +238,7 @@ async function handleEnhanceQuote(body: any) {
     return NextResponse.json(
       {
         success: false,
-        error: '请提供 products（产品列表）',
-      },
+        error: '请提供 products（产品列表）'},
       { status: 400 }
     );
   }
@@ -275,9 +250,7 @@ async function handleEnhanceQuote(body: any) {
       error: 'Coze工具未启用，请配置 API Key',
       data: {
         message: '即使未启用，也会使用基础功能进行处理',
-        status,
-      },
-    });
+        status}});
   }
 
   try {
@@ -285,15 +258,13 @@ async function handleEnhanceQuote(body: any) {
 
     return NextResponse.json({
       success: true,
-      data: result,
-    });
+      data: result});
   } catch (error: any) {
     Logger.error('增强报价单失败:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || '增强失败',
-      },
+        error: error.message || '增强失败'},
       { status: 500 }
     );
   }

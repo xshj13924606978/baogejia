@@ -3,7 +3,7 @@ import { withPermissionCheck } from '@/lib/permission-check';
 
 export const POST = withPermissionCheck(
   { requiresAuth: true, permissions: ['user.points.edit'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 从 URL 中提取 id
       const url = new URL(request.url);
@@ -22,8 +22,7 @@ export const POST = withPermissionCheck(
       return NextResponse.json({
         success: true,
         newPoints: 1000 + points,
-        pointsChange: points,
-      });
+        pointsChange: points});
     } catch (error) {
       console.error('分配积分失败:', error);
       return NextResponse.json({ error: '分配积分失败' }, { status: 500 });

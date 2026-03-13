@@ -26,24 +26,22 @@ export async function POST(request: Request) {
 
     console.log('[RealUploadTest] 文件信息:', {
       size: buffer.length,
-      path: fileKey,
-    });
+      path: fileKey});
 
     // 1. 使用 anon key 尝试上传
     console.log('[RealUploadTest] 使用 anon key 上传...');
     const anonClient = createClient(supabaseUrl, anonKey);
 
     let uploadError: any = null;
-    let uploadData: any = null;
+    let _uploadData: any = null;
 
     try {
       const result = await anonClient.storage.from('quote-files').upload(fileKey, buffer, {
         contentType: 'text/plain',
         cacheControl: '3600',
-        upsert: false,
-      });
+        upsert: false});
 
-      uploadData = result.data;
+      _uploadData = result.data;
       uploadError = result.error;
     } catch (e: any) {
       uploadError = e;
@@ -60,19 +58,16 @@ export async function POST(request: Request) {
         const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
           auth: {
             autoRefreshToken: false,
-            persistSession: false,
-          },
-        });
+            persistSession: false}});
 
         const retryResult = await serviceClient.storage
           .from('quote-files')
           .upload(fileKey, buffer, {
             contentType: 'text/plain',
             cacheControl: '3600',
-            upsert: false,
-          });
+            upsert: false});
 
-        uploadData = retryResult.data;
+        _uploadData = retryResult.data;
         uploadError = retryResult.error;
 
         if (uploadError) {
@@ -81,8 +76,7 @@ export async function POST(request: Request) {
             {
               success: false,
               error: 'Service role upload failed',
-              details: uploadError.message,
-            },
+              details: uploadError.message},
             { status: 500 }
           );
         }
@@ -94,8 +88,7 @@ export async function POST(request: Request) {
           {
             success: false,
             error: 'Upload failed',
-            details: uploadError.message,
-          },
+            details: uploadError.message},
           { status: 500 }
         );
       }
@@ -119,9 +112,7 @@ export async function POST(request: Request) {
       uploadInfo: {
         fileKey,
         publicUrl: urlData.publicUrl,
-        size: buffer.length,
-      },
-    });
+        size: buffer.length}});
   } catch (error: any) {
     console.error('[RealUploadTest] 测试失败:', error);
     return NextResponse.json(
@@ -129,8 +120,7 @@ export async function POST(request: Request) {
         success: false,
         error: 'Test failed',
         message: error.message,
-        stack: error.stack,
-      },
+        stack: error.stack},
       { status: 500 }
     );
   }

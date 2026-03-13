@@ -3,7 +3,7 @@ import { withPermissionCheck } from '@/lib/permission-check';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.stats.view'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 模拟统计数据
       const mockStats = {
@@ -14,8 +14,7 @@ export const GET = withPermissionCheck(
         todayPoints: 230,
         totalPoints: 5678,
         todayIncome: 1200,
-        totalIncome: 15600,
-      };
+        totalIncome: 15600};
 
       return NextResponse.json(mockStats);
     } catch (error) {

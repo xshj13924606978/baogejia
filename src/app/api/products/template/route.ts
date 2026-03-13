@@ -50,9 +50,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': 'attachment; filename="产品导入模板.xlsx"',
-        'Content-Length': buffer.length.toString(),
-      },
-    });
+        'Content-Length': buffer.length.toString()}});
   } catch (error) {
     console.error('[Product Template] 生成模板失败:', error);
     return NextResponse.json({ error: '生成模板失败' }, { status: 500 });

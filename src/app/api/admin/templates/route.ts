@@ -18,22 +18,16 @@ const TEMPLATES = {
           can_view_min_price: true,
           can_view_manufacturer: true,
           can_view_contact: false,
-          can_view_phone: false,
-        },
-        modulePermissions: ['product.search', 'price.view', 'quote.create'],
-      },
+          can_view_phone: false},
+        modulePermissions: ['product.search', 'price.view', 'quote.create']},
       4: {
         fieldPermissions: {
           can_view_cost_price: true,
           can_view_min_price: true,
           can_view_manufacturer: true,
           can_view_contact: true,
-          can_view_phone: true,
-        },
-        modulePermissions: ['product.search', 'price.view', 'quote.create', 'excel.export'],
-      },
-    },
-  },
+          can_view_phone: true},
+        modulePermissions: ['product.search', 'price.view', 'quote.create', 'excel.export']}}},
   retail: {
     name: '零售行业模板',
     description: '适用于零售行业用户的权限配置',
@@ -44,12 +38,8 @@ const TEMPLATES = {
           can_view_min_price: true,
           can_view_manufacturer: false,
           can_view_contact: false,
-          can_view_phone: false,
-        },
-        modulePermissions: ['product.search', 'price.view'],
-      },
-    },
-  },
+          can_view_phone: false},
+        modulePermissions: ['product.search', 'price.view']}}},
   manufacturing: {
     name: '制造业模板',
     description: '适用于制造业用户的权限配置',
@@ -60,18 +50,15 @@ const TEMPLATES = {
           can_view_min_price: true,
           can_view_manufacturer: true,
           can_view_contact: true,
-          can_view_phone: false,
-        },
-        modulePermissions: ['product.search', 'price.view', 'quote.create', 'manufacturer.view'],
-      },
+          can_view_phone: false},
+        modulePermissions: ['product.search', 'price.view', 'quote.create', 'manufacturer.view']},
       4: {
         fieldPermissions: {
           can_view_cost_price: true,
           can_view_min_price: true,
           can_view_manufacturer: true,
           can_view_contact: true,
-          can_view_phone: true,
-        },
+          can_view_phone: true},
         modulePermissions: [
           'product.search',
           'price.view',
@@ -79,10 +66,7 @@ const TEMPLATES = {
           'manufacturer.view',
           'excel.export',
           'cost_price.view',
-        ],
-      },
-    },
-  },
+        ]}}},
   ecommerce: {
     name: '电商行业模板',
     description: '适用于电商行业用户的权限配置',
@@ -93,23 +77,16 @@ const TEMPLATES = {
           can_view_min_price: false,
           can_view_manufacturer: false,
           can_view_contact: false,
-          can_view_phone: false,
-        },
-        modulePermissions: ['product.search'],
-      },
+          can_view_phone: false},
+        modulePermissions: ['product.search']},
       3: {
         fieldPermissions: {
           can_view_cost_price: true,
           can_view_min_price: true,
           can_view_manufacturer: false,
           can_view_contact: false,
-          can_view_phone: false,
-        },
-        modulePermissions: ['product.search', 'price.view', 'quote.create'],
-      },
-    },
-  },
-};
+          can_view_phone: false},
+        modulePermissions: ['product.search', 'price.view', 'quote.create']}}}};
 
 /**
  * 权限模板管理API
@@ -126,7 +103,7 @@ const TEMPLATES = {
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.templates.view'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -156,8 +133,7 @@ export const GET = withPermissionCheck(
 
       return NextResponse.json({
         success: true,
-        templates: TEMPLATES,
-      });
+        templates: TEMPLATES});
     } catch (error) {
       console.error('[Templates API] 获取模板失败:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });
@@ -171,7 +147,7 @@ export const GET = withPermissionCheck(
 
 export const POST = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.templates.edit'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -225,8 +201,7 @@ export const POST = withPermissionCheck(
           return {
             level,
             changes: levelConfig,
-            reason: `应用${template.name}`,
-          };
+            reason: `应用${template.name}`};
         })
         .filter(Boolean) as Array<{ level: number; changes: unknown; reason: string }>;
 
@@ -239,8 +214,7 @@ export const POST = withPermissionCheck(
 
       return NextResponse.json({
         success: true,
-        result,
-      });
+        result});
     } catch (error) {
       console.error('[Templates API] 应用模板失败:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });

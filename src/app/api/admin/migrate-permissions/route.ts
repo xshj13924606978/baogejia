@@ -12,7 +12,7 @@ import path from 'path';
 
 export const POST = withPermissionCheck(
   { minLevel: 5, roles: ['super_admin'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 验证用户身份
       const currentUser = await getCurrentUser(request);
@@ -61,13 +61,12 @@ export const POST = withPermissionCheck(
       // 逐条执行
       for (let i = 0; i < statements.length; i++) {
         const statement = statements[i];
-        const statementPreview = statement.substring(0, 100);
+        const _statementPreview = statement.substring(0, 100);
 
         try {
           // 使用 Supabase 的 raw 执行
           const { data, error } = await supabase.rpc('exec_sql', {
-            sql_query: statement,
-          });
+            sql_query: statement});
 
           if (error) {
             // 尝试直接使用 PostgreSQL 客户端
@@ -75,8 +74,7 @@ export const POST = withPermissionCheck(
             results.push({
               index: i + 1,
               success: false,
-              error: error.message,
-            });
+              error: error.message});
             errorCount++;
           } else {
             console.log(`[Migration] ✅ 语句 ${i + 1}/${statements.length}`);
@@ -88,8 +86,7 @@ export const POST = withPermissionCheck(
           results.push({
             index: i + 1,
             success: false,
-            error: err.message,
-          });
+            error: err.message});
           errorCount++;
         }
 

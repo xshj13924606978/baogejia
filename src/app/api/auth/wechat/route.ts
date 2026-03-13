@@ -1,6 +1,6 @@
 // 微信登录 API 路由 - 创建扫码登录
 
-import { NextRequest, NextResponse } from 'next/server';
+import {  NextResponse } from 'next/server';
 import { oauthService } from '@/lib/oauth-service';
 
 /**

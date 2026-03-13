@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   withProductView,
   withProductEdit,
-  withProductExport,
   withLevel,
   withPoints,
-  withAllPermissions,
-} from '@/lib/permission-check';
+  withAllPermissions} from '@/lib/permission-check';
+import { getCurrentUser } from '@/lib/auth-utils';
 
 /**
  * 产品管理示例 API
@@ -17,7 +16,7 @@ import {
  * GET - 查看产品列表
  * 使用 withProductView 包装器
  */
-export const GET = withProductView(async (request: NextRequest, user: any) => {
+export const GET = withProductView(async (request: NextRequest, _context: any) => {
   try {
     // 获取查询参数
     const { searchParams } = new URL(request.url);
@@ -44,9 +43,7 @@ export const GET = withProductView(async (request: NextRequest, user: any) => {
       pagination: {
         page,
         limit,
-        total: products?.length || 0,
-      },
-    });
+        total: products?.length || 0}});
   } catch (error: any) {
     console.error('[Products Demo API] 获取产品列表失败:', error);
     return NextResponse.json(
@@ -60,7 +57,7 @@ export const GET = withProductView(async (request: NextRequest, user: any) => {
  * POST - 创建产品
  * 使用 withLevel 包装器（需要等级 >= 2）
  */
-export const POST = withLevel(2, async (request: NextRequest, user: any) => {
+export const POST = withLevel(2, async (request: NextRequest, _context: any) => {
   try {
     const body = await request.json();
     const { name, price, category } = body;
@@ -68,6 +65,12 @@ export const POST = withLevel(2, async (request: NextRequest, user: any) => {
     // 验证参数
     if (!name || !price) {
       return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
+    }
+
+    // 获取当前用户
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
     }
 
     // 创建产品（业务逻辑）
@@ -80,8 +83,7 @@ export const POST = withLevel(2, async (request: NextRequest, user: any) => {
         name,
         price: parseFloat(price),
         category,
-        created_by: user.id,
-      })
+        created_by: user.id})
       .select()
       .single();
 
@@ -92,8 +94,7 @@ export const POST = withLevel(2, async (request: NextRequest, user: any) => {
     return NextResponse.json({
       success: true,
       message: '产品创建成功',
-      data,
-    });
+      data});
   } catch (error: any) {
     console.error('[Products Demo API] 创建产品失败:', error);
     return NextResponse.json({ error: '创建产品失败', details: error.message }, { status: 500 });
@@ -104,7 +105,7 @@ export const POST = withLevel(2, async (request: NextRequest, user: any) => {
  * PUT - 更新产品
  * 使用 withProductEdit 包装器
  */
-export const PUT = withProductEdit(async (request: NextRequest, user: any) => {
+export const PUT = withProductEdit(async (request: NextRequest, _context: any) => {
   try {
     const body = await request.json();
     const { productId, updates } = body;
@@ -112,6 +113,12 @@ export const PUT = withProductEdit(async (request: NextRequest, user: any) => {
     // 验证参数
     if (!productId || !updates) {
       return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
+    }
+
+    // 获取当前用户
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
     }
 
     // 更新产品（业务逻辑）
@@ -122,8 +129,7 @@ export const PUT = withProductEdit(async (request: NextRequest, user: any) => {
       .from('products')
       .update({
         ...updates,
-        updated_by: user.id,
-      })
+        updated_by: user.id})
       .eq('id', productId)
       .select()
       .single();
@@ -135,8 +141,7 @@ export const PUT = withProductEdit(async (request: NextRequest, user: any) => {
     return NextResponse.json({
       success: true,
       message: '产品更新成功',
-      data,
-    });
+      data});
   } catch (error: any) {
     console.error('[Products Demo API] 更新产品失败:', error);
     return NextResponse.json({ error: '更新产品失败', details: error.message }, { status: 500 });
@@ -147,7 +152,7 @@ export const PUT = withProductEdit(async (request: NextRequest, user: any) => {
  * DELETE - 删除产品
  * 使用 withPoints 包装器（需要积分 >= 500）
  */
-export const DELETE = withPoints(500, async (request: NextRequest, user: any) => {
+export const DELETE = withPoints(500, async (request: NextRequest, _context: any) => {
   try {
     const body = await request.json();
     const { productId } = body;
@@ -169,8 +174,7 @@ export const DELETE = withPoints(500, async (request: NextRequest, user: any) =>
 
     return NextResponse.json({
       success: true,
-      message: '产品删除成功',
-    });
+      message: '产品删除成功'});
   } catch (error: any) {
     console.error('[Products Demo API] 删除产品失败:', error);
     return NextResponse.json({ error: '删除产品失败', details: error.message }, { status: 500 });
@@ -184,7 +188,7 @@ export const DELETE = withPoints(500, async (request: NextRequest, user: any) =>
 export async function PATCH(request: NextRequest) {
   return withAllPermissions(
     ['product.edit', 'product.delete'],
-    async (req: NextRequest, user: any) => {
+    async (req: NextRequest, _context: any) => {
       try {
         const body = await req.json();
         const { productIds, action } = body;
@@ -208,8 +212,7 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({
           success: true,
           message: '批量操作成功',
-          data: result,
-        });
+          data: result});
       } catch (error: any) {
         console.error('[Products Demo API] 批量操作失败:', error);
         return NextResponse.json(

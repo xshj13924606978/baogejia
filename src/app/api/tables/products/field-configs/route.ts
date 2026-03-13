@@ -15,23 +15,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: error.message,
-        },
+          error: error.message},
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      data: data || [],
-    });
+      data: data || []});
   } catch (error) {
     console.error('获取字段配置失败:', error);
     return NextResponse.json(
       {
         success: false,
-        error: '获取字段配置失败',
-      },
+        error: '获取字段配置失败'},
       { status: 500 }
     );
   }
@@ -47,8 +44,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: '字段键名不能为空',
-        },
+          error: '字段键名不能为空'},
         { status: 400 }
       );
     }
@@ -66,8 +62,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: error.message,
-        },
+          error: error.message},
         { status: 500 }
       );
     }
@@ -75,15 +70,13 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: '字段配置更新成功',
-      data,
-    });
+      data});
   } catch (error) {
     console.error('更新字段配置失败:', error);
     return NextResponse.json(
       {
         success: false,
-        error: '更新字段配置失败',
-      },
+        error: '更新字段配置失败'},
       { status: 500 }
     );
   }

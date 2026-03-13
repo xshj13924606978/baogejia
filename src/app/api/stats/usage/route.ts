@@ -29,17 +29,17 @@ export async function GET(request: NextRequest) {
     }
 
     // 构建时间范围
-    let query = supabase;
-    let dateFilter = '';
+    let _query = supabase;
+    let _dateFilter = '';
 
     if (startDate && endDate) {
-      dateFilter = `created_at.gte.${startDate},created_at.lte.${endDate}`;
+      _dateFilter = `created_at.gte.${startDate},created_at.lte.${endDate}`;
     } else {
       // 默认最近30天
       const end = new Date();
       const start = new Date();
       start.setDate(start.getDate() - 30);
-      dateFilter = `created_at.gte.${start.toISOString()},created_at.lte.${end.toISOString()}`;
+      _dateFilter = `created_at.gte.${start.toISOString()},created_at.lte.${end.toISOString()}`;
     }
 
     // 并行查询多个统计数据

@@ -8,7 +8,7 @@ export async function GET() {
 
     // 检查数据库连接
     const supabase = getSupabaseClient();
-    const { data: dbTest, error: dbError } = await supabase
+    const { data: _dbTest, error: dbError } = await supabase
       .from('products')
       .select('count', { count: 'exact', head: true });
 

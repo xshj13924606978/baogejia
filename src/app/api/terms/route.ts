@@ -23,8 +23,7 @@ export async function GET(request: NextRequest) {
       deliveryPeriod: term.delivery_period,
       validityPeriod: term.validity_period,
       remarks: term.remarks,
-      isDefault: term.is_default,
-    }));
+      isDefault: term.is_default}));
 
     return NextResponse.json({ terms });
   } catch (error) {
@@ -61,8 +60,7 @@ export async function POST(request: NextRequest) {
           validity_period: termData.validityPeriod,
           remarks: termData.remarks,
           is_default: termData.isDefault,
-          updated_at: now,
-        })
+          updated_at: now})
         .eq('id', termData.id)
         .select()
         .single();
@@ -82,8 +80,7 @@ export async function POST(request: NextRequest) {
           remarks: termData.remarks,
           is_default: termData.isDefault,
           created_at: now,
-          updated_at: now,
-        })
+          updated_at: now})
         .select()
         .single();
 
@@ -99,8 +96,7 @@ export async function POST(request: NextRequest) {
       deliveryPeriod: result.delivery_period,
       validityPeriod: result.validity_period,
       remarks: result.remarks,
-      isDefault: result.is_default,
-    };
+      isDefault: result.is_default};
 
     return NextResponse.json({ term });
   } catch (error) {

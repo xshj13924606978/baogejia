@@ -4,8 +4,8 @@ import {
   withQuoteView,
   withQuoteEdit,
   withQuoteExport,
-  withAnyPermission,
-} from '@/lib/permission-check';
+  withAnyPermission} from '@/lib/permission-check';
+import { getCurrentUser } from '@/lib/auth-utils';
 
 /**
  * 报价管理示例 API
@@ -16,7 +16,7 @@ import {
  * GET - 查看报价列表
  * 使用 withQuoteView 包装器
  */
-export const GET = withQuoteView(async (request: NextRequest, user: any) => {
+export const GET = withQuoteView(async (request: NextRequest, _context: any) => {
   try {
     // 获取查询参数
     const { searchParams } = new URL(request.url);
@@ -44,9 +44,7 @@ export const GET = withQuoteView(async (request: NextRequest, user: any) => {
       data: quotes || [],
       pagination: {
         page,
-        total: quotes?.length || 0,
-      },
-    });
+        total: quotes?.length || 0}});
   } catch (error: any) {
     console.error('[Quotes Demo API] 获取报价列表失败:', error);
     return NextResponse.json(
@@ -60,7 +58,7 @@ export const GET = withQuoteView(async (request: NextRequest, user: any) => {
  * POST - 创建报价
  * 使用 withQuoteCreate 包装器
  */
-export const POST = withQuoteCreate(async (request: NextRequest, user: any) => {
+export const POST = withQuoteCreate(async (request: NextRequest, _context: any) => {
   try {
     const body = await request.json();
     const { productName, quantity, customerName } = body;
@@ -68,6 +66,12 @@ export const POST = withQuoteCreate(async (request: NextRequest, user: any) => {
     // 验证参数
     if (!productName || !quantity || !customerName) {
       return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
+    }
+
+    // 获取当前用户
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
     }
 
     // 创建报价（业务逻辑）
@@ -81,8 +85,7 @@ export const POST = withQuoteCreate(async (request: NextRequest, user: any) => {
         quantity,
         customer_name: customerName,
         status: 'pending',
-        created_by: user.id,
-      })
+        created_by: user.id})
       .select()
       .single();
 
@@ -93,8 +96,7 @@ export const POST = withQuoteCreate(async (request: NextRequest, user: any) => {
     return NextResponse.json({
       success: true,
       message: '报价创建成功',
-      data,
-    });
+      data});
   } catch (error: any) {
     console.error('[Quotes Demo API] 创建报价失败:', error);
     return NextResponse.json({ error: '创建报价失败', details: error.message }, { status: 500 });
@@ -105,7 +107,7 @@ export const POST = withQuoteCreate(async (request: NextRequest, user: any) => {
  * PUT - 更新报价
  * 使用 withQuoteEdit 包装器
  */
-export const PUT = withQuoteEdit(async (request: NextRequest, user: any) => {
+export const PUT = withQuoteEdit(async (request: NextRequest, _context: any) => {
   try {
     const body = await request.json();
     const { quoteId, updates } = body;
@@ -113,6 +115,12 @@ export const PUT = withQuoteEdit(async (request: NextRequest, user: any) => {
     // 验证参数
     if (!quoteId || !updates) {
       return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
+    }
+
+    // 获取当前用户
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
     }
 
     // 更新报价（业务逻辑）
@@ -124,8 +132,7 @@ export const PUT = withQuoteEdit(async (request: NextRequest, user: any) => {
       .update({
         ...updates,
         updated_by: user.id,
-        updated_at: new Date().toISOString(),
-      })
+        updated_at: new Date().toISOString()})
       .eq('id', quoteId)
       .select()
       .single();
@@ -137,8 +144,7 @@ export const PUT = withQuoteEdit(async (request: NextRequest, user: any) => {
     return NextResponse.json({
       success: true,
       message: '报价更新成功',
-      data,
-    });
+      data});
   } catch (error: any) {
     console.error('[Quotes Demo API] 更新报价失败:', error);
     return NextResponse.json({ error: '更新报价失败', details: error.message }, { status: 500 });
@@ -151,7 +157,7 @@ export const PUT = withQuoteEdit(async (request: NextRequest, user: any) => {
  */
 export const DELETE = withAnyPermission(
   ['quote.edit', 'quote.delete'],
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       const body = await request.json();
       const { quoteId } = body;
@@ -173,8 +179,7 @@ export const DELETE = withAnyPermission(
 
       return NextResponse.json({
         success: true,
-        message: '报价删除成功',
-      });
+        message: '报价删除成功'});
     } catch (error: any) {
       console.error('[Quotes Demo API] 删除报价失败:', error);
       return NextResponse.json({ error: '删除报价失败', details: error.message }, { status: 500 });
@@ -187,11 +192,10 @@ export const DELETE = withAnyPermission(
  * 使用 withQuoteExport 包装器
  */
 export async function OPTIONS(request: NextRequest) {
-  return withQuoteExport(async (req: NextRequest, user: any) => {
+  return withQuoteExport(async (req: NextRequest, _context: any) => {
     return NextResponse.json({
       success: true,
-      message: '导出报价功能可用',
-    });
+      message: '导出报价功能可用'});
   })(request);
 }
 
@@ -199,7 +203,7 @@ export async function OPTIONS(request: NextRequest) {
  * 导出报价 - 实际导出操作
  */
 export async function PATCH(request: NextRequest) {
-  return withQuoteExport(async (req: NextRequest, user: any) => {
+  return withQuoteExport(async (req: NextRequest, _context: any) => {
     try {
       const body = await req.json();
       const { quoteIds, format } = body;
@@ -226,9 +230,7 @@ export async function PATCH(request: NextRequest) {
         data: {
           format,
           count: quotes?.length || 0,
-          quotes: quotes || [],
-        },
-      });
+          quotes: quotes || []}});
     } catch (error: any) {
       console.error('[Quotes Demo API] 导出报价失败:', error);
       return NextResponse.json({ error: '导出报价失败', details: error.message }, { status: 500 });

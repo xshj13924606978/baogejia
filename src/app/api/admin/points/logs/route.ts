@@ -16,7 +16,7 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: ['admin.points.logs'] },
-  async (request: NextRequest, user: any) => {
+  async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
       const currentUser = await getCurrentUser(request);
@@ -83,13 +83,11 @@ export const GET = withPermissionCheck(
         points: log.points,
         type: log.type,
         description: log.description,
-        createdAt: new Date(log.created_at).toLocaleString('zh-CN'),
-      }));
+        createdAt: new Date(log.created_at).toLocaleString('zh-CN')}));
 
       return NextResponse.json({
         success: true,
-        logs: formattedLogs,
-      });
+        logs: formattedLogs});
     } catch (error) {
       console.error('[PointsLogs API] 获取积分流水记录异常:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });
