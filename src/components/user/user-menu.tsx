@@ -88,14 +88,15 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       if (!user?.id) return;
       
       try {
-        const response = await fetch('/api/admin/users/6/points'); // 暂时写死管理员ID，后续应该用user.id
+        const response = await fetch(`/api/admin/users/${user.id}/points`);
         const data = await response.json();
         
         if (data.success && data.data) {
           setUserPoints(data.data.pointsBalance || 0);
+          console.log(`[UserMenu] 加载用户积分成功: ${data.data.pointsBalance}`);
         }
       } catch (error) {
-        console.error('获取用户积分失败:', error);
+        console.error('[UserMenu] 获取用户积分失败:', error);
       }
     };
     
