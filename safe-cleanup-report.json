@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-03-13T02:04:17.139Z",
+  "prefixedVars": 0,
+  "deletedImports": 7,
+  "fixedFiles": 7,
+  "remainingUnusedWarnings": 166,
+  "totalRemainingWarnings": 171,
+  "fileDetails": [
+    {
+      "file": "src/app/api/chat/route.ts",
+      "fixedCount": 28
+    },
+    {
+      "file": "src/app/login/page.tsx",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/app/team/[id]/page.tsx",
+      "fixedCount": 22
+    },
+    {
+      "file": "src/app/team/page.tsx",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/components/sidebar.tsx",
+      "fixedCount": 6
+    },
+    {
+      "file": "src/components/user/notifications-panel.tsx",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/components/user/points-panel.tsx",
+      "fixedCount": 2
+    }
+  ]
+}
