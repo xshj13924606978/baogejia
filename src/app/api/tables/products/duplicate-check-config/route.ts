@@ -324,8 +324,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // 删除旧的配置
-    await db.from('duplicate_check_settings').delete().neq('id', null);
+    // 删除旧的配置（如果表存在且有数据）
+    try {
+      await db.from('duplicate_check_settings').delete().neq('id', null);
+    } catch (deleteError) {
+      console.log('[Duplicate Check Config] 删除旧配置时出错（可能是表为空）:', deleteError);
+      // 忽略删除错误，继续执行
+    }
 
     // 插入新的配置
     const insertData = duplicateCheckFields.map((fieldKey: string, index: number) => {
