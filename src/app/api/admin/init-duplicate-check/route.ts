@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 CREATE TABLE IF NOT EXISTS product_field_configs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   field_key VARCHAR(50) UNIQUE NOT NULL,
-  field_name VARCHAR(100) NOT NULL,
+  display_name VARCHAR(100) NOT NULL,
   field_label VARCHAR(100) NOT NULL,
   field_type VARCHAR(20) NOT NULL,
   is_required BOOLEAN DEFAULT FALSE,
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS product_field_configs (
 );
 
 -- 插入默认字段配置
-INSERT INTO product_field_configs (field_key, field_name, field_label, field_type, is_required, is_duplicate_check, is_visible, display_order) VALUES
+INSERT INTO product_field_configs (field_key, display_name, field_label, field_type, is_required, is_duplicate_check, is_visible, display_order) VALUES
 ('name', '产品名称', 'product_name', 'text', TRUE, TRUE, TRUE, 1),
 ('model', '规格型号', 'model', 'text', FALSE, TRUE, TRUE, 2),
 ('brand', '品牌', 'brand', 'text', FALSE, FALSE, TRUE, 3),
@@ -186,10 +186,10 @@ COMMENT ON VIEW import_logs_daily_summary IS '导入日志每日汇总视图，�
         const { error: insertError } = await db
           .from('product_field_configs')
           .insert([
-            { field_key: 'name', field_name: '产品名称', field_label: 'product_name', field_type: 'text', is_required: true, is_duplicate_check: true, display_order: 1 },
-            { field_key: 'model', field_name: '规格型号', field_label: 'model', field_type: 'text', is_required: false, is_duplicate_check: true, display_order: 2 },
-            { field_key: 'brand', field_name: '品牌', field_label: 'brand', field_type: 'text', is_required: false, is_duplicate_check: true, display_order: 3 },
-            { field_key: 'price', field_name: '指导价', field_label: 'price', field_type: 'number', is_required: true, is_duplicate_check: false, display_order: 4 },
+            { field_key: 'name', display_name: '产品名称', field_label: 'product_name', field_type: 'text', is_required: true, is_duplicate_check: true, display_order: 1 },
+            { field_key: 'model', display_name: '规格型号', field_label: 'model', field_type: 'text', is_required: false, is_duplicate_check: true, display_order: 2 },
+            { field_key: 'brand', display_name: '品牌', field_label: 'brand', field_type: 'text', is_required: false, is_duplicate_check: true, display_order: 3 },
+            { field_key: 'price', display_name: '指导价', field_label: 'price', field_type: 'number', is_required: true, is_duplicate_check: false, display_order: 4 },
           ]);
         
         if (insertError) {

@@ -9,7 +9,7 @@
 CREATE TABLE IF NOT EXISTS product_field_configs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   field_key VARCHAR(50) UNIQUE NOT NULL,
-  field_name VARCHAR(100) NOT NULL,
+  display_name VARCHAR(100) NOT NULL,
   field_label VARCHAR(100) NOT NULL,
   field_type VARCHAR(20) NOT NULL,
   is_required BOOLEAN DEFAULT FALSE,
@@ -34,7 +34,7 @@ TRUNCATE TABLE product_field_configs;
 
 INSERT INTO product_field_configs (
   field_key,
-  field_name,
+  display_name,
   field_label,
   field_type,
   is_required,
@@ -187,7 +187,7 @@ ON product_field_configs(is_visible);
 
 COMMENT ON TABLE product_field_configs IS '产品字段配置表，管理产品库的字段显示、必填、判重等配置';
 COMMENT ON COLUMN product_field_configs.field_key IS '字段唯一标识符';
-COMMENT ON COLUMN product_field_configs.field_name IS '字段中文名称';
+COMMENT ON COLUMN product_field_configs.display_name IS '字段显示名称（中文）';
 COMMENT ON COLUMN product_field_configs.field_label IS '字段英文标签（对应数据库字段名）';
 COMMENT ON COLUMN product_field_configs.field_type IS '字段类型：text, number, textarea, select, date等';
 COMMENT ON COLUMN product_field_configs.is_required IS '是否必填';
@@ -358,7 +358,7 @@ END $$;
 -- 显示所有字段配置
 SELECT
   field_key AS "字段键",
-  field_name AS "字段名",
+  display_name AS "字段名",
   field_label AS "字段标签",
   field_type AS "类型",
   CASE WHEN is_required THEN '是' ELSE '否' END AS "必填",
