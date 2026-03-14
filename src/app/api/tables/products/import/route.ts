@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     // 初始化判重检查器
     let duplicateChecker: DuplicateChecker;
     try {
-      duplicateChecker = await createDuplicateChecker();
+      duplicateChecker = await createDuplicateChecker(db);
       const config = duplicateChecker.getConfig();
       console.log('[Import API] 判重配置:', JSON.stringify(config, null, 2));
     } catch (error) {
@@ -264,6 +264,34 @@ export async function POST(request: NextRequest) {
       console.error('[Import API] 验证查询失败:', error);
     }
 
+    // 记录导入日志
+    try {
+      const duplicateConfig = duplicateChecker.getConfig();
+
+      await db.from('import_logs').insert({
+        file_name: body.file_name || 'unknown',
+        file_type: body.file_type || 'unknown',
+        total_count: productData.length,
+        imported_count: successCount,
+        skipped_count: duplicateCount,
+        failed_count: errorCount,
+        duplicate_config: duplicateConfig,
+        details: {
+          errors: errors.length > 0 ? errors : undefined,
+          duplicateProducts: duplicateCount > 0 ? duplicateProducts : undefined,
+        },
+        duration_ms: duration,
+        status: 'completed',
+        started_at: new Date(startTime).toISOString(),
+        completed_at: new Date().toISOString(),
+      });
+
+      console.log('[Import API] ✅ 导入日志已记录');
+    } catch (logError) {
+      console.error('[Import API] ⚠️ 记录导入日志失败:', logError);
+      // 不影响主流程，仅记录错误
+    }
+
     return NextResponse.json({
       success: true,
       message: `成功导入 ${successCount} 条产品数据${duplicateCount > 0 ? `，跳过 ${duplicateCount} 条重复产品` : ''}${errorCount > 0 ? `，${errorCount} 条失败` : ''}`,
@@ -278,6 +306,33 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Import API] ❌ 导入产品失败:', error);
     console.error('[Import API] 错误堆栈:', error instanceof Error ? error.stack : error);
+
+    // 记录失败的导入日志
+    try {
+      const db = getSupabaseClient();
+      const body = await request.clone().json();
+
+      await db.from('import_logs').insert({
+        file_name: body.file_name || 'unknown',
+        file_type: body.file_type || 'unknown',
+        total_count: body.products?.length || 0,
+        imported_count: 0,
+        skipped_count: 0,
+        failed_count: body.products?.length || 0,
+        duplicate_config: null,
+        details: {
+          error: error instanceof Error ? error.message : '未知错误',
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+        duration_ms: Date.now() - startTime,
+        status: 'failed',
+        started_at: new Date(startTime).toISOString(),
+        completed_at: new Date().toISOString(),
+      });
+    } catch (logError) {
+      console.error('[Import API] ⚠️ 记录失败日志失败:', logError);
+    }
+
     return NextResponse.json(
       {
         success: false,

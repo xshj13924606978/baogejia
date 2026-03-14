@@ -6,8 +6,26 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Save, RefreshCw, AlertTriangle, Database } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Loader2,
+  Save,
+  RefreshCw,
+  AlertTriangle,
+  Database,
+  CheckCircle2,
+  RotateCcw,
+  TestTube,
+} from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { duplicateCheckTemplates, getDefaultTemplate, generateRuleDescription } from '@/lib/duplicate-check-templates';
+import { DuplicateChecker } from '@/lib/duplicate-checker';
 
 interface FieldConfig {
   id: number;
@@ -32,6 +50,8 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
   const [needsInit, setNeedsInit] = useState(false);
   const [sqlStatements, setSqlStatements] = useState<string | null>(null);
   const [initing, setIniting] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
 
   // 加载配置
   const loadConfig = async () => {
@@ -155,6 +175,120 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
     }
   };
 
+  // 测试判重规则
+  const handleTestConfig = async () => {
+    if (selectedFields.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: '测试失败',
+        description: '请先选择至少一个判重字段',
+      });
+      return;
+    }
+
+    setTesting(true);
+    try {
+      // 模拟测试数据
+      const testData = {
+        name: '测试产品',
+        model: 'TEST-001',
+        brand: '测试品牌',
+        parameter_description: '测试参数',
+      };
+
+      // 创建判重检查器
+      const checker = new DuplicateChecker({
+        fields: selectedFields,
+        matchRule: 'and',
+      });
+
+      const description = generateRuleDescription(selectedFields);
+
+      toast({
+        title: '✅ 判重规则测试通过',
+        description: (
+          <div className="mt-2 space-y-1">
+            <p className="text-sm font-medium">当前规则：</p>
+            <p className="text-sm text-muted-foreground">{description}</p>
+            <p className="text-sm font-medium mt-2">使用字段：{selectedFields.length} 个</p>
+          </div>
+        ),
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: '测试失败',
+        description: err instanceof Error ? err.message : '未知错误',
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  // 恢复默认配置
+  const handleResetToDefault = async () => {
+    const defaultTemplate = getDefaultTemplate();
+
+    if (!window.confirm(`确定要恢复到默认配置吗？\n\n默认规则：${defaultTemplate.description}`)) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await fetch('/api/tables/products/duplicate-check-config', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          duplicateCheckFields: defaultTemplate.fields,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: '✅ 已恢复默认配置',
+          description: defaultTemplate.description,
+        });
+        onUpdate?.();
+        await loadConfig();
+      } else {
+        toast({
+          variant: 'destructive',
+          title: '恢复失败',
+          description: result.error,
+        });
+      }
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: '恢复失败',
+        description: err instanceof Error ? err.message : '未知错误',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 应用模板
+  const handleApplyTemplate = (templateId: string) => {
+    const template = duplicateCheckTemplates.find(t => t.id === templateId);
+
+    if (!template) {
+      return;
+    }
+
+    setSelectedFields(template.fields);
+    setSelectedTemplate(templateId);
+
+    toast({
+      title: '✅ 已选择模板',
+      description: template.description,
+    });
+  };
+
   if (loading) {
     return (
       <Card>
@@ -248,6 +382,45 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
           </AlertDescription>
         </Alert>
 
+        {/* 规则模板选择器 */}
+        <div className="space-y-2">
+          <Label>快速应用模板</Label>
+          <Select
+            value={selectedTemplate}
+            onValueChange={handleApplyTemplate}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="选择判重规则模板..." />
+            </SelectTrigger>
+            <SelectContent>
+              {duplicateCheckTemplates.map((template) => (
+                <SelectItem key={template.id} value={template.id}>
+                  <div className="flex items-center gap-2">
+                    <span>{template.icon}</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{template.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {template.description}
+                      </span>
+                    </div>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* 当前规则描述 */}
+        {selectedFields.length > 0 && (
+          <Alert>
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertDescription>
+              <span className="font-medium">当前规则：</span>
+              {generateRuleDescription(selectedFields)}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
@@ -277,16 +450,46 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
           ))}
         </div>
 
-        <div className="pt-4 border-t">
+        <div className="pt-4 border-t space-y-4">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               已选择 <span className="font-semibold text-foreground">{selectedFields.length}</span> 个判重字段
             </div>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <Save className="mr-2 h-4 w-4" />
-              保存配置
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetToDefault}
+                disabled={saving}
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                恢复默认
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestConfig}
+                disabled={testing || selectedFields.length === 0}
+              >
+                {testing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <TestTube className="mr-2 h-4 w-4" />
+                )}
+                测试规则
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                保存配置
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>

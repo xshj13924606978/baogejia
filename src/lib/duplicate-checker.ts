@@ -1,5 +1,3 @@
-import { getSupabaseClient } from '@/storage/database/supabase-client';
-
 /**
  * 判重配置接口
  */
@@ -86,12 +84,15 @@ export class DuplicateChecker {
    */
   private async checkDuplicateInDB(product: any): Promise<DuplicateCheckResult> {
     const fields = this.config.fields;
-    const db = this.db || getSupabaseClient();
+
+    if (!this.db) {
+      throw new Error('数据库实例未设置');
+    }
 
     console.log('[DuplicateChecker] 开始数据库查重，判重字段:', fields.join(', '));
 
     // 构建查询条件
-    let query = db.from('products').select('id, name, model, brand, parameter_description, price');
+    let query = this.db.from('products').select('id, name, model, brand, parameter_description, price');
 
     // 根据判重字段添加条件
     const matchValues: Record<string, any> = {};
@@ -180,12 +181,16 @@ export class DuplicateChecker {
 
   /**
    * 从数据库加载判重配置
+   * @param db 数据库实例
    * @returns 判重配置
    */
-  static async loadFromDB(): Promise<DuplicateCheckConfig> {
-    try {
-      const db = getSupabaseClient();
+  static async loadFromDB(db?: any): Promise<DuplicateCheckConfig> {
+    if (!db) {
+      console.error('[DuplicateChecker] loadFromDB 需要提供数据库实例');
+      return { fields: ['name', 'model'], matchRule: 'and' };
+    }
 
+    try {
       const { data, error } = await db
         .from('product_field_configs')
         .select('field_key')
@@ -202,7 +207,7 @@ export class DuplicateChecker {
         return { fields: ['name', 'model'], matchRule: 'and' };
       }
 
-      const fields = data.map(item => item.field_key);
+      const fields = data.map((item: any) => item.field_key);
 
       // 确保 name 字段始终在列表中（如果已配置）
       // 注意：这里不再强制添加 name，尊重用户配置
@@ -256,10 +261,12 @@ export class DuplicateChecker {
    * @returns 检查结果数组
    */
   async batchCheckDuplicates(products: any[]): Promise<DuplicateCheckResult[]> {
-    const db = this.db || getSupabaseClient();
+    if (!this.db) {
+      throw new Error('数据库实例未设置');
+    }
 
     // 先加载数据库中的所有产品
-    const { data: existingProducts, error } = await db
+    const { data: existingProducts, error } = await this.db
       .from('products')
       .select('*');
 
@@ -282,17 +289,16 @@ export class DuplicateChecker {
 
 /**
  * 创建判重检查器实例（便捷方法）
+ * @param db 数据库实例（必填）
  * @param config 判重配置（可选，不传则从数据库加载）
  * @returns 判重检查器实例
  */
-export async function createDuplicateChecker(config?: DuplicateCheckConfig): Promise<DuplicateChecker> {
-  const db = getSupabaseClient();
-
+export async function createDuplicateChecker(db: any, config?: DuplicateCheckConfig): Promise<DuplicateChecker> {
   if (config) {
     return new DuplicateChecker(config, db);
   }
 
   // 从数据库加载配置
-  const loadedConfig = await DuplicateChecker.loadFromDB();
+  const loadedConfig = await DuplicateChecker.loadFromDB(db);
   return new DuplicateChecker(loadedConfig, db);
 }
