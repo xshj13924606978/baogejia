@@ -69,6 +69,24 @@ export async function POST(request: NextRequest) {
       console.error('[Import API] 获取字段配置失败，使用默认必填字段:', error);
     }
 
+    // 获取判重配置
+    let duplicateCheckFields: string[] = ['name', 'model']; // 默认判重字段
+    try {
+      const { data: dupConfig } = await db
+        .from('product_field_configs')
+        .select('field_key')
+        .eq('is_duplicate_check', true);
+
+      if (dupConfig && dupConfig.length > 0) {
+        duplicateCheckFields = dupConfig.map((c) => c.field_key);
+        console.log('[Import API] 使用自定义判重字段:', duplicateCheckFields);
+      } else {
+        console.log('[Import API] 未配置判重字段，使用默认: name, model');
+      }
+    } catch (error) {
+      console.error('[Import API] 获取判重配置失败，使用默认字段:', error);
+    }
+
     console.log('[Import API] ========== 开始处理产品数据 ==========');
 
     // 批量插入产品
@@ -171,16 +189,21 @@ export async function POST(request: NextRequest) {
 
         console.log('[Import API] 构造的数据库记录:', JSON.stringify(dbProduct, null, 2));
 
-        // 查重检查：根据名称和型号判断是否存在
-        console.log(`[Import API] 查重检查: name="${dbProduct.name}", model="${dbProduct.model}"`);
+        // 查重检查：根据配置的判重字段判断是否存在
+        console.log('[Import API] 判重字段:', duplicateCheckFields.join(', '));
 
-        // 只根据 name 和 model 查重，因为数据库可能没有 supplier 字段
-        const { data: existingProduct, error: checkError } = await db
-          .from('products')
-          .select('id, name, model, price')
-          .eq('name', dbProduct.name)
-          .eq('model', dbProduct.model || '')
-          .maybeSingle();
+        // 构建动态查询条件
+        let query = db.from('products').select('id, name, model, price');
+
+        // 根据判重字段添加条件
+        duplicateCheckFields.forEach((fieldKey) => {
+          const fieldValue = dbProduct[fieldKey];
+          if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+            query = query.eq(fieldKey, fieldValue);
+          }
+        });
+
+        const { data: existingProduct, error: checkError } = await query.maybeSingle();
 
         if (checkError) {
           console.error('[Import API] ❌ 查重检查失败:', checkError);
@@ -189,9 +212,23 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
+        // 构建判重字段值字符串用于日志
+        const duplicateCheckValues = duplicateCheckFields
+          .map((fieldKey) => {
+            const labelMap: Record<string, string> = {
+              name: '名称',
+              model: '型号',
+              brand: '品牌',
+              category: '分类',
+              price: '价格',
+            };
+            return `${labelMap[fieldKey] || fieldKey}: ${dbProduct[fieldKey] || '-'}`;
+          })
+          .join(' | ');
+
         // 如果已存在相同产品，跳过插入
         if (existingProduct) {
-          const duplicateMsg = `重复产品（已存在）: ${dbProduct.name} | 型号: ${dbProduct.model || '-'} | 价格: ¥${existingProduct.price}`;
+          const duplicateMsg = `重复产品（已存在）: ${duplicateCheckValues} | 现价格: ¥${existingProduct.price}`;
           console.log(`[Import API] ⚠️ ${duplicateMsg}`);
           console.log('[Import API] 已存在产品:', JSON.stringify(existingProduct, null, 2));
           duplicateCount++;
