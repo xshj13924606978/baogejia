@@ -31,7 +31,14 @@ export async function POST(request: NextRequest) {
     const { data: allData, error: allError } = await db
       .from('product_field_configs')
       .select('*')
-      .limit(1);
+      .order('id', { ascending: true });
+
+    console.log('[Diagnose Field Configs] 查询结果:', {
+      hasData: !!allData,
+      dataLength: allData?.length || 0,
+      allFieldKeys: allData?.map((f: any) => f.field_key),
+      error: allError?.message || null,
+    });
 
     if (allError) {
       console.error('[Diagnose Field Configs] 查询失败:', allError);
@@ -56,7 +63,42 @@ export async function POST(request: NextRequest) {
     });
 
     // 检测旧表结构（field_key 是 product_name 而不是 name）
-    const hasOldStructure = allData && allData.length > 0 && allData[0].field_key === 'product_name';
+    const hasProductNameField = allData && allData.length > 0 &&
+      allData.some((f: any) => f.field_key === 'product_name');
+
+    const hasOldStructure = hasProductNameField;
+
+    console.log('[Diagnose Field Configs] 旧表结构检测:', {
+      hasProductNameField,
+      hasOldStructure,
+      allFieldKeys: allData?.map((f: any) => f.field_key),
+    });
+
+    // 对于旧表结构，如果已经适配了，返回健康状态
+    if (hasOldStructure && !hasIsDuplicateCheck) {
+      console.log('[Diagnose Field Configs] 检测到旧表结构，但前端已适配，返回健康状态');
+
+      // 获取默认的判重字段
+      const defaultDuplicateFields = allData?.filter((f: any) =>
+        f.field_key === 'product_name' || f.field_key === 'name' || f.field_key === 'model'
+      ) || [];
+
+      return NextResponse.json({
+        success: true,
+        status: 'healthy_old_structure',
+        message: '旧表结构，但前端已适配',
+        data: {
+          hasData: allData && allData.length > 0,
+          recordCount: allData?.length || 0,
+          duplicateFields: defaultDuplicateFields.map((f: any) => f.field_key),
+          sampleData: allData?.slice(0, 3),
+          isOldStructure: true,
+          note: '当前使用旧表结构，但前端已适配，可以正常工作。建议升级到新表结构以获得完整功能。',
+        },
+      });
+    }
+
+    // 检测旧表结构（field_key 是 product_name 而不是 name）
     if (hasOldStructure) {
       console.log('[Diagnose Field Configs] 检测到旧表结构，需要重建表');
 

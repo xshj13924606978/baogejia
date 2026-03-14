@@ -88,6 +88,13 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
         setNeedsFieldRename(true);
         setFixSql(result.fixSql);
         setError(result.error);
+      } else if (result.status === 'healthy_old_structure') {
+        console.log('[Diagnose] 旧表结构但已适配，不需要修复');
+        setNeedsRebuild(false);
+        setNeedsFieldRename(false);
+        setRebuildSql(null);
+        setFixSql(null);
+        setError(result.message || '旧表结构但已适配');
       } else if (result.success) {
         console.log('[Diagnose] 字段配置正常');
         setNeedsRebuild(false);
