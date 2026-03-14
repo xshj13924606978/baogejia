@@ -285,6 +285,47 @@ export class DuplicateChecker {
       this.checkDuplicateInMemory(product, existingProducts || [])
     );
   }
+
+  /**
+   * 判断两个产品是否重复（用于测试）
+   * @param productA 产品A
+   * @param productB 产品B
+   * @returns 是否重复
+   */
+  isDuplicate(productA: any, productB: any): boolean {
+    const fields = this.config.fields;
+    
+    return fields.every(field => {
+      const valueA = productA[field]?.toString().trim() || '';
+      const valueB = productB[field]?.toString().trim() || '';
+      
+      // 标准化比较：都为空时视为匹配
+      const normalizedA = valueA === '' ? null : valueA;
+      const normalizedB = valueB === '' ? null : valueB;
+      
+      return normalizedA === normalizedB;
+    });
+  }
+
+  /**
+   * 获取两个产品的匹配字段和值（用于测试结果展示）
+   * @param productA 产品A
+   * @param productB 产品B
+   * @returns 匹配字段和值的映射
+   */
+  getMatchedFields(productA: any, productB: any): Record<string, any> {
+    const fields = this.config.fields;
+    const matchedValues: Record<string, any> = {};
+    
+    fields.forEach(field => {
+      const valueA = productA[field]?.toString().trim() || '';
+      const valueB = productB[field]?.toString().trim() || '';
+      
+      matchedValues[field] = valueA;
+    });
+    
+    return matchedValues;
+  }
 }
 
 /**
