@@ -58,6 +58,8 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
   const [fixSql, setFixSql] = useState<string | null>(null);
   const [needsRebuild, setNeedsRebuild] = useState(false);
   const [rebuildSql, setRebuildSql] = useState<string | null>(null);
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [setupSql, setSetupSql] = useState<string | null>(null);
 
   // 诊断字段名
   const diagnoseFieldNames = async () => {
@@ -243,12 +245,18 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
         onUpdate?.();
         await loadConfig(); // 重新加载配置
       } else {
-        setError(result.error || '保存失败');
-        toast({
-          variant: 'destructive',
-          title: '保存失败',
-          description: result.error,
-        });
+        // 如果需要设置独立配置表，显示设置提示
+        if (result.needsSetup) {
+          console.log('[Save] 需要设置独立配置表');
+          await initSetup();
+        } else {
+          setError(result.error || '保存失败');
+          toast({
+            variant: 'destructive',
+            title: '保存失败',
+            description: result.error,
+          });
+        }
       }
     } catch (err) {
       const errorMsg = '保存失败：' + (err instanceof Error ? err.message : '未知错误');
@@ -260,6 +268,31 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // 初始化独立配置表
+  const initSetup = async () => {
+    try {
+      const response = await fetch('/api/admin/init-duplicate-settings', {
+        method: 'POST',
+      });
+      const result = await response.json();
+
+      if (result.requiresManualSetup) {
+        setNeedsSetup(true);
+        setSetupSql(result.sqlStatements);
+        setError('需要创建独立配置表才能保存判重配置');
+      } else if (result.success) {
+        toast({
+          title: '✅ 初始化成功',
+          description: result.message,
+        });
+        // 重新尝试保存
+        await handleSave();
+      }
+    } catch (err) {
+      console.error('[Init Setup] 初始化失败:', err);
     }
   };
 
@@ -394,6 +427,64 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
         <CardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-muted-foreground">加载配置中...</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // 需要设置独立配置表
+  if (needsSetup) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            创建独立配置表
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {error || '需要创建独立配置表才能保存判重配置'}
+            </AlertDescription>
+          </Alert>
+
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              请按照以下步骤创建独立配置表：
+            </p>
+            <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+              <li>登录 Supabase Dashboard</li>
+              <li>进入 SQL Editor</li>
+              <li>复制并执行下方的 SQL 语句</li>
+              <li>执行完成后，刷新页面并重新保存</li>
+            </ol>
+          </div>
+
+          {setupSql && (
+            <div className="space-y-2">
+              <Label>SQL 语句</Label>
+              <div className="bg-muted p-4 rounded-lg overflow-x-auto max-h-64 overflow-y-auto">
+                <pre className="text-xs font-mono whitespace-pre-wrap">{setupSql}</pre>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  navigator.clipboard.writeText(setupSql);
+                  toast({
+                    title: '已复制',
+                    description: 'SQL 语句已复制到剪贴板',
+                  });
+                }}>
+                  复制 SQL 语句
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <Button onClick={() => setNeedsSetup(false)} variant="default">
+            稍后再说
+          </Button>
         </CardContent>
       </Card>
     );
