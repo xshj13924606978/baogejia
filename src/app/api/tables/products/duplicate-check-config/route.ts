@@ -188,6 +188,34 @@ export async function PUT(request: NextRequest) {
 
     const db = getSupabaseClient();
 
+    // 先检查表是否存在
+    try {
+      const { error: tableCheckError } = await db
+        .from('product_field_configs')
+        .select('count', { count: 'exact', head: true });
+
+      if (tableCheckError && tableCheckError.message && tableCheckError.message.includes('does not exist')) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: '数据库表不存在，请先执行初始化SQL',
+            needsInit: true,
+          },
+          { status: 200 }
+        );
+      }
+    } catch (checkError) {
+      console.error('[Duplicate Check Config] 检查表是否存在时出错:', checkError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: '数据库表不存在，请先执行初始化SQL',
+          needsInit: true,
+        },
+        { status: 200 }
+      );
+    }
+
     // 检查是否有 is_duplicate_check 列
     const { data: testData } = await db
       .from('product_field_configs')
