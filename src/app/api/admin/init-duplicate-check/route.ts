@@ -101,6 +101,52 @@ CREATE INDEX IF NOT EXISTS idx_import_logs_status ON import_logs(status);
 
 COMMENT ON TABLE import_logs IS '产品导入日志表，记录所有导入操作的详细信息';
 
+-- 第三部分：创建导入日志视图
+-- 创建导入日志摘要视图（详细视图）
+CREATE OR REPLACE VIEW import_logs_summary AS
+SELECT
+  id,
+  created_at,
+  file_name,
+  file_type,
+  total_count,
+  imported_count,
+  skipped_count,
+  failed_count,
+  duration_ms,
+  status,
+  started_at,
+  completed_at,
+  CASE
+    WHEN failed_count > 0 THEN '部分失败'
+    WHEN skipped_count > 0 THEN '部分跳过'
+    ELSE '全部成功'
+  END AS result_status,
+  CASE
+    WHEN total_count > 0 THEN ROUND((imported_count::FLOAT / total_count) * 100, 2)
+    ELSE 0
+  END AS success_rate
+FROM import_logs
+ORDER BY created_at DESC;
+
+COMMENT ON VIEW import_logs_summary IS '导入日志摘要视图，包含每条导入记录的详细信息';
+
+-- 创建导入日志每日汇总视图（统计视图）
+CREATE OR REPLACE VIEW import_logs_daily_summary AS
+SELECT
+  DATE(created_at) as import_date,
+  COUNT(*) as total_imports,
+  SUM(total_count) as total_products,
+  SUM(imported_count) as total_imported,
+  SUM(skipped_count) as total_skipped,
+  SUM(failed_count) as total_failed,
+  AVG(CASE WHEN total_count > 0 THEN (imported_count::float / total_count::float) * 100 ELSE 0 END) as avg_success_rate
+FROM import_logs
+GROUP BY DATE(created_at)
+ORDER BY import_date DESC;
+
+COMMENT ON VIEW import_logs_daily_summary IS '导入日志每日汇总视图，按日期统计导入数据';
+
 -- ============================================================================
 -- 初始化完成
 -- ============================================================================`;

@@ -262,9 +262,10 @@ COMMENT ON COLUMN import_logs.completed_at IS '导入完成时间';
 
 RAISE NOTICE '第二部分完成：import_logs 表已创建';
 
--- 第八部分：创建导入日志摘要视图
+-- 第八部分：创建导入日志视图
 -- ----------------------------------------------------------------------------
 
+-- 8.1 创建导入日志摘要视图（详细视图）
 CREATE OR REPLACE VIEW import_logs_summary AS
 SELECT
   id,
@@ -291,9 +292,25 @@ SELECT
 FROM import_logs
 ORDER BY created_at DESC;
 
-COMMENT ON VIEW import_logs_summary IS '导入日志摘要视图，包含导入结果的统计信息';
+COMMENT ON VIEW import_logs_summary IS '导入日志摘要视图，包含每条导入记录的详细信息';
 
-RAISE NOTICE '第三部分完成：import_logs_summary 视图已创建';
+-- 8.2 创建导入日志每日汇总视图（统计视图）
+CREATE OR REPLACE VIEW import_logs_daily_summary AS
+SELECT
+  DATE(created_at) as import_date,
+  COUNT(*) as total_imports,
+  SUM(total_count) as total_products,
+  SUM(imported_count) as total_imported,
+  SUM(skipped_count) as total_skipped,
+  SUM(failed_count) as total_failed,
+  AVG(CASE WHEN total_count > 0 THEN (imported_count::float / total_count::float) * 100 ELSE 0 END) as avg_success_rate
+FROM import_logs
+GROUP BY DATE(created_at)
+ORDER BY import_date DESC;
+
+COMMENT ON VIEW import_logs_daily_summary IS '导入日志每日汇总视图，按日期统计导入数据';
+
+RAISE NOTICE '第三部分完成：import_logs 视图已创建';
 
 -- 第九部分：验证初始化结果
 -- ----------------------------------------------------------------------------
@@ -351,12 +368,22 @@ SELECT
 FROM product_field_configs
 ORDER BY display_order;
 
+-- 验证视图创建成功（返回0条记录是正常的，因为还没有导入日志）
+RAISE NOTICE '';
+RAISE NOTICE '========== 验证视图创建 ==========';
+SELECT 'import_logs_summary 视图创建成功' as status;
+SELECT 'import_logs_daily_summary 视图创建成功' as status;
+RAISE NOTICE '';
+
 -- ============================================================================
 -- 初始化完成
 -- ============================================================================
 RAISE NOTICE '';
 RAISE NOTICE '✅ 数据库初始化完成！';
 RAISE NOTICE '已创建 12 个字段配置，其中 3 个字段用于判重（name, model, brand）';
+RAISE NOTICE '已创建 2 个导入日志视图：';
+RAISE NOTICE '  - import_logs_summary：详细日志视图';
+RAISE NOTICE '  - import_logs_daily_summary：每日汇总统计视图';
 RAISE NOTICE '请访问产品库管理页面，查看判重配置功能。';
 RAISE NOTICE '';
 
