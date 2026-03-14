@@ -30,7 +30,7 @@ import { DuplicateChecker } from '@/lib/duplicate-checker';
 interface FieldConfig {
   id: string;
   field_key: string;
-  display_name: string;
+  field_name: string;
   field_label: string;
   is_required: boolean;
   is_duplicate_check?: boolean;
@@ -518,7 +518,7 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
                 htmlFor={`field-${field.field_key}`}
                 className="flex-1 cursor-pointer"
               >
-                {fieldLabelMap[field.field_key] || field.display_name || field.field_label || field.field_key}
+                {fieldLabelMap[field.field_key] || field.field_name || field.field_label || field.field_key}
                 {field.is_required && (
                   <span className="ml-1 text-xs text-destructive">（必填）</span>
                 )}

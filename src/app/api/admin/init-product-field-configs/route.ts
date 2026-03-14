@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 CREATE TABLE IF NOT EXISTS product_field_configs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   field_key VARCHAR(50) UNIQUE NOT NULL,
-  display_name VARCHAR(100) NOT NULL,
+  field_name VARCHAR(100) NOT NULL,
   field_label VARCHAR(100) NOT NULL,
   field_type VARCHAR(20) NOT NULL,
   is_required BOOLEAN DEFAULT FALSE,
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS product_field_configs (
 );
 
 -- 插入默认字段配置
-INSERT INTO product_field_configs (field_key, display_name, field_label, field_type, is_required, is_duplicate_check, is_visible, display_order) VALUES
+INSERT INTO product_field_configs (field_key, field_name, field_label, field_type, is_required, is_duplicate_check, is_visible, display_order) VALUES
 ('name', '产品名称', 'product_name', 'text', TRUE, TRUE, TRUE, 1),
 ('model', '规格型号', 'model', 'text', FALSE, TRUE, TRUE, 2),
 ('brand', '品牌', 'brand', 'text', FALSE, FALSE, TRUE, 3),
