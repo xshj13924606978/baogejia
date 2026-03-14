@@ -56,6 +56,8 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
   const [diagnosing, setDiagnosing] = useState(false);
   const [needsFieldRename, setNeedsFieldRename] = useState(false);
   const [fixSql, setFixSql] = useState<string | null>(null);
+  const [needsRebuild, setNeedsRebuild] = useState(false);
+  const [rebuildSql, setRebuildSql] = useState<string | null>(null);
 
   // 诊断字段名
   const diagnoseFieldNames = async () => {
@@ -66,7 +68,12 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
       });
       const result = await response.json();
 
-      if (result.status === 'needs_rename') {
+      if (result.status === 'needs_rebuild') {
+        console.log('[Diagnose] 检测到需要重建表');
+        setNeedsRebuild(true);
+        setRebuildSql(result.rebuildSql);
+        setError(result.error);
+      } else if (result.status === 'needs_rename') {
         console.log('[Diagnose] 检测到需要重命名字段');
         setNeedsFieldRename(true);
         setFixSql(result.fixSql);
@@ -83,7 +90,9 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
         setError(result.error);
       } else if (result.success) {
         console.log('[Diagnose] 字段配置正常');
+        setNeedsRebuild(false);
         setNeedsFieldRename(false);
+        setRebuildSql(null);
         setFixSql(null);
       }
     } catch (err) {
@@ -378,6 +387,100 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
         <CardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-muted-foreground">加载配置中...</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // 需要重建表
+  if (needsRebuild) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            表结构重建
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {error || '检测到旧表结构，需要重建表'}
+            </AlertDescription>
+          </Alert>
+
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              ⚠️ 警告：此操作将删除现有配置并重建表
+            </AlertDescription>
+          </Alert>
+
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              请按照以下步骤重建表结构：
+            </p>
+            <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+              <li>登录 Supabase Dashboard</li>
+              <li>进入 SQL Editor</li>
+              <li>复制下方的 SQL 语句并执行</li>
+              <li>执行完成后，点击"刷新配置"按钮</li>
+            </ol>
+          </div>
+
+          {rebuildSql && (
+            <div className="space-y-2">
+              <Label>重建 SQL 语句</Label>
+              <div className="bg-muted p-4 rounded-lg overflow-x-auto max-h-64 overflow-y-auto">
+                <pre className="text-xs font-mono whitespace-pre-wrap">{rebuildSql}</pre>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  navigator.clipboard.writeText(rebuildSql);
+                  toast({
+                    title: '已复制',
+                    description: 'SQL 语句已复制到剪贴板',
+                  });
+                }}>
+                  复制 SQL 语句
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const blob = new Blob([rebuildSql], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'rebuild-table.sql';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast({
+                      title: '已下载',
+                      description: 'SQL 语句已下载为文件',
+                    });
+                  }}
+                >
+                  下载 SQL 文件
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <Button onClick={loadConfig} variant="default" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                检查中...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                刷新配置
+              </>
+            )}
+          </Button>
         </CardContent>
       </Card>
     );
