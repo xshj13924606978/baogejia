@@ -68,9 +68,30 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
       } else {
         setError(result.error || '加载配置失败');
 
-        // 检查是否需要初始化
-        if (result.error && result.error.includes('is_duplicate_check')) {
-          console.log('检测到需要初始化数据库');
+        // 检查是否需要初始化 product_field_configs 表
+        if (result.error && result.error.includes('product_field_configs') && result.error.includes('does not exist')) {
+          console.log('检测到 product_field_configs 表不存在');
+          try {
+            const initResponse = await fetch('/api/admin/init-product-field-configs', {
+              method: 'POST',
+            });
+            const initResult = await initResponse.json();
+
+            if (initResult.requiresManualSetup) {
+              setNeedsInit(true);
+              setSqlStatements(initResult.sqlStatements);
+              setError('product_field_configs 表不存在，需要初始化');
+            } else if (initResult.success) {
+              // 初始化成功，重新加载
+              await loadConfig();
+            }
+          } catch (initErr) {
+            console.error('检查初始化状态失败:', initErr);
+          }
+        }
+        // 检查是否需要初始化判重字段
+        else if (result.error && result.error.includes('is_duplicate_check')) {
+          console.log('检测到需要初始化判重字段');
           try {
             const initResponse = await fetch('/api/admin/init-duplicate-check', {
               method: 'POST',
