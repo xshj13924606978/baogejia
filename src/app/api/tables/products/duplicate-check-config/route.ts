@@ -71,30 +71,43 @@ export async function GET(_request: NextRequest) {
       console.log('[Duplicate Check Config] 旧表结构，尝试从独立配置表读取');
 
       try {
-        const { data: configData, error: configError } = await db
+        // 先检查表是否存在
+        const { error: tableCheckError } = await db
           .from('duplicate_check_settings')
-          .select('*')
-          .eq('is_enabled', true)
-          .order('display_order', { ascending: true });
+          .select('count', { count: 'exact', head: true });
 
-        if (!configError && configData && configData.length > 0) {
-          // 从独立配置表读取成功
-          console.log('[Duplicate Check Config] 从独立配置表读取到配置:', configData.length, '个字段');
-          duplicateCheckFields = configData.map((config: any) => {
-            const field = allFields?.find((f: any) => f.field_key === config.field_key);
-            return field || {
-              id: config.id,
-              field_key: config.field_key,
-              field_label: config.field_name,
-              is_required: false,
-            };
-          });
-        } else {
-          // 配置表为空或读取失败，使用默认判重字段
-          console.log('[Duplicate Check Config] 独立配置表为空，使用默认判重字段');
+        if (tableCheckError) {
+          console.log('[Duplicate Check Config] 独立配置表不存在，使用默认判重字段');
+          // 使用默认判重字段
           duplicateCheckFields = allFields?.filter((f: any) =>
             f.field_key === 'name' || f.field_key === 'product_name' || f.field_key === 'model'
           ) || [];
+        } else {
+          const { data: configData, error: configError } = await db
+            .from('duplicate_check_settings')
+            .select('*')
+            .eq('is_enabled', true)
+            .order('display_order', { ascending: true });
+
+          if (!configError && configData && configData.length > 0) {
+            // 从独立配置表读取成功
+            console.log('[Duplicate Check Config] 从独立配置表读取到配置:', configData.length, '个字段');
+            duplicateCheckFields = configData.map((config: any) => {
+              const field = allFields?.find((f: any) => f.field_key === config.field_key);
+              return field || {
+                id: config.id,
+                field_key: config.field_key,
+                field_label: config.field_name,
+                is_required: false,
+              };
+            });
+          } else {
+            // 配置表为空或读取失败，使用默认判重字段
+            console.log('[Duplicate Check Config] 独立配置表为空，使用默认判重字段');
+            duplicateCheckFields = allFields?.filter((f: any) =>
+              f.field_key === 'name' || f.field_key === 'product_name' || f.field_key === 'model'
+            ) || [];
+          }
         }
       } catch (e) {
         console.error('[Duplicate Check Config] 读取独立配置表失败:', e);
@@ -237,6 +250,23 @@ export async function PUT(request: NextRequest) {
 
     // 对于旧表结构，使用独立的配置表
     console.log('[Duplicate Check Config] 使用独立配置表保存判重配置');
+
+    // 检查独立配置表是否存在
+    const { error: tableCheckError } = await db
+      .from('duplicate_check_settings')
+      .select('count', { count: 'exact', head: true });
+
+    if (tableCheckError) {
+      console.error('[Duplicate Check Config] 独立配置表不存在:', tableCheckError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: '独立配置表不存在，请先执行CREATE_AND_TEST_DUPLICATE_SETTINGS.sql创建配置表',
+          needsSetup: true,
+        },
+        { status: 200 }
+      );
+    }
 
     // 获取所有字段配置
     const { data: allFields } = await db
