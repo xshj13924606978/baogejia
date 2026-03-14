@@ -30,7 +30,8 @@ import { DuplicateChecker } from '@/lib/duplicate-checker';
 interface FieldConfig {
   id: string;
   field_key: string;
-  field_name: string;
+  field_name?: string;
+  display_name?: string;  // 向后兼容
   field_label: string;
   is_required: boolean;
   is_duplicate_check?: boolean;
@@ -52,6 +53,45 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
   const [initing, setIniting] = useState(false);
   const [testing, setTesting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [diagnosing, setDiagnosing] = useState(false);
+  const [needsFieldRename, setNeedsFieldRename] = useState(false);
+  const [fixSql, setFixSql] = useState<string | null>(null);
+
+  // 诊断字段名
+  const diagnoseFieldNames = async () => {
+    try {
+      setDiagnosing(true);
+      const response = await fetch('/api/admin/diagnose-field-configs', {
+        method: 'POST',
+      });
+      const result = await response.json();
+
+      if (result.status === 'needs_rename') {
+        console.log('[Diagnose] 检测到需要重命名字段');
+        setNeedsFieldRename(true);
+        setFixSql(result.fixSql);
+        setError(result.error);
+      } else if (result.status === 'needs_data') {
+        console.log('[Diagnose] 检测到需要插入数据');
+        setNeedsFieldRename(true);
+        setFixSql(result.insertSql);
+        setError(result.error);
+      } else if (result.status === 'needs_duplicate_fix') {
+        console.log('[Diagnose] 检测到需要修复判重配置');
+        setNeedsFieldRename(true);
+        setFixSql(result.fixSql);
+        setError(result.error);
+      } else if (result.success) {
+        console.log('[Diagnose] 字段配置正常');
+        setNeedsFieldRename(false);
+        setFixSql(null);
+      }
+    } catch (err) {
+      console.error('[Diagnose] 诊断失败:', err);
+    } finally {
+      setDiagnosing(false);
+    }
+  };
 
   // 加载配置
   const loadConfig = async () => {
@@ -65,6 +105,9 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
       if (result.success) {
         setAllFields(result.data.allFields || []);
         setSelectedFields(result.data.duplicateCheckFields?.map((f: FieldConfig) => f.field_key) || []);
+
+        // 加载成功后，诊断字段名
+        await diagnoseFieldNames();
       } else {
         setError(result.error || '加载配置失败');
 
@@ -340,6 +383,93 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
     );
   }
 
+  // 需要重命名字段
+  if (needsFieldRename) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            字段配置修复
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {error || '数据库字段配置需要修复'}
+            </AlertDescription>
+          </Alert>
+
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              请按照以下步骤修复数据库：
+            </p>
+            <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+              <li>登录 Supabase Dashboard</li>
+              <li>进入 SQL Editor</li>
+              <li>复制下方的 SQL 语句并执行</li>
+              <li>执行完成后，点击"刷新配置"按钮</li>
+            </ol>
+          </div>
+
+          {fixSql && (
+            <div className="space-y-2">
+              <Label>修复 SQL 语句</Label>
+              <div className="bg-muted p-4 rounded-lg overflow-x-auto max-h-64 overflow-y-auto">
+                <pre className="text-xs font-mono whitespace-pre-wrap">{fixSql}</pre>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  navigator.clipboard.writeText(fixSql);
+                  toast({
+                    title: '已复制',
+                    description: 'SQL 语句已复制到剪贴板',
+                  });
+                }}>
+                  复制 SQL 语句
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const blob = new Blob([fixSql], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'fix-field-configs.sql';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast({
+                      title: '已下载',
+                      description: 'SQL 语句已下载为文件',
+                    });
+                  }}
+                >
+                  下载 SQL 文件
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <Button onClick={loadConfig} variant="default" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                检查中...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                刷新配置
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // 需要初始化数据库
   if (needsInit) {
     return (
@@ -380,9 +510,9 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
                 <Button variant="outline" size="sm" onClick={handleCopySql}>
                   复制 SQL 语句
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     const blob = new Blob([sqlStatements], { type: 'text/plain' });
                     const url = URL.createObjectURL(blob);
@@ -438,6 +568,11 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
     description: '描述',
     stock: '库存',
     image_url: '图片',
+  };
+
+  // 获取字段显示名称（支持新旧两种字段名）
+  const getFieldDisplayName = (field: FieldConfig): string => {
+    return fieldLabelMap[field.field_key] || field.field_name || field.display_name || field.field_label;
   };
 
   return (
@@ -518,7 +653,7 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
                 htmlFor={`field-${field.field_key}`}
                 className="flex-1 cursor-pointer"
               >
-                {fieldLabelMap[field.field_key] || field.field_name || field.field_label || field.field_key}
+                {getFieldDisplayName(field)}
                 {field.is_required && (
                   <span className="ml-1 text-xs text-destructive">（必填）</span>
                 )}
