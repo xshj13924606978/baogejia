@@ -427,10 +427,17 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
     model: '规格型号',
     brand: '品牌',
     category: '分类',
-    price: '指导价',
+    price: '指导价（元）',
     supplier: '供应商',
     parameter_description: '参数描述',
     unit: '单位',
+    cost_price: '成本（元）',
+    min_price: '最低售价（元）',
+    contact_person: '联系人',
+    contact_phone: '电话',
+    description: '描述',
+    stock: '库存',
+    image_url: '图片',
   };
 
   return (

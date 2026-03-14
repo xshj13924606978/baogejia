@@ -3,42 +3,201 @@
 -- 执行此脚本可完成所有必要的数据库初始化
 -- ============================================================================
 
--- 第一部分：确保 product_field_configs 表包含所有必需的列
+-- 第一部分：创建 product_field_configs 表（如果不存在）
 -- ----------------------------------------------------------------------------
 
--- 检查并添加 is_duplicate_check 列
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_name = 'product_field_configs'
-    AND column_name = 'is_duplicate_check'
-  ) THEN
-    ALTER TABLE product_field_configs
-    ADD COLUMN IF NOT EXISTS is_duplicate_check BOOLEAN DEFAULT FALSE;
-    RAISE NOTICE '已添加 is_duplicate_check 列';
-  ELSE
-    RAISE NOTICE 'is_duplicate_check 列已存在';
-  END IF;
-END $$;
+CREATE TABLE IF NOT EXISTS product_field_configs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  field_key VARCHAR(50) UNIQUE NOT NULL,
+  field_name VARCHAR(100) NOT NULL,
+  field_label VARCHAR(100) NOT NULL,
+  field_type VARCHAR(20) NOT NULL,
+  is_required BOOLEAN DEFAULT FALSE,
+  is_duplicate_check BOOLEAN DEFAULT FALSE,
+  is_visible BOOLEAN DEFAULT TRUE,
+  display_order INTEGER DEFAULT 0,
+  options JSONB,
+  validation_rules JSONB,
+  default_value TEXT,
+  placeholder TEXT,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_by UUID REFERENCES auth.users(id),
+  updated_by UUID REFERENCES auth.users(id)
+);
 
--- 初始化默认判重配置
-UPDATE product_field_configs
-SET is_duplicate_check = TRUE
-WHERE field_key IN ('name', 'model');
+-- 第二部分：插入完整字段配置（先清空表确保数据一致）
+-- ----------------------------------------------------------------------------
 
--- 添加索引以提高查询性能
-CREATE INDEX IF NOT EXISTS idx_product_field_configs_duplicate_check
+TRUNCATE TABLE product_field_configs;
+
+INSERT INTO product_field_configs (
+  field_key,
+  field_name,
+  field_label,
+  field_type,
+  is_required,
+  is_duplicate_check,
+  is_visible,
+  display_order
+) VALUES
+  (
+    'category',
+    '分类',
+    'category',
+    'text',
+    FALSE,
+    FALSE,
+    TRUE,
+    1
+  ),
+  (
+    'name',
+    '产品名称',
+    'product_name',
+    'text',
+    TRUE,
+    TRUE,
+    TRUE,
+    2
+  ),
+  (
+    'model',
+    '规格型号',
+    'model',
+    'text',
+    FALSE,
+    TRUE,
+    TRUE,
+    3
+  ),
+  (
+    'brand',
+    '品牌',
+    'brand',
+    'text',
+    FALSE,
+    TRUE,
+    TRUE,
+    4
+  ),
+  (
+    'parameter_description',
+    '参数描述',
+    'parameter_description',
+    'textarea',
+    FALSE,
+    FALSE,
+    TRUE,
+    5
+  ),
+  (
+    'supplier',
+    '供应商',
+    'supplier',
+    'text',
+    FALSE,
+    FALSE,
+    TRUE,
+    6
+  ),
+  (
+    'contact_person',
+    '联系人',
+    'contact_person',
+    'text',
+    FALSE,
+    FALSE,
+    TRUE,
+    7
+  ),
+  (
+    'contact_phone',
+    '电话',
+    'contact_phone',
+    'text',
+    FALSE,
+    FALSE,
+    TRUE,
+    8
+  ),
+  (
+    'unit',
+    '单位',
+    'unit',
+    'text',
+    FALSE,
+    FALSE,
+    TRUE,
+    9
+  ),
+  (
+    'cost_price',
+    '成本（元）',
+    'cost_price',
+    'number',
+    FALSE,
+    FALSE,
+    TRUE,
+    10
+  ),
+  (
+    'min_price',
+    '最低售价（元）',
+    'min_price',
+    'number',
+    FALSE,
+    FALSE,
+    TRUE,
+    11
+  ),
+  (
+    'price',
+    '指导价（元）',
+    'price',
+    'number',
+    FALSE,
+    FALSE,
+    TRUE,
+    12
+  );
+
+-- 第三部分：添加索引
+-- ----------------------------------------------------------------------------
+
+CREATE INDEX IF NOT EXISTS idx_product_field_configs_field_key
+ON product_field_configs(field_key);
+
+CREATE INDEX IF NOT EXISTS idx_product_field_configs_is_duplicate_check
 ON product_field_configs(is_duplicate_check)
 WHERE is_duplicate_check = TRUE;
 
--- 添加注释
-COMMENT ON COLUMN product_field_configs.is_duplicate_check IS '标识该字段是否用于产品导入时的重复判断';
+CREATE INDEX IF NOT EXISTS idx_product_field_configs_display_order
+ON product_field_configs(display_order);
 
-RAISE NOTICE '第一部分完成：product_field_configs 表结构已更新';
+CREATE INDEX IF NOT EXISTS idx_product_field_configs_is_required
+ON product_field_configs(is_required);
 
--- 第二部分：创建导入日志表
+CREATE INDEX IF NOT EXISTS idx_product_field_configs_is_visible
+ON product_field_configs(is_visible);
+
+-- 第四部分：添加注释
+-- ----------------------------------------------------------------------------
+
+COMMENT ON TABLE product_field_configs IS '产品字段配置表，管理产品库的字段显示、必填、判重等配置';
+COMMENT ON COLUMN product_field_configs.field_key IS '字段唯一标识符';
+COMMENT ON COLUMN product_field_configs.field_name IS '字段中文名称';
+COMMENT ON COLUMN product_field_configs.field_label IS '字段英文标签（对应数据库字段名）';
+COMMENT ON COLUMN product_field_configs.field_type IS '字段类型：text, number, textarea, select, date等';
+COMMENT ON COLUMN product_field_configs.is_required IS '是否必填';
+COMMENT ON COLUMN product_field_configs.is_duplicate_check IS '是否用于判重';
+COMMENT ON COLUMN product_field_configs.is_visible IS '是否在界面显示';
+COMMENT ON COLUMN product_field_configs.display_order IS '显示顺序';
+
+RAISE NOTICE '第一部分完成：product_field_configs 表已初始化';
+
+-- 第五部分：创建导入日志表
 -- ----------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS import_logs (
@@ -69,7 +228,9 @@ CREATE TABLE IF NOT EXISTS import_logs (
   completed_at TIMESTAMP WITH TIME ZONE
 );
 
--- 添加索引
+-- 第六部分：添加导入日志表索引
+-- ----------------------------------------------------------------------------
+
 CREATE INDEX IF NOT EXISTS idx_import_logs_created_at
 ON import_logs(created_at DESC);
 
@@ -82,7 +243,9 @@ ON import_logs(status);
 CREATE INDEX IF NOT EXISTS idx_import_logs_started_at
 ON import_logs(started_at DESC);
 
--- 添加注释
+-- 第七部分：添加导入日志表注释
+-- ----------------------------------------------------------------------------
+
 COMMENT ON TABLE import_logs IS '产品导入日志表，记录所有导入操作的详细信息';
 COMMENT ON COLUMN import_logs.file_name IS '导入的文件名';
 COMMENT ON COLUMN import_logs.file_type IS '文件类型：excel, pdf';
@@ -99,7 +262,7 @@ COMMENT ON COLUMN import_logs.completed_at IS '导入完成时间';
 
 RAISE NOTICE '第二部分完成：import_logs 表已创建';
 
--- 第三部分：创建导入日志摘要视图
+-- 第八部分：创建导入日志摘要视图
 -- ----------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW import_logs_summary AS
@@ -132,7 +295,7 @@ COMMENT ON VIEW import_logs_summary IS '导入日志摘要视图，包含导入�
 
 RAISE NOTICE '第三部分完成：import_logs_summary 视图已创建';
 
--- 第四部分：验证初始化结果
+-- 第九部分：验证初始化结果
 -- ----------------------------------------------------------------------------
 
 -- 显示 product_field_configs 表的统计信息
@@ -140,6 +303,7 @@ DO $$
 DECLARE
   total_fields INTEGER;
   duplicate_fields INTEGER;
+  required_fields INTEGER;
 BEGIN
   SELECT COUNT(*) INTO total_fields
   FROM product_field_configs;
@@ -148,27 +312,51 @@ BEGIN
   FROM product_field_configs
   WHERE is_duplicate_check = TRUE;
 
+  SELECT COUNT(*) INTO required_fields
+  FROM product_field_configs
+  WHERE is_required = TRUE;
+
   RAISE NOTICE '';
   RAISE NOTICE '========== 初始化验证结果 ==========';
   RAISE NOTICE 'product_field_configs 表字段总数: %', total_fields;
   RAISE NOTICE '参与判重的字段数量: %', duplicate_fields;
+  RAISE NOTICE '必填字段数量: %', required_fields;
   RAISE NOTICE '';
 
-  IF total_fields < 15 THEN
-    RAISE WARNING '警告：product_field_configs 表字段数量不足，可能需要重新创建表';
+  IF total_fields < 12 THEN
+    RAISE WARNING '警告：product_field_configs 表字段数量不足，预期12个字段';
   END IF;
 
   IF duplicate_fields = 0 THEN
     RAISE WARNING '警告：没有配置判重字段，建议检查初始化结果';
   END IF;
 
+  IF required_fields = 0 THEN
+    RAISE WARNING '警告：没有配置必填字段，建议检查初始化结果';
+  END IF;
+
   RAISE NOTICE '========== 验证完成 ==========';
 END $$;
+
+-- 显示所有字段配置
+SELECT
+  field_key AS "字段键",
+  field_name AS "字段名",
+  field_label AS "字段标签",
+  field_type AS "类型",
+  CASE WHEN is_required THEN '是' ELSE '否' END AS "必填",
+  CASE WHEN is_duplicate_check THEN '是' ELSE '否' END AS "判重",
+  CASE WHEN is_visible THEN '是' ELSE '否' END AS "可见",
+  display_order AS "顺序"
+FROM product_field_configs
+ORDER BY display_order;
 
 -- ============================================================================
 -- 初始化完成
 -- ============================================================================
 RAISE NOTICE '';
 RAISE NOTICE '✅ 数据库初始化完成！';
+RAISE NOTICE '已创建 12 个字段配置，其中 3 个字段用于判重（name, model, brand）';
 RAISE NOTICE '请访问产品库管理页面，查看判重配置功能。';
 RAISE NOTICE '';
+
