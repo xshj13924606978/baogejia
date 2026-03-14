@@ -50,14 +50,31 @@ export async function GET(_request: NextRequest) {
       );
     }
 
-    // 获取标记为判重的字段
-    const { data: duplicateCheckFields, error: dupError } = await db
-      .from('product_field_configs')
-      .select('*')
-      .eq('is_duplicate_check', true)
-      .order('id', { ascending: true });
+    // 检查是否有 is_duplicate_check 列
+    const hasDuplicateCheckColumn = allFields && allFields.length > 0 && 'is_duplicate_check' in allFields[0];
 
-    if (dupError) {
+    // 获取标记为判重的字段（如果有 is_duplicate_check 列）
+    let duplicateCheckFields = [];
+    let dupError = null;
+
+    if (hasDuplicateCheckColumn) {
+      const result = await db
+        .from('product_field_configs')
+        .select('*')
+        .eq('is_duplicate_check', true)
+        .order('id', { ascending: true });
+
+      duplicateCheckFields = result.data || [];
+      dupError = result.error;
+    } else {
+      // 旧表结构：默认判重字段为 product_name 和 model
+      console.log('[Duplicate Check Config] 旧表结构，使用默认判重字段');
+      duplicateCheckFields = allFields?.filter((f: any) =>
+        f.field_key === 'name' || f.field_key === 'product_name' || f.field_key === 'model'
+      ) || [];
+    }
+
+    if (dupError && hasDuplicateCheckColumn) {
       console.error('获取判重配置失败:', dupError);
       
       // 检查是否是字段不存在的错误
@@ -126,6 +143,27 @@ export async function PUT(request: NextRequest) {
     }
 
     const db = getSupabaseClient();
+
+    // 检查是否有 is_duplicate_check 列
+    const { data: testData } = await db
+      .from('product_field_configs')
+      .select('is_duplicate_check')
+      .limit(1);
+
+    const hasDuplicateCheckColumn = testData && testData.length > 0 && 'is_duplicate_check' in testData[0];
+
+    // 如果没有 is_duplicate_check 列，返回提示（当前使用旧表结构，无法保存配置）
+    if (!hasDuplicateCheckColumn) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '当前使用旧表结构，无法保存判重配置。请升级到新表结构。',
+          needsUpgrade: true,
+          currentDuplicateFields: duplicateCheckFields,
+        },
+        { status: 200 }
+      );
+    }
 
     // 首先尝试添加 is_duplicate_check 列（如果不存在）
     try {

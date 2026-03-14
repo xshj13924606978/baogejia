@@ -657,11 +657,13 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
   // 字段名称映射
   const fieldLabelMap: Record<string, string> = {
     name: '产品名称',
+    product_name: '产品名称',
     model: '规格型号',
     brand: '品牌',
     category: '分类',
     price: '指导价（元）',
     supplier: '供应商',
+    specifications: '参数描述',
     parameter_description: '参数描述',
     unit: '单位',
     cost_price: '成本（元）',
@@ -675,7 +677,11 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
 
   // 获取字段显示名称（支持新旧两种字段名）
   const getFieldDisplayName = (field: FieldConfig): string => {
-    return fieldLabelMap[field.field_key] || field.field_name || field.display_name || field.field_label;
+    return fieldLabelMap[field.field_key] ||
+           field.field_name ||
+           field.display_name ||
+           field.field_label ||
+           field.field_key;
   };
 
   return (
