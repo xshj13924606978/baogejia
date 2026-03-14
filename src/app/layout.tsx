@@ -1,4 +1,6 @@
+// 必须最先导入 - 在所有其他模块加载之前过滤 Console Bridge 警告
 import '@/lib/console-filter';
+
 import { UserProvider } from '@/contexts/UserContext';
 import { SwitchProvider } from '@/components/switch-manager';
 import { Inter } from 'next/font/google';

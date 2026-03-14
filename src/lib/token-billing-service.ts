@@ -454,6 +454,25 @@ export class TokenBillingService {
         return false;
       }
 
+      // 记录积分流水
+      try {
+        const { error: logError } = await this.supabase.from('point_logs').insert({
+          user_id: userId,
+          points: -points, // 扣除积分为负数
+          type: serviceType || 'deduct',
+          description: `扣除 ${points} 积分${conversationId ? ` (对话: ${conversationId})` : ''}${messageId ? ` (消息: ${messageId})` : ''}`,
+          created_at: new Date(),
+        });
+
+        if (logError) {
+          console.error('[TokenBillingService] 记录积分流水失败:', logError);
+          // 不影响主流程，只记录日志
+        }
+      } catch (logError) {
+        console.error('[TokenBillingService] 记录积分流水异常:', logError);
+        // 不影响主流程，只记录日志
+      }
+
       return true;
     } catch (error) {
       console.error('[TokenBillingService] 扣除积分异常:', error);

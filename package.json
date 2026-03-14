@@ -23,7 +23,12 @@
     "type-check:watch": "tsc --noEmit --watch",
     "verify-points": "bash scripts/verify-points-protection.sh",
     "prebuild": "pnpm run type-check",
-    "prepare": "husky"
+    "prepare": "husky",
+    "verify-protected-20260313_211406": "bash scripts/verify-protected-20260313_211406.sh",
+    "verify-points-system": "bash scripts/verify-points-system.sh",
+    "verify-protected_20260313_222329": "bash scripts/verify-protected_20260313_222329.sh",
+    "verify-protected-20260314_091843": "bash scripts/verify-protected_20260314_091843.sh",
+    "verify-protected-20260314_094139": "bash scripts/verify-protected-20260314_094139.sh"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",
@@ -125,6 +130,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19",
     "@types/uuid": "^11.0.0",
+    "@types/xlsx": "^0.0.36",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",
     "eslint": "^9",

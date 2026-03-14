@@ -1,142 +1,85 @@
 /**
- * 日志工具类
- * 提供错误去重、日志简化等功能
+ * 调试日志工具
+ * 用于在开发环境中输出调试信息，避免 Strict Mode 导致的重复日志
  */
 
+const loggedMessages = new Set<string>();
+
+/**
+ * 清空已记录的消息（用于测试或需要重新输出时）
+ */
+export function clearLoggedMessages() {
+  loggedMessages.clear();
+}
+
+/**
+ * 只输出一次的日志
+ * @param tag 日志标签，用于标识消息来源
+ * @param message 日志内容
+ * @param data 可选的额外数据
+ */
+export function logOnce(tag: string, message: string, data?: any) {
+  if (process.env.NODE_ENV !== 'production') {
+    const key = `${tag}:${message}`;
+    if (!loggedMessages.has(key)) {
+      console.log(`[${tag}] ${message}`, data || '');
+      loggedMessages.add(key);
+    }
+  }
+}
+
+/**
+ * 只输出一次的警告
+ * @param tag 日志标签，用于标识消息来源
+ * @param message 警告内容
+ * @param data 可选的额外数据
+ */
+export function warnOnce(tag: string, message: string, data?: any) {
+  if (process.env.NODE_ENV !== 'production') {
+    const key = `${tag}:${message}`;
+    if (!loggedMessages.has(key)) {
+      console.warn(`[${tag}] ${message}`, data || '');
+      loggedMessages.add(key);
+    }
+  }
+}
+
+/**
+ * 带时间戳的调试日志
+ * @param tag 日志标签
+ * @param message 日志内容
+ * @param data 可选的额外数据
+ */
+export function logWithTimestamp(tag: string, message: string, data?: any) {
+  if (process.env.NODE_ENV !== 'production') {
+    const timestamp = new Date().toLocaleString('zh-CN');
+    console.log(`[${tag}] ${timestamp} - ${message}`, data || '');
+  }
+}
+
+/**
+ * 静态日志记录器类（向后兼容）
+ */
 export class Logger {
-  private static errorMessages = new Set<string>();
-  private static lastErrorTime = new Map<string, number>();
-  private static readonly ERROR_COOLDOWN = 5000; // 5秒内相同错误不重复记录
-  private static readonly MAX_ERROR_CACHE = 100; // 最多缓存100条错误信息
-
-  /**
-   * 清理过期的错误缓存
-   */
-  private static cleanupErrors(): void {
-    const now = Date.now();
-    const toDelete: string[] = [];
-
-    this.lastErrorTime.forEach((time, key) => {
-      if (now - time > 60000) {
-        // 1分钟后清理
-        toDelete.push(key);
-      }
-    });
-
-    toDelete.forEach((key) => {
-      this.errorMessages.delete(key);
-      this.lastErrorTime.delete(key);
-    });
-
-    // 限制缓存大小
-    if (this.errorMessages.size > this.MAX_ERROR_CACHE) {
-      const entries = Array.from(this.lastErrorTime.entries()).sort((a, b) => a[1] - b[1]);
-      for (let i = 0; i < entries.length - this.MAX_ERROR_CACHE; i++) {
-        this.errorMessages.delete(entries[i][0]);
-        this.lastErrorTime.delete(entries[i][0]);
-      }
+  static info(message: string, data?: any) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(message, data || '');
     }
   }
 
-  /**
-   * 记录错误（带去重）
-   */
-  static error(message: string, error?: any): void {
-    const errorKey = message + (error?.message || '');
-    const now = Date.now();
-
-    this.cleanupErrors();
-
-    const lastTime = this.lastErrorTime.get(errorKey);
-    if (lastTime && now - lastTime < this.ERROR_COOLDOWN) {
-      // 相同错误在冷却期内，不重复记录
-      return;
-    }
-
-    this.errorMessages.add(errorKey);
-    this.lastErrorTime.set(errorKey, now);
-
-    console.error(message, error);
-  }
-
-  /**
-   * 记录调试信息
-   */
-  static debug(message: string, data?: any): void {
-    if (data) {
-      const simplifiedData = this.simplifyData(data);
-      console.debug(message, simplifiedData);
-    } else {
-      console.debug(message);
+  static warn(message: string, data?: any) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(message, data || '');
     }
   }
 
-  /**
-   * 记录信息
-   */
-  static info(message: string, data?: any): void {
-    if (data) {
-      // 简化数据输出，只显示关键信息
-      const simplifiedData = this.simplifyData(data);
-      console.log(message, simplifiedData);
-    } else {
-      console.log(message);
-    }
+  static error(message: string, data?: any) {
+    console.error(message, data || '');
   }
 
-  /**
-   * 记录警告
-   */
-  static warn(message: string, data?: any): void {
-    if (data) {
-      const simplifiedData = this.simplifyData(data);
-      console.warn(message, simplifiedData);
-    } else {
-      console.warn(message);
+  static debug(message: string, data?: any) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[DEBUG]', message, data || '');
     }
-  }
-
-  /**
-   * 简化数据输出
-   */
-  private static simplifyData(data: any): any {
-    if (!data) return data;
-
-    // 如果是数组，只显示前3个元素
-    if (Array.isArray(data)) {
-      if (data.length > 3) {
-        return `[Array(${data.length})] ${JSON.stringify(data.slice(0, 3))} ...`;
-      }
-      return data;
-    }
-
-    // 如果是对象，只显示前5个属性
-    if (typeof data === 'object') {
-      const keys = Object.keys(data);
-      if (keys.length > 5) {
-        const simplified: any = {};
-        keys.slice(0, 5).forEach((key) => {
-          simplified[key] = data[key];
-        });
-        simplified._more = `... (${keys.length - 5} more fields)`;
-        return simplified;
-      }
-      return data;
-    }
-
-    // 如果是字符串，截断过长的内容
-    if (typeof data === 'string' && data.length > 200) {
-      return data.substring(0, 200) + '...';
-    }
-
-    return data;
-  }
-
-  /**
-   * 清空错误缓存
-   */
-  static clearErrors(): void {
-    this.errorMessages.clear();
-    this.lastErrorTime.clear();
   }
 }

@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useSwitch } from '@/components/switch-manager';
+import { logOnce } from '@/lib/logger';
 
 export default function FloatingSwitcher() {
   // TypeScript误报：useSwitch不接受任何参数
@@ -15,7 +16,8 @@ export default function FloatingSwitcher() {
   const _inputAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    console.log('[Floating] 状态:', { fileGroupId, currentChoice, isLoading, hasFiles });
+    // 移除频繁的状态日志，避免控制台过于嘈杂
+    // logOnce('Floating', '状态已更新', { fileGroupId, currentChoice, isLoading, hasFiles });
 
     if (fileGroupId && hasFiles) {
       setIsVisible(true);
@@ -84,7 +86,7 @@ export default function FloatingSwitcher() {
   const handleChoiceChange = async (choice: string) => {
     if (isLoading) return;
 
-    console.log('[Floating] 切换:', { from: currentChoice, to: choice });
+    logOnce('Floating', `切换: ${currentChoice} -> ${choice}`);
 
     window.dispatchEvent(
       new CustomEvent('switch-change', {

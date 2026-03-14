@@ -207,13 +207,14 @@ export async function POST(request: NextRequest) {
         .from('user_uploads')
         .insert({
           user_id: userId,
-          file_name: file.name,
-          file_key: fileKey,
+          type: 'document',
+          title: file.name,
+          description: `File: ${file.name}`,
+          file_url: publicUrl,
           file_size: buffer.length,
-          file_type: file.type,
-          public_url: publicUrl,
           status: 'uploaded',
-          created_at: new Date().toISOString()})
+          created_at: new Date().toISOString()
+        })
         .select()
         .single();
 

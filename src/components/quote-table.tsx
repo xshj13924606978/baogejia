@@ -348,11 +348,26 @@ export default function QuoteTable({
   // 使用传入的供应信息或从报价数据中获取
   const actualSupplierInfo = propSupplierInfo || data?.supplierInfo;
 
+  // 调试日志：检查接收到的产品数据
+  console.log('[QuoteTable] ========== 组件初始化 ==========');
+  console.log('[QuoteTable] 接收到的 data.products:', data?.products);
+  if (data?.products && data.products.length > 0) {
+    console.log('[QuoteTable] 第一个产品的数据:', data.products[0]);
+    console.log('[QuoteTable] 第一个产品的 parameter_description:', data.products[0]?.parameter_description);
+  }
+
   // 内部状态
-  const [quoteData, setQuoteData] = useState<QuoteData>(() => ({
-    ...data,
-    products: Array.isArray(data?.products) ? data.products.filter((p) => p != null) : [],
-  }));
+  const [quoteData, setQuoteData] = useState<QuoteData>(() => {
+    const filteredProducts = Array.isArray(data?.products) ? data.products.filter((p) => p != null) : [];
+    console.log('[QuoteTable] 过滤后的 products:', filteredProducts);
+    if (filteredProducts.length > 0) {
+      console.log('[QuoteTable] 过滤后第一个产品的 parameter_description:', filteredProducts[0]?.parameter_description);
+    }
+    return {
+      ...data,
+      products: filteredProducts,
+    };
+  });
 
   const [editingPrice, setEditingPrice] = useState<{ rowIndex: number; value: string } | null>(
     null

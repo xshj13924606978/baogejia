@@ -1,3 +1,5 @@
+'use client';
+
 export default function TestDiagnosticsPage() {
   return (
     <div className="p-8">

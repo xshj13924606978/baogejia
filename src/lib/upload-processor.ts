@@ -189,19 +189,27 @@ export class FileUploadProcessor {
 
     const supabase = getSupabaseClient();
 
+    // 构建插入数据 - 使用正确的字段名
+    const insertData: any = {
+      user_id: data.userId,
+      file_name: data.fileName,
+      file_key: data.fileKey,
+      public_url: data.fileUrl,  // 注意：数据库字段是 public_url，不是 file_url
+      file_size: data.fileSize,
+      file_type: data.fileType,
+      status: 'uploaded',
+    };
+
+    // 如果有 conversationId，保存在 metadata 中（因为数据库表中没有 conversation_id 字段）
+    if (data.conversationId) {
+      insertData.metadata = {
+        conversation_id: data.conversationId,
+      };
+    }
+
     const { data: record, error } = await supabase
       .from('user_uploads')
-      .insert({
-        user_id: data.userId,
-        conversation_id: data.conversationId,
-        file_name: data.fileName,
-        file_key: data.fileKey,
-        file_url: data.fileUrl,
-        file_size: data.fileSize,
-        file_type: data.fileType,
-        status: 'uploaded',
-        created_at: new Date().toISOString(),
-      })
+      .insert(insertData)
       .select()
       .single();
 

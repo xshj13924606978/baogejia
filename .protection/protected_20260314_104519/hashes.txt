@@ -1,0 +1,5 @@
+# 保护文件哈希值 - Sat Mar 14 10:45:23 CST 2026
+ede7b60a32f47b7c841e0e3e065b254582fefa7ef8bf97f27af1c2ef9b2df44d  src/utils/excel-parser-enhanced.ts
+2e8d43ee3d6ed25afc311667e13ffe899b2af27eb63033d17630b72092260339  src/utils/test-excel-parser.ts
+cf0eda3a05ad4930bd8475ba8ef590e9067c9679cc7b7f764569f3c4c371cb55  src/app/api/documents/parse/route.ts
+b3c596529c092c6a9ff681ee6e09f9ab2e825a588e50cc9f962da5b7308db26f  src/app/api/chat/route.ts

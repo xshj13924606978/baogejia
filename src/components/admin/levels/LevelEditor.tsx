@@ -55,6 +55,138 @@ interface Module {
   is_active: boolean;
 }
 
+interface PermissionChange {
+  type: 'field' | 'module' | 'quota';
+  name: string;
+  before: any;
+  after: any;
+}
+
+const formatPermissionChange = (before: Config, after: Config): PermissionChange[] => {
+  const changes: PermissionChange[] = [];
+
+  // 字段权限变化
+  const fieldLabels: Record<string, string> = {
+    can_view_cost_price: '查看成本价',
+    can_view_min_price: '查看最低价',
+    can_view_manufacturer: '查看制造商',
+    can_view_contact: '查看联系人',
+    can_view_phone: '查看联系电话',
+  };
+
+  Object.keys(fieldLabels).forEach(key => {
+    const fieldKey = key as keyof typeof before.fieldPermissions;
+    if (before.fieldPermissions[fieldKey] !== after.fieldPermissions[fieldKey]) {
+      changes.push({
+        type: 'field',
+        name: fieldLabels[key],
+        before: before.fieldPermissions[fieldKey],
+        after: after.fieldPermissions[fieldKey],
+      });
+    }
+  });
+
+  // 配额变化
+  const quotaLabels: Record<string, string> = {
+    daily_quota: '每日查询配额',
+    max_files: '最大文件数量',
+    max_chat_messages: '最大聊天消息数',
+  };
+
+  Object.keys(quotaLabels).forEach(key => {
+    const quotaKey = key as keyof typeof before.quotas;
+    if (before.quotas[quotaKey] !== after.quotas[quotaKey]) {
+      changes.push({
+        type: 'quota',
+        name: quotaLabels[key],
+        before: before.quotas[quotaKey],
+        after: after.quotas[quotaKey],
+      });
+    }
+  });
+
+  // 模块权限变化
+  const beforeModules = new Set(before.modulePermissions);
+  const afterModules = new Set(after.modulePermissions);
+
+  const addedModules = [...afterModules].filter(m => !beforeModules.has(m));
+  const removedModules = [...beforeModules].filter(m => !afterModules.has(m));
+
+  addedModules.forEach(module => {
+    changes.push({
+      type: 'module',
+      name: module,
+      before: false,
+      after: true,
+    });
+  });
+
+  removedModules.forEach(module => {
+    changes.push({
+      type: 'module',
+      name: module,
+      before: true,
+      after: false,
+    });
+  });
+
+  return changes;
+};
+
+const PermissionChangeItem: React.FC<{ change: PermissionChange }> = ({ change }) => {
+  const getValueDisplay = (value: any, type: string) => {
+    if (typeof value === 'boolean') {
+      return value ? (
+        <span className="text-green-600 font-medium">✓ 允许</span>
+      ) : (
+        <span className="text-red-600 font-medium">✗ 禁止</span>
+      );
+    }
+    if (type === 'quota') {
+      return <span className="font-medium">{value}</span>;
+    }
+    return String(value);
+  };
+
+  const getChangeIndicator = () => {
+    if (change.type === 'field' || change.type === 'module') {
+      return change.after ? (
+        <span className="text-green-600 text-xs">（新增）</span>
+      ) : (
+        <span className="text-red-600 text-xs">（移除）</span>
+      );
+    }
+    if (change.type === 'quota') {
+      const diff = change.after - change.before;
+      return diff > 0 ? (
+        <span className="text-green-600 text-xs">（+{diff}）</span>
+      ) : diff < 0 ? (
+        <span className="text-red-600 text-xs">（{diff}）</span>
+      ) : null;
+    }
+    return null;
+  };
+
+  return (
+    <div className="flex items-center justify-between py-2 border-b last:border-b-0">
+      <div className="flex-1">
+        <div className="font-medium">{change.name}</div>
+        <div className="text-sm text-muted-foreground mt-1">
+          <span className="mr-4">
+            <span className="text-muted-foreground">修改前：</span>
+            {getValueDisplay(change.before, change.type)}
+          </span>
+          <span>
+            <span className="text-muted-foreground">修改后：</span>
+            {getValueDisplay(change.after, change.type)}
+          </span>
+        </div>
+      </div>
+      {getChangeIndicator()}
+    </div>
+  );
+};
+
 export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState<Config | null>(null);
@@ -130,14 +262,6 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
   };
 
   const handlePreview = async () => {
-    if (!formData.reason) {
-      toast({
-        variant: 'destructive',
-        title: '请填写修改原因',
-      });
-      return;
-    }
-
     try {
       const changes = {
         fieldPermissions: {
@@ -163,6 +287,8 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
 
       const data = await res.json();
 
+      console.log('[LevelEditor] 预览响应数据:', data);
+
       if (data.success) {
         setPreviewData(data.preview);
         setPreviewOpen(true);
@@ -170,12 +296,15 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
         toast({
           variant: 'destructive',
           title: '预览失败',
+          description: data.error || '服务器错误',
         });
       }
     } catch (error) {
+      console.error('[LevelEditor] 预览失败:', error);
       toast({
         variant: 'destructive',
         title: '预览失败',
+        description: error instanceof Error ? error.message : '网络错误',
       });
     }
   };
@@ -413,37 +542,55 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>权限修改预览</DialogTitle>
+            <DialogDescription>
+              查看 LV.{level} 等级配置修改对用户的影响范围和具体变化
+            </DialogDescription>
           </DialogHeader>
           {previewData && (
             <div className="space-y-4">
               <div className="p-4 bg-muted rounded-md">
-                <div className="font-medium">影响用户数</div>
-                <div className="text-2xl font-bold">{previewData.affectedUsers}</div>
+                <div className="text-3xl font-bold mb-3">LV.{level} {config?.name || ''}</div>
+                {previewData.affectedUsers > 0 ? (
+                  <>
+                    <div className="font-medium">影响用户数</div>
+                    <div className="text-2xl font-bold">{previewData.affectedUsers}</div>
+                    {previewData.affectedUsers > 3 && (
+                      <div className="text-sm text-muted-foreground mt-1">
+                        修改将影响该等级下的所有用户
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-2xl font-bold">当前没有 LV.{level} 等级的用户</div>
+                )}
               </div>
 
-              {previewData.sampleUsers && previewData.sampleUsers.length > 0 && (
-                <div>
-                  <div className="font-medium mb-2">示例用户</div>
-                  <div className="space-y-4">
-                    {previewData.sampleUsers.map((user: any) => (
-                      <div key={user.id} className="p-4 border rounded-md">
-                        <div className="font-medium mb-2">用户：{user.name}</div>
-                        <div className="text-sm space-y-1">
-                          <div>
-                            <span className="font-medium">修改前：</span>
-                            <code className="ml-2 bg-muted px-1 rounded text-xs">
-                              {JSON.stringify(user.before, null, 2)}
-                            </code>
+              {previewData.affectedUsers <= 3 && previewData.sampleUsers && previewData.sampleUsers.length > 0 && (
+                <div className="space-y-6">
+                  <div>
+                    <div className="font-medium mb-3">示例用户变更详情</div>
+                    <div className="space-y-4">
+                      {previewData.sampleUsers.map((user: any) => {
+                        const changes = formatPermissionChange(user.before, user.after);
+                        return (
+                          <div key={user.id} className="p-4 border rounded-md">
+                            <div className="font-medium mb-3 flex items-center gap-2">
+                              <span>用户：{user.name}</span>
+                              <span className="text-sm text-muted-foreground">（{user.email || user.id}）</span>
+                            </div>
+                            {changes.length > 0 ? (
+                              <div className="space-y-1">
+                                {changes.map((change, idx) => (
+                                  <PermissionChangeItem key={idx} change={change} />
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground">无变更</div>
+                            )}
                           </div>
-                          <div>
-                            <span className="font-medium">修改后：</span>
-                            <code className="ml-2 bg-muted px-1 rounded text-xs">
-                              {JSON.stringify(user.after, null, 2)}
-                            </code>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
@@ -454,3 +601,5 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
     </div>
   );
 };
+// test
+// test

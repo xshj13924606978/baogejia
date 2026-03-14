@@ -82,10 +82,21 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   // 用户积分
   const [userPoints, setUserPoints] = useState(0);
   
+  // 防抖机制：防止短时间内重复请求
+  const [lastPointsRequestTime, setLastPointsRequestTime] = useState(0);
+  const POINTS_REQUEST_DEBOUNCE = 1000; // 1秒内不重复请求
+  
   // 加载用户积分
   useEffect(() => {
     const loadUserPoints = async () => {
       if (!user?.id) return;
+      
+      // 防抖：1秒内不重复请求
+      const now = Date.now();
+      if (now - lastPointsRequestTime < POINTS_REQUEST_DEBOUNCE) {
+        return;
+      }
+      setLastPointsRequestTime(now);
       
       try {
         const response = await fetch(`/api/admin/users/${user.id}/points`);
@@ -102,9 +113,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     
     loadUserPoints();
     
-    // 监听积分更新事件
+    // 监听积分更新事件（防抖机制已在 loadUserPoints 中实现）
     const handlePointsUpdate = () => {
       console.log('[UserMenu] 收到积分更新事件，刷新积分');
+      // 重置最后请求时间，允许立即请求
+      setLastPointsRequestTime(0);
       loadUserPoints();
     };
     

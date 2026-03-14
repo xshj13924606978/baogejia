@@ -4,6 +4,10 @@ import * as path from 'path';
 import * as os from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { cleanParameterDescription } from '@/utils/string-cleaner';
+import { cleanParameterDescriptionEnhanced, extractParameterSummary } from '@/utils/string-cleaner-enhanced';
+import { PdfTableEnhancer } from '@/utils/pdf-table-enhancer';
+import { pdfLogger, createTimer, parseContext, LogLevel } from '@/utils/pdf-parse-logger';
 
 const execAsync = promisify(exec);
 
@@ -12,6 +16,7 @@ interface Product {
   model: string;
   brand: string;
   specs: string;
+  parameter_description: string;
   quantity: number;
   unit: string;
   price: number;
@@ -38,10 +43,21 @@ interface ParseResult {
 export class EnhancedPdfParser {
   private llmClient: LLMClient;
   private visionClient: LLMClient;
+  private tableEnhancer: PdfTableEnhancer;
+  private useEnhancedCleaning: boolean = true;
 
-  constructor(llmClient: LLMClient, visionClient: LLMClient) {
+  constructor(llmClient: LLMClient, visionClient: LLMClient, useEnhanced: boolean = true) {
     this.llmClient = llmClient;
     this.visionClient = visionClient;
+    this.tableEnhancer = new PdfTableEnhancer();
+    this.useEnhancedCleaning = useEnhanced;
+    
+    // 设置日志级别
+    if (process.env.DEBUG_PDF_PARSE) {
+      pdfLogger.setLevel(LogLevel.DEBUG);
+    } else {
+      pdfLogger.setLevel(LogLevel.INFO);
+    }
   }
 
   async parse(fileInfo: any): Promise<ParseResult> {
@@ -94,12 +110,33 @@ export class EnhancedPdfParser {
   }
 
   private async parseWithPdfParse(buffer: Buffer): Promise<ParseResult> {
+    const timer = createTimer('PDF解析');
+    
     try {
+      parseContext.startPhase('PDF文本提取');
       const pdfParse = (await import('pdf-parse')).default;
       const data = await pdfParse(buffer);
+      parseContext.endPhase('PDF文本提取', {
+        页数: data.numpages,
+        文本长度: data.text.length,
+      });
 
-      const products = this.extractProductsFromText(data.text);
+      parseContext.startPhase('表格增强解析');
+      pdfLogger.info('使用表格增强模式解析PDF');
+      
+      // 使用表格增强器解析
+      const enhancedTable = this.tableEnhancer.enhanceTable(data.text);
+      const products = this.tableEnhancer.extractProductsFromEnhancedTable(enhancedTable);
+      
+      parseContext.endPhase('表格增强解析', {
+        识别行数: enhancedTable.rows.length,
+        识别列数: enhancedTable.columns.length,
+        产品数量: products.length,
+      });
+
       const confidence = this.calculateConfidence(products, data.text);
+      
+      timer.stop();
 
       return {
         products,
@@ -108,7 +145,9 @@ export class EnhancedPdfParser {
         parseLevel: 'local',
         confidence,
       };
-    } catch (_error) {
+    } catch (error) {
+      timer.stop();
+      parseContext.logException(error as Error, { method: 'pdf-parse' });
       return {
         products: [],
         globalRemarks: ['pdf-parse解析失败'],
@@ -150,7 +189,9 @@ export class EnhancedPdfParser {
     {
       "name": "产品名称",
       "model": "型号",
+      "brand": "品牌",
       "specs": "规格",
+      "parameter_description": "参数描述",
       "quantity": 数量,
       "unit": "单位",
       "price": 单价
@@ -225,6 +266,7 @@ ${extractedText.substring(0, 3000)}
       "model": "型号规格",
       "brand": "品牌",
       "specs": "技术参数",
+      "parameter_description": "参数描述（技术参数的详细说明）",
       "quantity": 数量（数字）,
       "unit": "单位",
       "price": 单价（数字，没有则为0）,
@@ -290,6 +332,7 @@ ${extractedText.substring(0, 3000)}
               model: '',
               brand: '',
               specs: '',
+              parameter_description: '',
               quantity,
               unit,
               price: 0,
@@ -340,18 +383,62 @@ ${extractedText.substring(0, 3000)}
   }
 
   private normalizeProducts(products: any[]): Product[] {
+    pdfLogger.section('📦 产品数据标准化');
+    pdfLogger.info(`开始标准化 ${products.length} 个产品`);
+    
     return products
-      .map((p) => ({
-        name: p.name || '',
-        model: p.model || '',
-        brand: p.brand || '',
-        specs: p.specs || '',
-        quantity: Number(p.quantity) || 1,
-        unit: p.unit || '个',
-        price: Number(p.price) || 0,
-        total: Number(p.total) || (Number(p.price) || 0) * (Number(p.quantity) || 1),
-        remark: p.remark || '',
-      }))
+      .map((p, index) => {
+        const rawDescription = p.parameter_description || p.specs || '';
+        
+        pdfLogger.debug(`\n产品 ${index + 1}: ${p.name}`);
+        pdfLogger.indent();
+        pdfLogger.debug('原始参数描述:', rawDescription);
+        
+        let cleanedDescription: string;
+        
+        if (this.useEnhancedCleaning) {
+          // 使用增强版清洗
+          const cleanResult = cleanParameterDescriptionEnhanced(rawDescription);
+          cleanedDescription = cleanResult.cleaned;
+          
+          if (cleanResult.statistics.removedChars > 0) {
+            pdfLogger.info('清洗统计:', {
+              原长度: cleanResult.statistics.originalLength,
+              新长度: cleanResult.statistics.cleanedLength,
+              减少: cleanResult.statistics.removedChars,
+              清洗项: cleanResult.removedItems.length,
+            });
+          }
+        } else {
+          // 使用基础清洗
+          cleanedDescription = cleanParameterDescription(rawDescription);
+        }
+        
+        pdfLogger.debug('清洗后描述:', cleanedDescription);
+        
+        // 提取参数摘要（可选）
+        if (this.useEnhancedCleaning && cleanedDescription) {
+          const summary = extractParameterSummary(cleanedDescription);
+          if (Object.keys(summary).length > 0) {
+            pdfLogger.debug('参数摘要:', summary);
+          }
+        }
+        
+        pdfLogger.dedent();
+        
+        return {
+          name: p.name || '',
+          model: p.model || '',
+          brand: p.brand || '',
+          specs: p.specs || '',
+          parameter_description: cleanedDescription,
+          quantity: Number(p.quantity) || 1,
+          unit: p.unit || '个',
+          price: Number(p.price) || 0,
+          total: Number(p.total) || (Number(p.price) || 0) * (Number(p.quantity) || 1),
+          remark: p.remark || '',
+        };
+      })
       .filter((p) => p.name);
   }
 
@@ -366,6 +453,7 @@ ${extractedText.substring(0, 3000)}
           model: parts[1] || '',
           brand: '',
           specs: '请手动填写',
+          parameter_description: '',
           quantity: 1,
           unit: '个',
           price: 0,
@@ -394,6 +482,37 @@ ${extractedText.substring(0, 3000)}
     method: string,
     startTime: number
   ): ParseResult {
+    const duration = Date.now() - startTime;
+    
+    pdfLogger.section('📊 PDF解析完成报告');
+    pdfLogger.info('解析方法:', method);
+    pdfLogger.info('文件信息:', {
+      名称: fileInfo.name,
+      大小: `${(fileInfo.buffer?.length || 0) / 1024} KB`,
+      解析耗时: `${duration}ms`,
+      置信度: `${result.confidence}%`,
+      产品数量: result.products.length,
+    });
+
+    if (result.products.length > 0) {
+      pdfLogger.info('\n产品清单:');
+      pdfLogger.indent();
+      result.products.forEach((p, i) => {
+        pdfLogger.info(`${i + 1}. ${p.name}`);
+        if (p.parameter_description) {
+          pdfLogger.debug(`   参数: ${p.parameter_description.substring(0, 100)}...`);
+        }
+        if (p.brand) {
+          pdfLogger.debug(`   品牌: ${p.brand}`);
+        }
+      });
+      pdfLogger.dedent();
+    }
+
+    if (result.globalRemarks.length > 0) {
+      pdfLogger.warn('全局备注:', result.globalRemarks);
+    }
+
     return {
       ...result,
       metadata: {
@@ -401,7 +520,7 @@ ${extractedText.substring(0, 3000)}
         fileName: fileInfo.name,
         fileSize: fileInfo.buffer?.length || 0,
         parseMethod: method,
-        parseTime: Date.now() - startTime,
+        parseTime: duration,
       },
     };
   }

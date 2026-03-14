@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
-export default function PaymentResultPage() {
+function PaymentResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'success' | 'fail' | 'error'>('loading');
@@ -239,3 +239,38 @@ export default function PaymentResultPage() {
     </div>
   );
 }
+
+// 用 Suspense 包裹使用 useSearchParams 的组件
+export default function PaymentResultPage() {
+  return (
+    <Suspense fallback={<PaymentResultFallback />}>
+      <PaymentResultContent />
+    </Suspense>
+  );
+}
+
+// 加载状态组件
+function PaymentResultFallback() {
+  return (
+    <div className="min-h-screen bg-gray-50 py-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader className="text-center pb-8">
+            <div className="flex justify-center mb-4">
+              <Loader2 className="h-16 w-16 text-gray-400 animate-spin" />
+            </div>
+            <CardTitle className="text-2xl">加载中...</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert>
+              <AlertDescription className="text-center">
+                正在加载支付结果，请稍候...
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+

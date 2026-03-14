@@ -22,6 +22,7 @@ import KnowledgeCenter from '@/components/knowledge-center';
 import { useSwitch } from './switch-manager';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
+import { logOnce, logWithTimestamp, warnOnce } from '@/lib/logger';
 
 interface SupplierInfo {
   companyName: string;
@@ -261,28 +262,23 @@ export default function ChatArea({
     resetSwitch,
   } = switchContext;
 
-  // 页面首次加载时记录初始化日志
+  // 页面首次加载时记录初始化日志（只输出一次）
   useEffect(() => {
     if (typeof window !== 'undefined' && window.console) {
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`📅 ChatArea 组件初始化: ${new Date().toLocaleString('zh-CN')}`);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-      // 拦截 console.warn，过滤掉特定的无关警告
-      const originalWarn = console.warn;
-      console.warn = function (...args) {
-        const message = args.join(' ');
-        // 过滤掉 Console Bridge 相关的警告
-        if (message.includes('Console Bridge') || message.includes('Cannot send message')) {
-          return; // 不输出这个警告
-        }
-        originalWarn.apply(console, args);
-      };
-
-      // 返回清理函数
-      return () => {
-        console.warn = originalWarn;
-      };
+      // 使用 logOnce 确保整个初始化过程只输出一次
+      const timestamp = new Date().toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      
+      logOnce(
+        'ChatArea-Init', 
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${timestamp} - ChatArea 组件初始化\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+      );
     }
   }, []); // 只在组件挂载时执行一次
 
@@ -290,17 +286,20 @@ export default function ChatArea({
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      console.log('[ChatArea] 滚动到底部');
+      // 移除频繁的滚动日志，避免控制台过于嘈杂
+      // logOnce('ChatArea', '滚动到底部');
     } else if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      console.log('[ChatArea] 滚动到容器底部');
+      // 移除频繁的滚动日志，避免控制台过于嘈杂
+      // logOnce('ChatArea', '滚动到容器底部');
     }
   }, [messagesEndRef, scrollRef]);
 
   // 当消息数量变化时滚动到底部
   useEffect(() => {
     if (messages.length > prevMessagesLengthRef.current) {
-      console.log('[ChatArea] 消息数量增加，触发滚动');
+      // 移除频繁的滚动日志，避免控制台过于嘈杂
+      // console.log('[ChatArea] 消息数量增加，触发滚动');
       setTimeout(scrollToBottom, 100);
     }
     prevMessagesLengthRef.current = messages.length;
@@ -337,11 +336,9 @@ export default function ChatArea({
   // 监听新对话事件
   useEffect(() => {
     const handleNewConversation = () => {
-      console.log('[ChatArea] 收到新建对话事件，清空所有状态');
+      logOnce('ChatArea', '收到新建对话事件，清空所有状态');
 
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`📅 新建对话: ${new Date().toLocaleString('zh-CN')}`);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      logWithTimestamp('ChatArea', '新建对话');
 
       setMessages([]);
       setFiles([]);
@@ -542,7 +539,7 @@ export default function ChatArea({
     setIsReady(true);
     const timer = setTimeout(() => {
       shouldAllowCreation.current = true;
-      console.log('[ChatArea] 安全锁已开启，现在允许创建对话');
+      logOnce('ChatArea', '安全锁已开启，现在允许创建对话');
     }, 500);
 
     return () => {
@@ -765,12 +762,12 @@ export default function ChatArea({
     hasContent: boolean = false
   ): Promise<any | null> => {
     if (!shouldAllowCreation.current && !hasContent) {
-      console.log('[ChatArea] ⚠️ 安全锁未开启，禁止创建新对话');
+      warnOnce('ChatArea', '安全锁未开启，禁止创建新对话');
       return null;
     }
 
     try {
-      console.log('[ChatArea] 创建新对话:', title, 'hasContent:', hasContent);
+      logOnce('ChatArea', `创建新对话: ${title}, hasContent: ${hasContent}`);
       const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

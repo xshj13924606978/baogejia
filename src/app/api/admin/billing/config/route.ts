@@ -121,7 +121,12 @@ export const POST = withPermissionCheck(
         configName,
         yuanToTokens,
         yuanToPoints,
-        pointsToTokens});
+        pointsToTokens,
+        levelDiscounts: {
+          level1: { input: level1InputRate, output: level1OutputRate },
+          level5: { input: level5InputRate, output: level5OutputRate },
+        }
+      });
 
       // 更新计费配置
       const success = await tokenBillingService.updateBillingConfig({

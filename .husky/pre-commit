@@ -2,65 +2,33 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 echo ""
-echo "🔒 ===== 积分系统保护锁 ===== 🔒"
+echo "🔒 ===== 功能保护锁 ===== 🔒"
 echo ""
 
-# 积分系统保护文件列表
-PROTECTED_FILES="
-src/lib/user-level-service.ts
-src/storage/database/points-utils.ts
-src/app/api/points/route.ts
-src/app/api/points/exchange/route.ts
-src/app/api/user/points/route.ts
-src/app/api/user/level/route.ts
-src/app/api/user/level/check-upgrade/route.ts
-src/app/api/user/level/exchange/route.ts
-src/app/api/user/level/history/route.ts
-src/app/api/user/level/purchase/route.ts
-src/app/api/user/level/recommendation/route.ts
-src/app/api/admin/points/logs/route.ts
-src/app/api/admin/levels/route.ts
-src/app/api/admin/levels/[level]/route.ts
-src/app/api/admin/levels/[level]/history/route.ts
-src/app/api/admin/levels/batch/route.ts
-src/app/api/admin/levels/defaults/route.ts
-src/components/points-panel.tsx
-src/components/user/points-panel.tsx
-src/components/user/points-mall.tsx
-src/components/admin/points/PointsConfig.tsx
-src/components/admin/points/PointsLog.tsx
-src/components/admin/points/PointsManagement.tsx
-src/components/admin/levels/LevelEditor.tsx
-src/components/admin/levels/LevelList.tsx
-src/components/ui/progress.tsx
-"
+PROTECTED_FILES="src/utils/excel-parser-enhanced.ts
+src/utils/test-excel-parser.ts
+src/app/api/documents/parse/route.ts
+src/app/api/chat/route.ts"
 
-# 检查是否有积分系统文件被修改
-MODIFIED=0
-MODIFIED_FILES=""
-
-for file in $PROTECTED_FILES; do
-  if git diff --cached --name-only | grep -q "^$file$"; then
-    MODIFIED=1
-    MODIFIED_FILES="$MODIFIED_FILES  - $file\n"
+check_protected_files() {
+  MODIFIED=0
+  MODIFIED_FILES=""
+  
+  for file in $PROTECTED_FILES; do
+    if git diff --cached --name-only | grep -q "^$file$"; then
+      MODIFIED=1
+      MODIFIED_FILES="${MODIFIED_FILES}  - $file\n"
+    fi
+  done
+  
+  if [ $MODIFIED -eq 1 ]; then
+    echo "❌ 错误：以下核心文件被修改！"
+    printf "$MODIFIED_FILES"
+    echo ""
+    echo "⛔ 这些文件是已锁定的功能，禁止随意修改！"
+    echo "如需修改，请使用: git commit --no-verify"
+    exit 1
   fi
-done
+}
 
-if [ $MODIFIED -eq 1 ]; then
-  echo "❌ 错误：积分系统核心文件被修改！"
-  echo ""
-  echo "被修改的文件："
-  printf "$MODIFIED_FILES"
-  echo ""
-  echo "⛔ 这些文件是积分系统的核心功能，已经稳定运行，禁止随意修改！"
-  echo ""
-  echo "如果你确实需要修改（比如修复bug），请："
-  echo "1. 先在测试环境验证修改"
-  echo "2. 使用强制提交: git commit --no-verify -m \"fix: 说明修改原因\""
-  echo "3. 修改后必须更新 .protection/points-hashes.txt"
-  echo ""
-  exit 1
-fi
-
-echo "✅ 积分系统核心文件未被修改"
-echo ""
+check_protected_files

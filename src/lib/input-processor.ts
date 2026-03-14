@@ -3,6 +3,7 @@ import mammoth from 'mammoth';
 
 // 使用更稳定的 pdf-parse 1.1.1
 import pdfParse from 'pdf-parse';
+import { OcrHelper } from '@/utils/ocr-helper';
 
 export type InputType = 'text' | 'image' | 'excel' | 'word' | 'pdf' | 'unknown';
 
@@ -63,18 +64,48 @@ export class InputProcessor {
     const mime = metadata.mimeType || '';
     const fileName = metadata.fileName || '';
     
-    // 1. 图片文件
+    // 1. 图片文件 - 使用OCR提取文本
     if (mime.startsWith('image/')) {
-      return {
-        type: 'image',
-        rawContent: fileBuffer,
-        textContent: '',
-        metadata: {
-          fileName,
-          fileSize: fileBuffer.length,
-          mimeType: mime,
+      try {
+        console.log('[InputProcessor] 开始处理图片文件:', fileName);
+        const ocrHelper = new OcrHelper();
+
+        // 使用 OCR 识别图片中的文本
+        const ocrResult = await ocrHelper.recognizeImage(fileBuffer);
+
+        let textContent = '';
+        if (ocrResult.text && ocrResult.text.trim().length > 0) {
+          textContent = ocrResult.text;
+          console.log('[InputProcessor] OCR 识别成功，文本长度:', textContent.length);
+        } else {
+          textContent = `[图片文件: ${fileName} - OCR识别失败]`;
+          console.warn('[InputProcessor] OCR 识别失败，返回占位符');
         }
-      };
+
+        return {
+          type: 'image',
+          rawContent: fileBuffer,
+          textContent,
+          metadata: {
+            fileName,
+            fileSize: fileBuffer.length,
+            mimeType: mime,
+          }
+        };
+      } catch (error) {
+        console.error('[InputProcessor] 图片处理失败:', error);
+        return {
+          type: 'image',
+          rawContent: fileBuffer,
+          textContent: `[图片文件: ${fileName} - 处理失败]`,
+          metadata: {
+            fileName,
+            fileSize: fileBuffer.length,
+            mimeType: mime,
+            error: error instanceof Error ? error.message : '处理失败'
+          }
+        };
+      }
     }
     
     // 2. Excel文件

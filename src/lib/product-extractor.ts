@@ -54,9 +54,12 @@ export class ProductExtractor {
    - 提取时保留核心标识，如"100立方"提取为"100"
    - 中文数字转换：两立方 -> 2，二立方 -> 2，三立方 -> 3
 
-3. 规格：提取详细的技术规格（如果有）
-   - 例如："HFC(GFE)13#" -> "HFC(GFE)13#"
-   - 例如："150mm" -> "150mm"
+3. 参数描述：提取详细的技术规格和参数信息（重要！）
+   - 如果输入中包含详细的规格说明、尺寸、材质、性能参数等，必须提取到 parameter_description
+   - 例如："化粪池 60m³ 进出水管口径：DN160pvc，规格尺寸：Φ4800×3000mm" -> parameter_description="进出水管口径：DN160pvc，规格尺寸：Φ4800×3000mm"
+   - 例如："药剂搅拌系统 不锈钢搅拌器/功率11kW/380V；电机：佳木斯/减速机：宁波动力" -> parameter_description="不锈钢搅拌器/功率11kW/380V；电机：佳木斯/减速机：宁波动力"
+   - 例如："Φ4000×3000mm" -> parameter_description="Φ4000×3000mm"
+   - 如果只有简单的型号，参数描述可以留空或填写型号本身
 
 4. 品牌：提取品牌信息（如果有）
    - 例如："普耐尔焊枪" -> "普耐尔"
@@ -65,26 +68,29 @@ export class ProductExtractor {
 5. 置信度：根据输入的清晰度给出0-100的分数
 
 支持的输入模式示例：
-- "2立方的化粪池多少钱" -> productName="化粪池", model="2"
-- "化粪池2立方价格" -> productName="化粪池", model="2"
-- "两立方化粪池" -> productName="化粪池", model="2"
-- "2m³化粪池" -> productName="化粪池", model="2"
-- "2方化粪池设备" -> productName="化粪池", model="2"
-- "HFC化粪池2立方" -> productName="化粪池", model="2", brand="HFC"
+- "2立方的化粪池多少钱" -> productName="化粪池", model="2", parameter_description=""
+- "化粪池2立方价格" -> productName="化粪池", model="2", parameter_description=""
+- "两立方化粪池" -> productName="化粪池", model="2", parameter_description=""
+- "2m³化粪池" -> productName="化粪池", model="2", parameter_description=""
+- "2方化粪池设备" -> productName="化粪池", model="2", parameter_description=""
+- "HFC化粪池2立方" -> productName="化粪池", model="2", brand="HFC", parameter_description=""
+- "化粪池 60m³ 进出水管口径：DN160pvc，规格尺寸：Φ4800×3000mm" -> productName="化粪池", model="60", parameter_description="进出水管口径：DN160pvc，规格尺寸：Φ4800×3000mm"
+- "药剂搅拌系统 11kW 不锈钢材质" -> productName="药剂搅拌系统", model="11kW", parameter_description="不锈钢材质"
 
 输出格式（JSON）：
 {
   "productName": "产品名称",
   "model": "型号（可选，统一转换为阿拉伯数字）",
-  "parameter_description": "参数描述（可选）",
+  "parameter_description": "参数描述（可选，如果输入中有详细规格则必须提取）",
   "brand": "品牌（可选）",
   "confidence": 95,
   "explanation": "简短说明提取逻辑"
 }
 
-注意：
+重要提醒：
 - 如果无法提取出产品名称，返回 null
 - 型号必须是阿拉伯数字或字母数字组合，中文数字需要转换
+- 如果输入中包含详细的规格、尺寸、材质等信息，必须提取到 parameter_description 字段
 - 不要过度提取，保持信息准确`;
 
       const userPrompt = `请从以下用户输入中提取产品信息：

@@ -46,9 +46,11 @@ export const POST = withPermissionCheck(
       // 查询该等级下的所有用户（限制数量）
       const { data: users, error: usersError } = await supabase
         .from('users')
-        .select('id, username, points')
+        .select('id, username, points, level')
         .eq('level', level)
-        .limit(5); // 只返回前5个用户作为示例
+        .limit(3); // 只返回前3个用户作为示例
+
+      console.log('[PermissionsPreview API] 查询到的用户:', users);
 
       if (usersError) {
         console.error('[PermissionsPreview API] 查询用户失败:', usersError);
@@ -57,7 +59,7 @@ export const POST = withPermissionCheck(
 
       // 获取当前等级的完整配置（用于显示"修改前"）
       const { data: levelConfig, error: configError } = await supabase
-        .from('level_configs')
+        .from('level_definitions')
         .select('*')
         .eq('level', level)
         .single();
@@ -67,11 +69,30 @@ export const POST = withPermissionCheck(
         return NextResponse.json({ error: '查询等级配置失败' }, { status: 500 });
       }
 
+      // 将 level_definitions 的字段转换为前端期望的格式
+      const formattedLevelConfig = {
+        field_permissions: {
+          can_view_cost_price: levelConfig?.can_view_cost_price || false,
+          can_view_min_price: levelConfig?.can_view_min_price || false,
+          can_view_manufacturer: levelConfig?.can_view_manufacturer || false,
+          can_view_contact: levelConfig?.can_view_contact || false,
+          can_view_phone: levelConfig?.can_view_phone || false,
+        },
+        module_permissions: levelConfig?.permissions || [],
+        quotas: {
+          daily_quota: levelConfig?.daily_quota || 0,
+          max_files: levelConfig?.max_files || 0,
+          max_chat_messages: levelConfig?.max_chat_messages || 0,
+        },
+      };
+
       // 获取该等级下的所有用户总数
       const { count: totalUsers, error: countError } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true })
         .eq('level', level);
+
+      console.log('[PermissionsPreview API] 该等级总用户数:', totalUsers);
 
       if (countError) {
         console.error('[PermissionsPreview API] 统计用户数失败:', countError);
@@ -84,9 +105,9 @@ export const POST = withPermissionCheck(
           id: user.id,
           name: user.username,
           before: {
-            fieldPermissions: levelConfig?.field_permissions || {},
-            modulePermissions: levelConfig?.module_permissions || [],
-            quotas: levelConfig?.quotas || {}},
+            fieldPermissions: formattedLevelConfig.field_permissions || {},
+            modulePermissions: formattedLevelConfig.module_permissions || [],
+            quotas: formattedLevelConfig.quotas || {}},
           after: changes})) || [];
 
       // 构建预览数据（匹配前端期望的格式）

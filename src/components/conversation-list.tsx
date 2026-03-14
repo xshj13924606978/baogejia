@@ -93,6 +93,11 @@ export default function ConversationList({
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [pinnedConversations, setPinnedConversations] = useState<Set<string>>(new Set());
+  
+  // 缓存机制：防止短时间内重复请求
+  const [lastRequestTime, setLastRequestTime] = useState(0);
+  const [cachedData, setCachedData] = useState<Conversation[]>([]);
+  const REQUEST_CACHE_DURATION = 5000; // 5秒缓存
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -100,6 +105,14 @@ export default function ConversationList({
   const loadConversations = useCallback(async () => {
     if (isRefreshing) {
       console.log('[ConversationList] 正在刷新中，跳过');
+      return;
+    }
+
+    // 缓存机制：5秒内使用缓存数据
+    const now = Date.now();
+    if (now - lastRequestTime < REQUEST_CACHE_DURATION && cachedData.length > 0) {
+      console.log('[ConversationList] 使用缓存数据');
+      setConversations(cachedData);
       return;
     }
 
@@ -128,6 +141,8 @@ export default function ConversationList({
         }
 
         setConversations(filteredConversations);
+        setCachedData(filteredConversations); // 缓存数据
+        setLastRequestTime(now); // 更新请求时间
         console.log('[ConversationList] 过滤后剩余:', filteredConversations.length);
       }
     } catch (error) {
@@ -136,7 +151,7 @@ export default function ConversationList({
       setLoading(false);
       setTimeout(() => setIsRefreshing(false), 500);
     }
-  }, [hideEmptyConversations, isRefreshing]);
+  }, [hideEmptyConversations, isRefreshing, lastRequestTime, cachedData]);
 
   // 加载单个对话的详细内容
   const loadConversationDetail = async (conversationId: string) => {

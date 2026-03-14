@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { Logger } from '@/lib/logger';
+import { callDeepSeekChat } from '@/lib/deepseek-client';
+import { cleanParameterDescription } from '@/utils/string-cleaner';
 
 const execAsync = promisify(exec);
 
@@ -15,10 +17,12 @@ export interface ExtractedProduct {
   unit: string;
   price: number;
   total: number;
+  parameter_description?: string;  // 添加参数描述字段
 }
 
 export class OcrHelper {
   private toolsAvailable: boolean | null = null;
+  private imageToolsAvailable: boolean | null = null;
 
   /**
    * 检查系统工具是否可用
@@ -95,6 +99,102 @@ export class OcrHelper {
         fs.unlinkSync(tempTxt);
       } catch (_e) {}
     }
+  }
+
+  /**
+   * 识别图片中的文本（使用 Tesseract OCR）
+   */
+  async recognizeImage(imageBuffer: Buffer): Promise<{ text: string; isTable: boolean }> {
+    Logger.info('[OCR] 开始处理图片', { size: imageBuffer.length });
+
+    // 尝试使用 Tesseract.js 进行图片 OCR
+    try {
+      // 动态导入 Tesseract.js
+      const Tesseract = await import('tesseract.js');
+
+      Logger.info('[OCR] 使用 Tesseract.js 识别图片...');
+
+      // 将 Buffer 转换为 base64
+      const base64Image = imageBuffer.toString('base64');
+      const dataUrl = `data:image/png;base64,${base64Image}`;
+
+      // 使用 Tesseract 识别
+      const result = await Tesseract.recognize(dataUrl, 'chi_sim+eng', {
+        logger: (m: any) => {
+          if (m.status === 'recognizing text') {
+            Logger.debug(`[OCR] 识别进度: ${(m.progress * 100).toFixed(2)}%`);
+          }
+        },
+      });
+
+      const text = result.data.text;
+
+      if (text && text.trim().length > 0) {
+        Logger.info('[OCR] Tesseract.js 识别成功', { textLength: text.length });
+        return { text, isTable: this.isLikelyTable(text) };
+      }
+    } catch (error) {
+      Logger.warn('[OCR] Tesseract.js 识别失败', error);
+    }
+
+    // 如果 Tesseract 不可用，尝试使用系统命令（tesseract）
+    try {
+      await execAsync('which tesseract');
+      Logger.info('[OCR] 系统工具 tesseract 可用');
+
+      const tempDir = os.tmpdir();
+      const timestamp = Date.now();
+      const tempImage = path.join(tempDir, `image-${timestamp}.png`);
+      const tempTxt = path.join(tempDir, `image-${timestamp}.txt`);
+
+      try {
+        // 保存图片到临时文件
+        fs.writeFileSync(tempImage, imageBuffer);
+        Logger.debug(`[OCR] 临时图片文件: ${tempImage}`);
+
+        // 使用 tesseract 识别
+        await execAsync(`tesseract ${tempImage} ${tempTxt.replace('.txt', '')} -l chi_sim+eng`);
+
+        if (fs.existsSync(tempTxt)) {
+          const text = fs.readFileSync(tempTxt, 'utf-8');
+          if (text && text.trim().length > 0) {
+            Logger.info('[OCR] tesseract 识别成功', { textLength: text.length });
+            return { text, isTable: this.isLikelyTable(text) };
+          }
+        }
+      } catch (error) {
+        Logger.error('[OCR] tesseract 失败', error);
+      } finally {
+        // 清理临时文件
+        try {
+          fs.unlinkSync(tempImage);
+        } catch (_e) {}
+        try {
+          fs.unlinkSync(tempTxt);
+        } catch (_e) {}
+      }
+    } catch (_error) {
+      Logger.warn('[OCR] tesseract 不可用');
+    }
+
+    // 如果所有 OCR 方法都失败，返回空
+    Logger.warn('[OCR] 所有 OCR 方法都失败，无法提取图片文本');
+    return { text: '', isTable: false };
+  }
+
+  /**
+   * 判断文本是否像表格
+   */
+  private isLikelyTable(text: string): boolean {
+    // 检查是否包含表格特征
+    const tableFeatures = [
+      /\|\|/, // 双竖线（Markdown表格）
+      /\t/,   // Tab分隔
+      /\s{3,}/, // 多个空格
+      /产品名称|规格型号|数量|单价/, // 表头关键词
+    ];
+
+    return tableFeatures.some((feature) => feature.test(text));
   }
 
   /**
@@ -201,6 +301,7 @@ export class OcrHelper {
       unit: '台',
       price: 0,
       total: 0,
+      parameter_description: cleanParameterDescription(fullText),  // 清洗后的参数描述
     };
 
     // 提取数量 - 正确的逻辑，排除尺寸中的数字

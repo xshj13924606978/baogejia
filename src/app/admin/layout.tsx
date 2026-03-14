@@ -276,12 +276,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div
         className={`
         transition-all duration-200
+        h-screen
         lg:ml-64
         ${sidebarOpen ? 'ml-64' : 'ml-0'}
       `}
       >
         {/* 顶部栏 */}
-        <div className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6">
+        <div className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 shrink-0">
           <h2 className="text-lg font-semibold">{currentPageTitle}</h2>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon">
@@ -296,7 +297,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* 页面内容 */}
-        <div className="p-6">{children}</div>
+        <div className="overflow-y-auto h-[calc(100vh-4rem)] p-6 scrollbar-thin">{children}</div>
       </div>
     </div>
   );
