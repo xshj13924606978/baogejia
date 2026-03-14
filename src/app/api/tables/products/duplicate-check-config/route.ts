@@ -67,11 +67,42 @@ export async function GET(_request: NextRequest) {
       duplicateCheckFields = result.data || [];
       dupError = result.error;
     } else {
-      // 旧表结构：默认判重字段为 product_name 和 model
-      console.log('[Duplicate Check Config] 旧表结构，使用默认判重字段');
-      duplicateCheckFields = allFields?.filter((f: any) =>
-        f.field_key === 'name' || f.field_key === 'product_name' || f.field_key === 'model'
-      ) || [];
+      // 旧表结构：尝试从独立的配置表读取
+      console.log('[Duplicate Check Config] 旧表结构，尝试从独立配置表读取');
+
+      try {
+        const { data: configData, error: configError } = await db
+          .from('duplicate_check_settings')
+          .select('*')
+          .eq('is_enabled', true)
+          .order('display_order', { ascending: true });
+
+        if (!configError && configData && configData.length > 0) {
+          // 从独立配置表读取成功
+          console.log('[Duplicate Check Config] 从独立配置表读取到配置:', configData.length, '个字段');
+          duplicateCheckFields = configData.map((config: any) => {
+            const field = allFields?.find((f: any) => f.field_key === config.field_key);
+            return field || {
+              id: config.id,
+              field_key: config.field_key,
+              field_label: config.field_name,
+              is_required: false,
+            };
+          });
+        } else {
+          // 配置表为空或读取失败，使用默认判重字段
+          console.log('[Duplicate Check Config] 独立配置表为空，使用默认判重字段');
+          duplicateCheckFields = allFields?.filter((f: any) =>
+            f.field_key === 'name' || f.field_key === 'product_name' || f.field_key === 'model'
+          ) || [];
+        }
+      } catch (e) {
+        console.error('[Duplicate Check Config] 读取独立配置表失败:', e);
+        // 默认判重字段为 product_name 和 model
+        duplicateCheckFields = allFields?.filter((f: any) =>
+          f.field_key === 'name' || f.field_key === 'product_name' || f.field_key === 'model'
+        ) || [];
+      }
     }
 
     if (dupError && hasDuplicateCheckColumn) {
@@ -152,93 +183,119 @@ export async function PUT(request: NextRequest) {
 
     const hasDuplicateCheckColumn = testData && testData.length > 0 && 'is_duplicate_check' in testData[0];
 
-    // 如果没有 is_duplicate_check 列，返回提示（当前使用旧表结构，无法保存配置）
-    if (!hasDuplicateCheckColumn) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: '当前使用旧表结构，无法保存判重配置。请升级到新表结构。',
-          needsUpgrade: true,
-          currentDuplicateFields: duplicateCheckFields,
-        },
-        { status: 200 }
-      );
-    }
+    // 如果有 is_duplicate_check 列，使用原有的更新逻辑
+    if (hasDuplicateCheckColumn) {
+      // 先将所有字段的 is_duplicate_check 设置为 false
+      const { error: resetError } = await db
+        .from('product_field_configs')
+        .update({ is_duplicate_check: false, updated_at: new Date().toISOString() });
 
-    // 首先尝试添加 is_duplicate_check 列（如果不存在）
-    try {
-      // 使用原始 SQL 添加列
-      const { error: alterError } = await db.rpc('exec_sql', {
-        sql: `ALTER TABLE product_field_configs ADD COLUMN IF NOT EXISTS is_duplicate_check BOOLEAN DEFAULT FALSE;`,
-      });
-
-      if (alterError) {
-        // 如果 exec_sql 函数不存在，尝试直接更新（可能列已存在）
-        console.log('exec_sql 函数不可用，假设列已存在');
+      if (resetError) {
+        throw resetError;
       }
-    } catch (e) {
-      console.log('跳过添加列步骤，继续更新数据');
-    }
 
-    // 先将所有字段的 is_duplicate_check 设置为 false
-    const { error: resetError } = await db
-      .from('product_field_configs')
-      .update({ is_duplicate_check: false, updated_at: new Date().toISOString() });
+      // 将选中的字段设置为 true
+      const promises = duplicateCheckFields.map((fieldKey: string) =>
+        db
+          .from('product_field_configs')
+          .update({
+            is_duplicate_check: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('field_key', fieldKey)
+      );
 
-    if (resetError) {
-      // 如果错误是列不存在，需要先添加列
-      if (resetError.message && resetError.message.includes('is_duplicate_check')) {
-        console.error('判重列不存在，请先执行数据库迁移：database/migrations/005_product_duplicate_check.sql');
+      const results = await Promise.all(promises);
+
+      // 检查是否有更新失败的情况
+      const errors = results.filter((r) => r.error);
+      if (errors.length > 0) {
+        console.error('部分字段更新失败:', errors);
         return NextResponse.json(
           {
             success: false,
-            error: '数据库表结构不完整，请联系管理员执行数据库迁移'
+            error: `部分字段更新失败：${errors.map((e) => e.error?.message).join(', ')}`
           },
           { status: 500 }
         );
       }
-      throw resetError;
+
+      // 获取更新后的配置
+      const { data: updatedFields } = await db
+        .from('product_field_configs')
+        .select('*')
+        .eq('is_duplicate_check', true);
+
+      return NextResponse.json({
+        success: true,
+        message: `成功更新判重配置，共 ${duplicateCheckFields.length} 个字段参与判重`,
+        data: {
+          duplicateCheckFields: updatedFields || [],
+        },
+      });
     }
 
-    // 将选中的字段设置为 true
-    const promises = duplicateCheckFields.map((fieldKey: string) =>
-      db
-        .from('product_field_configs')
-        .update({
-          is_duplicate_check: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('field_key', fieldKey)
-    );
+    // 对于旧表结构，使用独立的配置表
+    console.log('[Duplicate Check Config] 使用独立配置表保存判重配置');
 
-    const results = await Promise.all(promises);
+    // 获取所有字段配置
+    const { data: allFields } = await db
+      .from('product_field_configs')
+      .select('*')
+      .order('id', { ascending: true });
 
-    // 检查是否有更新失败的情况
-    const errors = results.filter((r) => r.error);
-    if (errors.length > 0) {
-      console.error('部分字段更新失败:', errors);
+    if (!allFields) {
       return NextResponse.json(
         {
           success: false,
-          error: `部分字段更新失败：${errors.map((e) => e.error?.message).join(', ')}`
+          error: '无法获取字段配置'
         },
         { status: 500 }
       );
     }
 
-    // 获取更新后的配置
-    const { data: updatedFields } = await db
-      .from('product_field_configs')
-      .select('*')
-      .eq('is_duplicate_check', true);
+    // 删除旧的配置
+    await db.from('duplicate_check_settings').delete().neq('id', null);
+
+    // 插入新的配置
+    const insertData = duplicateCheckFields.map((fieldKey: string, index: number) => {
+      const field = allFields.find((f: any) => f.field_key === fieldKey);
+      return {
+        field_key: fieldKey,
+        field_name: field?.field_label || fieldKey,
+        is_enabled: true,
+        display_order: index + 1,
+      };
+    });
+
+    const { error: insertError } = await db
+      .from('duplicate_check_settings')
+      .insert(insertData);
+
+    if (insertError) {
+      console.error('[Duplicate Check Config] 插入配置失败:', insertError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: '保存配置失败：' + insertError.message
+        },
+        { status: 500 }
+      );
+    }
+
+    console.log('[Duplicate Check Config] 配置已保存到独立配置表');
 
     return NextResponse.json({
       success: true,
       message: `成功更新判重配置，共 ${duplicateCheckFields.length} 个字段参与判重`,
       data: {
-        duplicateCheckFields: updatedFields || [],
-        fieldKeys: duplicateCheckFields,
-      }
+        duplicateCheckFields: insertData.map((d: any) => ({
+          field_key: d.field_key,
+          field_label: d.field_name,
+          is_required: false,
+        })),
+        isOldStructure: true,
+      },
     });
   } catch (error) {
     console.error('更新判重配置失败:', error);
