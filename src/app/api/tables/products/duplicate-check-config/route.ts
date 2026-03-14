@@ -252,16 +252,28 @@ export async function PUT(request: NextRequest) {
     console.log('[Duplicate Check Config] 使用独立配置表保存判重配置');
 
     // 检查独立配置表是否存在
-    const { error: tableCheckError } = await db
-      .from('duplicate_check_settings')
-      .select('count', { count: 'exact', head: true });
+    let tableExists = false;
+    try {
+      const { error: tableCheckError } = await db
+        .from('duplicate_check_settings')
+        .select('count', { count: 'exact', head: true });
 
-    if (tableCheckError) {
-      console.error('[Duplicate Check Config] 独立配置表不存在:', tableCheckError);
+      if (!tableCheckError) {
+        tableExists = true;
+        console.log('[Duplicate Check Config] 独立配置表已存在');
+      } else {
+        console.log('[Duplicate Check Config] 独立配置表不存在:', tableCheckError.message);
+      }
+    } catch (tableError) {
+      console.log('[Duplicate Check Config] 检查独立配置表时出错:', tableError);
+    }
+
+    if (!tableExists) {
+      console.error('[Duplicate Check Config] 独立配置表不存在');
       return NextResponse.json(
         {
           success: false,
-          error: '独立配置表不存在，请先执行CREATE_AND_TEST_DUPLICATE_SETTINGS.sql创建配置表',
+          error: '独立配置表不存在，请先创建配置表',
           needsSetup: true,
         },
         { status: 200 }
