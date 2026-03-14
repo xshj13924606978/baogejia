@@ -68,17 +68,36 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
       } else {
         setError(result.error || '加载配置失败');
 
-        // 检查是否需要初始化 product_field_configs 表
-        if (result.error && result.error.includes('product_field_configs') && result.error.includes('does not exist')) {
-          console.log('检测到 product_field_configs 表不存在');
+        // 检查是否需要初始化
+        if (result.needInit) {
+          console.log('检测到需要初始化数据库');
+          setNeedsInit(true);
+          
+          // 尝试获取初始化SQL
           try {
-            const initResponse = await fetch('/api/admin/init-product-field-configs', {
+            const initResponse = await fetch('/api/admin/init-duplicate-check', {
+              method: 'POST',
+            });
+            const initResult = await initResponse.json();
+            
+            if (initResult.requiresManualSetup) {
+              setSqlStatements(initResult.sqlStatements);
+            }
+          } catch (initErr) {
+            console.error('获取初始化SQL失败:', initErr);
+          }
+        }
+        // 检查是否是表不存在
+        else if (result.error && result.error.includes('product_field_configs') && result.error.includes('does not exist')) {
+          console.log('检测到 product_field_configs 表不存在');
+          setNeedsInit(true);
+          try {
+            const initResponse = await fetch('/api/admin/init-duplicate-check', {
               method: 'POST',
             });
             const initResult = await initResponse.json();
 
             if (initResult.requiresManualSetup) {
-              setNeedsInit(true);
               setSqlStatements(initResult.sqlStatements);
               setError('product_field_configs 表不存在，需要初始化');
             } else if (initResult.success) {
@@ -92,6 +111,7 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
         // 检查是否需要初始化判重字段
         else if (result.error && result.error.includes('is_duplicate_check')) {
           console.log('检测到需要初始化判重字段');
+          setNeedsInit(true);
           try {
             const initResponse = await fetch('/api/admin/init-duplicate-check', {
               method: 'POST',
@@ -99,7 +119,6 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
             const initResult = await initResponse.json();
 
             if (initResult.requiresManualSetup) {
-              setNeedsInit(true);
               setSqlStatements(initResult.sqlStatements);
               setError('数据库表结构不完整，需要初始化');
             } else if (initResult.success) {
@@ -335,7 +354,7 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              数据库表结构不完整，需要添加判重配置列。
+              数据库表结构不完整，需要初始化后才能使用判重配置功能。
             </AlertDescription>
           </Alert>
 
@@ -347,25 +366,55 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
               <li>登录 Supabase Dashboard</li>
               <li>进入 SQL Editor</li>
               <li>复制下方的 SQL 语句并执行</li>
-              <li>执行完成后，点击"刷新"按钮</li>
+              <li>执行完成后，点击"刷新配置"按钮</li>
             </ol>
           </div>
 
           {sqlStatements && (
             <div className="space-y-2">
               <Label>SQL 语句</Label>
-              <div className="bg-muted p-4 rounded-lg overflow-x-auto">
-                <pre className="text-xs font-mono">{sqlStatements}</pre>
+              <div className="bg-muted p-4 rounded-lg overflow-x-auto max-h-64 overflow-y-auto">
+                <pre className="text-xs font-mono whitespace-pre-wrap">{sqlStatements}</pre>
               </div>
-              <Button variant="outline" size="sm" onClick={handleCopySql}>
-                复制 SQL 语句
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleCopySql}>
+                  复制 SQL 语句
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    const blob = new Blob([sqlStatements], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'database-init.sql';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast({
+                      title: '已下载',
+                      description: 'SQL 语句已下载为文件',
+                    });
+                  }}
+                >
+                  下载 SQL 文件
+                </Button>
+              </div>
             </div>
           )}
 
-          <Button onClick={loadConfig} variant="default">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            刷新配置
+          <Button onClick={loadConfig} variant="default" disabled={initing}>
+            {initing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                检查中...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                刷新配置
+              </>
+            )}
           </Button>
         </CardContent>
       </Card>

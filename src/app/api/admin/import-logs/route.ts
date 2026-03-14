@@ -13,6 +13,26 @@ export async function GET(request: NextRequest) {
 
     const db = getSupabaseClient();
 
+    // 检查表是否存在
+    const { error: tableCheckError } = await db
+      .from('import_logs')
+      .select('count', { count: 'exact', head: true });
+
+    if (tableCheckError) {
+      console.log('[Import Logs API] 导入日志表不存在，返回空数据');
+      return NextResponse.json({
+        success: true,
+        data: [],
+        pagination: {
+          total: 0,
+          limit,
+          offset,
+          hasMore: false,
+        },
+        message: '日志表未创建，如需使用导入日志功能，请执行数据库初始化脚本',
+      }, { status: 200 });
+    }
+
     // 构建查询
     let query = db
       .from('import_logs')
@@ -33,8 +53,15 @@ export async function GET(request: NextRequest) {
         {
           success: false,
           error: error.message,
+          data: [],
+          pagination: {
+            total: 0,
+            limit,
+            offset,
+            hasMore: false,
+          },
         },
-        { status: 500 }
+        { status: 200 }
       );
     }
 
@@ -60,8 +87,15 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: '获取日志失败',
+        data: [],
+        pagination: {
+          total: 0,
+          limit: 50,
+          offset: 0,
+          hasMore: false,
+        },
       },
-      { status: 500 }
+      { status: 200 }
     );
   }
 }

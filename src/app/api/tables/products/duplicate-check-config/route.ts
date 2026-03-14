@@ -6,6 +6,32 @@ export async function GET(_request: NextRequest) {
   try {
     const db = getSupabaseClient();
 
+    // 检查表是否存在
+    const { error: tableCheckError } = await db
+      .from('product_field_configs')
+      .select('count', { count: 'exact', head: true });
+
+    if (tableCheckError) {
+      console.error('[Duplicate Check Config] 表不存在或无权访问:', tableCheckError);
+      
+      // 检查是否是表不存在的错误
+      if (tableCheckError.message && tableCheckError.message.includes('does not exist')) {
+        return NextResponse.json({ 
+          success: false,
+          error: '数据库表不存在，请先执行初始化SQL',
+          needInit: true,
+          data: { allFields: [], duplicateCheckFields: [] }
+        }, { status: 200 });
+      }
+      
+      return NextResponse.json({ 
+        success: false,
+        error: tableCheckError.message || '无法访问数据库表',
+        needInit: true,
+        data: { allFields: [], duplicateCheckFields: [] }
+      }, { status: 200 });
+    }
+
     // 获取所有字段配置
     const { data: allFields, error: allFieldsError } = await db
       .from('product_field_configs')
@@ -17,9 +43,10 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: allFieldsError.message
+          error: allFieldsError.message,
+          data: { allFields: [], duplicateCheckFields: [] }
         },
-        { status: 500 }
+        { status: 200 }
       );
     }
 
@@ -32,12 +59,31 @@ export async function GET(_request: NextRequest) {
 
     if (dupError) {
       console.error('获取判重配置失败:', dupError);
+      
+      // 检查是否是字段不存在的错误
+      if (dupError.message && dupError.message.includes('column')) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: '数据库缺少判重配置字段，需要初始化',
+            needInit: true,
+            data: { 
+              allFields: allFields || [], 
+              duplicateCheckFields: [],
+              hasDuplicateCheckColumn: false
+            }
+          },
+          { status: 200 }
+        );
+      }
+      
       return NextResponse.json(
         {
           success: false,
-          error: dupError.message
+          error: dupError.message,
+          data: { allFields: allFields || [], duplicateCheckFields: [] }
         },
-        { status: 500 }
+        { status: 200 }
       );
     }
 
@@ -46,16 +92,18 @@ export async function GET(_request: NextRequest) {
       data: {
         allFields: allFields || [],
         duplicateCheckFields: duplicateCheckFields || [],
+        hasDuplicateCheckColumn: true
       }
     });
   } catch (error) {
-    console.error('获取判重配置失败:', error);
+    console.error('[Duplicate Check Config] 获取判重配置异常:', error);
     return NextResponse.json(
       {
         success: false,
-        error: '获取判重配置失败'
+        error: error instanceof Error ? error.message : '获取判重配置失败',
+        data: { allFields: [], duplicateCheckFields: [] }
       },
-      { status: 500 }
+      { status: 200 }
     );
   }
 }
