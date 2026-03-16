@@ -35,36 +35,58 @@ import { MatchVisualization } from '@/components/match-visualization';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-// 暂时禁用 markdown-it 以避免模块解析问题
-// import MarkdownIt from 'markdown-it';
-// @ts-ignore - 使用 CommonJS require 避免 pnpm 符号链接问题
-const MarkdownIt = require('markdown-it');
-// @ts-ignore
-import mermaid from 'mermaid';
 
-// 初始化 mermaid
+// 动态导入 markdown-it 和 mermaid，避免 SSR 问题
+let MarkdownIt: any = null;
+let mermaid: any = null;
+let md: any = null;
+
+// 只在客户端初始化
 if (typeof window !== 'undefined') {
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'default',
-    securityLevel: 'loose',
-    flowchart: {
-      useMaxWidth: true,
-      htmlLabels: true,
-      curve: 'basis',
-    },
-    themeVariables: {
-      primaryColor: '#3b82f6',
-      primaryTextColor: '#ffffff',
-      primaryBorderColor: '#1e40af',
-      lineColor: '#64748b',
-      secondaryColor: '#e0f2fe',
-      tertiaryColor: '#f8fafc',
-    },
+  // 使用动态 import 替代 require
+  import('markdown-it').then((mod) => {
+    MarkdownIt = mod.default || mod;
+    md = new MarkdownIt({ html: true, breaks: true });
+  }).catch((err) => {
+    console.error('Failed to load markdown-it:', err);
+  });
+
+  import('mermaid').then((mod) => {
+    mermaid = mod.default || mod;
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose',
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true,
+        curve: 'basis',
+      },
+      themeVariables: {
+        primaryColor: '#3b82f6',
+        primaryTextColor: '#ffffff',
+        primaryBorderColor: '#1e40af',
+        lineColor: '#64748b',
+        secondaryColor: '#e0f2fe',
+        tertiaryColor: '#f8fafc',
+      },
+    });
+  }).catch((err) => {
+    console.error('Failed to load mermaid:', err);
   });
 }
 
-const md = new MarkdownIt({ html: true, breaks: true });
+// 默认的简单 Markdown 渲染函数（当 markdown-it 未加载时使用）
+const simpleMarkdownRender = (text: string): string => {
+  if (!text) return '';
+  // 简单的 Markdown 转 HTML
+  return text
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br/>');
+};
 
 interface Message {
   id: number;
@@ -957,6 +979,18 @@ const MermaidDiagram = ({ code }: { code: string }) => {
     const renderMermaid = async () => {
       try {
         if (!svgContainerRef.current) return;
+        
+        // 确保 mermaid 已加载
+        if (!mermaid) {
+          // 等待 mermaid 加载
+          const mermaidMod = await import('mermaid');
+          mermaid = mermaidMod.default || mermaidMod;
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose',
+          });
+        }
 
         // 生成唯一ID
         const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -1010,44 +1044,70 @@ const MermaidDiagram = ({ code }: { code: string }) => {
 // ============================================================================
 
 const SimpleMarkdown = ({ content, isStreaming }: { content: string; isStreaming?: boolean }) => {
-  if (!content) return null;
+  const [html, setHtml] = useState<string>('');
 
-  // 使用 markdown-it 渲染 Markdown 内容
-  let html = md.render(content);
+  useEffect(() => {
+    const renderMarkdown = async () => {
+      if (!content) {
+        setHtml('');
+        return;
+      }
 
-  // 自动添加章节编号（在添加样式之前）
-  html = addSectionNumbers(html);
+      // 确保 markdown-it 已加载
+      if (!md) {
+        try {
+          const mod = await import('markdown-it');
+          MarkdownIt = mod.default || mod;
+          md = new MarkdownIt({ html: true, breaks: true });
+        } catch (err) {
+          console.error('Failed to load markdown-it:', err);
+          setHtml(simpleMarkdownRender(content));
+          return;
+        }
+      }
 
-  // 后处理：增强章节分隔和视觉层次
-  // 1. 为一级标题添加底部边距和分隔线（左对齐）
-  html = html.replace(
-    /<h1([^>]*)>([\s\S]*?)<\/h1>/g,
-    '<h1 class="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-4xl mb-6 pb-4 border-b-2 border-border text-left"$1>$2</h1>'
-  );
+      // 使用 markdown-it 渲染 Markdown 内容
+      let renderedHtml = md.render(content);
 
-  // 2. 为二级标题添加左边框和背景色（字号小于一级目录）
-  html = html.replace(
-    /<h2([^>]*)>([\s\S]*?)<\/h2>/g,
-    '<h2 class="scroll-m-20 border-l-4 border-primary pl-4 py-2 my-6 bg-muted/50 text-xl font-semibold tracking-tight"$1>$2</h2>'
-  );
+      // 自动添加章节编号（在添加样式之前）
+      renderedHtml = addSectionNumbers(renderedHtml);
 
-  // 3. 为三级标题添加左边框（颜色递变）和左缩进
-  html = html.replace(
-    /<h3([^>]*)>([\s\S]*?)<\/h3>/g,
-    '<h3 class="scroll-m-20 border-l-2 border-primary/60 pl-8 py-2 my-4 text-xl font-semibold tracking-tight text-slate-700"$1>$2</h3>'
-  );
+      // 后处理：增强章节分隔和视觉层次
+      // 1. 为一级标题添加底部边距和分隔线（左对齐）
+      renderedHtml = renderedHtml.replace(
+        /<h1([^>]*)>([\s\S]*?)<\/h1>/g,
+        '<h1 class="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-4xl mb-6 pb-4 border-b-2 border-border text-left"$1>$2</h1>'
+      );
 
-  // 4. 为四级标题添加左边框（颜色递变）和左缩进
-  html = html.replace(
-    /<h4([^>]*)>([\s\S]*?)<\/h4>/g,
-    '<h4 class="scroll-m-20 border-l-2 border-primary/40 pl-12 py-2 my-4 text-lg font-semibold tracking-tight text-slate-600"$1>$2</h4>'
-  );
+      // 2. 为二级标题添加左边框和背景色（字号小于一级目录）
+      renderedHtml = renderedHtml.replace(
+        /<h2([^>]*)>([\s\S]*?)<\/h2>/g,
+        '<h2 class="scroll-m-20 border-l-4 border-primary pl-4 py-2 my-6 bg-muted/50 text-xl font-semibold tracking-tight"$1>$2</h2>'
+      );
 
-  // 5. 为段落添加适当间距
-  html = html.replace(/<p([^>]*)>/g, '<p class="leading-7 my-4"$1>');
+      // 3. 为三级标题添加左边框（颜色递变）和左缩进
+      renderedHtml = renderedHtml.replace(
+        /<h3([^>]*)>([\s\S]*?)<\/h3>/g,
+        '<h3 class="scroll-m-20 border-l-2 border-primary/60 pl-8 py-2 my-4 text-xl font-semibold tracking-tight text-slate-700"$1>$2</h3>'
+      );
 
-  // 6. 为列表项添加适当间距
-  html = html.replace(/<li([^>]*)>/g, '<li class="my-2"$1>');
+      // 4. 为四级标题添加左边框（颜色递变）和左缩进
+      renderedHtml = renderedHtml.replace(
+        /<h4([^>]*)>([\s\S]*?)<\/h4>/g,
+        '<h4 class="scroll-m-20 border-l-2 border-primary/40 pl-12 py-2 my-4 text-lg font-semibold tracking-tight text-slate-600"$1>$2</h4>'
+      );
+
+      // 5. 为段落添加适当间距
+      renderedHtml = renderedHtml.replace(/<p([^>]*)>/g, '<p class="leading-7 my-4"$1>');
+
+      // 6. 为列表项添加适当间距
+      renderedHtml = renderedHtml.replace(/<li([^>]*)>/g, '<li class="my-2"$1>');
+
+      setHtml(renderedHtml);
+    };
+
+    renderMarkdown();
+  }, [content]);
 
   // 检查是否包含 mermaid 代码块
   const hasMermaid = /```mermaid\n([\s\S]*?)\n```/.test(content);
@@ -1058,49 +1118,17 @@ const SimpleMarkdown = ({ content, isStreaming }: { content: string; isStreaming
     if (mermaidMatch) {
       const mermaidCode = mermaidMatch[1];
       const contentWithoutMermaid = content.replace(/```mermaid\n[\s\S]*?\n```/, '');
-      let htmlWithoutMermaid = md.render(contentWithoutMermaid);
-
-      // 自动添加章节编号
-      htmlWithoutMermaid = addSectionNumbers(htmlWithoutMermaid);
-
-      // 应用同样的后处理
-      let processedHtml = htmlWithoutMermaid;
-      processedHtml = processedHtml.replace(
-        /<h1([^>]*)>([\s\S]*?)<\/h1>/g,
-        '<h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mb-6 pb-4 border-b-2 border-border text-left"$1>$2</h1>'
-      );
-      processedHtml = processedHtml.replace(
-        /<h2([^>]*)>([\s\S]*?)<\/h2>/g,
-        '<h2 class="scroll-m-20 border-l-4 border-primary pl-4 py-2 my-6 bg-muted/50 text-xl font-semibold tracking-tight"$1>$2</h2>'
-      );
-      processedHtml = processedHtml.replace(
-        /<h3([^>]*)>([\s\S]*?)<\/h3>/g,
-        '<h3 class="scroll-m-20 border-l-2 border-primary/60 pl-8 py-2 my-4 text-xl font-semibold tracking-tight text-slate-700"$1>$2</h3>'
-      );
-      processedHtml = processedHtml.replace(
-        /<h4([^>]*)>([\s\S]*?)<\/h4>/g,
-        '<h4 class="scroll-m-20 border-l-2 border-primary/40 pl-12 py-2 my-4 text-lg font-semibold tracking-tight text-slate-600"$1>$2</h4>'
-      );
-      processedHtml = processedHtml.replace(/<p([^>]*)>/g, '<p class="leading-7 my-4"$1>');
-      processedHtml = processedHtml.replace(/<li([^>]*)>/g, '<li class="my-2"$1>');
-
+      
       return (
         <div className="space-y-6">
           <MermaidDiagram code={mermaidCode} />
-          <div className="relative">
-            <div
-              className="prose prose-slate max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-table:w-full"
-              dangerouslySetInnerHTML={{ __html: processedHtml }}
-            />
-            {/* 打字机光标效果 - 仅在流式输出时显示 */}
-            {isStreaming && (
-              <span className="inline-block w-2 h-5 bg-blue-600 ml-1 animate-pulse align-middle" />
-            )}
-          </div>
+          <SimpleMarkdown content={contentWithoutMermaid} isStreaming={isStreaming} />
         </div>
       );
     }
   }
+
+  if (!html) return null;
 
   return (
     <div className="relative">

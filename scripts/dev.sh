@@ -28,6 +28,15 @@ kill_port_if_listening() {
 
 echo "Clearing port ${PORT} before start."
 kill_port_if_listening
+
+# 清除 Next.js 缓存，避免模块解析问题
+NEXT_CACHE_DIR="${COZE_WORKSPACE_PATH}/.next"
+if [ -d "${NEXT_CACHE_DIR}" ]; then
+    echo "Clearing Next.js cache to prevent module resolution issues..."
+    rm -rf "${NEXT_CACHE_DIR}"
+    echo "Next.js cache cleared."
+fi
+
 echo "Starting HTTP service on port ${PORT} for dev..."
 
 npx next dev --webpack --port $PORT
