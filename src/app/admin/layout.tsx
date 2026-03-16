@@ -59,8 +59,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         console.log('[AdminLayout] 未登录，跳转到登录页');
         router.push('/login');
       } else {
-        // 检查是否具有管理员权限（admin 或 super_admin）
-        const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+        // 检查是否具有管理员权限
+        // 支持中文和英文角色名
+        const adminRoles = ['admin', 'super_admin', '管理员', '超级管理员', '系统管理员'];
+        const isAdmin = adminRoles.includes(user.role || '');
 
         if (!isAdmin) {
           console.log('[AdminLayout] 非管理员用户，拒绝访问，当前角色:', user.role);
