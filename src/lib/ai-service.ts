@@ -228,6 +228,7 @@ function parseHTMLTable(htmlContent: string): any {
 
 /**
  * 将单元格数组映射为产品对象（智能字段映射）
+ * 改进版：更智能地识别参数描述列
  * @param cells 单元格文本数组
  * @returns 产品对象
  */
@@ -246,95 +247,140 @@ function mapCellsToProduct(cells: string[]): any {
   
   if (cells.length === 0) return product;
   
+  console.log(`[字段映射] 原始单元格:`, cells);
+  
   // 策略1: 检查第一列是否为序号
   let startIndex = 0;
   if (/^\d+$/.test(cells[0]) || cells[0] === '序号') {
     startIndex = 1;
+    console.log(`[字段映射] 检测到序号列，从第2列开始`);
   }
   
   // 策略2: 根据列的数量进行字段映射
   const remainingCells = cells.slice(startIndex);
+  const cellCount = remainingCells.length;
   
-  if (remainingCells.length >= 1) {
-    // 第一列通常是名称
+  console.log(`[字段映射] 有效单元格数: ${cellCount}`);
+  
+  // 根据列数智能映射
+  if (cellCount === 1) {
+    // 只有一列：作为名称
     product.name = remainingCells[0];
-  }
-  
-  if (remainingCells.length >= 2) {
-    // 第二列可能是型号或品牌
-    const secondCell = remainingCells[1];
-    if (/型|规|spec|model/i.test(secondCell) || remainingCells.length === 2) {
-      // 如果只有两列，或者第二列看起来像型号字段
-      product.model = secondCell;
-    } else {
-      // 否则假设是品牌
-      product.brand = secondCell;
-    }
-  }
-  
-  if (remainingCells.length >= 3) {
-    // 第三列可能是品牌或型号
-    const thirdCell = remainingCells[2];
-    if (!product.brand && !/型|规|spec|model/i.test(thirdCell)) {
-      // 如果第二列是型号，第三列可能是品牌
-      product.brand = thirdCell;
-    } else if (!product.model) {
-      product.model = thirdCell;
-    } else {
-      // 已经有品牌和型号，第三列可能是规格描述
-      product.specifications = thirdCell;
-    }
-  }
-  
-  if (remainingCells.length >= 4) {
-    // 第四列通常是规格描述
-    if (!product.specifications) {
-      product.specifications = remainingCells[3];
-    }
-  }
-  
-  // 处理最后几列：数量、单位、单价、备注
-  if (remainingCells.length >= 5) {
-    const lastThree = remainingCells.slice(-3);
-    
-    // 尝试识别数量（数字）
-    for (const cell of lastThree) {
-      const num = parseInt(cell);
-      if (!isNaN(num) && num > 0) {
-        product.quantity = num;
-        break;
+  } else if (cellCount === 2) {
+    // 两列：名称 + 参数描述
+    product.name = remainingCells[0];
+    product.specifications = remainingCells[1];
+  } else if (cellCount === 3) {
+    // 三列：名称 + 参数描述 + 数量/单位
+    product.name = remainingCells[0];
+    product.specifications = remainingCells[1];
+    // 最后一列尝试解析数量和单位
+    parseQuantityAndUnit(remainingCells[2], product);
+  } else if (cellCount === 4) {
+    // 四列：名称 + 品牌 + 参数描述 + 数量单位
+    product.name = remainingCells[0];
+    product.brand = remainingCells[1];
+    product.specifications = remainingCells[2];
+    parseQuantityAndUnit(remainingCells[3], product);
+  } else if (cellCount === 5) {
+    // 五列：名称 + 品牌 + 参数描述 + 数量 + 单位
+    product.name = remainingCells[0];
+    product.brand = remainingCells[1];
+    product.specifications = remainingCells[2];
+    product.quantity = parseInt(remainingCells[3]) || 1;
+    product.unit = remainingCells[4] || '套';
+  } else if (cellCount === 6) {
+    // 六列：名称 + 品牌 + 参数描述 + 数量 + 单位 + 单价
+    product.name = remainingCells[0];
+    product.brand = remainingCells[1];
+    product.specifications = remainingCells[2];
+    product.quantity = parseInt(remainingCells[3]) || 1;
+    product.unit = remainingCells[4] || '套';
+    product.unit_price = parsePrice(remainingCells[5]);
+  } else if (cellCount >= 7) {
+    // 七列及以上：名称 + 型号 + 品牌 + 参数描述 + 数量 + 单位 + 单价 + ...
+    product.name = remainingCells[0];
+    product.model = remainingCells[1];
+    product.brand = remainingCells[2];
+    // 参数描述可能是多列合并
+    product.specifications = remainingCells[3];
+    // 如果有额外的中间列，合并到参数描述中
+    if (cellCount > 7) {
+      const extraSpecs = remainingCells.slice(4, cellCount - 3);
+      if (extraSpecs.length > 0) {
+        product.specifications = [product.specifications, ...extraSpecs].filter(s => s).join('；');
       }
     }
-    
-    // 尝试识别单位（常见单位）
-    const units = ['套', '台', '个', '件', '只', '台', '张', '本', '把', '支'];
-    for (const cell of lastThree) {
-      if (units.includes(cell)) {
-        product.unit = cell;
-        break;
-      }
-    }
-    
-    // 尝试识别单价（数字或带货币符号）
-    for (const cell of lastThree) {
-      const priceMatch = cell.match(/¥?(\d+(\.\d+)?)/);
-      if (priceMatch && priceMatch[1]) {
-        product.unit_price = parseFloat(priceMatch[1]);
+    // 最后三列通常是数量、单位、单价
+    product.quantity = parseInt(remainingCells[cellCount - 3]) || 1;
+    product.unit = remainingCells[cellCount - 2] || '套';
+    product.unit_price = parsePrice(remainingCells[cellCount - 1]);
+  }
+  
+  // 智能识别品牌信息（如果品牌字段为空但参数描述中包含品牌）
+  if (!product.brand && product.specifications) {
+    const brands = ['佳木斯', '宁波动力', '哈瓦洛', '西门子', 'ABB', '施耐德', '三菱', '松下'];
+    for (const brand of brands) {
+      if (product.specifications.includes(brand)) {
+        product.brand = brand;
         break;
       }
     }
   }
   
-  // 将所有剩余文本合并到规格描述中
-  if (remainingCells.length >= 5 && !product.specifications) {
-    // 将中间几列合并为规格描述（跳过数量、单位、单价、备注）
-    const middleCells = remainingCells.slice(3, -3);
-    if (middleCells.length > 0) {
-      product.specifications = middleCells.join(' ');
+  // 智能识别型号信息（如果型号字段为空但参数描述中包含型号）
+  if (!product.model && product.specifications) {
+    // 匹配常见型号模式
+    const modelPatterns = [
+      /型号[：:]\s*([A-Za-z0-9\-]+)/i,
+      /([A-Z]{2,3}[\-\d]+)/,
+      /(DN\d+)/i,
+    ];
+    for (const pattern of modelPatterns) {
+      const match = product.specifications.match(pattern);
+      if (match) {
+        product.model = match[1] || match[0];
+        break;
+      }
     }
   }
+  
+  console.log(`[字段映射] 映射结果:`, product);
   
   return product;
+}
+
+/**
+ * 解析数量和单位
+ */
+function parseQuantityAndUnit(text: string, product: any): void {
+  // 尝试匹配 "3套" 或 "3 台" 格式
+  const match = text.match(/^(\d+)\s*(套|台|个|件|只|张|本|把|支|吨|米|kg)$/);
+  if (match) {
+    product.quantity = parseInt(match[1]) || 1;
+    product.unit = match[2];
+  } else {
+    // 尝试单独解析数字或单位
+    const num = parseInt(text);
+    if (!isNaN(num) && num > 0) {
+      product.quantity = num;
+    }
+    const units = ['套', '台', '个', '件', '只', '张', '本', '把', '支', '吨', '米', 'kg'];
+    if (units.includes(text)) {
+      product.unit = text;
+    }
+  }
+}
+
+/**
+ * 解析价格
+ */
+function parsePrice(text: string): number {
+  if (!text) return 0;
+  // 移除货币符号和千分位逗号
+  const cleaned = text.replace(/[¥$€,，]/g, '');
+  const price = parseFloat(cleaned);
+  return isNaN(price) ? 0 : price;
 }
 
 // ============================================================================

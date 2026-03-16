@@ -3,9 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getCozeResponse, getTextInTableResponse, uploadFileToTextIn } from '@/lib/ai-service';
+import { cleanParameterDescriptionEnhanced } from '@/utils/string-cleaner-enhanced';
 
 /**
  * 统一处理产品字段，确保字段名正确
+ * 包含参数描述清洗，移除重复的规格参数和功率信息
  */
 function normalizeProducts(products: any[]): any[] {
   if (!Array.isArray(products)) return products;
@@ -16,12 +18,30 @@ function normalizeProducts(products: any[]): any[] {
     // 打印原始字段（调试用）
     console.log(`[字段映射] 产品 ${index + 1} 原始字段:`, JSON.stringify(p, null, 2));
     
+    // 获取原始参数描述
+    const rawDescription = p.parameter_description || p.specs || p.specifications || p.description || p.parameters || '';
+    
+    // 使用增强版清洗函数处理参数描述（移除重复规格、重复功率等）
+    const cleanResult = cleanParameterDescriptionEnhanced(rawDescription);
+    const cleanedDescription = cleanResult.cleaned;
+    
+    // 记录清洗结果
+    if (cleanResult.statistics.removedChars > 0) {
+      console.log(`[参数清洗] 产品 ${index + 1} 清洗统计:`);
+      console.log(`  - 原始长度: ${cleanResult.statistics.originalLength}`);
+      console.log(`  - 清洗后长度: ${cleanResult.statistics.cleanedLength}`);
+      console.log(`  - 减少字符: ${cleanResult.statistics.removedChars}`);
+      if (cleanResult.removedItems.length > 0) {
+        console.log(`  - 清洗项: ${cleanResult.removedItems.join(', ')}`);
+      }
+    }
+    
     const normalized = {
       name: p.name || p.product_name || '',
       model: p.model || p.spec || '',
       brand: p.brand || '',
-      // 统一字段名：优先使用 parameter_description，兼容各种旧字段
-      parameter_description: p.parameter_description || p.specs || p.specifications || p.description || p.parameters || '',
+      // 统一字段名：优先使用 parameter_description，兼容各种旧字段，并进行清洗
+      parameter_description: cleanedDescription,
       quantity: p.quantity || 1,
       unit: p.unit || '套',
       unit_price: p.unit_price || p.price || 0,
