@@ -2692,7 +2692,7 @@ async function generateQuoteData(products: Product[]) {
       name: product.name,
       model: matchResult.model || product.model,
       brand: '',
-      specifications: product.specs,
+      parameter_description: cleanParameterDescriptionEnhanced(product.specs || ''),
       quantity: product.quantity,
       unit: product.unit,
       unitPrice: matchResult.price,

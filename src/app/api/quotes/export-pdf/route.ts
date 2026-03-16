@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
       const processed = {
         ...product,
         name: formatProductName(product.name),
-        specifications: formatText(product.specifications || product.model || ''),
+        specifications: formatText(product.parameter_description || product.specifications || product.model || ''),
         brand: formatText(product.brand),
         unit: formatText(product.unit) || '个',
         quantity: product.quantity || 0,
@@ -612,7 +612,7 @@ export async function POST(request: NextRequest) {
         <tr>
           <th style="width: 5%">序号</th>
           <th style="width: 25%">产品名称</th>
-          <th style="width: 20%">规格型号</th>
+          <th style="width: 20%">参数描述</th>
           <th style="width: 12%">品牌</th>
           <th style="width: 8%">单位</th>
           <th style="width: 10%">数量</th>

@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     if (products && Array.isArray(products) && products.length > 0) {
       products.forEach((product: any, index: number) => {
         const name = product?.name || '未知产品';
-        const specs = product?.specifications || product?.model || '-';
+        const specs = product?.parameter_description || product?.specifications || product?.model || '-';
         const brand = product?.brand || '-';
         const unit = product?.unit || '个';
         const quantity = product?.quantity || 0;
@@ -385,7 +385,7 @@ export async function POST(request: NextRequest) {
             <tr>
                 <th>序号</th>
                 <th>产品名称</th>
-                <th>规格型号</th>
+                <th>参数描述</th>
                 <th>品牌</th>
                 <th>单位</th>
                 <th>数量</th>

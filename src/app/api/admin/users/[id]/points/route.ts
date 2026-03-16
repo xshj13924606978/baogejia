@@ -32,10 +32,18 @@ export async function GET(
     console.log('[UserPoints API] 查询结果:', { user, error });
 
     if (error || !user) {
-      return NextResponse.json(
-        { error: '用户不存在' },
-        { status: 404 }
-      );
+      // 表不存在或用户不存在时返回默认值
+      return NextResponse.json({
+        success: true,
+        data: {
+          userId: id,
+          pointsBalance: 0,
+          tokenBalance: 0,
+          totalConsumedPoints: 0,
+          totalRechargedPoints: 0,
+          lastUpdated: new Date().toISOString(),
+        }
+      });
     }
 
     // 从 metadata 中获取积分，默认为 0
