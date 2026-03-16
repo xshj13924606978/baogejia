@@ -24,6 +24,54 @@ export interface PermissionCheckResult {
   status?: number;
 }
 
+// 管理员角色列表
+const ADMIN_ROLES = ['admin', 'super_admin', '管理员', '超级管理员', '系统管理员'];
+
+/**
+ * 从多个来源获取用户角色
+ */
+async function getUserRole(supabase: any, userId: any): Promise<string | null> {
+  // 方法1：尝试从 user_roles 表获取
+  const { data: userRole, error: roleError } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .single();
+  
+  if (!roleError && userRole?.role) {
+    return userRole.role;
+  }
+  
+  // 方法2：尝试从 profiles 表获取
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('metadata')
+    .eq('id', userId)
+    .single();
+  
+  if (!profileError && profile?.metadata?.role) {
+    return profile.metadata.role;
+  }
+  
+  // 方法3：尝试从 users 表获取
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('metadata')
+    .eq('id', userId)
+    .single();
+  
+  if (!userError && user?.metadata?.role) {
+    return user.metadata.role;
+  }
+  
+  // 方法4：开发环境默认给予管理员权限
+  if (process.env.NODE_ENV === 'development') {
+    return '超级管理员';
+  }
+  
+  return null;
+}
+
 /**
  * 统一的权限检查函数
  */
@@ -46,42 +94,26 @@ export async function checkPermission(
     const { getSupabaseClient } = await import('@/storage/database/supabase-client');
     const supabase = getSupabaseClient();
 
-    // 获取用户角色
-    const { data: userRole, error: roleError } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (roleError || !userRole) {
-      return {
-        allowed: false,
-        reason: '获取用户角色失败',
-        status: 500,
-      };
-    }
+    // 获取用户角色（从多个来源）
+    const role = await getUserRole(supabase, user.id);
 
     // 获取用户等级和积分
     const { data: userInfo, error: infoError } = await supabase
       .from('users')
-      .select('level, points')
+      .select('level, points, metadata')
       .eq('id', user.id)
       .single();
 
-    if (infoError || !userInfo) {
-      return {
-        allowed: false,
-        reason: '获取用户信息失败',
-        status: 500,
-      };
-    }
+    // 如果 users 表也查不到，使用默认值
+    const level = userInfo?.level || userInfo?.metadata?.level || 1;
+    const points = userInfo?.points || userInfo?.metadata?.points || 0;
 
     // 构建完整用户信息
     const fullUser = {
       ...user,
-      role: userRole.role,
-      level: userInfo.level || 1,
-      currentPoints: userInfo.points || 0,
+      role: role || 'user',
+      level: level,
+      currentPoints: points,
     };
 
     // 2. 角色检查

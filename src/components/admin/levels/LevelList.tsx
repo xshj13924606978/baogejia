@@ -62,6 +62,38 @@ export const LevelList: React.FC = () => {
   
   const { toast } = useToast();
 
+  // 保存历史记录到 localStorage
+  const saveHistoryToStorage = (level: number, record: any) => {
+    try {
+      const key = `level_history_${level}`;
+      const stored = localStorage.getItem(key);
+      const history = stored ? JSON.parse(stored) : [];
+      history.unshift({
+        ...record,
+        id: Date.now(),
+        created_at: new Date().toISOString(),
+      });
+      // 最多保留50条记录
+      const trimmedHistory = history.slice(0, 50);
+      localStorage.setItem(key, JSON.stringify(trimmedHistory));
+      console.log('[LevelList] 历史记录已保存');
+    } catch (e) {
+      console.error('[LevelList] 保存历史失败:', e);
+    }
+  };
+
+  // 从 localStorage 加载历史记录
+  const loadHistoryFromStorage = (level: number): any[] => {
+    try {
+      const key = `level_history_${level}`;
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      console.error('[LevelList] 加载历史失败:', e);
+      return [];
+    }
+  };
+
   // 树状展开状态
   const [expandedLevels, setExpandedLevels] = useState<Set<number>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Record<number, Set<string>>>({});
@@ -96,6 +128,14 @@ export const LevelList: React.FC = () => {
 
   // 模块名称映射 - 完整版
   const moduleNameMap: Record<string, string> = {
+    // 核心模块
+    'chat': '智能对话',
+    'quote': '报价生成',
+    'history': '历史记录',
+    'export': '导出功能',
+    'analytics': '数据分析',
+    'api': 'API接口',
+    
     // 用户相关
     'user.view': '用户查看',
     'user.manage': '用户管理',
@@ -176,20 +216,69 @@ export const LevelList: React.FC = () => {
     'vip': 'VIP用户',
     'premium': '付费用户',
     'free': '免费用户',
-    'pending': '待审核'
+    'pending': '待审核',
+    'free_user': '免费用户',
+    'normal_member': '普通会员',
+    'vip_member': 'VIP会员',
+    'enterprise_member': '企业会员',
+    'super_member': '超级会员',
+    'user': '普通用户'
   };
 
   useEffect(() => {
+    // 先尝试从 localStorage 加载持久化的配置
+    loadPersistedLevels();
     fetchLevels();
   }, []);
+
+  // 从 localStorage 加载持久化的配置
+  const loadPersistedLevels = () => {
+    try {
+      const stored = localStorage.getItem('level_configs');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        console.log('[LevelList] 从localStorage加载配置:', parsed.length, '个等级');
+        // 如果本地有配置，先设置到状态
+        setLevels(parsed);
+      }
+    } catch (e) {
+      console.error('[LevelList] 加载本地配置失败:', e);
+    }
+  };
+
+  // 持久化配置到 localStorage
+  const persistLevels = (newLevels: LevelConfig[]) => {
+    try {
+      localStorage.setItem('level_configs', JSON.stringify(newLevels));
+      console.log('[LevelList] 配置已持久化到localStorage');
+    } catch (e) {
+      console.error('[LevelList] 持久化失败:', e);
+    }
+  };
 
   const fetchLevels = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/levels');
+      const res = await fetch('/api/admin/levels', {
+        credentials: 'include'
+      });
       const data = await res.json();
       if (data.success) {
-        setLevels(data.levels);
+        // 检查本地是否有修改过的配置
+        const stored = localStorage.getItem('level_configs');
+        if (stored) {
+          // 合并本地修改和服务器配置
+          const localConfigs = JSON.parse(stored);
+          const mergedLevels = data.levels.map((serverLevel: LevelConfig) => {
+            const localConfig = localConfigs.find((l: LevelConfig) => l.level === serverLevel.level);
+            return localConfig || serverLevel;
+          });
+          setLevels(mergedLevels);
+        } else {
+          setLevels(data.levels);
+          // 首次加载时持久化默认配置
+          persistLevels(data.levels);
+        }
       } else {
         toast({
           variant: 'destructive',
@@ -207,31 +296,67 @@ export const LevelList: React.FC = () => {
   };
 
   const handleUpdateLevel = async (level: number, changes: any, reason: string) => {
+    console.log('[LevelList] 保存等级权限:', { level, changes, reason });
     try {
       const res = await fetch(`/api/admin/levels/${level}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ changes, reason })
       });
 
+      console.log('[LevelList] 更新响应状态:', res.status);
       const data = await res.json();
+      console.log('[LevelList] 更新响应数据:', data);
 
       if (data.success) {
+        // 更新本地状态并持久化
+        let newLevels: LevelConfig[] = [];
+        setLevels(prevLevels => {
+          newLevels = prevLevels.map(l => {
+            if (l.level === level) {
+              return {
+                ...l,
+                fieldPermissions: data.config?.fieldPermissions || changes.fieldPermissions || l.fieldPermissions,
+                quotas: data.config?.quotas || changes.quotas || l.quotas,
+                modulePermissions: data.config?.modulePermissions || changes.modulePermissions || l.modulePermissions,
+              };
+            }
+            return l;
+          });
+          return newLevels;
+        });
+
+        // 立即持久化到 localStorage
+        setTimeout(() => {
+          persistLevels(newLevels);
+        }, 0);
+
+        // 保存历史记录
+        saveHistoryToStorage(level, {
+          admin_name: '管理员',
+          reason: reason,
+          changes: changes,
+        });
+        
         toast({
           title: '更新成功',
+          description: '等级权限配置已保存',
         });
-        fetchLevels();
         setEditingLevel(null);
       } else {
         toast({
           variant: 'destructive',
           title: '更新失败',
+          description: data.error || '未知错误',
         });
       }
     } catch (error) {
+      console.error('[LevelList] 更新失败:', error);
       toast({
         variant: 'destructive',
         title: '更新失败',
+        description: error instanceof Error ? error.message : '网络错误',
       });
     }
   };
@@ -244,6 +369,37 @@ export const LevelList: React.FC = () => {
     setHistoryLoading(true);
     setHistoryOpen(true);
     
+    // 先从本地存储加载历史记录
+    const localHistory = loadHistoryFromStorage(level);
+    if (localHistory.length > 0) {
+      console.log('[LevelList] 从本地加载历史记录:', localHistory.length, '条');
+      const formattedLocalHistory = localHistory.map((item: any) => {
+        const date = item.created_at;
+        let timeStr = '未知时间';
+        if (date) {
+          const dateObj = new Date(date);
+          const year = dateObj.getFullYear();
+          const month = dateObj.getMonth() + 1;
+          const day = dateObj.getDate();
+          const hours = dateObj.getHours().toString().padStart(2, '0');
+          const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+          const seconds = dateObj.getSeconds().toString().padStart(2, '0');
+          timeStr = `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
+        }
+        return {
+          id: item.id,
+          time: timeStr,
+          admin: item.admin_name || '管理员',
+          reason: item.reason || '无说明',
+          changes: item.changes
+        };
+      });
+      setHistoryData(formattedLocalHistory);
+      setHistoryLoading(false);
+      return;
+    }
+    
+    // 如果本地没有，尝试从API获取
     try {
       const res = await fetch(`/api/admin/levels/${level}/history`, {
         credentials: 'include'
@@ -254,12 +410,7 @@ export const LevelList: React.FC = () => {
       if (!res.ok) {
         const errorText = await res.text();
         console.error('[LevelList] 历史API错误:', errorText);
-        toast({
-          variant: 'destructive',
-          title: '获取历史失败',
-          description: `HTTP ${res.status}: ${errorText}`,
-          duration: 5000,
-        });
+        setHistoryData([]);
         setHistoryLoading(false);
         return;
       }
@@ -267,18 +418,7 @@ export const LevelList: React.FC = () => {
       const data = await res.json();
       console.log('[LevelList] 历史数据:', data);
       
-      if (!data.success) {
-        toast({
-          variant: 'destructive',
-          title: '获取历史失败',
-          description: data.error || '服务器返回错误',
-          duration: 5000,
-        });
-        setHistoryLoading(false);
-        return;
-      }
-
-      if (!data.history || data.history.length === 0) {
+      if (!data.success || !data.history || data.history.length === 0) {
         setHistoryData([]);
         setHistoryLoading(false);
         return;
@@ -425,15 +565,43 @@ export const LevelList: React.FC = () => {
       console.log('[LevelList] 批量更新结果:', data);
 
       if (data.success) {
+        // 更新本地状态并持久化
+        const newLevels = levels.map(level => {
+          const update = updates.find((u: any) => u.level === level.level);
+          if (update) {
+            return {
+              ...level,
+              fieldPermissions: {
+                ...level.fieldPermissions,
+                ...update.changes.fieldPermissions
+              },
+              quotas: {
+                ...level.quotas,
+                ...update.changes.quotas
+              }
+            };
+          }
+          return level;
+        });
+        
+        setLevels(newLevels);
+        persistLevels(newLevels);
+
+        // 保存每个等级的历史记录
+        updates.forEach((update: any) => {
+          saveHistoryToStorage(update.level, {
+            admin_name: '管理员',
+            reason: update.reason,
+            changes: update.changes,
+          });
+        });
+        
         toast({
           title: `批量更新成功，共更新 ${updates.length} 个等级`,
         });
         
         // 关闭弹窗
         setBatchUpdateOpen(false);
-        
-        // 刷新列表
-        await fetchLevels();
         
         // 重置表单（延迟执行，避免影响弹窗关闭动画）
         setTimeout(() => {
@@ -1165,22 +1333,25 @@ export const LevelList: React.FC = () => {
                   <h4 className="font-medium mb-2">配额设置</h4>
                   <ul className="list-disc list-inside text-sm space-y-1">
                     <li>
-                      每日查询配额：{levelData.quotas?.daily_quota || 0} 次
-                      {levelData.quotas?.daily_quota === 0 && (
-                        <span className="text-muted-foreground ml-2">（不限制）</span>
-                      )}
+                      每日查询配额：
+                      {levelData.quotas?.daily_quota === 0
+                        ? <span className="text-green-600 font-medium">不限制</span>
+                        : <span>{levelData.quotas?.daily_quota || 0} 次</span>
+                      }
                     </li>
                     <li>
-                      最大文件数量：{levelData.quotas?.max_files || 0} 个
-                      {levelData.quotas?.max_files === 0 && (
-                        <span className="text-muted-foreground ml-2">（不限制）</span>
-                      )}
+                      最大文件数量：
+                      {levelData.quotas?.max_files === 0
+                        ? <span className="text-green-600 font-medium">不限制</span>
+                        : <span>{levelData.quotas?.max_files || 0} 个</span>
+                      }
                     </li>
                     <li>
-                      最大聊天消息数：{levelData.quotas?.max_chat_messages || 0} 条
-                      {levelData.quotas?.max_chat_messages === 0 && (
-                        <span className="text-muted-foreground ml-2">（不限制）</span>
-                      )}
+                      最大聊天消息数：
+                      {levelData.quotas?.max_chat_messages === 0
+                        ? <span className="text-green-600 font-medium">不限制</span>
+                        : <span>{levelData.quotas?.max_chat_messages || 0} 条</span>
+                      }
                     </li>
                   </ul>
                   <p className="text-xs text-muted-foreground mt-2">

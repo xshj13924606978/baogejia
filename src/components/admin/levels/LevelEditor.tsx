@@ -218,7 +218,9 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch(`/api/admin/levels/${level}`);
+      const res = await fetch(`/api/admin/levels/${level}`, {
+        credentials: 'include'
+      });
       const data = await res.json();
 
       if (data.success && data.config) {
@@ -248,7 +250,9 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
 
   const fetchModules = async () => {
     try {
-      const res = await fetch('/api/admin/modules');
+      const res = await fetch('/api/admin/modules', {
+        credentials: 'include'
+      });
       const data = await res.json();
       if (data.success) {
         setModules(data.modules || []);
@@ -282,6 +286,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
       const res = await fetch('/api/admin/permissions/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ level, changes }),
       });
 
