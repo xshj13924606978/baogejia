@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { Logger } from '@/lib/logger';
 import { callDeepSeekChat } from '@/lib/deepseek-client';
-import { cleanParameterDescription } from '@/utils/string-cleaner';
+import { cleanParameterDescriptionEnhanced } from '@/utils/string-cleaner-enhanced';
 
 const execAsync = promisify(exec);
 
@@ -292,23 +292,37 @@ export class OcrHelper {
 
     const fullText = lines.join(' ').replace(/\s+/g, ' ');
     Logger.debug('[OCR] 解析产品文本', { preview: fullText.substring(0, 100) });
+    
+    // 使用增强版清洗函数处理参数描述
+    const cleanResult = cleanParameterDescriptionEnhanced(fullText);
+    const cleanedText = cleanResult.cleaned;
+    
+    // 记录清洗统计
+    if (cleanResult.statistics.removedChars > 0) {
+      Logger.info('[OCR] 参数清洗统计', {
+        originalLength: cleanResult.statistics.originalLength,
+        cleanedLength: cleanResult.statistics.cleanedLength,
+        removedChars: cleanResult.statistics.removedChars,
+        removedItems: cleanResult.removedItems,
+      });
+    }
 
     const product: ExtractedProduct = {
       name: defaultName,
       model: '',
-      specs: fullText,
+      specs: cleanedText,  // 使用清洗后的文本
       quantity: 1,
       unit: '台',
       price: 0,
       total: 0,
-      parameter_description: cleanParameterDescription(fullText),  // 清洗后的参数描述
+      parameter_description: cleanedText,  // 清洗后的参数描述
     };
 
     // 提取数量 - 正确的逻辑，排除尺寸中的数字
-    this.extractQuantity(product, fullText);
+    this.extractQuantity(product, cleanedText);
 
     // 提取型号
-    this.extractModel(product, fullText);
+    this.extractModel(product, cleanedText);
 
     return product;
   }

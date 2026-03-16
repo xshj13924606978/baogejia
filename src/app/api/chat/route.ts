@@ -10,6 +10,8 @@ import { Logger } from '@/lib/logger';
 import { aiClient } from '@/lib/deepseek-client';
 // 导入智能对话处理器（替代固定意图检测）
 import { smartChatProcessor } from '@/lib/smart-chat-processor';
+// 导入增强版参数清洗函数
+import { cleanParameterDescriptionEnhanced } from '@/utils/string-cleaner-enhanced';
 
 // ============================================================================
 // 类型定义
@@ -1309,17 +1311,33 @@ class PdfParser {
       if (data.text && data.text.trim().length > 0) {
         const tableProducts = this.ocrHelper.extractProductsFromTable(data.text);
 
-        const products = tableProducts.map((p) => ({
-          name: p.name,
-          model: p.model || '',
-          brand: '',
-          specs: p.specs || '',
-          quantity: p.quantity,
-          unit: p.unit,
-          price: 0,
-          total: 0,
-          remark: '从PDF提取',
-        }));
+        const products = tableProducts.map((p) => {
+          // 使用增强版清洗函数处理 specs
+          const cleanResult = cleanParameterDescriptionEnhanced(p.specs || '');
+          const cleanedSpecs = cleanResult.cleaned;
+          
+          // 记录清洗统计
+          if (cleanResult.statistics.removedChars > 0) {
+            Logger.info('[PDF] specs清洗统计', {
+              productName: p.name,
+              originalLength: cleanResult.statistics.originalLength,
+              cleanedLength: cleanResult.statistics.cleanedLength,
+              removedChars: cleanResult.statistics.removedChars,
+            });
+          }
+          
+          return {
+            name: p.name,
+            model: p.model || '',
+            brand: '',
+            specs: cleanedSpecs,  // 使用清洗后的 specs
+            quantity: p.quantity,
+            unit: p.unit,
+            price: 0,
+            total: 0,
+            remark: '从PDF提取',
+          };
+        });
 
         Logger.info('[PDF] 解析成功', { productCount: products.length });
         return {
@@ -1346,17 +1364,23 @@ class PdfParser {
         if (text && text.trim().length > 0) {
           const tableProducts = this.ocrHelper.extractProductsFromTable(text);
 
-          const products = tableProducts.map((p) => ({
-            name: p.name,
-            model: p.model || '',
-            brand: '',
-            specs: p.specs || '',
-            quantity: p.quantity,
-            unit: p.unit,
-            price: 0,
-            total: 0,
-            remark: '通过OCR提取',
-          }));
+          const products = tableProducts.map((p) => {
+            // 使用增强版清洗函数处理 specs
+            const cleanResult = cleanParameterDescriptionEnhanced(p.specs || '');
+            const cleanedSpecs = cleanResult.cleaned;
+            
+            return {
+              name: p.name,
+              model: p.model || '',
+              brand: '',
+              specs: cleanedSpecs,  // 使用清洗后的 specs
+              quantity: p.quantity,
+              unit: p.unit,
+              price: 0,
+              total: 0,
+              remark: '通过OCR提取',
+            };
+          });
 
           Logger.info('[PDF] OCR解析成功', { productCount: products.length });
           return {
