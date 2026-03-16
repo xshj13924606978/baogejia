@@ -1104,6 +1104,7 @@ class ExcelParser {
       let specsCol = -1;
       let quantityCol = -1;
       let unitCol = -1;
+      let brandCol = -1;  // 新增：品牌列
 
       console.log('[Excel] 开始查找表头...');
       for (let i = 0; i < Math.min(10, data.length); i++) {
@@ -1118,30 +1119,46 @@ class ExcelParser {
 
         console.log(`[Excel] 第${i}行内容:`, rowStr);
 
-        // 检测是否为表头行
-        if (rowStr.includes('产品') || rowStr.includes('设备名称') || rowStr.includes('名称')) {
+        // 检测是否为表头行 - 更严格的匹配
+        if (rowStr.includes('产品名称') || rowStr.includes('设备名称') || 
+            (rowStr.includes('名称') && (rowStr.includes('规格') || rowStr.includes('数量')))) {
           headerRow = i;
 
-          // 识别列位置
+          // 识别列位置 - 精确匹配
           row.forEach((cell, col) => {
-            const cellStr = cell ? String(cell).toLowerCase() : '';
-            if (
-              cellStr.includes('产品名称') ||
-              cellStr.includes('设备名称') ||
-              cellStr === '名称'
-            ) {
+            const cellStr = cell ? String(cell).trim().toLowerCase() : '';
+            
+            // 产品名称列 - 精确匹配
+            if (cellStr === '产品名称' || cellStr === '设备名称' || 
+                cellStr === '名称' || cellStr === '项目名称') {
               nameCol = col;
-            } else if (
-              cellStr.includes('规格') ||
-              cellStr.includes('型号') ||
-              cellStr.includes('简介说明') ||
-              cellStr === '规格型号'
-            ) {
+              console.log(`[Excel] 识别产品名称列: 第${col}列 (${cellStr})`);
+            }
+            
+            // 规格型号列 - 精确匹配
+            if (cellStr === '规格型号' || cellStr === '规格' || cellStr === '型号' ||
+                cellStr === '参数描述' || cellStr === '技术参数' || cellStr === '参数' ||
+                cellStr === '简介说明' || cellStr === '设备规格') {
               specsCol = col;
-            } else if (cellStr.includes('数量') || cellStr === '数量') {
+              console.log(`[Excel] 识别规格型号列: 第${col}列 (${cellStr})`);
+            }
+            
+            // 数量列
+            if (cellStr === '数量' || cellStr === '台数' || cellStr === '套数') {
               quantityCol = col;
-            } else if (cellStr.includes('单位') || cellStr === '单位') {
+              console.log(`[Excel] 识别数量列: 第${col}列 (${cellStr})`);
+            }
+            
+            // 单位列
+            if (cellStr === '单位') {
               unitCol = col;
+              console.log(`[Excel] 识别单位列: 第${col}列 (${cellStr})`);
+            }
+            
+            // 品牌列
+            if (cellStr === '品牌' || cellStr === '厂家' || cellStr === '制造商') {
+              brandCol = col;
+              console.log(`[Excel] 识别品牌列: 第${col}列 (${cellStr})`);
             }
           });
 
@@ -1150,6 +1167,7 @@ class ExcelParser {
             specsCol,
             quantityCol,
             unitCol,
+            brandCol,
           });
           break;
         }
@@ -1158,11 +1176,49 @@ class ExcelParser {
       if (headerRow === -1) {
         console.warn('[Excel] 未找到表头行，尝试使用默认列位置');
         headerRow = 0;
-        nameCol = 1;
-        specsCol = 2;
-        quantityCol = 3;
+        nameCol = 0;  // 默认第一列
+        specsCol = 1; // 默认第二列
+        quantityCol = 2;
         unitCol = 3;
       }
+
+      // 备注过滤关键词
+      const remarkKeywords = [
+        '备注', '说明', '注意', '注：', '注:', '以上', '以下', '合计', '总计',
+        '小计', '本页', '共页', '审核', '批准', '编制', '日期', '签名',
+        '技术要求', '质量要求', '交货期', '付款方式', '质保', '售后服务'
+      ];
+      
+      // 检查是否是备注行的函数
+      const isRemarkRow = (rowData: any[]): boolean => {
+        const rowStr = rowData.map(cell => cell ? String(cell).trim() : '').join(' ').toLowerCase();
+        
+        // 如果整行以备注关键词开头，认为是备注行
+        for (const keyword of remarkKeywords) {
+          if (rowStr.startsWith(keyword.toLowerCase())) {
+            return true;
+          }
+        }
+        
+        // 如果行中包含多个备注关键词，认为是备注行
+        let keywordCount = 0;
+        for (const keyword of remarkKeywords) {
+          if (rowStr.includes(keyword.toLowerCase())) {
+            keywordCount++;
+          }
+        }
+        if (keywordCount >= 2) {
+          return true;
+        }
+        
+        // 如果第一列包含备注关键词且没有产品名称
+        const firstCell = rowData[0] ? String(rowData[0]).trim().toLowerCase() : '';
+        if (remarkKeywords.some(kw => firstCell.includes(kw.toLowerCase()))) {
+          return true;
+        }
+        
+        return false;
+      };
 
       // 解析数据行
       const products: Product[] = [];
@@ -1183,9 +1239,36 @@ class ExcelParser {
           console.log(`[Excel] 第${i}行: 空行，跳过`);
           continue;
         }
+        
+        // 检查是否是备注行
+        if (isRemarkRow(row)) {
+          console.log(`[Excel] 第${i}行: 备注行，跳过 - ${row.slice(0, 3).join(' | ')}`);
+          continue;
+        }
 
         const nameValue = getCellValue(i, nameCol);
         const rawProductName = nameValue ? String(nameValue).trim() : '';
+        
+        // 跳过没有产品名称的行（除非有规格内容要追加到上一个产品）
+        if (!rawProductName) {
+          // 检查是否有规格内容要追加
+          if (specsCol !== -1 && lastProductName !== '') {
+            const specsValue = getCellValue(i, specsCol);
+            if (specsValue && String(specsValue).trim()) {
+              const currentProduct = productMap.get(lastProductName);
+              if (currentProduct) {
+                const specsStr = String(specsValue).trim();
+                if (currentProduct.specs) {
+                  currentProduct.specs += '\n' + specsStr;
+                } else {
+                  currentProduct.specs = specsStr;
+                }
+                console.log(`[Excel] 第${i}行: 规格追加到 ${lastProductName} - ${specsStr.substring(0, 30)}...`);
+              }
+            }
+          }
+          continue;
+        }
         
         // 分离产品名称和参数描述（如果名称中包含换行符或参数描述）
         let productName = rawProductName;
@@ -1202,9 +1285,9 @@ class ExcelParser {
           }
         }
         
-        // 检查产品名称是否以常见参数开头（如尺寸、功率等）
-        const specPattern = /^[\dφΦ×xX\-]+|^[\u4e00-\u9fa5]+\d+|^功率|^电压|^容量|^尺寸/i;
-        if (specPattern.test(productName) && lastProductName !== '') {
+        // 检查产品名称是否以常见参数开头（如尺寸、功率等）- 更严格的判断
+        const specPattern = /^[\dφΦ×xX\-]+\d|^功率\s*\d|^电压\s*\d|^容量\s*\d|^尺寸\s*\d/i;
+        if (specPattern.test(productName) && lastProductName !== '' && productName.length < 50) {
           // 如果当前"产品名称"实际上是参数描述，追加到上一个产品
           const currentProduct = productMap.get(lastProductName);
           if (currentProduct) {
@@ -1233,6 +1316,7 @@ class ExcelParser {
           const specsValue = getCellValue(i, specsCol) || '';
           const quantityValue = getCellValue(i, quantityCol) || '';
           const unitValue = getCellValue(i, unitCol) || '';
+          const brandValue = brandCol !== -1 ? getCellValue(i, brandCol) : '';
 
           let quantity = 1;
           const qtyMatch = String(quantityValue).match(/(\d+)/);
@@ -1253,7 +1337,7 @@ class ExcelParser {
           const newProduct: Product = {
             name: productName,
             model: '',
-            brand: '',
+            brand: String(brandValue).trim(),
             specs: finalSpecs,
             quantity: quantity,
             unit: String(unitValue).trim() || '套',
