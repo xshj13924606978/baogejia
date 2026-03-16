@@ -58,8 +58,32 @@ export function cleanParameterDescriptionEnhanced(text: string): CleanResult {
     console.log('  ℹ️ 无需修复品牌');
   }
 
-  // 步骤3：修复拆分的参数格式
-  console.log('\n  步骤3: 修复参数格式');
+  // 步骤3：规格去重（新增）
+  console.log('\n  步骤3: 规格去重');
+  const beforeSpecDedupe = cleaned;
+  const specResult = removeDuplicateSpecifications(cleaned);
+  cleaned = specResult.text;
+  if (specResult.duplicates.length > 0) {
+    removedItems.push(`规格去重: ${specResult.duplicates.join(', ')}`);
+    console.log('  ✅ 移除重复规格:', specResult.duplicates);
+  } else {
+    console.log('  ℹ️ 无重复规格');
+  }
+
+  // 步骤4：功率去重（新增）
+  console.log('\n  步骤4: 功率去重');
+  const beforePowerDedupe = cleaned;
+  const powerResult = removeDuplicatePower(cleaned);
+  cleaned = powerResult.text;
+  if (powerResult.duplicates.length > 0) {
+    removedItems.push(`功率去重: ${powerResult.duplicates.join(', ')}`);
+    console.log('  ✅ 移除重复功率:', powerResult.duplicates);
+  } else {
+    console.log('  ℹ️ 无重复功率');
+  }
+
+  // 步骤5：修复拆分的参数格式
+  console.log('\n  步骤5: 修复参数格式');
   const beforeParamFix = cleaned;
   cleaned = fixBrokenParameters(cleaned);
   if (beforeParamFix !== cleaned) {
@@ -69,20 +93,20 @@ export function cleanParameterDescriptionEnhanced(text: string): CleanResult {
     console.log('  ℹ️ 无需修复参数');
   }
 
-  // 步骤4：移除数量信息（如果仍在参数描述中）
-  console.log('\n  步骤4: 移除残留数量信息');
+  // 步骤6：移除数量信息（如果仍在参数描述中）
+  console.log('\n  步骤6: 移除残留数量信息');
   const beforeQuantityRemoval = cleaned;
   const quantityRemoved = removeQuantityInfo(cleaned);
   cleaned = quantityRemoved.text;
-  if (quantityRemoved.removed) {
+  if (quantityRemoved.removed.length > 0) {
     removedItems.push(`数量信息: ${quantityRemoved.removed.join(', ')}`);
     console.log('  ✅ 移除数量:', quantityRemoved.removed);
   } else {
     console.log('  ℹ️ 无需移除数量');
   }
 
-  // 步骤5：修复换行问题
-  console.log('\n  步骤5: 修复换行问题');
+  // 步骤7：修复换行问题
+  console.log('\n  步骤7: 修复换行问题');
   const beforeLineFix = cleaned;
   cleaned = fixLineBreaks(cleaned);
   if (beforeLineFix !== cleaned) {
@@ -92,8 +116,8 @@ export function cleanParameterDescriptionEnhanced(text: string): CleanResult {
     console.log('  ℹ️ 无需修复换行');
   }
 
-  // 步骤6：规范化分隔符
-  console.log('\n  步骤6: 规范化分隔符');
+  // 步骤8：规范化分隔符
+  console.log('\n  步骤8: 规范化分隔符');
   const beforeSepNorm = cleaned;
   cleaned = normalizeSeparators(cleaned);
   if (beforeSepNorm !== cleaned) {
@@ -103,8 +127,8 @@ export function cleanParameterDescriptionEnhanced(text: string): CleanResult {
     console.log('  ℹ️ 无需规范化');
   }
 
-  // 步骤7：最终清理
-  console.log('\n  步骤7: 最终清理');
+  // 步骤9：最终清理
+  console.log('\n  步骤9: 最终清理');
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
   cleaned = cleaned.replace(/[；;，,。.、]+$/, '');
   console.log('  ✅ 最终清理完成');
@@ -343,4 +367,136 @@ export function extractParameterSummary(description: string): {
   }
 
   return summary;
+}
+
+/**
+ * 移除重复的规格参数
+ * 例如：φ4000×3000mm φ4000×3000 → φ4000×3000mm
+ */
+export function removeDuplicateSpecifications(text: string): {
+  text: string;
+  duplicates: string[];
+} {
+  const duplicates: string[] = [];
+  let cleaned = text;
+
+  // 匹配各种规格模式
+  const specPatterns = [
+    // φ4000×3000mm 或 φ4000×3000
+    /φ\s*(\d+)\s*[×*xX]\s*(\d+)\s*(mm)?/gi,
+    // DN4000
+    /DN\s*(\d+)/gi,
+    // Φ4000
+    /Φ\s*(\d+)/gi,
+  ];
+
+  for (const pattern of specPatterns) {
+    const matches = [];
+    let match;
+
+    // 收集所有匹配的规格
+    while ((match = pattern.exec(cleaned)) !== null) {
+      matches.push({
+        full: match[0],
+        value: match[0].replace(/\s+/g, ''), // 标准化：移除空格
+        index: match.index,
+      });
+    }
+
+    // 如果找到重复的规格
+    if (matches.length > 1) {
+      // 按规格值分组
+      const specGroups = new Map<string, typeof matches>();
+      for (const m of matches) {
+        const key = m.value.toLowerCase();
+        if (!specGroups.has(key)) {
+          specGroups.set(key, []);
+        }
+        specGroups.get(key)!.push(m);
+      }
+
+      // 移除重复的规格（只保留第一个）
+      for (const [key, group] of specGroups) {
+        if (group.length > 1) {
+          // 保留第一个，移除后续的
+          for (let i = 1; i < group.length; i++) {
+            const duplicate = group[i];
+            duplicates.push(duplicate.full);
+            // 精确替换，避免误删
+            const regex = new RegExp(
+              duplicate.full.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+              'g'
+            );
+            cleaned = cleaned.replace(regex, '');
+          }
+        }
+      }
+    }
+  }
+
+  // 清理可能产生的多余空格和分隔符
+  cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();
+  cleaned = cleaned.replace(/[；;，,、]+/g, '；');
+
+  return { text: cleaned, duplicates };
+}
+
+/**
+ * 移除重复的功率信息
+ * 例如：11kW 11kW → 11kW
+ */
+export function removeDuplicatePower(text: string): {
+  text: string;
+  duplicates: string[];
+} {
+  const duplicates: string[] = [];
+  let cleaned = text;
+
+  // 匹配功率模式
+  const powerPattern = /(\d+(?:\.\d+)?)\s*(kW|千瓦|W|瓦)/gi;
+  const matches = [];
+  let match;
+
+  // 收集所有匹配的功率
+  while ((match = powerPattern.exec(cleaned)) !== null) {
+    matches.push({
+      full: match[0],
+      value: parseFloat(match[1]),
+      unit: match[2],
+      normalized: `${match[1]}${match[2]}`, // 标准化：移除空格
+    });
+  }
+
+  // 按功率值分组
+  const powerGroups = new Map<string, typeof matches>();
+  for (const m of matches) {
+    const key = m.normalized.toLowerCase();
+    if (!powerGroups.has(key)) {
+      powerGroups.set(key, []);
+    }
+    powerGroups.get(key)!.push(m);
+  }
+
+  // 移除重复的功率（只保留第一个）
+  for (const [key, group] of powerGroups) {
+    if (group.length > 1) {
+      // 保留第一个，移除后续的
+      for (let i = 1; i < group.length; i++) {
+        const duplicate = group[i];
+        duplicates.push(duplicate.full);
+        // 精确替换
+        const regex = new RegExp(
+          duplicate.full.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+          'g'
+        );
+        cleaned = cleaned.replace(regex, '');
+      }
+    }
+  }
+
+  // 清理可能产生的多余空格和分隔符
+  cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();
+  cleaned = cleaned.replace(/[；;，,、]+/g, '；');
+
+  return { text: cleaned, duplicates };
 }

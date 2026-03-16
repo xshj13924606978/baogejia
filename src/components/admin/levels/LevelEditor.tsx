@@ -68,7 +68,7 @@ const formatPermissionChange = (before: Config, after: Config): PermissionChange
   // 字段权限变化
   const fieldLabels: Record<string, string> = {
     can_view_cost_price: '查看成本价',
-    can_view_min_price: '查看最低价',
+    can_view_min_price: '查看最低售价',
     can_view_manufacturer: '查看制造商',
     can_view_contact: '查看联系人',
     can_view_phone: '查看联系电话',

@@ -1,0 +1,3 @@
+# 保护文件哈希值 - Sat Mar 14 23:51:19 CST 2026
+2da6b2825bffab72e8af653a39432ef0a7a6e7e59e4dff808ba2991808295227  src/data/product-categories.ts
+07a318a421ca47ac41118a7ff2553100d0da3e38d651c5b6e0da560c6cd96ba2  src/components/admin/category-tree.tsx

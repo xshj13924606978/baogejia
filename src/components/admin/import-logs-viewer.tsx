@@ -53,20 +53,24 @@ interface ImportLogsViewerProps {
   limit?: number;
 }
 
-export function ImportLogsViewer({ limit = 20 }: ImportLogsViewerProps) {
+export function ImportLogsViewer({ limit = 10 }: ImportLogsViewerProps) {
   const [logs, setLogs] = useState<ImportLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   const loadLogs = async () => {
     setLoading(true);
     try {
-      const url = `/api/admin/import-logs?limit=${limit}&status=${statusFilter}`;
+      const offset = (currentPage - 1) * limit;
+      const url = `/api/admin/import-logs?limit=${limit}&offset=${offset}&status=${statusFilter}`;
       const res = await fetch(url);
       const data = await res.json();
 
       if (data.success) {
         setLogs(data.data || []);
+        setTotalCount(data.total || 0);
       } else {
         toast({
           variant: 'destructive',
@@ -87,7 +91,7 @@ export function ImportLogsViewer({ limit = 20 }: ImportLogsViewerProps) {
 
   useEffect(() => {
     loadLogs();
-  }, [statusFilter]);
+  }, [statusFilter, currentPage]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -137,16 +141,18 @@ export function ImportLogsViewer({ limit = 20 }: ImportLogsViewerProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="shadow-sm border-muted/50 h-[400px] flex flex-col">
+      <CardHeader className="pb-4 flex-shrink-0">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            导入日志
-          </CardTitle>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-primary/10 rounded-lg">
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
+            <CardTitle className="text-lg">导入日志</CardTitle>
+          </div>
           <div className="flex items-center gap-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[120px] h-8">
                 <SelectValue placeholder="状态筛选" />
               </SelectTrigger>
               <SelectContent>
@@ -155,7 +161,7 @@ export function ImportLogsViewer({ limit = 20 }: ImportLogsViewerProps) {
                 <SelectItem value="failed">失败</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={loadLogs}>
+            <Button variant="outline" size="sm" onClick={loadLogs} className="gap-2 h-8">
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -165,40 +171,46 @@ export function ImportLogsViewer({ limit = 20 }: ImportLogsViewerProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 overflow-auto min-h-0">
         {loading && logs.length === 0 ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             <span className="ml-2 text-muted-foreground">加载中...</span>
           </div>
         ) : logs.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            暂无导入记录
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mb-4">
+              <FileText className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground text-lg mb-2">暂无导入记录</p>
+            <p className="text-sm text-muted-foreground/70">
+              通过Excel导入功能添加产品，查看导入历史记录
+            </p>
           </div>
         ) : (
-          <div className="rounded-md border">
+          <div className="rounded-lg border border-muted/50 overflow-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/30 sticky top-0">
                 <TableRow>
-                  <TableHead className="w-[50px]">状态</TableHead>
-                  <TableHead>文件名</TableHead>
-                  <TableHead className="text-right">总数</TableHead>
-                  <TableHead className="text-right">成功</TableHead>
-                  <TableHead className="text-right">跳过</TableHead>
-                  <TableHead className="text-right">失败</TableHead>
-                  <TableHead className="text-right">耗时</TableHead>
-                  <TableHead className="text-right">成功率</TableHead>
-                  <TableHead>导入时间</TableHead>
+                  <TableHead className="w-[50px] font-medium text-xs uppercase tracking-wider">状态</TableHead>
+                  <TableHead className="font-medium text-xs uppercase tracking-wider">文件名</TableHead>
+                  <TableHead className="text-right font-medium text-xs uppercase tracking-wider">总数</TableHead>
+                  <TableHead className="text-right font-medium text-xs uppercase tracking-wider">成功</TableHead>
+                  <TableHead className="text-right font-medium text-xs uppercase tracking-wider">跳过</TableHead>
+                  <TableHead className="text-right font-medium text-xs uppercase tracking-wider">失败</TableHead>
+                  <TableHead className="text-right font-medium text-xs uppercase tracking-wider">耗时</TableHead>
+                  <TableHead className="text-right font-medium text-xs uppercase tracking-wider">成功率</TableHead>
+                  <TableHead className="font-medium text-xs uppercase tracking-wider">导入时间</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {logs.map((log) => (
-                  <TableRow key={log.id}>
+                  <TableRow key={log.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell>{getStatusIcon(log.status)}</TableCell>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
-                        <span>{log.file_name || 'unknown'}</span>
-                        <Badge variant="outline" className="text-xs">
+                        <span className="text-sm">{log.file_name || 'unknown'}</span>
+                        <Badge variant="outline" className="text-xs font-normal">
                           {log.file_type}
                         </Badge>
                       </div>
@@ -206,20 +218,20 @@ export function ImportLogsViewer({ limit = 20 }: ImportLogsViewerProps) {
                         {getStatusBadge(log)}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">{log.total_count}</TableCell>
-                    <TableCell className="text-right text-green-600">
+                    <TableCell className="text-right font-medium text-sm">{log.total_count}</TableCell>
+                    <TableCell className="text-right text-green-600 font-medium text-sm">
                       {log.imported_count}
                     </TableCell>
-                    <TableCell className="text-right text-yellow-600">
+                    <TableCell className="text-right text-yellow-600 font-medium text-sm">
                       {log.skipped_count}
                     </TableCell>
-                    <TableCell className="text-right text-red-600">
+                    <TableCell className="text-right text-red-600 font-medium text-sm">
                       {log.failed_count}
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
+                    <TableCell className="text-right text-muted-foreground text-sm font-medium">
                       {formatDuration(log.duration_ms)}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
+                    <TableCell className="text-right font-medium text-sm">
                       {getSuccessRate(log)}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
@@ -232,6 +244,36 @@ export function ImportLogsViewer({ limit = 20 }: ImportLogsViewerProps) {
                 ))}
               </TableBody>
             </Table>
+          </div>
+        )}
+
+        {/* 分页控件 */}
+        {totalCount > 0 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              共 {totalCount} 条记录，第 {currentPage} 页
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                上一页
+              </Button>
+              <span className="text-sm">
+                {currentPage} / {Math.ceil(totalCount / limit)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(Math.ceil(totalCount / limit), p + 1))}
+                disabled={currentPage >= Math.ceil(totalCount / limit)}
+              >
+                下一页
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>

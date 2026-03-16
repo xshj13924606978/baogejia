@@ -663,25 +663,53 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
     );
   }
 
-  // 字段名称映射
+  // 字段名称映射 - 完整中文化
   const fieldLabelMap: Record<string, string> = {
+    // 产品基本信息
     name: '产品名称',
     product_name: '产品名称',
     model: '规格型号',
     brand: '品牌',
-    category: '分类',
-    price: '指导价（元）',
-    supplier: '供应商',
+    category: '产品分类',
     specifications: '参数描述',
     parameter_description: '参数描述',
-    unit: '单位',
-    cost_price: '成本（元）',
-    min_price: '最低售价（元）',
+    description: '产品描述',
+
+    // 价格信息
+    price: '指导价',
+    list_price: '挂牌价',
+    selling_price: '销售价',
+    cost_price: '成本价',
+    min_price: '最低售价',
+    max_price: '最高售价',
+
+    // 供应商信息
+    supplier: '供应商',
+    manufacturer: '制造商',
     contact_person: '联系人',
-    contact_phone: '电话',
-    description: '描述',
-    stock: '库存',
-    image_url: '图片',
+    contact_phone: '联系电话',
+    contact_email: '联系邮箱',
+
+    // 库存和物流
+    unit: '单位',
+    stock: '库存数量',
+    warehouse: '仓库位置',
+    shelf_life: '保质期',
+    weight: '重量',
+    dimensions: '尺寸',
+
+    // 图片和附件
+    image_url: '产品图片',
+    attachment_url: '附件链接',
+
+    // 其他字段
+    barcode: '条形码',
+    sku: 'SKU编码',
+    mpn: 'MPN编码',
+    upc: 'UPC编码',
+    ean: 'EAN编码',
+    created_at: '创建时间',
+    updated_at: '更新时间',
   };
 
   // 获取字段显示名称（支持新旧两种字段名）
@@ -694,41 +722,48 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="shadow-sm border-muted/50 h-full flex flex-col">
+      <CardHeader className="pb-4 flex-shrink-0">
         <div className="flex items-center justify-between">
-          <CardTitle>判重字段配置</CardTitle>
-          <Button variant="outline" size="sm" onClick={loadConfig}>
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-primary/10 rounded-lg">
+              <Database className="h-4 w-4 text-primary" />
+            </div>
+            <CardTitle className="text-lg">判重字段配置</CardTitle>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadConfig} className="gap-2 h-8">
+            <RefreshCw className="h-4 w-4" />
             刷新
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Alert>
-          <AlertDescription>
+      <CardContent className="space-y-5 flex-1 overflow-auto">
+        <div className="h-full flex flex-col">
+        {/* 配置说明区 - 优化视觉效果 */}
+        <Alert className="bg-muted/50 border-muted/50">
+          <AlertDescription className="text-sm leading-relaxed">
             选择用于判断产品重复的字段组合。系统会根据选中的字段组合来判断产品是否已存在，
             建议至少选择"产品名称"和"规格型号"。
           </AlertDescription>
         </Alert>
 
-        {/* 规则模板选择器 */}
+        {/* 规则模板选择器 - 优化样式 */}
         <div className="space-y-2">
-          <Label>快速应用模板</Label>
+          <Label className="text-sm font-medium">快速应用模板</Label>
           <Select
             value={selectedTemplate}
             onValueChange={handleApplyTemplate}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="选择判重规则模板..." />
             </SelectTrigger>
             <SelectContent>
               {duplicateCheckTemplates.map((template) => (
                 <SelectItem key={template.id} value={template.id}>
                   <div className="flex items-center gap-2">
-                    <span>{template.icon}</span>
+                    <span className="text-base">{template.icon}</span>
                     <div className="flex flex-col">
-                      <span className="font-medium">{template.name}</span>
+                      <span className="font-medium text-sm">{template.name}</span>
                       <span className="text-xs text-muted-foreground">
                         {template.description}
                       </span>
@@ -740,11 +775,11 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
           </Select>
         </div>
 
-        {/* 当前规则描述 */}
+        {/* 当前规则描述 - 优化视觉效果 */}
         {selectedFields.length > 0 && (
-          <Alert>
-            <CheckCircle2 className="h-4 w-4" />
-            <AlertDescription>
+          <Alert className="bg-primary/5 border-primary/20">
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm">
               <span className="font-medium">当前规则：</span>
               {generateRuleDescription(selectedFields)}
             </AlertDescription>
@@ -753,13 +788,18 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
 
         {error && (
           <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-sm">{error}</AlertDescription>
           </Alert>
         )}
 
-        <div className="space-y-3">
+        {/* 字段选择区 - 优化布局和视觉效果 */}
+        <div className="space-y-2">
           {allFields.map((field) => (
-            <div key={field.field_key} className="flex items-center space-x-2">
+            <div
+              key={field.field_key}
+              className="flex items-center gap-3 p-3 rounded-lg border border-muted/50 hover:border-primary/30 hover:bg-muted/30 transition-colors"
+            >
               <Checkbox
                 id={`field-${field.field_key}`}
                 checked={selectedFields.includes(field.field_key)}
@@ -769,30 +809,35 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
               />
               <Label
                 htmlFor={`field-${field.field_key}`}
-                className="flex-1 cursor-pointer"
+                className="flex-1 cursor-pointer font-normal"
               >
-                {getFieldDisplayName(field)}
+                <span className="text-sm">{getFieldDisplayName(field)}</span>
                 {field.is_required && (
-                  <span className="ml-1 text-xs text-destructive">（必填）</span>
+                  <span className="ml-1.5 text-xs text-destructive/80 bg-destructive/10 px-1.5 py-0.5 rounded">
+                    必填
+                  </span>
                 )}
               </Label>
             </div>
           ))}
         </div>
 
-        <div className="pt-4 border-t space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
+        {/* 操作按钮区 - 优化布局和视觉层次 */}
+        <div className="pt-4 border-t border-muted/50 flex-shrink-0 mt-auto">
+          <div className="flex flex-col gap-3">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary" />
               已选择 <span className="font-semibold text-foreground">{selectedFields.length}</span> 个判重字段
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleResetToDefault}
                 disabled={saving}
+                className="gap-2 flex-1"
               >
-                <RotateCcw className="mr-2 h-4 w-4" />
+                <RotateCcw className="h-4 w-4" />
                 恢复默认
               </Button>
               <Button
@@ -800,27 +845,30 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
                 size="sm"
                 onClick={handleTestConfig}
                 disabled={testing || selectedFields.length === 0}
+                className="gap-2 flex-1"
               >
                 {testing ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <TestTube className="mr-2 h-4 w-4" />
+                  <TestTube className="h-4 w-4" />
                 )}
                 测试规则
               </Button>
               <Button
                 onClick={handleSave}
                 disabled={saving}
+                className="gap-2 flex-1"
               >
                 {saving ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Save className="mr-2 h-4 w-4" />
+                  <Save className="h-4 w-4" />
                 )}
                 保存配置
               </Button>
             </div>
           </div>
+        </div>
         </div>
       </CardContent>
     </Card>

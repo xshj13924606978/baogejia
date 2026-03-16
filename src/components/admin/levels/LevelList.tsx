@@ -1025,7 +1025,7 @@ export const LevelList: React.FC = () => {
                             <Badge variant="secondary">成本价</Badge>
                           )}
                           {record.fieldPermissions.can_view_min_price && (
-                            <Badge variant="secondary">最低价</Badge>
+                            <Badge variant="secondary">最低售价</Badge>
                           )}
                           {record.fieldPermissions.can_view_manufacturer && (
                             <Badge variant="outline">厂家</Badge>

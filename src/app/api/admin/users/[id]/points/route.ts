@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { tokenBillingService } from '@/lib/token-billing-service';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
  * 获取用户积分余额
@@ -10,33 +10,47 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const userId = parseInt(id);
+    console.log('[UserPoints API] 获取用户积分, ID:', id);
     
-    if (isNaN(userId)) {
+    // 支持 UUID 格式的用户 ID
+    if (!id || typeof id !== 'string') {
       return NextResponse.json(
         { error: '无效的用户ID' },
         { status: 400 }
       );
     }
 
-    const balance = await tokenBillingService.getUserBalance(userId);
+    const supabase = getSupabaseClient();
     
-    if (!balance) {
+    // 从 users 表获取用户积分信息
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, metadata')
+      .eq('id', id)
+      .single();
+    
+    console.log('[UserPoints API] 查询结果:', { user, error });
+
+    if (error || !user) {
       return NextResponse.json(
         { error: '用户不存在' },
         { status: 404 }
       );
     }
 
+    // 从 metadata 中获取积分，默认为 0
+    const points = user.metadata?.points || 0;
+    console.log('[UserPoints API] 用户积分:', points);
+
     return NextResponse.json({
       success: true,
       data: {
-        userId: balance.userId,
-        pointsBalance: balance.pointsBalance,
-        tokenBalance: balance.tokenBalance,
-        totalConsumedPoints: balance.totalConsumedPoints,
-        totalRechargedPoints: balance.totalRechargedPoints,
-        lastUpdated: balance.lastUpdated,
+        userId: user.id,
+        pointsBalance: points,
+        tokenBalance: 0,
+        totalConsumedPoints: 0,
+        totalRechargedPoints: points,
+        lastUpdated: new Date().toISOString(),
       }
     });
   } catch (error) {
@@ -57,11 +71,11 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const userId = parseInt(id);
     const body = await request.json();
     const { points } = body;
 
-    if (isNaN(userId)) {
+    // 支持 UUID 格式的用户 ID
+    if (!id || typeof id !== 'string') {
       return NextResponse.json(
         { error: '无效的用户ID' },
         { status: 400 }
@@ -75,23 +89,45 @@ export async function PUT(
       );
     }
 
-    const success = await tokenBillingService.setUserPoints(userId, points);
+    const supabase = getSupabaseClient();
     
-    if (!success) {
+    // 更新用户 metadata 中的积分
+    const { data: user, error: fetchError } = await supabase
+      .from('users')
+      .select('id, metadata')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError || !user) {
+      return NextResponse.json(
+        { error: '用户不存在' },
+        { status: 404 }
+      );
+    }
+
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        metadata: {
+          ...user.metadata,
+          points: points
+        }
+      })
+      .eq('id', id);
+    
+    if (updateError) {
       return NextResponse.json(
         { error: '设置积分失败' },
         { status: 500 }
       );
     }
 
-    const balance = await tokenBillingService.getUserBalance(userId);
-    
     return NextResponse.json({
       success: true,
       message: '积分设置成功',
       data: {
-        userId: balance?.userId,
-        pointsBalance: balance?.pointsBalance,
+        userId: id,
+        pointsBalance: points,
       }
     });
   } catch (error) {

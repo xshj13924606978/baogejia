@@ -98,34 +98,45 @@ export class TableMerger {
    * 判断是否应该与前一行合并
    */
   private shouldMergeWithPrevious(currentRow: TableRow, previousRow: TableRow): boolean {
+    console.log('\n    🔍 [判断合并] 检查当前行是否应合并到上一行');
+
     // 规则1：垂直距离很近
     const yGap = Math.abs(currentRow.y - (previousRow.y + previousRow.height));
+    console.log(`      规则1 - 垂直距离: ${yGap}px (阈值: ${this.verticalGapThreshold}px)`);
+    
     if (yGap > this.verticalGapThreshold) {
-      console.log('    ❌ 距离过远，不合并 (yGap:', yGap, '>');
-      console.log('     垂直间距阈值:', this.verticalGapThreshold, ')');
+      console.log('      ❌ 距离过远，不合并');
       return false;
     }
 
     // 规则2：水平位置对齐
     const xAlignScore = this.calculateXAlignment(currentRow, previousRow);
+    console.log(`      规则2 - 水平对齐度: ${xAlignScore.toFixed(2)} (阈值: 0.6)`);
+    
     if (xAlignScore < 0.6) {
-      console.log('    ❌ 水平对齐度低，不合并 (score:', xAlignScore, '< 0.6)');
+      console.log('      ❌ 水平对齐度低，不合并');
       return false;
     }
 
-    // 规则3：内容特征判断
-    if (this.hasContinuationPattern(currentRow, previousRow)) {
-      console.log('    ✅ 检测到内容延续模式，合并');
+    // 规则3：内容特征判断（优先级最高）
+    const continuationResult = this.hasContinuationPattern(currentRow, previousRow);
+    console.log(`      规则3 - 内容延续模式: ${continuationResult.found ? continuationResult.reason : '无'}`);
+    
+    if (continuationResult.found) {
+      console.log('      ✅ 检测到内容延续模式，合并');
       return true;
     }
 
     // 规则4：当前行较短且第一列为空（可能是续行）
-    if (this.isLikelyContinuationRow(currentRow, previousRow)) {
-      console.log('    ✅ 判断为续行，合并');
+    const isContinuation = this.isLikelyContinuationRow(currentRow, previousRow);
+    console.log(`      规则4 - 疑似续行: ${isContinuation}`);
+    
+    if (isContinuation) {
+      console.log('      ✅ 判断为续行，合并');
       return true;
     }
 
-    console.log('    ❌ 不满足合并条件，不合并');
+    console.log('      ❌ 不满足合并条件，不合并');
     return false;
   }
 
@@ -148,30 +159,92 @@ export class TableMerger {
   }
 
   /**
-   * 识别内容延续模式
+   * 识别内容延续模式（增强版）
    */
-  private hasContinuationPattern(currentRow: TableRow, previousRow: TableRow): boolean {
+  private hasContinuationPattern(currentRow: TableRow, previousRow: TableRow): {
+    found: boolean;
+    reason: string;
+  } {
     const prevText = previousRow.cells.join(' ');
     const currText = currentRow.cells.join(' ');
+    const prevLastCell = previousRow.cells[previousRow.cells.length - 1] || '';
+    const currFirstCell = currentRow.cells[0] || '';
 
-    const patterns = [
-      // 上一行以品牌名结尾
-      /[品牌厂家制造商][：:]?[\u4e00-\u9fa5]{2,10}$/.test(prevText),
+    console.log(`      分析内容: 上一行末尾="${prevLastCell.substring(0, 20)}", 当前行开头="${currFirstCell.substring(0, 20)}"`);
 
-      // 上一行以"、"，"；"、"结尾
-      /[、；，、]$/.test(prevText),
-
-      // 上一行以"/"结尾（品牌拆分）
-      /\/$/.test(prevText),
-
-      // 当前行以规格参数开头
-      /^(φ|Φ|DN|型号|规格|参数|技术|材质)/.test(currText),
-
-      // 当前行以数字+单位开头（可能是参数续写）
-      /^\d+[\s]*[×*]\d+/.test(currText),
+    const checks = [
+      // 检查1：上一行以品牌名结尾（如"电机："、"佳木斯/"）
+      {
+        pattern: /[品牌厂家制造商][：:]?[\u4e00-\u9fa5]{2,10}$/.test(prevText),
+        reason: '上一行以品牌名结尾',
+      },
+      // 检查2：上一行以分隔符结尾
+      {
+        pattern: /[、；，、;]$/.test(prevText),
+        reason: '上一行以分隔符结尾',
+      },
+      // 检查3：上一行以"/"结尾（品牌拆分标志）
+      {
+        pattern: /\/$/.test(prevLastCell),
+        reason: '上一行以"/"结尾（品牌拆分）',
+      },
+      // 检查4：上一行以":"或"："结尾（参数说明）
+      {
+        pattern: /[:：]$/.test(prevLastCell),
+        reason: '上一行以冒号结尾（参数说明）',
+      },
+      // 检查5：当前行以规格参数开头
+      {
+        pattern: /^(φ|Φ|DN|型号|规格|参数|技术|材质|功率|容量)/i.test(currFirstCell),
+        reason: '当前行以规格参数开头',
+      },
+      // 检查6：当前行以数字+×+数字开头（尺寸规格）
+      {
+        pattern: /^\d+[\s]*[×*]\d+/.test(currFirstCell),
+        reason: '当前行以尺寸规格开头',
+      },
+      // 检查7：当前行较短（<20字符）且上一行较长（>40字符）
+      {
+        pattern: currText.length < 20 && prevText.length > 40,
+        reason: '当前行较短且上一行较长',
+      },
+      // 检查8：检测到常见的品牌拆分模式
+      {
+        pattern: this.detectBrandSplit(prevText, currText),
+        reason: '检测到品牌拆分模式',
+      },
     ];
 
-    return patterns.some(Boolean);
+    for (const check of checks) {
+      if (check.pattern) {
+        console.log(`      ✅ 匹配: ${check.reason}`);
+        return { found: true, reason: check.reason };
+      }
+    }
+
+    return { found: false, reason: '' };
+  }
+
+  /**
+   * 检测品牌拆分模式
+   */
+  private detectBrandSplit(prevText: string, currText: string): boolean {
+    // 常见品牌拆分模式
+    const splitPatterns = [
+      // "佳木斯/" + "电机" 或 "减速机"
+      /佳木斯\s*\/\s*(?:电机|减速机)/i.test(prevText + ' ' + currText),
+      // "宁波动力/" + "减速机"
+      /宁波动力\s*\/\s*减速机/i.test(prevText + ' ' + currText),
+      // "哈瓦洛/" + "轴承"
+      /哈瓦洛\s*\/\s*轴承/i.test(prevText + ' ' + currText),
+      // "Harbin/" + "Bearing"
+      /Harbin\s*\/\s*Bearing/i.test(prevText + ' ' + currText),
+      // 上行以"佳木斯"、"宁波动力"等品牌名结尾，下行以"电机"、"减速机"开头
+      /(?:佳木斯|宁波动力|哈瓦洛|西门子|ABB)\s*$/.test(prevText) &&
+      /^(?:电机|减速机|轴承|变频器)/.test(currText),
+    ];
+
+    return splitPatterns.some(pattern => pattern);
   }
 
   /**
@@ -195,9 +268,11 @@ export class TableMerger {
   }
 
   /**
-   * 合并两行
+   * 合并两行（增强版）
    */
   private mergeTwoRows(row1: TableRow, row2: TableRow): TableRow {
+    console.log(`      🔄 [合并行] 开始合并`);
+    
     const mergedCells: string[] = [];
     const maxCells = Math.max(row1.cells.length, row2.cells.length);
 
@@ -206,19 +281,34 @@ export class TableMerger {
       const cell2 = row2.cells[i] || '';
 
       if (cell2 && cell2.trim() !== '') {
-        // 合并内容，用空格或合适分隔符连接
-        let separator = ' ';
+        // 智能选择分隔符
+        let separator = this.selectSeparator(cell1, cell2);
         
-        // 如果上一行以分隔符结尾，不添加额外分隔符
-        if (/[、；，、\/]$/.test(cell1)) {
+        // 特殊处理：品牌拆分（如"佳木斯/" + "电机"）
+        if (cell1.endsWith('/') && this.isBrandPart(cell2)) {
           separator = '';
         }
         
-        mergedCells.push((cell1 + separator + cell2).trim());
+        // 特殊处理：参数说明（如"功率：" + "11kW"）
+        if (cell1.endsWith('：') || cell1.endsWith(':')) {
+          separator = '';
+        }
+        
+        // 特殊处理：上一行以逗号、分号等结尾
+        if (/[、;；,，]$/.test(cell1)) {
+          separator = '';
+        }
+        
+        const merged = (cell1 + separator + cell2).trim();
+        mergedCells.push(merged);
+        
+        console.log(`        列${i}: "${cell1.substring(0, 15)}..." + "${cell2.substring(0, 15)}..." → "${merged.substring(0, 25)}..."`);
       } else {
         mergedCells.push(cell1);
       }
     }
+
+    console.log(`      ✅ [合并行] 完成，共${maxCells}列`);
 
     return {
       cells: mergedCells,
@@ -227,6 +317,35 @@ export class TableMerger {
       height: (row2.y + row2.height) - row1.y,
       originalIndex: Math.min(row1.originalIndex, row2.originalIndex),
     };
+  }
+
+  /**
+   * 智能选择分隔符
+   */
+  private selectSeparator(cell1: string, cell2: string): string {
+    const trimmed1 = cell1.trim();
+    const trimmed2 = cell2.trim();
+
+    // 如果第二列以"（"或"["开头，说明是补充说明
+    if (/^[（\[]/.test(trimmed2)) {
+      return '';
+    }
+
+    // 如果第二列是数字且第一列是单位或参数，不加空格
+    if (/^\d/.test(trimmed2) && /[×*mm]$/.test(trimmed1)) {
+      return '';
+    }
+
+    // 默认使用空格
+    return ' ';
+  }
+
+  /**
+   * 判断是否为品牌组成部分
+   */
+  private isBrandPart(text: string): boolean {
+    const brandParts = ['电机', '减速机', '轴承', '变频器', 'Bearing', 'Motor', 'Reducer'];
+    return brandParts.some(part => text.includes(part));
   }
 }
 
@@ -331,43 +450,105 @@ export class ColumnIdentifier {
   }
 
   /**
-   * 基于数据猜测列类型
+   * 基于数据猜测列类型（增强版）
    */
   private guessColumnTypeFromData(data: string): ColumnType {
     const text = data.trim();
 
-    // 序号：纯数字且小于100
+    // 1. 序号：纯数字且小于100，且不包含其他特征
     if (/^\d{1,3}$/.test(text) && parseInt(text) < 100) {
       return 'serial_number';
     }
 
-    // 数量：纯数字
+    // 2. 数量：纯数字（但排除尺寸中的数字）
     if (/^\d+$/.test(text) && parseInt(text) > 0 && parseInt(text) < 10000) {
-      return 'quantity';
+      // 如果看起来像尺寸的一部分，则不是数量
+      if (!this.looksLikeDimension(text)) {
+        return 'quantity';
+      }
     }
 
-    // 单价/小计：包含货币符号或数字格式
+    // 3. 单价/小计：包含货币符号或数字格式
     if (/^[¥$€]?\s*[\d,]+\.\d{2}$|[\d,]+\.\d{2}\s*元?$/.test(text)) {
+      // 如果金额大于10000，可能是小计
+      const amount = parseFloat(text.replace(/[¥$元,]/g, ''));
+      if (amount > 10000) {
+        return 'subtotal';
+      }
       return 'unit_price';
     }
 
-    // 单位：单个字
-    if (/^[套台个只根米千克kg吨条件]$/.test(text)) {
+    // 4. 单位：单个字或常见的单位词
+    if (/^[套台个只根米千克kg吨条件批项次层组台]$/.test(text)) {
       return 'unit';
     }
 
-    // 规格：包含φΦDN×等
-    if (/[φΦDN×*]|\d+[×*]\d+mm?|Q235|304|316L/.test(text)) {
+    // 5. 规格/参数描述：包含φΦDN×等特殊字符或材质代码
+    if (/[φΦDN×*]|\d+[×*]\d+mm?|Q235|304|316L|碳钢|不锈钢|玻璃钢|防腐/.test(text)) {
       return 'parameter_description';
     }
 
-    // 品牌：中文或英文品牌名
-    if (/[佳木斯|宁波动力|哈瓦洛|西门子|ABB|施耐德|佳能|惠普|华为|小米|海尔|格力]/.test(text) ||
-        /^[A-Z][a-z]+(?:[\s-][A-Z][a-z]+)*$/.test(text)) {
+    // 6. 品牌：中文或英文品牌名（更全面的品牌列表）
+    if (this.isBrandName(text)) {
       return 'brand';
     }
 
+    // 7. 操作列：包含"编辑"、"删除"等操作按钮
+    if (/编辑|删除|修改|查看|操作/.test(text)) {
+      return 'operation';
+    }
+
     return 'unknown';
+  }
+
+  /**
+   * 判断文本是否像品牌名称
+   */
+  private isBrandName(text: string): boolean {
+    const chineseBrands = [
+      '佳木斯', '宁波动力', '哈瓦洛', '西门子', 'ABB', '施耐德', 
+      '佳能', '惠普', '华为', '小米', '海尔', '格力', '美的', 'TCL',
+      '三一', '中联', '徐工', '柳工', '龙工', '山推',
+      '三菱', '松下', '东芝', '日立', '富士', '欧姆龙',
+      '博世', '施克', '西克', '倍加福', '图尔克',
+    ];
+
+    const englishBrands = [
+      'Siemens', 'ABB', 'Schneider', 'Bosch', 'Panasonic', 'Mitsubishi',
+      'Omron', 'Sick', 'Pepperl+Fuchs', 'Turck', 'Keyence',
+      'Harbin', 'Bearing', 'Motor', 'Reducer',
+    ];
+
+    // 检查中文品牌
+    for (const brand of chineseBrands) {
+      if (text.includes(brand)) {
+        return true;
+      }
+    }
+
+    // 检查英文品牌
+    for (const brand of englishBrands) {
+      if (text.toLowerCase().includes(brand.toLowerCase())) {
+        return true;
+      }
+    }
+
+    // 英文品牌名模式：首字母大写的单词
+    if (/^[A-Z][a-z]+(?:[\s-][A-Z][a-z]+)*$/.test(text) && text.length > 3) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * 判断文本是否像尺寸规格
+   */
+  private looksLikeDimension(text: string): boolean {
+    // 检查是否匹配常见尺寸模式
+    return /^\d{3,5}$/.test(text) || // 3-5位数字可能是尺寸
+           /^\d{2,4}\s*[×*]\s*\d{2,4}/.test(text) || // 2-4位×2-4位数字
+           /^\d{2,4}\s*mm?$/.test(text); // 带mm单位
   }
 
   /**
@@ -573,7 +754,7 @@ export class PdfTableEnhancer {
   }
 
   /**
-   * 从增强的表格中提取产品信息
+   * 从增强的表格中提取产品信息（增强版日志）
    */
   public extractProductsFromEnhancedTable(
     enhancedTable: {
@@ -582,20 +763,33 @@ export class PdfTableEnhancer {
       mergedColumns: Map<number, number[]>;
     }
   ): any[] {
-    console.log('\n📦 [从增强表格提取产品]');
-
+    console.log('\n📦 [从增强表格提取产品] 开始');
+    
     const products: any[] = [];
     const rows = enhancedTable.rows;
     const columns = enhancedTable.columns;
 
+    console.log(`  📊 可用列: ${columns.length}`);
+    columns.forEach((col, i) => {
+      console.log(`    ${i + 1}. "${col.header}" → ${col.type} (置信度: ${col.confidence.toFixed(1)})`);
+    });
+
     // 跳过表头
+    console.log(`\n  📝 开始处理数据行（共${rows.length - 1}行）`);
+    
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
+      console.log(`\n  行 ${i + 1}/${rows.length}:`, row.cells.slice(0, 3).join(' | '));
+      
       const product: any = {};
 
       // 根据列类型映射字段
       columns.forEach(col => {
         const value = row.cells[col.index] || '';
+        
+        if (value) {
+          console.log(`    列"${col.header}" (${col.type}): ${value.substring(0, 30)}...`);
+        }
 
         switch (col.type) {
           case 'name':
@@ -627,31 +821,41 @@ export class PdfTableEnhancer {
 
       // 如果没有参数描述，尝试合并所有未知列
       if (!product.parameter_description) {
-        const desc = columns
-          .filter(col => col.type === 'unknown')
-          .map(col => row.cells[col.index])
-          .filter(cell => cell)
-          .join(' ');
-        
-        if (desc) {
-          product.parameter_description = desc;
+        const unknownCols = columns.filter(col => col.type === 'unknown');
+        if (unknownCols.length > 0) {
+          console.log(`    ℹ️ 无参数描述列，尝试合并${unknownCols.length}个未知列`);
+          const desc = unknownCols
+            .map(col => row.cells[col.index])
+            .filter(cell => cell)
+            .join(' ');
+          
+          if (desc) {
+            product.parameter_description = desc;
+            console.log(`    合并结果: ${desc.substring(0, 50)}...`);
+          }
         }
       }
 
       // 修复文本问题
       if (product.parameter_description) {
+        const beforeFix = product.parameter_description;
         product.parameter_description = this.textEnhancer.fixTextIssues(
           product.parameter_description
         );
+        if (beforeFix !== product.parameter_description) {
+          console.log(`    🔧 修复文本问题`);
+        }
       }
 
       if (product.name && product.name.length > 0) {
-        console.log(`  产品${i}: ${product.name}`);
+        console.log(`    ✅ 提取产品: ${product.name}`);
         products.push(product);
+      } else {
+        console.log(`    ⚠️ 跳过：无产品名称`);
       }
     }
 
-    console.log(`✅ 提取到 ${products.length} 个产品\n`);
+    console.log(`\n✅ 提取完成，共 ${products.length} 个产品\n`);
 
     return products;
   }

@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     const formattedProducts = (data || []).map((p: any) => {
       return {
         id: p.id,
-        product_name: p.name,
+        name: p.name || '',
         model: p.model || '',
         brand: p.brand || '',
         parameter_description: p.parameter_description || '',

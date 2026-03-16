@@ -68,7 +68,7 @@ export const SYSTEM_FIELDS = [
     key: 'unit',
     label: '单位',
     required: false,
-    description: '产品计量单位',
+    description: '单位',
     sampleValues: ['台', '套', '个', '件'],
   },
   {
@@ -157,7 +157,7 @@ export default function ImportFieldMapping({
       supplier: '产品供应商',
       contact_person: '供应商联系人',
       contact_phone: '供应商联系电话',
-      unit: '产品计量单位',
+      unit: '单位',
       cost_price: '产品成本价格',
       min_price: '产品最低销售价格',
       price: '产品指导价格',
@@ -182,13 +182,67 @@ export default function ImportFieldMapping({
     return samples[key] || [];
   };
 
+  // 模糊匹配函数
+  const findBestMatch = (fileName: string, systemFields: string[]): string | null => {
+    if (!fileName || !systemFields || systemFields.length === 0) return null;
+
+    // 清理文件列名：去除空格、括号等
+    const cleanName = fileName
+      .replace(/[（(）)]/g, '')
+      .replace(/\s+/g, '')
+      .toLowerCase();
+
+    let bestMatch: string | null = null;
+    let highestScore = 0;
+
+    for (const field of systemFields) {
+      const cleanField = field
+        .replace(/[（(）)]/g, '')
+        .replace(/\s+/g, '')
+        .toLowerCase();
+
+      // 计算相似度
+      let score = 0;
+
+      // 完全匹配
+      if (cleanName === cleanField) {
+        score = 100;
+      }
+      // 包含关系
+      else if (cleanName.includes(cleanField) || cleanField.includes(cleanName)) {
+        score = 80;
+      }
+      // 编辑距离计算（简化版）
+      else {
+        // 计算公共子序列长度
+        const commonChars = cleanName.split('').filter(c => cleanField.includes(c)).length;
+        const maxLength = Math.max(cleanName.length, cleanField.length);
+        if (maxLength > 0) {
+          score = (commonChars / maxLength) * 60;
+        }
+      }
+
+      if (score > highestScore) {
+        highestScore = score;
+        bestMatch = field;
+      }
+    }
+
+    // 只有当相似度超过阈值时才返回匹配
+    return highestScore > 50 ? bestMatch : null;
+  };
+
   // 自动映射字段
   useEffect(() => {
     if (!autoMapped && excelHeaders.length > 0 && !loadingConfigs) {
       const autoMapping: Record<string, string> = {};
 
+      console.log('=== 开始自动映射字段 ===');
+      console.log('文件列名:', excelHeaders);
+      console.log('系统字段:', fieldConfigs.map(f => f.label));
+
       fieldConfigs.forEach((field) => {
-        // 尝试精确匹配
+        // 先尝试精确匹配
         const exactMatch = excelHeaders.find(
           (header) =>
             header.toLowerCase() === field.label.toLowerCase() ||
@@ -197,6 +251,7 @@ export default function ImportFieldMapping({
 
         if (exactMatch) {
           autoMapping[field.key] = exactMatch;
+          console.log(`精确匹配: ${field.label} -> ${exactMatch}`);
           return;
         }
 
@@ -209,9 +264,20 @@ export default function ImportFieldMapping({
 
         if (containsMatch) {
           autoMapping[field.key] = containsMatch;
+          console.log(`包含匹配: ${field.label} -> ${containsMatch}`);
+          return;
+        }
+
+        // 尝试模糊匹配
+        const systemFieldLabels = fieldConfigs.map(f => f.label);
+        const bestMatch = findBestMatch(field.label, excelHeaders);
+        if (bestMatch) {
+          autoMapping[field.key] = bestMatch;
+          console.log(`模糊匹配: ${field.label} -> ${bestMatch}`);
         }
       });
 
+      console.log('自动映射结果:', autoMapping);
       setMapping(autoMapping);
       setAutoMapped(true);
     }
@@ -238,7 +304,7 @@ export default function ImportFieldMapping({
     const missingFields = requiredFields.filter((field) => !filteredMapping[field.key]);
 
     if (missingFields.length > 0) {
-      alert(`请为以下必填字段选择对应的Excel列：\n${missingFields.map((f) => f.label).join('、')}`);
+      alert(`请为以下必填字段选择对应的文件列：\n${missingFields.map((f) => f.label).join('、')}`);
       return;
     }
 
@@ -256,7 +322,7 @@ export default function ImportFieldMapping({
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle>字段映射</CardTitle>
-        <CardDescription>请将 Excel 表的列映射到系统字段，红色*号为必填项</CardDescription>
+        <CardDescription>请将文件的列映射到系统字段，红色*号为必填项</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -266,7 +332,7 @@ export default function ImportFieldMapping({
               <thead className="bg-muted">
                 <tr>
                   <th className="text-left p-3 font-medium">系统字段</th>
-                  <th className="text-left p-3 font-medium">Excel列名</th>
+                  <th className="text-left p-3 font-medium">文件列名</th>
                   <th className="text-left p-3 font-medium w-48">示例数据</th>
                 </tr>
               </thead>
@@ -290,7 +356,7 @@ export default function ImportFieldMapping({
                         }
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="请选择Excel列" />
+                          <SelectValue placeholder="请选择文件列" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">不导入</SelectItem>

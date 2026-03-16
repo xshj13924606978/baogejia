@@ -259,7 +259,7 @@ export default function MultiUploadDialog({
                   <strong>支持的文件格式：</strong>
                 </p>
                 <p className="text-xs text-blue-600 dark:text-blue-400">
-                  {moduleType === 'document' && 'PDF、Word、Excel、PPT、TXT'}
+                  {moduleType === 'document' && 'PDF、Word、Excel、CSV、PPT、TXT'}
                   {moduleType === 'drawing' && 'CAD (DWG/DXF)、图片 (JPG/PNG)、PDF'}
                   {moduleType === 'case' && 'PDF、Word、Excel、图片'}
                   {moduleType === 'standard' && 'PDF、Word、文本文件'}
@@ -282,7 +282,7 @@ export default function MultiUploadDialog({
                   className="hidden"
                   accept={
                     moduleType === 'document'
-                      ? '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt'
+                      ? '.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt'
                       : moduleType === 'drawing'
                         ? '.dwg,.dxf,.jpg,.jpeg,.png,.pdf'
                         : moduleType === 'case'

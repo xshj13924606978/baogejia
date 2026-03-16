@@ -497,7 +497,7 @@ ${proposal}
     "category": "设备类别（预处理/生化/深度处理/控制/辅助）",
     "model": "型号",
     "quantity": 数量,
-    "specs": "技术规格参数",
+    "specs": "参数描述",
     "power": 功率（kW）,
     "price": 预估价格（元）,
     "remarks": "备注说明"

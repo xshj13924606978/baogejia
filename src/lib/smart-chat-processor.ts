@@ -17,6 +17,7 @@ import { ProcessedInput } from './input-processor';
 import { PriceMatcher, ProductMatch, PriceMatchResult } from './price-matching';
 import { fileUploadProcessor } from './upload-processor';
 import { ProductExtractor, ExtractedProduct } from './product-extractor';
+import { unifiedMatcher, UnifiedMatchResult } from './unified-matcher';
 
 interface ConversationContext {
   conversationId?: string;
@@ -102,6 +103,128 @@ export class SmartChatProcessor {
   }
 
   /**
+   * 智能产品匹配（使用 unified-matcher）
+   * 新增功能：提供更准确的产品匹配和置信度评估
+   */
+  private async smartProductMatch(userInput: string): Promise<{
+    hasMatch: boolean;
+    matchResult?: UnifiedMatchResult;
+    contextInfo?: string;
+  }> {
+    console.log('[SmartChatProcessor] 开始智能产品匹配...');
+
+    try {
+      // 确保统一匹配器已初始化
+      if (!unifiedMatcher.isInitialized()) {
+        console.log('[SmartChatProcessor] 初始化统一匹配器...');
+        await unifiedMatcher.initialize();
+      }
+
+      // 执行匹配
+      const matchResult = await unifiedMatcher.match(userInput);
+
+      console.log('[SmartChatProcessor] 智能匹配结果:', {
+        totalMatches: matchResult.summary.totalMatches,
+        exactMatches: matchResult.summary.exactMatches,
+        confidence: matchResult.confidence.overall,
+        level: matchResult.confidence.level
+      });
+
+      // 如果有匹配结果，生成上下文信息
+      let contextInfo = '';
+      if (matchResult.matches.length > 0) {
+        contextInfo = this.formatUnifiedMatchResult(matchResult);
+      }
+
+      return {
+        hasMatch: matchResult.matches.length > 0,
+        matchResult,
+        contextInfo
+      };
+
+    } catch (error) {
+      console.error('[SmartChatProcessor] 智能匹配失败:', error);
+      return { hasMatch: false };
+    }
+  }
+
+  /**
+   * 格式化统一匹配结果
+   */
+  private formatUnifiedMatchResult(result: UnifiedMatchResult): string {
+    const { matches, bestMatch, confidence, summary } = result;
+    let output = '';
+
+    // 添加置信度信息
+    if (confidence.level !== 'low') {
+      output += `\n\n【智能匹配系统】\n`;
+      output += `匹配置信度: ${(confidence.overall * 100).toFixed(1)}% (${confidence.level.toUpperCase()})\n`;
+      output += `找到 ${summary.totalMatches} 款匹配产品（精确: ${summary.exactMatches}, 近似: ${summary.approximateMatches}）\n\n`;
+    }
+
+    // 如果有多款匹配产品，使用表格格式
+    if (matches.length > 1) {
+      output += `| 序号 | 产品型号 | 排气量 | 工作压力 | 功率 | 电压 | 控制方式 | 储气罐 | 价格区间 |\n`;
+      output += `|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n`;
+
+      matches.slice(0, 10).forEach((match, index) => {
+        const product = match.product;
+        const isRecommended = index === 0 && match.matchLevel === 'exact' ? '⭐' : '';
+
+        // 格式化价格
+        const priceMin = product.minPrice ? product.minPrice.toLocaleString() : (product.displayPrice?.toLocaleString() || '面议');
+        const priceMax = product.guidePrice ? product.guidePrice.toLocaleString() : (product.displayPrice?.toLocaleString() || '面议');
+
+        output += `| ${index + 1}${isRecommended} | ${product.model || '-'} | ${product.flowRate || '-'} | ${product.pressure || '-'} | ${product.power || '-'} | ${product.voltage || '-'} | ${product.controlType || '-'} | ${product.tankType || '-'} | ¥${priceMin}-${priceMax} |\n`;
+      });
+
+      output += `\n`;
+
+      // 标注推荐产品详情
+      if (bestMatch && bestMatch.matchLevel === 'exact') {
+        const product = bestMatch.product;
+        output += `**⭐ 推荐产品详情：**\n`;
+        output += `- **品牌**：${product.brand || '杰瑞浩'}\n`;
+        output += `- **型号**：${product.model || '-'}\n`;
+        output += `- **核心参数**：排气量 ${product.flowRate || '-'} m³/min，工作压力 ${product.pressure || '-'} MPa，功率 ${product.power || '-'} KW，电压 ${product.voltage || '-'}\n`;
+        output += `- **产品特点**：${product.controlType || '工频'}机型，${product.tankType || '单储气罐'}，${product.controlType === '永磁变频' ? '节能效果好，适合长时间运行' : '经济实惠，适合间歇性使用'}\n`;
+        output += `- **参考价格**：¥${product.minPrice?.toLocaleString() || product.displayPrice?.toLocaleString()} - ¥${product.guidePrice?.toLocaleString() || product.displayPrice?.toLocaleString()} 元\n`;
+        output += `- **置信度**：${(bestMatch.score * 100).toFixed(1)}%\n`;
+        
+        // 添加相似度因素
+        if (bestMatch.similarityFactors && bestMatch.similarityFactors.length > 0) {
+          output += `- **相似度因素**：\n`;
+          bestMatch.similarityFactors.forEach(factor => {
+            output += `  - ${factor}\n`;
+          });
+        }
+        
+        output += `\n`;
+      }
+
+      // 添加置信度建议
+      if (confidence.recommendation.reliability) {
+        output += `💡 ${confidence.recommendation.reliability}：${confidence.recommendation.action}\n\n`;
+      }
+
+      output += `【智能匹配系统结果】\n`;
+    } else if (matches.length === 1 && bestMatch) {
+      // 单个产品，使用简化格式
+      const product = bestMatch.product;
+      output = `\n\n【智能匹配系统】\n`;
+      output += `产品名称：${product.name}\n`;
+      output += `规格型号：${product.model}\n`;
+      output += `品牌：${product.brand || '杰瑞浩'}\n`;
+      output += `核心参数：排气量 ${product.flowRate || '-'} m³/min，工作压力 ${product.pressure || '-'} MPa，功率 ${product.power || '-'} KW\n`;
+      output += `匹配置信度：${(bestMatch.score * 100).toFixed(1)}% (${bestMatch.matchLevel})\n`;
+      output += `参考价格：¥${product.displayPrice?.toLocaleString() || '面议'}\n`;
+      output += `置信度评估：${confidence.level.toUpperCase()} (${(confidence.overall * 100).toFixed(1)}%)\n\n`;
+    }
+
+    return output;
+  }
+
+  /**
    * 处理价格查询
    */
   private async handlePriceQuery(
@@ -123,38 +246,98 @@ export class SmartChatProcessor {
 
       console.log('[SmartChatProcessor] 价格查询结果:', priceResult);
 
-      // 生成上下文信息
+      // 生成上下文信息 - 如果有多款匹配产品，使用表格格式
       let contextInfo = '';
       if (priceResult) {
-        contextInfo = `\n\n【数据库产品信息】\n`;
-        contextInfo += `产品名称：${priceResult.productName || productName}\n`;
-        if (model) {
-          contextInfo += `规格型号：${model}\n`;
-        }
-        contextInfo += `单价：${priceResult.price.toFixed(2)} 元\n`;
-        contextInfo += `价格来源：${this.getPriceSourceText(priceResult.source)}\n`;
-        contextInfo += `置信度：${priceResult.confidence}%\n`;
+        // 如果有多款匹配产品，使用表格格式
+        if (priceResult.matchedProducts && priceResult.matchedProducts.length > 1) {
+          console.log(`🚨 找到 ${priceResult.matchedProducts.length} 款匹配产品，使用表格格式`);
 
-        // 添加新的数据库字段
-        if (priceResult.brand) {
-          contextInfo += `品牌：${priceResult.brand}\n`;
-        }
-        if (priceResult.parameterDescription) {
-          contextInfo += `参数描述：${priceResult.parameterDescription}\n`;
-        }
-        if (priceResult.costPrice) {
-          contextInfo += `成本：${priceResult.costPrice.toFixed(2)} 元\n`;
-        }
-        if (priceResult.minPrice) {
-          contextInfo += `最低售价：${priceResult.minPrice.toFixed(2)} 元\n`;
-        }
-        if (priceResult.currency) {
-          contextInfo += `货币单位：${priceResult.currency}\n`;
-        }
+          // 按匹配级别分组
+          const exactMatches = priceResult.matchedProducts.filter(p => p.matchLevel === 1);
+          const fuzzyMatches = priceResult.matchedProducts.filter(p => (p.matchLevel || 999) === 2);
+          const otherMatches = priceResult.matchedProducts.filter(p => (p.matchLevel || 999) > 2);
 
-        if (priceResult.source === 'market' && priceResult.marketSource) {
-          contextInfo += `市场价来源：${priceResult.marketSource}\n`;
-          contextInfo += `注意：此价格为市场参考价，实际价格可能因供应商、数量等因素而异。`;
+          // 构建响应标题
+          if (exactMatches.length > 0) {
+            contextInfo += `\n\n✅ 根据您的要求，找到 **${exactMatches.length}款** 完全匹配的产品：\n\n`;
+          } else if (fuzzyMatches.length > 0) {
+            contextInfo += `\n\n⚠️ 未找到完全匹配，但有 **${fuzzyMatches.length}款** 相近规格的产品：\n\n`;
+          } else if (otherMatches.length > 0) {
+            contextInfo += `\n\nℹ️ 找到 **${otherMatches.length}款** 相关产品：\n\n`;
+          }
+
+          // 展示所有匹配产品的对比表格
+          const displayProducts = priceResult.matchedProducts.slice(0, 10);
+
+          // 构建Markdown表格
+          contextInfo += `| 序号 | 产品型号 | 排气量 | 工作压力 | 功率 | 电压 | 控制方式 | 储气罐 | 价格区间 |\n`;
+          contextInfo += `|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n`;
+
+          displayProducts.forEach((product, index) => {
+            const params = (product as any).parameters || {};
+            const isRecommended = index === 0 && exactMatches.length > 0 ? '⭐' : '';
+
+            // 格式化价格
+            const priceMin = params.minPrice ? params.minPrice.toLocaleString() : (product.price?.toLocaleString() || '面议');
+            const priceMax = params.guidePrice ? params.guidePrice.toLocaleString() : (product.price?.toLocaleString() || '面议');
+
+            contextInfo += `| ${index + 1}${isRecommended} | ${product.model || '-'} | ${params.flowRate || '-'} | ${params.pressure || '-'} | ${params.power || '-'} | ${params.voltage || '-'} | ${params.controlType || '-'} | ${params.tankType || '-'} | ¥${priceMin}-${priceMax} |\n`;
+          });
+
+          contextInfo += `\n`;
+
+          // 如果有更多产品，提示
+          if (priceResult.matchedProducts.length > 10) {
+            contextInfo += `*还有 ${priceResult.matchedProducts.length - 10} 款产品未显示*\n\n`;
+          }
+
+          // 标注当前推荐产品的参数详情
+          if (exactMatches.length > 0) {
+            const recommended = exactMatches[0];
+            const params = (recommended as any).parameters || {};
+
+            contextInfo += `**⭐ 推荐产品详情：**\n`;
+            contextInfo += `- **品牌**：${recommended.brand || '杰瑞浩'}\n`;
+            contextInfo += `- **型号**：${recommended.model || '-'}\n`;
+            contextInfo += `- **核心参数**：排气量 ${params.flowRate || '-'} m³/min，工作压力 ${params.pressure || '-'} MPa，功率 ${params.power || '-'} KW，电压 ${params.voltage || '-'}\n`;
+            contextInfo += `- **产品特点**：${params.controlType || '工频'}机型，${params.tankType || '单储气罐'}，${params.controlType === '永磁变频' ? '节能效果好，适合长时间运行' : '经济实惠，适合间歇性使用'}\n`;
+            contextInfo += `- **参考价格**：¥${params.minPrice?.toLocaleString() || recommended.price?.toLocaleString()} - ¥${params.guidePrice?.toLocaleString() || recommended.price?.toLocaleString()} 元\n\n`;
+          }
+
+          contextInfo += `【数据库产品信息】\n`;
+        } else {
+          // 单个产品，使用原有格式
+          contextInfo = `\n\n【数据库产品信息】\n`;
+          contextInfo += `产品名称：${priceResult.productName || productName}\n`;
+          if (model) {
+            contextInfo += `规格型号：${model}\n`;
+          }
+          contextInfo += `单价：${priceResult.price.toFixed(2)} 元\n`;
+          contextInfo += `价格来源：${this.getPriceSourceText(priceResult.source)}\n`;
+          contextInfo += `置信度：${priceResult.confidence}%\n`;
+
+          // 添加新的数据库字段
+          if (priceResult.brand) {
+            contextInfo += `品牌：${priceResult.brand}\n`;
+          }
+          if (priceResult.parameterDescription) {
+            contextInfo += `参数描述：${priceResult.parameterDescription}\n`;
+          }
+          if (priceResult.costPrice) {
+            contextInfo += `成本：${priceResult.costPrice.toFixed(2)} 元\n`;
+          }
+          if (priceResult.minPrice) {
+            contextInfo += `最低售价：${priceResult.minPrice.toFixed(2)} 元\n`;
+          }
+          if (priceResult.currency) {
+            contextInfo += `货币单位：${priceResult.currency}\n`;
+          }
+
+          if (priceResult.source === 'market' && priceResult.marketSource) {
+            contextInfo += `市场价来源：${priceResult.marketSource}\n`;
+            contextInfo += `注意：此价格为市场参考价，实际价格可能因供应商、数量等因素而异。`;
+          }
         }
 
         console.log('[SmartChatProcessor] 生成的上下文信息:', contextInfo);
@@ -270,22 +453,66 @@ export class SmartChatProcessor {
       }
     }
 
+    // 2.6. 智能产品匹配（新增功能）
+    // 如果原有价格查询没有结果或置信度较低，尝试使用智能匹配系统
+    let smartMatchContextInfo = '';
+    let smartMatchResult: any = null;  // 移到外层定义
+    
+    if (!processedInput || processedInput.type === 'text') {
+      // 仅当没有价格查询结果，或者输入包含产品参数时使用智能匹配
+      const hasProductParams = /(\d+\.?\d*)\s*(m³|m3|立方)\s*(\/|\s)?\s*min|(\d+\.?\d*)\s*(MPa|兆帕|bar|巴)|(\d+\.?\d*)\s*(KW|kW|千瓦)/i.test(userInput);
+      
+      if (hasProductParams || !priceContextInfo) {
+        smartMatchResult = await this.smartProductMatch(userInput);
+        if (smartMatchResult.hasMatch && smartMatchResult.contextInfo) {
+          smartMatchContextInfo = smartMatchResult.contextInfo;
+          enhancedInput += smartMatchContextInfo;
+          console.log('[SmartChatProcessor] 已添加智能匹配结果到上下文');
+        }
+      }
+    }
+
     // 3. 使用 LLM 智能理解并生成响应
     const response = await this.generateSmartResponse(enhancedInput, context, processedInput);
 
     // 4. 更新对话历史
     this.updateContext(context, userInput, response.content);
 
-    // 5. 返回响应
+    // 5. 准备返回的 metadata（包含智能匹配摘要）
+    const returnMetadata: SmartResponse['metadata'] = {
+      inputType: response.metadata?.inputType || processedInput?.type || 'text',
+      confidence: smartMatchResult?.matchResult?.confidence.overall || response.metadata?.confidence || 0.9,
+      extractedEntities: response.metadata?.extractedEntities || {},
+      uploadInfo: Object.keys(uploadInfo).length > 0 ? uploadInfo : undefined,
+    };
+
+    // 添加智能匹配摘要到 entities
+    if (smartMatchResult?.matchResult) {
+      const matchSummary = {
+        totalMatches: smartMatchResult.matchResult.summary.totalMatches,
+        exactMatches: smartMatchResult.matchResult.summary.exactMatches,
+        approximateMatches: smartMatchResult.matchResult.summary.approximateMatches,
+        recommendedProduct: smartMatchResult.matchResult.summary.recommendedProduct,
+        confidenceLevel: smartMatchResult.matchResult.confidence.level,
+        confidenceScore: smartMatchResult.matchResult.confidence.overall,
+      };
+
+      // 添加最佳匹配的相似度因素
+      if (smartMatchResult.matchResult.bestMatch?.similarityFactors) {
+        (matchSummary as any).similarityFactors = smartMatchResult.matchResult.bestMatch.similarityFactors;
+      }
+
+      returnMetadata.extractedEntities = {
+        ...returnMetadata.extractedEntities,
+        matchSummary,
+      };
+    }
+
+    // 6. 返回响应
     console.log('[SmartChatProcessor] ========== 智能处理完成 ==========');
     return {
       ...response,
-      metadata: {
-        inputType: response.metadata?.inputType || processedInput?.type || 'text',
-        confidence: response.metadata?.confidence || 0.9,
-        extractedEntities: response.metadata?.extractedEntities || {},
-        uploadInfo: Object.keys(uploadInfo).length > 0 ? uploadInfo : undefined,
-      },
+      metadata: returnMetadata,
     };
   }
 
@@ -896,6 +1123,84 @@ export class SmartChatProcessor {
    */
   getConversationHistory(conversationId: string): ConversationContext | undefined {
     return this.conversations.get(conversationId);
+  }
+
+  /**
+   * 创建测试产品数据（用于调试）
+   */
+  private createTestProducts(): any[] {
+    console.log('创建测试产品数据');
+    return [
+      {
+        productName: '空压机',
+        model: 'JRH004AM-120L',
+        brand: '杰瑞浩',
+        parameters: {
+          flowRate: 0.5,
+          pressure: 0.8,
+          power: 4,
+          voltage: '380V',
+          controlType: '永磁变频',
+          tankType: '单储气罐'
+        },
+        price: 6916,
+        minPrice: 4882,
+        guidePrice: 6916,
+        matchScore: 240,
+        matchLevel: 1,
+        matchDetails: {
+          flowRate: '✓ 精确匹配',
+          pressure: '✓ 压力匹配',
+          voltage: '✓ 电压匹配'
+        }
+      },
+      {
+        productName: '空压机',
+        model: 'JRH004-120L',
+        brand: '杰瑞浩',
+        parameters: {
+          flowRate: 0.6,
+          pressure: 0.8,
+          power: 4,
+          voltage: '380V',
+          controlType: '工频',
+          tankType: '单储气罐'
+        },
+        price: 6916,
+        minPrice: 4882,
+        guidePrice: 6916,
+        matchScore: 190,
+        matchLevel: 2,
+        matchDetails: {
+          flowRate: '≈ 0.6 (相近)',
+          pressure: '✓ 压力匹配',
+          voltage: '✓ 电压匹配'
+        }
+      },
+      {
+        productName: '空压机',
+        model: 'JRH005AM-120L',
+        brand: '杰瑞浩',
+        parameters: {
+          flowRate: 0.6,
+          pressure: 0.8,
+          power: 5.5,
+          voltage: '380V',
+          controlType: '永磁变频',
+          tankType: '单储气罐'
+        },
+        price: 7416,
+        minPrice: 5235,
+        guidePrice: 7416,
+        matchScore: 170,
+        matchLevel: 2,
+        matchDetails: {
+          flowRate: '≈ 0.6 (相近)',
+          pressure: '✓ 压力匹配',
+          voltage: '✓ 电压匹配'
+        }
+      }
+    ];
   }
 }
 

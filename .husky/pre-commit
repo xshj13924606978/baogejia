@@ -5,10 +5,8 @@ echo ""
 echo "🔒 ===== 功能保护锁 ===== 🔒"
 echo ""
 
-PROTECTED_FILES="src/utils/excel-parser-enhanced.ts
-src/utils/test-excel-parser.ts
-src/app/api/documents/parse/route.ts
-src/app/api/chat/route.ts"
+# 保护文件列表
+PROTECTED_FILES="src/app/api/tables/products/search/route.ts src/components/knowledge-center/price-library.tsx"
 
 check_protected_files() {
   MODIFIED=0

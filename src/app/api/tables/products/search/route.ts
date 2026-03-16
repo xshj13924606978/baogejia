@@ -27,13 +27,21 @@ export async function POST(request: NextRequest) {
         success: true,
         data: (data || []).map((p: any) => ({
           id: p.id,
-          product_name: p.name,
+          name: p.name || '',
           model: p.model || '',
-          brand: p.supplier || '',
-          specifications: p.specifications || '',
-          unit: '台',
+          brand: p.brand || '',
+          parameter_description: p.parameter_description || '',
+          description: p.description || '',
+          unit: p.unit || '台',
+          cost_price: parseFloat(p.cost_price) || 0,
+          min_price: parseFloat(p.min_price) || 0,
           price: parseFloat(p.price) || 0,
           supplier: p.supplier || '',
+          contact_person: p.contact_person || '',
+          contact_phone: p.contact_phone || '',
+          category: p.category || '',
+          stock: p.stock || 0,
+          image_url: p.image_url || '',
         })),
       });
     }
@@ -43,7 +51,7 @@ export async function POST(request: NextRequest) {
       .from('products')
       .select('*')
       .or(
-        `name.ilike.%${keyword}%,model.ilike.%${keyword}%,supplier.ilike.%${keyword}%,specifications.ilike.%${keyword}%`
+        `name.ilike.%${keyword}%,model.ilike.%${keyword}%,brand.ilike.%${keyword}%,parameter_description.ilike.%${keyword}%,description.ilike.%${keyword}%,supplier.ilike.%${keyword}%`
       );
 
     if (error) {
@@ -62,13 +70,21 @@ export async function POST(request: NextRequest) {
       success: true,
       data: (data || []).map((p: any) => ({
         id: p.id,
-        product_name: p.name,
+        name: p.name || '',
         model: p.model || '',
-        brand: p.supplier || '',
-        specifications: p.specifications || '',
-        unit: '台',
+        brand: p.brand || '',
+        parameter_description: p.parameter_description || '',
+        description: p.description || '',
+        unit: p.unit || '台',
+        cost_price: parseFloat(p.cost_price) || 0,
+        min_price: parseFloat(p.min_price) || 0,
         price: parseFloat(p.price) || 0,
         supplier: p.supplier || '',
+        contact_person: p.contact_person || '',
+        contact_phone: p.contact_phone || '',
+        category: p.category || '',
+        stock: p.stock || 0,
+        image_url: p.image_url || '',
       })),
     });
   } catch (error) {
@@ -83,3 +99,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+// test protection
+// test protection 2

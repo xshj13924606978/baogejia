@@ -2,35 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
- * GET - 获取导入日志列表
+ * 获取导入日志列表
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const searchParams = request.nextUrl.searchParams;
+    const limit = parseInt(searchParams.get('limit') || '10');
     const offset = parseInt(searchParams.get('offset') || '0');
-    const status = searchParams.get('status');
+    const status = searchParams.get('status') || 'all';
+
+    console.log('[Import Logs API] ========== 获取导入日志列表 ==========');
+    console.log('[Import Logs API] 参数:', { limit, offset, status });
 
     const db = getSupabaseClient();
 
-    // 检查表是否存在
-    const { error: tableCheckError } = await db
+    // 检查 import_logs 表是否存在
+    const { count: totalCount, error: countError } = await db
       .from('import_logs')
-      .select('count', { count: 'exact', head: true });
+      .select('*', { count: 'exact', head: true })
+      .limit(1);
 
-    if (tableCheckError) {
-      console.log('[Import Logs API] 导入日志表不存在，返回空数据');
+    if (countError) {
+      console.log('[Import Logs API] import_logs 表不存在，返回空列表');
       return NextResponse.json({
         success: true,
         data: [],
-        pagination: {
-          total: 0,
-          limit,
-          offset,
-          hasMore: false,
-        },
-        message: '日志表未创建，如需使用导入日志功能，请执行数据库初始化脚本',
-      }, { status: 200 });
+        count: 0,
+        total: 0,
+      });
     }
 
     // 构建查询
@@ -40,111 +39,15 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    // 如果指定了状态，过滤
-    if (status && status !== 'all') {
+    // 状态筛选
+    if (status !== 'all') {
       query = query.eq('status', status);
     }
 
     const { data: logs, error } = await query;
 
     if (error) {
-      console.error('[Import Logs API] 获取日志失败:', error);
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-          data: [],
-          pagination: {
-            total: 0,
-            limit,
-            offset,
-            hasMore: false,
-          },
-        },
-        { status: 200 }
-      );
-    }
-
-    // 获取总数
-    const { count: totalCount } = await db
-      .from('import_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq(status && status !== 'all' ? 'status' : '', status || '');
-
-    return NextResponse.json({
-      success: true,
-      data: logs || [],
-      pagination: {
-        total: totalCount || 0,
-        limit,
-        offset,
-        hasMore: (offset + limit) < (totalCount || 0),
-      },
-    });
-  } catch (error) {
-    console.error('[Import Logs API] 获取日志异常:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: '获取日志失败',
-        data: [],
-        pagination: {
-          total: 0,
-          limit: 50,
-          offset: 0,
-          hasMore: false,
-        },
-      },
-      { status: 200 }
-    );
-  }
-}
-
-/**
- * POST - 创建导入日志记录
- */
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-
-    const {
-      file_name,
-      file_type,
-      total_count,
-      imported_count = 0,
-      skipped_count = 0,
-      failed_count = 0,
-      duplicate_config,
-      details,
-      duration_ms,
-      status = 'completed',
-      started_at,
-      completed_at,
-    } = body;
-
-    const db = getSupabaseClient();
-
-    const { data, error } = await db
-      .from('import_logs')
-      .insert({
-        file_name,
-        file_type,
-        total_count,
-        imported_count,
-        skipped_count,
-        failed_count,
-        duplicate_config,
-        details,
-        duration_ms,
-        status,
-        started_at,
-        completed_at,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[Import Logs API] 创建日志失败:', error);
+      console.error('[Import Logs API] 查询失败:', error);
       return NextResponse.json(
         {
           success: false,
@@ -154,17 +57,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log(`[Import Logs API] 查询成功，找到 ${logs?.length || 0} 条记录，总计 ${totalCount || 0} 条`);
+
     return NextResponse.json({
       success: true,
-      data,
-      message: '导入日志创建成功',
+      data: logs || [],
+      count: logs?.length || 0,
+      total: totalCount || 0,
     });
   } catch (error) {
-    console.error('[Import Logs API] 创建日志异常:', error);
+    console.error('[Import Logs API] 获取导入日志失败:', error);
     return NextResponse.json(
       {
         success: false,
-        error: '创建日志失败',
+        error: '获取导入日志失败',
       },
       { status: 500 }
     );

@@ -21,10 +21,12 @@ const validateEmail = (email: string): boolean => {
   return emailRegex.test(email);
 };
 
-// 判断是邮箱还是手机号
-const identifyInput = (input: string): 'email' | 'phone' | 'unknown' => {
+// 判断是邮箱、手机号还是用户名
+const identifyInput = (input: string): 'email' | 'phone' | 'username' | 'unknown' => {
   if (validateEmail(input)) return 'email';
   if (validatePhone(input)) return 'phone';
+  // 用户名：至少2个字符，只包含字母、数字、下划线、中划线
+  if (/^[a-zA-Z0-9_-]{2,}$/.test(input)) return 'username';
   return 'unknown';
 };
 
@@ -88,7 +90,7 @@ function LoginPage() {
     if (value) {
       const type = identifyInput(value);
       if (type === 'unknown') {
-        setAccountError('请输入正确的邮箱或手机号');
+        setAccountError('请输入正确的邮箱、手机号或用户名');
       } else {
         setAccountError('');
       }
@@ -195,10 +197,13 @@ function LoginPage() {
   // 处理账号密码登录
   const handleAccountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[Login] handleAccountSubmit called', { account, password: password ? '***' : 'empty' });
 
     const inputType = identifyInput(account);
+    console.log('[Login] inputType:', inputType);
+    
     if (inputType === 'unknown') {
-      toast({ title: '请输入正确的邮箱或手机号', variant: 'destructive', duration: 3000 });
+      toast({ title: '请输入正确的邮箱、手机号或用户名', variant: 'destructive', duration: 3000 });
       return;
     }
 
@@ -208,9 +213,11 @@ function LoginPage() {
     }
 
     setLoading(true);
+    console.log('[Login] Calling passwordLogin...');
 
     try {
       const response = await passwordLogin(account, password);
+      console.log('[Login] passwordLogin response:', response);
 
       if (response.success) {
         toast({ title: '登录成功', description: '欢迎回来', duration: 2000 });
@@ -223,7 +230,8 @@ function LoginPage() {
           duration: 3000,
         });
       }
-    } catch (_error) {
+    } catch (error) {
+      console.error('[Login] passwordLogin error:', error);
       toast({
         title: '登录失败',
         description: '请稍后重试',
@@ -411,7 +419,7 @@ function LoginPage() {
                   className={accountError ? 'border-red-500' : ''}
                 />
                 {accountError && <p className="text-xs text-red-500">{accountError}</p>}
-                <p className="text-xs text-gray-500">支持邮箱或手机号登录</p>
+                <p className="text-xs text-gray-500">支持用户名、邮箱或手机号登录</p>
               </div>
 
               <div className="space-y-2">
@@ -428,7 +436,7 @@ function LoginPage() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={loading || !account || accountError !== '' || !password}
+                disabled={loading || !account || !password}
               >
                 {loading ? '登录中...' : '登录'}
               </Button>

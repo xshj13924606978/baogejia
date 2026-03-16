@@ -81,24 +81,54 @@ export function validateFields(fields: string[], availableFields: string[]): boo
 }
 
 /**
- * 字段显示名称映射
+ * 字段显示名称映射 - 完整中文化
  */
 export const fieldLabelMap: Record<string, string> = {
+  // 产品基本信息
   name: '产品名称',
+  product_name: '产品名称',
   model: '规格型号',
   brand: '品牌',
-  category: '分类',
-  price: '指导价（元）',
-  supplier: '供应商',
+  category: '产品分类',
+  specifications: '参数描述',
   parameter_description: '参数描述',
-  unit: '单位',
-  cost_price: '成本（元）',
-  min_price: '最低售价（元）',
-  stock: '库存',
-  description: '描述',
-  image_url: '图片',
+  description: '产品描述',
+
+  // 价格信息
+  price: '指导价',
+  list_price: '挂牌价',
+  selling_price: '销售价',
+  cost_price: '成本价',
+  min_price: '最低售价',
+  max_price: '最高售价',
+
+  // 供应商信息
+  supplier: '供应商',
+  manufacturer: '制造商',
   contact_person: '联系人',
-  contact_phone: '电话',
+  contact_phone: '联系电话',
+  contact_email: '联系邮箱',
+
+  // 库存和物流
+  unit: '单位',
+  stock: '库存数量',
+  warehouse: '仓库位置',
+  shelf_life: '保质期',
+  weight: '重量',
+  dimensions: '尺寸',
+
+  // 图片和附件
+  image_url: '产品图片',
+  attachment_url: '附件链接',
+
+  // 其他字段
+  barcode: '条形码',
+  sku: 'SKU编码',
+  mpn: 'MPN编码',
+  upc: 'UPC编码',
+  ean: 'EAN编码',
+  created_at: '创建时间',
+  updated_at: '更新时间',
 };
 
 /**

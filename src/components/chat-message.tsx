@@ -28,8 +28,10 @@ import {
   Printer,
   Copy,
   Edit2,
+  Brain,
 } from 'lucide-react';
 import QuoteTable from '@/components/quote-table';
+import { MatchVisualization } from '@/components/match-visualization';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -2479,6 +2481,49 @@ export default function ChatMessage({
                     <SimpleMarkdown content={message.content} isStreaming={message.isStreaming} />
                   );
                 })()}
+
+          {/* 置信度指标和匹配详情 - 新增 */}
+          {message.metadata?.confidence !== undefined && (
+            <div className="mt-3 space-y-3">
+              {/* 置信度卡片 */}
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-center gap-2 text-sm">
+                  <Brain className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span className="font-medium text-blue-900 dark:text-blue-100">智能匹配置信度</span>
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded-full text-blue-700 dark:text-blue-300">
+                    {(message.metadata.confidence * 100).toFixed(1)}%
+                  </span>
+                </div>
+
+                {/* 匹配详情 */}
+                {message.metadata?.entities?.matchSummary && (
+                  <div className="mt-2 space-y-1 text-xs text-slate-700 dark:text-slate-300">
+                    <div className="flex justify-between">
+                      <span>匹配产品数:</span>
+                      <span className="font-medium">{message.metadata.entities.matchSummary.totalMatches}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>精确匹配:</span>
+                      <span className="font-medium text-green-700 dark:text-green-400">
+                        {message.metadata.entities.matchSummary.exactMatches}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>近似匹配:</span>
+                      <span className="font-medium text-amber-700 dark:text-amber-400">
+                        {message.metadata.entities.matchSummary.approximateMatches}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 可视化图表 */}
+              {message.metadata?.entities?.matchSummary && (
+                <MatchVisualization matchSummary={message.metadata.entities.matchSummary} />
+              )}
+            </div>
+          )}
 
           {hasQuote && quoteData && !isDetailedProposal && (
             <div className="mt-4">

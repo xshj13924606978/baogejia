@@ -1,0 +1,11 @@
+# 保护文件哈希值 - Sat Mar 14 21:49:31 CST 2026
+# 保护文件列表 - 本次优化的所有文件
+576eee0acc975090a21494b94b67ddc3679bd426e3909f96154b3191c6175132  src/app/api/admin/import-logs/route.ts
+b38372b484e354e9f13e5ce15cd756fc7fc423a47011ddb1176097221c4eb666  src/components/admin/import-logs-viewer.tsx
+a75a6ec8c38da78c240ec55d42d0d9723b082e62a68beaba4f58c8152e57c510  src/components/admin/product-list.tsx
+b299d13abf712148dff5d3398f88d82613b8c670f4bb0cfec306c5b5922ca187  src/app/admin/products/page.tsx
+b2ec397c36cba00bb94d87fc1da19c3c1d549307760bee1e8675e5f05ed64d8f  src/app/api/tables/products/list/route.ts
+682e2b5011aab93fd7784a6b94f03f900823a65d7f0c5b7c3f099ca253897295  scripts/create-import-logs-table.sql
+53ae46ddfdcecbccc7739fa50f8c407b087ffed86f90e3025f48056c5dc84c32  src/app/api/admin/init-import-logs/route.ts
+b86ed2a90021dc84d086c6c1f763c9d4d7e872cd2cf5cd74c19bf9fe7144f59e  src/components/admin/levels/LevelList.tsx
+51ee612e97f04fcb23d7fd8dc490887a2557502908bd78dd36f21a3ea1e29ebc  src/components/admin/levels/LevelEditor.tsx

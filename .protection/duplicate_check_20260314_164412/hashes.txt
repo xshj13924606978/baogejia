@@ -1,0 +1,4 @@
+# 保护文件哈希值 - Sat Mar 14 16:44:12 CST 2026
+919815aa72fa1f2555ebb2af51b546be8fdd29118d3441a8a8c13a99a6f56c73  src/app/api/tables/products/duplicate-check-config/route.ts
+91b5b84e514ec62ffe4dd79b4364ff36d73b8b7f6ec7b443adacb17274be807f  src/components/admin/duplicate-check-config.tsx
+69a8da751b08a5c3e7db84a5703e06bfcd5b0a6977609d3ffd22b62516cf42aa  src/app/api/admin/diagnose-field-configs/route.ts
