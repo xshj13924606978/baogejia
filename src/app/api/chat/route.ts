@@ -1185,7 +1185,38 @@ class ExcelParser {
         }
 
         const nameValue = getCellValue(i, nameCol);
-        const productName = nameValue ? String(nameValue).trim() : '';
+        const rawProductName = nameValue ? String(nameValue).trim() : '';
+        
+        // 分离产品名称和参数描述（如果名称中包含换行符或参数描述）
+        let productName = rawProductName;
+        let extractedSpecs = '';
+        
+        // 检查产品名称是否包含多行内容（换行符分隔）
+        if (rawProductName.includes('\n')) {
+          const parts = rawProductName.split('\n').filter(p => p.trim());
+          if (parts.length > 1) {
+            // 第一部分作为产品名称，其余部分作为参数描述
+            productName = parts[0].trim();
+            extractedSpecs = parts.slice(1).join(' ').trim();
+            console.log(`[Excel] 从产品名称中分离出参数描述: "${extractedSpecs.substring(0, 50)}..."`);
+          }
+        }
+        
+        // 检查产品名称是否以常见参数开头（如尺寸、功率等）
+        const specPattern = /^[\dφΦ×xX\-]+|^[\u4e00-\u9fa5]+\d+|^功率|^电压|^容量|^尺寸/i;
+        if (specPattern.test(productName) && lastProductName !== '') {
+          // 如果当前"产品名称"实际上是参数描述，追加到上一个产品
+          const currentProduct = productMap.get(lastProductName);
+          if (currentProduct) {
+            if (currentProduct.specs) {
+              currentProduct.specs += '\n' + productName;
+            } else {
+              currentProduct.specs = productName;
+            }
+            console.log(`[Excel] 第${i}行: 参数描述追加到 ${lastProductName}`);
+            continue;
+          }
+        }
 
         // 如果当前行有产品名称且与上一个不同，说明是一个新产品
         if (productName !== '' && productName !== lastProductName) {
@@ -1209,11 +1240,21 @@ class ExcelParser {
             quantity = parseInt(qtyMatch[1]);
           }
 
+          // 合并从产品名称中提取的参数描述和规格列的内容
+          let finalSpecs = '';
+          if (extractedSpecs && String(specsValue).trim()) {
+            finalSpecs = extractedSpecs + '\n' + String(specsValue).trim();
+          } else if (extractedSpecs) {
+            finalSpecs = extractedSpecs;
+          } else {
+            finalSpecs = String(specsValue).trim();
+          }
+
           const newProduct: Product = {
             name: productName,
             model: '',
             brand: '',
-            specs: String(specsValue).trim(),
+            specs: finalSpecs,
             quantity: quantity,
             unit: String(unitValue).trim() || '套',
             price: 0,
