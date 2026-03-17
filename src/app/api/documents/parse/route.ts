@@ -1,7 +1,6 @@
 // src/app/api/documents/parse/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth-utils';
 import { getCozeResponse, getTextInTableResponse, uploadFileToTextIn } from '@/lib/ai-service';
 import { cleanParameterDescriptionEnhanced } from '@/utils/string-cleaner-enhanced';
 
@@ -84,8 +83,8 @@ function deduplicateProducts(products: any[]): any[] {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const currentUser = await getCurrentUser(request);
+    if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

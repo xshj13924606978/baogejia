@@ -2,17 +2,12 @@
  * 全局日志控制
  * 在生产环境中自动禁用 debug 和 info 日志
  * 过滤 Console Bridge 等无关警告
- * 
+ *
  * ⚠️ 必须尽早执行，在 layout.tsx 中最先导入
  */
 
-// 立即执行过滤器（IIFE）
-(() => {
-  // 只在浏览器环境执行
-  if (typeof window === 'undefined') {
-    return;
-  }
-
+// 只在浏览器环境执行
+if (typeof window !== 'undefined') {
   // 过滤函数：检查是否应该过滤这条日志
   const shouldFilter = (args: any[]): boolean => {
     // 将所有参数转换为字符串
@@ -24,14 +19,14 @@
         return '';
       }
     }).join(' ');
-    
+
     // 过滤 Console Bridge 相关的警告和日志
-    if (message.includes('Console Bridge') || 
+    if (message.includes('Console Bridge') ||
         message.includes('Cannot send message') ||
         message.includes('parent origin not allowed')) {
       return true;
     }
-    
+
     return false;
   };
 
@@ -95,6 +90,6 @@
 
   // 保持 error 方法不变，确保错误信息始终可见
   console.error = originalConsole.error;
-})();
+}
 
 export {};

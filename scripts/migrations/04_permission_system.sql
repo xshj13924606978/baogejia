@@ -172,6 +172,11 @@ INSERT INTO permissions (code, name, category, description, resource_type) VALUE
 ('admin.analytics.view', '查看分析报告', 'admin', '查看数据分析报告', 'module'),
 ('admin.audit.view', '查看审计日志', 'admin', '查看审计日志', 'module');
 
+-- 计费配置权限
+INSERT INTO permissions (code, name, category, description, resource_type) VALUES
+('admin.billing.view', '查看计费配置', 'admin', '查看计费配置信息', 'module'),
+('admin.billing.edit', '编辑计费配置', 'admin', '编辑计费配置', 'module');
+
 -- 文档相关权限
 INSERT INTO permissions (code, name, category, description, resource_type) VALUES
 ('document.upload', '上传文档', 'document', '上传文档', 'module'),

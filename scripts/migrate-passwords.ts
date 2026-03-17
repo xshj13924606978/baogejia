@@ -15,7 +15,7 @@
  *   --force      强制重新哈希所有密码（即使已有 password_hash）
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
@@ -35,7 +35,9 @@ interface User {
   status: string;
 }
 
-function getSupabaseClient() {
+type AppSupabaseClient = SupabaseClient<any, 'public', any>;
+
+function getSupabaseClient(): AppSupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.COZE_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.COZE_SUPABASE_ANON_KEY;
 
@@ -51,7 +53,7 @@ function getSupabaseClient() {
   });
 }
 
-async function ensurePasswordHashColumn(supabase: ReturnType<typeof createClient>): Promise<boolean> {
+async function ensurePasswordHashColumn(supabase: AppSupabaseClient): Promise<boolean> {
   console.log('\n📋 检查 password_hash 字段...');
 
   // 尝试查询 password_hash 字段，检查是否存在

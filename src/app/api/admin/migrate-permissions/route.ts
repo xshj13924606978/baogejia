@@ -7,32 +7,16 @@ import path from 'path';
 
 /**
  * 执行权限系统迁移 API
- * 仅限超级管理员使用
+ * 需要 admin.migrate 权限（仅限超级管理员）
  */
 
 export const POST = withPermissionCheck(
-  { minLevel: 5, roles: ['super_admin'] },
+  { permissions: 'admin.migrate' },
   async (request: NextRequest, _context: any) => {
     try {
-      // 验证用户身份
-      const currentUser = await getCurrentUser(request);
-      if (!currentUser || !currentUser.id) {
-        return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-      }
-
-      // 检查超级管理员权限
-      const supabase = getSupabaseClient();
-      const { data: userRole, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', currentUser.id)
-        .single();
-
-      if (roleError || !userRole || userRole.role !== 'super_admin') {
-        return NextResponse.json({ error: '需要超级管理员权限' }, { status: 403 });
-      }
-
       console.log('[Migration] 开始执行权限系统迁移');
+
+      const supabase = getSupabaseClient();
 
       // 读取迁移文件
       const migrationFilePath = path.join(

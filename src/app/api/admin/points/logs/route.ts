@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 获取所有相关的用户信息
-    const userIds = [...new Set(logs.map((log: any) => log.user_id))];
+    const userIds = [...new Set(logs?.map((log: any) => log.user_id) || [])];
     const { data: users } = await supabase
       .from('users')
       .select('id, username')
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
     const userMap = new Map(users?.map((u: any) => [u.id, u.username]) || []);
 
     // 格式化返回数据
-    const formattedLogs = logs.map((log: any) => ({
+    const formattedLogs = (logs || []).map((log: any) => ({
       id: log.id,
       userId: log.user_id,
       username: userMap.get(log.user_id) || '未知用户',

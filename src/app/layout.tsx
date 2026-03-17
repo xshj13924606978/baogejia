@@ -1,8 +1,7 @@
 // 必须最先导入 - 在所有其他模块加载之前过滤 Console Bridge 警告
 import '@/lib/console-filter';
 
-import { UserProvider } from '@/contexts/UserContext';
-import { SwitchProvider } from '@/components/switch-manager';
+import { Providers } from '@/components/Providers';
 import { Inter } from 'next/font/google';
 import './globals.css';
 
@@ -20,9 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-CN">
       <body className={inter.className}>
-        <UserProvider>
-          <SwitchProvider>{children}</SwitchProvider>
-        </UserProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

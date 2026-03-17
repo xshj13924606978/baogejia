@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  withAdmin,
   withUserCreate,
-  withPermissionCheck} from '@/lib/permission-check';
+  withUserEdit,
+  withUserDelete,
+  withPermissionCheck
+} from '@/lib/permission-check';
 
 /**
  * 用户管理示例 API
@@ -11,10 +13,12 @@ import {
 
 /**
  * GET - 查看用户列表
- * 使用 withAdmin 包装器（需要管理员权限）
+ * 需要 admin.users.view 权限
  */
-export const GET = withAdmin(async (_request: NextRequest, _context: any) => {
-  try {
+export const GET = withPermissionCheck(
+  { permissions: 'admin.users.view' },
+  async (_request: NextRequest, _context: any) => {
+    try {
     // 获取用户列表（业务逻辑）
     const { getSupabaseClient } = await import('@/storage/database/supabase-client');
     const _supabase = getSupabaseClient();
@@ -78,12 +82,10 @@ export const POST = withUserCreate(async (request: NextRequest, _context: any) =
 
 /**
  * PUT - 更新用户
- * 使用自定义权限配置（需要 user.edit 权限和管理员角色）
+ * 需要 admin.users.edit 权限
  */
 export const PUT = withPermissionCheck(
-  {
-    permissions: 'user.edit',
-    roles: ['admin', 'super_admin']},
+  { permissions: 'admin.users.edit' },
   async (request: NextRequest, _context: any) => {
     try {
       const body = await request.json();
@@ -122,12 +124,10 @@ export const PUT = withPermissionCheck(
 
 /**
  * DELETE - 删除用户
- * 使用自定义权限配置（需要 user.delete 权限和超级管理员角色）
+ * 需要 admin.users.disable 权限（禁用/删除用户）
  */
 export const DELETE = withPermissionCheck(
-  {
-    permissions: 'user.delete',
-    roles: ['super_admin']},
+  { permissions: 'admin.users.disable' },
   async (request: NextRequest, _context: any) => {
     try {
       const body = await request.json();

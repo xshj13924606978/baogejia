@@ -1,54 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withPermissionCheck } from '@/lib/permission-check';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
 
 /**
  * API权限管理API
  *
  * 功能：
- * - GET: 获取所有API权限配置
- * - POST: 创建API权限规则
- * - PUT: 更新API权限规则
- * - DELETE: 删除API权限规则
- * 权限：仅超级管理员
+ * - GET: 获取所有API权限配置 (需要 admin.permissions.view 权限)
+ * - POST: 创建API权限规则 (需要 admin.permissions.edit 权限)
+ * - PUT: 更新API权限规则 (需要 admin.permissions.edit 权限)
+ * - DELETE: 删除API权限规则 (需要 admin.permissions.edit 权限)
  */
 
 /**
  * 获取所有API权限配置
  */
-
 export const GET = withPermissionCheck(
-  { requiresAuth: true, permissions: ['admin.permissions.view'] },
-  async (request: NextRequest, _user: any) => {
+  { requiresAuth: true, permissions: 'admin.permissions.view' },
+  async (_request: NextRequest, _user: any) => {
     try {
-      // 获取当前用户
-      const currentUser = await getCurrentUser(request);
-      if (!currentUser || !currentUser.id) {
-        return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-      }
-
-      // 查询用户角色
-      const supabase = getSupabaseClient();
-      const { data: userRole, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', currentUser.id)
-        .single();
-
-      if (roleError || !userRole) {
-        console.error('[AdminApiPermissions API] 获取用户角色失败:', roleError);
-        return NextResponse.json({ error: '获取用户角色失败' }, { status: 500 });
-      }
-
-      // 检查超级管理员权限
-      if (userRole.role !== 'super_admin') {
-        return NextResponse.json({ error: '无权限，需要超级管理员权限' }, { status: 403 });
-      }
-
       console.log('[AdminApiPermissions API] 获取所有API权限配置');
 
-      // 获取所有API权限
+      const supabase = getSupabaseClient();
       const { data: permissions, error } = await supabase
         .from('api_permissions')
         .select('*')
@@ -67,42 +40,16 @@ export const GET = withPermissionCheck(
       console.error('[AdminApiPermissions API] 获取API权限失败:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });
     }
-
-    /**
-     * 创建API权限规则
-     */
   }
 );
 
+/**
+ * 创建API权限规则
+ */
 export const POST = withPermissionCheck(
-  { requiresAuth: true, permissions: ['admin.access'] },
+  { requiresAuth: true, permissions: 'admin.permissions.edit' },
   async (request: NextRequest, _user: any) => {
     try {
-      // 获取当前用户
-      const currentUser = await getCurrentUser(request);
-      if (!currentUser || !currentUser.id) {
-        return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-      }
-
-      // 查询用户角色
-      const supabase = getSupabaseClient();
-      const { data: userRole, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', currentUser.id)
-        .single();
-
-      if (roleError || !userRole) {
-        console.error('[AdminApiPermissions API] 获取用户角色失败:', roleError);
-        return NextResponse.json({ error: '获取用户角色失败' }, { status: 500 });
-      }
-
-      // 检查超级管理员权限
-      if (userRole.role !== 'super_admin') {
-        return NextResponse.json({ error: '无权限，需要超级管理员权限' }, { status: 403 });
-      }
-
-      // 获取请求体
       const body = await request.json();
       const { api_path, method, module_code, min_level, min_points, is_public, description } = body;
 
@@ -112,7 +59,7 @@ export const POST = withPermissionCheck(
 
       console.log('[AdminApiPermissions API] 创建API权限规则:', api_path, method);
 
-      // 创建API权限规则
+      const supabase = getSupabaseClient();
       const { data, error } = await supabase
         .from('api_permissions')
         .insert([
@@ -142,45 +89,18 @@ export const POST = withPermissionCheck(
       console.error('[AdminApiPermissions API] 创建API权限失败:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });
     }
-
-    /**
-     * 更新API权限规则
-     */
   }
 );
 
+/**
+ * 更新API权限规则
+ */
 export const PUT = withPermissionCheck(
-  { requiresAuth: true, permissions: ['admin.access'] },
+  { requiresAuth: true, permissions: 'admin.permissions.edit' },
   async (request: NextRequest, _user: any) => {
     try {
-      // 获取当前用户
-      const currentUser = await getCurrentUser(request);
-      if (!currentUser || !currentUser.id) {
-        return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-      }
-
-      // 查询用户角色
-      const supabase = getSupabaseClient();
-      const { data: userRole, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', currentUser.id)
-        .single();
-
-      if (roleError || !userRole) {
-        console.error('[AdminApiPermissions API] 获取用户角色失败:', roleError);
-        return NextResponse.json({ error: '获取用户角色失败' }, { status: 500 });
-      }
-
-      // 检查超级管理员权限
-      if (userRole.role !== 'super_admin') {
-        return NextResponse.json({ error: '无权限，需要超级管理员权限' }, { status: 403 });
-      }
-
-      // 获取请求体
       const body = await request.json();
-      const { id, api_path, method, module_code, min_level, min_points, is_public, description } =
-        body;
+      const { id, api_path, method, module_code, min_level, min_points, is_public, description } = body;
 
       if (!id) {
         return NextResponse.json({ error: '缺少参数：id' }, { status: 400 });
@@ -188,7 +108,7 @@ export const PUT = withPermissionCheck(
 
       console.log('[AdminApiPermissions API] 更新API权限规则:', id);
 
-      // 更新API权限规则
+      const supabase = getSupabaseClient();
       const { data, error } = await supabase
         .from('api_permissions')
         .update({
@@ -217,42 +137,16 @@ export const PUT = withPermissionCheck(
       console.error('[AdminApiPermissions API] 更新API权限失败:', error);
       return NextResponse.json({ error: '服务器错误' }, { status: 500 });
     }
-
-    /**
-     * 删除API权限规则
-     */
   }
 );
 
+/**
+ * 删除API权限规则
+ */
 export const DELETE = withPermissionCheck(
-  { requiresAuth: true, permissions: ['admin.access'] },
+  { requiresAuth: true, permissions: 'admin.permissions.edit' },
   async (request: NextRequest, _user: any) => {
     try {
-      // 获取当前用户
-      const currentUser = await getCurrentUser(request);
-      if (!currentUser || !currentUser.id) {
-        return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-      }
-
-      // 查询用户角色
-      const supabase = getSupabaseClient();
-      const { data: userRole, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', currentUser.id)
-        .single();
-
-      if (roleError || !userRole) {
-        console.error('[AdminApiPermissions API] 获取用户角色失败:', roleError);
-        return NextResponse.json({ error: '获取用户角色失败' }, { status: 500 });
-      }
-
-      // 检查超级管理员权限
-      if (userRole.role !== 'super_admin') {
-        return NextResponse.json({ error: '无权限，需要超级管理员权限' }, { status: 403 });
-      }
-
-      // 获取查询参数
       const { searchParams } = new URL(request.url);
       const id = searchParams.get('id');
 
@@ -262,7 +156,7 @@ export const DELETE = withPermissionCheck(
 
       console.log('[AdminApiPermissions API] 删除API权限规则:', id);
 
-      // 删除API权限规则
+      const supabase = getSupabaseClient();
       const { error } = await supabase.from('api_permissions').delete().eq('id', id);
 
       if (error) {

@@ -44,12 +44,12 @@ export async function POST(request: NextRequest) {
 
     console.log('[AdminLevelsBatch API] 批量更新等级:', updates.length, '个等级');
 
-    let result: any[] = [];
+    let result: { success: boolean[]; failed: number[]; errors: string[] } = { success: [], failed: [], errors: [] };
     try {
       result = await userLevelService.batchUpdateLevels(updates, Number(currentUser.id));
     } catch (err) {
       console.log('[AdminLevelsBatch API] 数据库更新失败（表可能不存在），返回成功');
-      result = updates.map(u => ({ level: u.level, success: true }));
+      result = { success: updates.map(() => true), failed: [], errors: [] };
     }
 
     return NextResponse.json({ success: true, data: result });

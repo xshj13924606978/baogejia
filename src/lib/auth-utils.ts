@@ -19,17 +19,39 @@ export async function getCurrentUser(request: NextRequest) {
       // 开发环境：如果没有 cookie，返回测试用户
       if (process.env.NODE_ENV === 'development') {
         console.log('[Auth] 开发环境使用测试用户');
-        return {
-          id: 6, // 使用实际的业务用户ID
-          email: 'admin2@test.com',
-        };
+        // 查询实际的业务用户ID
+        const dbClient = getSupabaseClient();
+        const { data: businessUser } = await dbClient
+          .from('users')
+          .select('id, email')
+          .eq('email', 'admin2@test.com')
+          .single();
+        
+        if (businessUser) {
+          return {
+            id: businessUser.id, // 返回实际的UUID
+            email: businessUser.email,
+          };
+        }
+        return null;
       }
 
       // 尝试从 Authorization header 获取
       const authHeader = request.headers.get('authorization');
       if (authHeader?.startsWith('Bearer ')) {
-        const _token = authHeader.substring(7);
-        return { id: 6, email: 'admin2@test.com' };
+        const dbClient = getSupabaseClient();
+        const { data: businessUser } = await dbClient
+          .from('users')
+          .select('id, email')
+          .eq('email', 'admin2@test.com')
+          .single();
+        
+        if (businessUser) {
+          return {
+            id: businessUser.id,
+            email: businessUser.email,
+          };
+        }
       }
       return null;
     }
@@ -46,7 +68,7 @@ export async function getCurrentUser(request: NextRequest) {
 
     email = user.email;
 
-    // 根据email查询业务用户表，获取正确的整数ID
+    // 根据email查询业务用户表，获取正确的ID
     const dbClient = getSupabaseClient();
     const { data: businessUser } = await dbClient
       .from('users')
@@ -60,7 +82,7 @@ export async function getCurrentUser(request: NextRequest) {
     }
 
     return {
-      id: businessUser.id, // 返回业务用户表的整数ID
+      id: businessUser.id, // 返回业务用户表的ID
       email: businessUser.email,
       name: user.user_metadata?.name || businessUser.email,
     };
