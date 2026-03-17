@@ -520,7 +520,7 @@ export class PointsService {
       // 获取消费统计
       const { data: logs } = await this.supabase
         .from('point_logs')
-        .select('points')
+        .select('points, type')
         .eq('user_id', userId);
 
       let consumedPoints = 0;

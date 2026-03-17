@@ -4,7 +4,7 @@ import { InputProcessor } from '@/lib/input-processor';
 import { smartChatProcessor } from '@/lib/smart-chat-processor';
 import { createClient } from '@supabase/supabase-js';
 import { getCurrentUser } from '@/lib/auth-utils';
-import { tokenBillingService } from '@/lib/token-billing-service';
+import { pointsService } from '@/lib/points-service';
 
 // 从数据库加载对话历史
 async function loadConversationHistory(conversationId: string) {
@@ -19,7 +19,7 @@ async function loadConversationHistory(conversationId: string) {
       .select('role, content')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true })
-      .limit(20); // 只加载最近20条消息
+      .limit(20);
 
     if (error) {
       console.error('[Chat Stream API] 加载对话历史失败:', error);
@@ -29,7 +29,8 @@ async function loadConversationHistory(conversationId: string) {
     console.log('[Chat Stream API] 加载对话历史:', { conversationId, count: data?.length || 0 });
     return (data || []).map((msg) => ({
       role: msg.role,
-      content: msg.content}));
+      content: msg.content
+    }));
   } catch (error) {
     console.error('[Chat Stream API] 加载对话历史异常:', error);
     return [];
@@ -55,18 +56,19 @@ const globalConversationMemory = {
 
   getHistory(conversationId: string) {
     return this.histories.get(conversationId) || [];
-  }};
+  }
+};
 
 export async function POST(request: NextRequest) {
   try {
     console.log('[Chat Stream API] ========== 新流式请求 ==========');
 
     // 0. 获取当前用户（用于计费）
-    let userId: number | null = null;
+    let userId: string | null = null;
     try {
       const currentUser = await getCurrentUser(request);
       if (currentUser && currentUser.id) {
-        userId = parseInt(currentUser.id);
+        userId = currentUser.id; // 保持 UUID 字符串格式
         console.log('[Chat Stream API] 用户ID:', userId);
       }
     } catch (error) {
@@ -80,46 +82,54 @@ export async function POST(request: NextRequest) {
     console.log('[Chat Stream API] 请求参数:', {
       hasMessage: !!message,
       messagePreview: message?.substring(0, 50),
-      conversationId});
+      conversationId
+    });
 
     if (!message) {
       return new Response(JSON.stringify({ error: '请提供消息内容' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }});
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    // 1.5. 积分检查（如果有用户）
+    // 1.5. 积分预检查（如果有用户）
+    let estimatedInputTokens = 0;
+    let estimatedRequiredPoints = 0;
     if (userId) {
       try {
         // 估算输入Token
-        const estimatedInputTokens = tokenBillingService.countTokens(message);
+        estimatedInputTokens = pointsService.countTokens(message);
         // 估算总Token（输入+预估输出）
         const estimatedTotalTokens = estimatedInputTokens + 500; // 预估输出500 token
-        const requiredPoints = await tokenBillingService.calculatePointsConsumption(
-          userId,
-          estimatedTotalTokens
-        );
+        estimatedRequiredPoints = await pointsService.calculatePointsForTokens(userId, estimatedTotalTokens);
 
-        const hasEnough = await tokenBillingService.checkPointsBalance(userId, requiredPoints);
+        const hasEnough = await pointsService.checkPointsBalance(userId, estimatedRequiredPoints);
         if (!hasEnough) {
-          const balance = await tokenBillingService.getUserBalance(userId);
+          const pointsInfo = await pointsService.getUserPoints(userId);
           console.log('[Chat Stream API] 积分不足:', {
             userId,
-            required: requiredPoints,
-            balance: balance?.pointsBalance});
+            required: estimatedRequiredPoints,
+            balance: pointsInfo?.points
+          });
           return new Response(
             JSON.stringify({
               error: '积分不足',
               message: '您的积分不足，请充值后继续使用',
-              required: requiredPoints,
-              balance: balance?.pointsBalance}),
+              required: estimatedRequiredPoints,
+              balance: pointsInfo?.points
+            }),
             {
-              status: 402, // 402 Payment Required
-              headers: { 'Content-Type': 'application/json' }}
+              status: 402,
+              headers: { 'Content-Type': 'application/json' }
+            }
           );
         }
+        console.log('[Chat Stream API] 积分预检查通过:', {
+          estimatedInputTokens,
+          estimatedRequiredPoints
+        });
       } catch (error) {
-        console.error('[Chat Stream API] 积分检查失败:', error);
+        console.error('[Chat Stream API] 积分预检查失败:', error);
         // 积分检查失败时不阻断服务，允许继续
       }
     }
@@ -128,7 +138,8 @@ export async function POST(request: NextRequest) {
     const inputProcessor = new InputProcessor();
     const processedInput = await inputProcessor.process({
       type: 'text',
-      content: message});
+      content: message
+    });
 
     // 3. 构建对话历史 - 优先从数据库加载
     let history: any[] = [];
@@ -154,7 +165,7 @@ export async function POST(request: NextRequest) {
 
     // 4. 价格查询预处理（优先查询数据库）
     let enhancedMessage = message;
-    let databaseInfo: any = null; // 保存数据库信息
+    let databaseInfo: any = null;
     try {
       const priceQuery = await (smartChatProcessor as any).detectPriceQuery(message);
       if (priceQuery.isPriceQuery && priceQuery.productName) {
@@ -165,7 +176,6 @@ export async function POST(request: NextRequest) {
           priceQuery.extraction?.parameter_description
         );
         if (priceResult.priceData) {
-          // 保存数据库信息
           databaseInfo = {
             productName: priceResult.priceData.productName,
             model: priceResult.priceData.model,
@@ -175,7 +185,8 @@ export async function POST(request: NextRequest) {
             costPrice: priceResult.priceData.costPrice,
             minPrice: priceResult.priceData.minPrice,
             description: priceResult.priceData.description,
-            currency: priceResult.priceData.currency};
+            currency: priceResult.priceData.currency
+          };
           console.log('[Chat Stream API] 已保存数据库信息:', databaseInfo);
         }
         if (priceResult.contextInfo) {
@@ -187,7 +198,7 @@ export async function POST(request: NextRequest) {
       console.error('[Chat Stream API] 价格查询失败:', error);
     }
 
-    // 5. 定义智能处理器（用于后续解析）
+    // 5. 定义智能处理器
     const smartProcessor = smartChatProcessor;
 
     // 6. 构建系统提示词和消息
@@ -199,7 +210,7 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content: enhancedMessage },
     ];
 
-    // 5. 创建SSE流式响应
+    // 7. 创建SSE流式响应
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
@@ -217,13 +228,15 @@ export async function POST(request: NextRequest) {
           for await (const chunk of streamDeepSeekChat({
             messages,
             temperature: 0.7,
-            maxTokens: 8192})) {
+            maxTokens: 8192
+          })) {
             fullContent += chunk;
 
             // 发送内容块
             const contentEvent = `data: ${JSON.stringify({
               type: 'content',
-              content: chunk})}\n\n`;
+              content: chunk
+            })}\n\n`;
             controller.enqueue(encoder.encode(contentEvent));
           }
 
@@ -232,32 +245,49 @@ export async function POST(request: NextRequest) {
             // 先添加用户消息
             globalConversationMemory.addToHistory(conversationId, 'user', message);
 
-            // 将数据库信息添加到AI回复的末尾（隐藏格式，用户不可见，但LLM可以读取）
+            // 将数据库信息添加到AI回复的末尾（隐藏格式）
             let assistantMessage = fullContent;
             if (databaseInfo) {
               assistantMessage += `\n\n<!-- DATABASE_INFO: ${JSON.stringify(databaseInfo)} -->`;
               console.log('[Chat Stream API] 已将数据库信息添加到AI回复中');
             }
 
-            // 扣除积分（如果有用户）
+            // 扣除积分（如果有用户）- 使用统一的 pointsService
             if (userId) {
               try {
-                const consumption = await tokenBillingService.calculateTokenConsumption(
-                  message,
-                  assistantMessage.replace(/<!-- DATABASE_INFO:.*?-->/g, ''), // 移除隐藏信息再计算
-                  userId
-                );
-                const deductSuccess = await tokenBillingService.deductPoints(
+                // 计算实际 Token 消耗
+                const cleanContent = assistantMessage.replace(/<!-- DATABASE_INFO:.*?-->/g, '');
+                const inputTokens = pointsService.countTokens(message);
+                const outputTokens = pointsService.countTokens(cleanContent);
+                const totalTokens = inputTokens + outputTokens;
+
+                // 使用 pointsService 扣除积分
+                const result = await pointsService.consumeTokens(
                   userId,
-                  consumption.pointsConsumed,
+                  totalTokens,
                   conversationId,
-                  `msg_${Date.now()}`,
-                  'chat'
+                  `msg_${Date.now()}`
                 );
-                if (deductSuccess) {
-                  console.log('[Chat Stream API] 扣除积分成功:', consumption);
+
+                if (result.success) {
+                  console.log('[Chat Stream API] 扣除积分成功:', {
+                    inputTokens,
+                    outputTokens,
+                    totalTokens,
+                    pointsConsumed: result.pointsConsumed
+                  });
+
+                  // 发送积分扣减通知给前端
+                  const pointsInfo = await pointsService.getUserPoints(userId);
+                  const pointsEvent = `data: ${JSON.stringify({
+                    type: 'points_consumed',
+                    pointsConsumed: result.pointsConsumed,
+                    newBalance: pointsInfo?.points || 0,
+                    tokensUsed: totalTokens
+                  })}\n\n`;
+                  controller.enqueue(encoder.encode(pointsEvent));
                 } else {
-                  console.error('[Chat Stream API] 扣除积分失败');
+                  console.error('[Chat Stream API] 扣除积分失败:', result.reason);
                 }
               } catch (error) {
                 console.error('[Chat Stream API] 扣除积分异常:', error);
@@ -279,7 +309,9 @@ export async function POST(request: NextRequest) {
             followUpQuestions: parsedResponse.followUpQuestions,
             metadata: {
               inputType: processedInput.type,
-              confidence: parsedResponse.confidence || 0.9}})}\n\n`;
+              confidence: parsedResponse.confidence || 0.9
+            }
+          })}\n\n`;
           controller.enqueue(encoder.encode(endEvent));
 
           console.log('[Chat Stream API] 流式生成完成');
@@ -288,12 +320,14 @@ export async function POST(request: NextRequest) {
 
           const errorEvent = `data: ${JSON.stringify({
             type: 'error',
-            error: error instanceof Error ? error.message : '未知错误'})}\n\n`;
+            error: error instanceof Error ? error.message : '未知错误'
+          })}\n\n`;
           controller.enqueue(encoder.encode(errorEvent));
         } finally {
           controller.close();
         }
-      }});
+      }
+    });
 
     // 返回SSE响应
     return new Response(stream, {
@@ -301,16 +335,20 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
-        'Transfer-Encoding': 'chunked'}});
+        'Transfer-Encoding': 'chunked'
+      }
+    });
   } catch (error) {
     console.error('[Chat Stream API] 请求处理失败:', error);
     return new Response(
       JSON.stringify({
         error: '处理请求时发生错误',
-        message: error instanceof Error ? error.message : '未知错误'}),
+        message: error instanceof Error ? error.message : '未知错误'
+      }),
       {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }}
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
 }
