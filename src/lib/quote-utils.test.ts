@@ -6,24 +6,23 @@ import {
   calculateFeeSummary,
   groupProducts,
 } from '@/lib/quote-utils';
+import type { Product, FeeConfig } from '@/types/quote';
 
-// Mock types
-interface Product {
-  id: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  category?: string;
-  brand?: string;
-  system?: string;
-}
-
-interface FeeConfig {
-  taxRate: number;
-  shippingFee: number;
-  installationFee: number;
-  otherFee: number;
-}
+// Helper function to create test products with calculated totalPrice
+const createTestProduct = (
+  id: string,
+  name: string,
+  quantity: number,
+  unitPrice: number,
+  options?: { category?: string; brand?: string; system?: string }
+): Product => ({
+  id,
+  name,
+  quantity,
+  unitPrice,
+  totalPrice: quantity * unitPrice,
+  ...options,
+});
 
 describe('quote-utils', () => {
   describe('calculateProductTotal', () => {
@@ -53,8 +52,8 @@ describe('quote-utils', () => {
   describe('calculateSubtotal', () => {
     it('should calculate subtotal of multiple products', () => {
       const products: Product[] = [
-        { id: '1', name: 'Product A', quantity: 2, unitPrice: 100 },
-        { id: '2', name: 'Product B', quantity: 3, unitPrice: 50 },
+        createTestProduct('1', 'Product A', 2, 100),
+        createTestProduct('2', 'Product B', 3, 50),
       ];
 
       expect(calculateSubtotal(products)).toBe(350); // 2*100 + 3*50
@@ -66,7 +65,7 @@ describe('quote-utils', () => {
 
     it('should handle single product', () => {
       const products: Product[] = [
-        { id: '1', name: 'Product A', quantity: 5, unitPrice: 20 },
+        createTestProduct('1', 'Product A', 5, 20),
       ];
 
       expect(calculateSubtotal(products)).toBe(100);
@@ -74,8 +73,8 @@ describe('quote-utils', () => {
 
     it('should handle products with zero values', () => {
       const products: Product[] = [
-        { id: '1', name: 'Product A', quantity: 0, unitPrice: 100 },
-        { id: '2', name: 'Product B', quantity: 5, unitPrice: 0 },
+        createTestProduct('1', 'Product A', 0, 100),
+        createTestProduct('2', 'Product B', 5, 0),
       ];
 
       expect(calculateSubtotal(products)).toBe(0);
@@ -105,7 +104,7 @@ describe('quote-utils', () => {
   describe('calculateFeeSummary', () => {
     it('should calculate complete fee summary', () => {
       const products: Product[] = [
-        { id: '1', name: 'Product A', quantity: 2, unitPrice: 500 },
+        createTestProduct('1', 'Product A', 2, 500),
       ];
 
       const feeConfig: FeeConfig = {
@@ -142,7 +141,7 @@ describe('quote-utils', () => {
 
     it('should handle all zero fees', () => {
       const products: Product[] = [
-        { id: '1', name: 'Product A', quantity: 1, unitPrice: 1000 },
+        createTestProduct('1', 'Product A', 1, 1000),
       ];
 
       const feeConfig: FeeConfig = {
@@ -161,9 +160,9 @@ describe('quote-utils', () => {
 
   describe('groupProducts', () => {
     const products: Product[] = [
-      { id: '1', name: 'Product A', quantity: 1, unitPrice: 100, category: 'Electronics', brand: 'BrandA' },
-      { id: '2', name: 'Product B', quantity: 1, unitPrice: 200, category: 'Electronics', brand: 'BrandB' },
-      { id: '3', name: 'Product C', quantity: 1, unitPrice: 300, category: 'Clothing', brand: 'BrandA' },
+      createTestProduct('1', 'Product A', 1, 100, { category: 'Electronics', brand: 'BrandA' }),
+      createTestProduct('2', 'Product B', 1, 200, { category: 'Electronics', brand: 'BrandB' }),
+      createTestProduct('3', 'Product C', 1, 300, { category: 'Clothing', brand: 'BrandA' }),
     ];
 
     it('should group products by category', () => {
@@ -192,8 +191,8 @@ describe('quote-utils', () => {
 
     it('should handle products without category/brand', () => {
       const productsWithoutCategory: Product[] = [
-        { id: '1', name: 'Product A', quantity: 1, unitPrice: 100 },
-        { id: '2', name: 'Product B', quantity: 1, unitPrice: 200, category: 'Electronics' },
+        createTestProduct('1', 'Product A', 1, 100),
+        createTestProduct('2', 'Product B', 1, 200, { category: 'Electronics' }),
       ];
 
       const groups = groupProducts(productsWithoutCategory, 'category');

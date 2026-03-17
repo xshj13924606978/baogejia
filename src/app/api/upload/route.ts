@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { v4 as _uuidv4 } from 'uuid';
+import { getCurrentUser } from '@/lib/auth-utils';
+import { pointsService } from '@/lib/points-service';
+
+// 上传文件扣减积分（按文件大小计算）
+const UPLOAD_POINTS_PER_KB = 0.1; // 每KB扣减0.1积分，最少1积分
+const MIN_UPLOAD_POINTS = 1; // 最少扣减1积分
 
 export async function POST(request: NextRequest) {
   try {
     console.log('[Upload] ========== 开始文件上传 ==========');
+
+    // 获取当前用户
+    const currentUser = await getCurrentUser(request);
+    const userId = currentUser?.id || null;
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -63,17 +73,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File type not allowed' }, { status: 400 });
     }
 
+    // 计算积分消耗（按文件大小）
+    const fileSizeKB = Math.ceil(file.size / 1024);
+    const requiredPoints = Math.max(MIN_UPLOAD_POINTS, Math.ceil(fileSizeKB * UPLOAD_POINTS_PER_KB));
+
+    // 积分检查（如果有用户）
+    if (userId) {
+      const hasEnough = await pointsService.checkPointsBalance(userId, requiredPoints);
+      if (!hasEnough) {
+        const pointsInfo = await pointsService.getUserPoints(userId);
+        console.log('[Upload] 积分不足:', {
+          userId,
+          required: requiredPoints,
+          balance: pointsInfo?.points
+        });
+        return NextResponse.json(
+          {
+            error: '积分不足',
+            message: `您的积分不足，上传此文件需要 ${requiredPoints} 积分`,
+            required: requiredPoints,
+            balance: pointsInfo?.points
+          },
+          { status: 402 }
+        );
+      }
+      console.log('[Upload] 积分检查通过，需要:', requiredPoints, '积分');
+    }
+
     // 获取Supabase客户端
     const supabase = getSupabaseClient();
 
-    // 从本地存储获取用户信息（实际项目中应该从session获取）
-    // 这里简化处理，使用固定ID
-    const userId = 'anonymous';
+    // 从本地存储获取用户信息
+    const uploadUserId = userId || 'anonymous';
 
     // 生成安全的文件名
     const timestamp = Date.now();
     const safeName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const fileKey = `uploads/${userId}/${safeName}`;
+    const fileKey = `uploads/${uploadUserId}/${safeName}`;
 
     console.log('[Upload] 安全的文件名:', safeName);
     console.log('[Upload] 完整路径:', fileKey);
@@ -90,7 +126,8 @@ export async function POST(request: NextRequest) {
       const result = await supabase.storage.from('quote-files').upload(fileKey, buffer, {
         contentType: file.type,
         cacheControl: '3600',
-        upsert: false});
+        upsert: false
+      });
 
       _uploadData = result.data;
       uploadError = result.error;
@@ -113,7 +150,9 @@ export async function POST(request: NextRequest) {
         const serviceClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey, {
           auth: {
             autoRefreshToken: false,
-            persistSession: false}});
+            persistSession: false
+          }
+        });
 
         // 检查 bucket 是否真的不存在
         const { data: buckets, error: listError } = await serviceClient.storage.listBuckets();
@@ -164,7 +203,8 @@ export async function POST(request: NextRequest) {
           .upload(fileKey, buffer, {
             contentType: file.type,
             cacheControl: '3600',
-            upsert: false});
+            upsert: false
+          });
 
         _uploadData = retryResult.data;
         uploadError = retryResult.error;
@@ -201,12 +241,51 @@ export async function POST(request: NextRequest) {
 
     console.log('[Upload] 公开 URL:', publicUrl);
 
+    // 扣除积分（如果有用户）
+    if (userId) {
+      try {
+        const deductResult = await pointsService.deductPoints(
+          userId,
+          requiredPoints,
+          'upload_file',
+          `上传文件: ${file.name} (${fileSizeKB}KB)`
+        );
+
+        if (deductResult.success) {
+          console.log('[Upload] 扣除积分成功:', requiredPoints);
+
+          // 获取更新后的积分
+          const newPointsInfo = await pointsService.getUserPoints(userId);
+
+          // 返回响应时包含积分信息
+          console.log('[Upload] ========== 上传完成 ==========');
+
+          return NextResponse.json({
+            success: true,
+            url: publicUrl,
+            fileKey: fileKey,
+            fileName: file.name,
+            safeName: safeName,
+            size: buffer.length,
+            type: file.type,
+            pointsConsumed: requiredPoints,
+            newBalance: newPointsInfo?.points || 0
+          });
+        } else {
+          console.error('[Upload] 扣除积分失败:', deductResult.reason);
+          // 积分扣除失败，但文件已上传，返回警告
+        }
+      } catch (error) {
+        console.error('[Upload] 扣除积分异常:', error);
+      }
+    }
+
     // 保存文件记录到数据库
     try {
       const { data: _fileRecord, error: dbError } = await supabase
         .from('user_uploads')
         .insert({
-          user_id: userId,
+          user_id: uploadUserId,
           type: 'document',
           title: file.name,
           description: `File: ${file.name}`,
@@ -220,7 +299,6 @@ export async function POST(request: NextRequest) {
 
       if (dbError) {
         console.error('[Upload] 保存文件记录失败:', dbError);
-        // 不影响主流程，只记录错误
       } else {
         console.log('[Upload] 文件记录已保存');
       }
@@ -237,14 +315,16 @@ export async function POST(request: NextRequest) {
       fileName: file.name,
       safeName: safeName,
       size: buffer.length,
-      type: file.type});
+      type: file.type
+    });
   } catch (error: any) {
     console.error('[Upload] 上传失败:', error);
     return NextResponse.json(
       {
         error: 'Failed to upload file',
         message: error.message,
-        stack: error.stack},
+        stack: error.stack
+      },
       { status: 500 }
     );
   }

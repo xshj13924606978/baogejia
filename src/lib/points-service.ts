@@ -12,6 +12,10 @@ export type PointOperationType =
   | 'daily_login' // 每日登录
   | 'chat' // 对话消费
   | 'upload_file' // 上传文件
+  | 'parse_document' // 文档解析
+  | 'generate_proposal' // 生成方案
+  | 'enhance_proposal' // 方案增强
+  | 'export_quote' // 导出报价单
   | 'recharge' // 充值
   | 'admin_grant' // 管理员发放
   | 'admin_deduct' // 管理员扣除
@@ -25,7 +29,11 @@ export const POINTS_RULES: Record<string, { points: number; description: string 
   register: { points: 100, description: '新用户注册奖励' },
   daily_login: { points: 10, description: '每日登录奖励' },
   chat: { points: -1, description: '对话消费' }, // 动态计算
-  upload_file: { points: 5, description: '上传文件奖励' },
+  upload_file: { points: -2, description: '上传文件' },
+  parse_document: { points: -5, description: '文档解析' },
+  generate_proposal: { points: -10, description: '生成方案' },
+  enhance_proposal: { points: -15, description: '方案增强' },
+  export_quote: { points: -3, description: '导出报价单' },
   invite_reward: { points: 50, description: '邀请好友奖励' },
   task_reward: { points: 20, description: '完成任务奖励' },
 };

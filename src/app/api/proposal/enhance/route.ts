@@ -14,6 +14,12 @@ import {
   EnhancedProposal,
 } from '@/lib/proposal-enhancer';
 import { Logger } from '@/lib/logger';
+import { getCurrentUser } from '@/lib/auth-utils';
+import { pointsService } from '@/lib/points-service';
+
+// 方案增强积分消耗（基础消耗 + 上下文Token估算)
+const BASE_ENHANCE_POINTS = 15; // 基础消耗 15 积分
+const POINTS_PER_1000_TOKEN = 10; // 每1000 tokens 额外消耗 10 积分
 
 // ============================================================================
 // POST - 增强技术方案
@@ -21,13 +27,24 @@ import { Logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
+    // 获取当前用户
+    const currentUser = await getCurrentUser(request);
+    const userId = currentUser?.id;
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: '未登录' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
-    const { action } = body;
+    const { action, } = body;
 
     // 路由到不同的处理器
     switch (action) {
       case 'enhance':
-        return await handleEnhance(body);
+        return await handleEnhance(body, userId);
       default:
         return NextResponse.json(
           {
@@ -93,7 +110,7 @@ export async function GET() {
 /**
  * 处理方案增强
  */
-async function handleEnhance(body: any) {
+async function handleEnhance(body: any, userId: string) {
   const { context, originalProposal, options } = body;
 
   // 验证必要参数
@@ -118,6 +135,29 @@ async function handleEnhance(body: any) {
     );
   }
 
+  // 估算 Token 数量（基于方案内容)
+  const proposalText = JSON.stringify(originalProposal);
+  const estimatedTokens = Math.ceil(proposalText.length / 4) + 500; // 估算 tokens
+
+  // 计算积分消耗
+  const requiredPoints = Math.ceil(BASE_ENHANCE_POINTS + (estimatedTokens / 1000) * POINTS_PER_1000_TOKEN);
+
+  // 积分预检查
+  const hasEnough = await pointsService.checkPointsBalance(userId, requiredPoints);
+  if (!hasEnough) {
+    const pointsInfo = await pointsService.getUserPoints(userId);
+    return NextResponse.json(
+      {
+        success: false,
+        error: '积分不足',
+        message: `方案增强需要 ${requiredPoints} 积分，当前余额: ${pointsInfo?.points} 积分`,
+        required: requiredPoints,
+        balance: pointsInfo?.points
+      },
+      { status: 402 }
+    );
+  }
+
   try {
     Logger.info('[ProposalEnhancer] 开始处理增强请求', {
       projectType: context.projectType,
@@ -139,10 +179,36 @@ async function handleEnhance(body: any) {
       优化建议数量: enhanced.optimizationSuggestions.length,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: enhanced,
-    });
+    // 扣除积分
+    const deductResult = await pointsService.deductPoints(
+      userId,
+      requiredPoints,
+      'enhance_proposal',
+      `方案增强: ${context.projectType} ${context.capacity}`
+    );
+
+    if (deductResult.success) {
+      Logger.info('[ProposalEnhancer] 扣除积分成功:', requiredPoints);
+
+      // 获取更新后的积分
+      const newPointsInfo = await pointsService.getUserPoints(userId);
+
+      return NextResponse.json({
+        success: true,
+        data: enhanced,
+        pointsConsumed: requiredPoints,
+        newBalance: newPointsInfo?.points || 0
+      });
+    } else {
+      Logger.error('[ProposalEnhancer] 扣除积分失败:', deductResult.reason);
+      return NextResponse.json(
+        {
+          success: false,
+          error: '积分扣除失败: ' + (deductResult.reason || '未知错误'),
+        },
+        { status: 500 }
+      );
+    }
   } catch (error: any) {
     Logger.error('[ProposalEnhancer] 增强失败:', error);
     return NextResponse.json(
