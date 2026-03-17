@@ -27,6 +27,25 @@ export interface PermissionCheckResult {
 // 管理员角色列表
 const ADMIN_ROLES = ['admin', 'super_admin', '管理员', '超级管理员', '系统管理员'];
 
+// 角色名称映射（中文 -> 英文）
+const ROLE_NAME_MAP: Record<string, string> = {
+  '超级管理员': 'super_admin',
+  '系统管理员': 'admin',
+  '管理员': 'admin',
+  '企业管理员': 'enterprise_admin',
+  'VIP会员': 'vip',
+  '付费会员': 'premium',
+  '免费用户': 'free',
+  '待审核': 'pending',
+};
+
+/**
+ * 标准化角色名称（将中文角色名映射为英文）
+ */
+function normalizeRole(role: string): string {
+  return ROLE_NAME_MAP[role] || role;
+}
+
 /**
  * 从多个来源获取用户角色
  */
@@ -118,7 +137,11 @@ export async function checkPermission(
 
     // 2. 角色检查
     if (options.roles && options.roles.length > 0) {
-      if (!options.roles.includes(fullUser.role)) {
+      // 标准化角色名称，支持中英文角色名匹配
+      const normalizedUserRole = normalizeRole(fullUser.role);
+      const normalizedAllowedRoles = options.roles.map(r => normalizeRole(r));
+
+      if (!normalizedAllowedRoles.includes(normalizedUserRole)) {
         return {
           allowed: false,
           user: fullUser,
@@ -334,6 +357,21 @@ export const withQuoteExport = <T extends (req: NextRequest, user: any) => Promi
   handler: T
 ): ((request: NextRequest) => Promise<NextResponse>) => {
   return withPermissionCheck({ permissions: 'quote.export' }, handler);
+};
+
+/**
+ * 计费配置权限包装器
+ */
+export const withBillingView = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
+  handler: T
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'admin.billing.view' }, handler);
+};
+
+export const withBillingEdit = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(
+  handler: T
+): ((request: NextRequest) => Promise<NextResponse>) => {
+  return withPermissionCheck({ permissions: 'admin.billing.edit' }, handler);
 };
 
 export const withAdmin = <T extends (req: NextRequest, user: any) => Promise<NextResponse>>(

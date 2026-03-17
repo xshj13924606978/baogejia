@@ -67,7 +67,10 @@ export const ALL_PERMISSIONS: Permission[] = [
   { id: 'admin.access', name: '访问后台', description: '访问管理后台', category: 'admin' },
   { id: 'admin.view_stats', name: '查看统计', description: '查看数据统计', category: 'admin' },
   { id: 'admin.manage_settings', name: '系统设置', description: '修改系统配置', category: 'admin' },
-  { id: 'admin.manage_billing', name: '账单管理', description: '管理用户账单', category: 'admin' },
+
+  // 计费配置权限（从数据库迁移）
+  { id: 'admin.billing.view', name: '查看计费配置', description: '查看计费配置信息', category: 'billing' },
+  { id: 'admin.billing.edit', name: '编辑计费配置', description: '编辑计费配置', category: 'billing' },
 
   // 企业特有
   {
@@ -109,7 +112,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     'admin.access',
     'admin.view_stats',
     'admin.manage_settings',
-    'admin.manage_billing',
+    'admin.billing.view',
+    'admin.billing.edit',
     'user.view',
   ],
 
