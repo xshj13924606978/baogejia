@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-utils';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 /**
  * 积分流水记录 API（管理员）
@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 查询用户角色
-    const supabase = getSupabaseClient();
+    // 查询用户角色（使用普通客户端，因为用户角色表有 RLS）
+    const supabase = getSupabaseServiceClient();
     const { data: userRole, error: roleError } = await supabase
       .from('user_roles')
       .select('role')

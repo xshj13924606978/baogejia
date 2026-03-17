@@ -114,4 +114,32 @@ function getSupabaseClient(token?: string): SupabaseClient {
   });
 }
 
-export { loadEnv, getSupabaseCredentials, getSupabaseClient };
+/**
+ * 获取 Supabase 服务角色客户端（绕过 RLS）
+ * 用于需要管理员权限的操作
+ */
+function getSupabaseServiceClient(): SupabaseClient {
+  loadEnv();
+
+  const url = process.env.COZE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url) {
+    throw new Error('SUPABASE_URL is not set');
+  }
+  if (!serviceKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
+  }
+
+  return createClient(url, serviceKey, {
+    db: {
+      timeout: 60000,
+    },
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+export { loadEnv, getSupabaseCredentials, getSupabaseClient, getSupabaseServiceClient };
