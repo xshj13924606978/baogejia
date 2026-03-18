@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { createDuplicateChecker, DuplicateChecker } from '@/lib/duplicate-checker';
+import { matchCategory } from '@/lib/category-matcher';
 
 // 导入产品
 export async function POST(request: NextRequest) {
@@ -180,6 +181,20 @@ export async function POST(request: NextRequest) {
           brand: product.brand || item['品牌'] || item['brand'] || '',
           unit: product.unit || item['单位'] || item['unit'] || '',
         };
+
+        // 智能分类匹配 - 如果没有提供分类则尝试智能匹配
+        if (!dbProduct.category) {
+          const matchedCategory = matchCategory(
+            dbProduct.name,
+            dbProduct.parameter_description || dbProduct.description
+          );
+          if (matchedCategory) {
+            dbProduct.category = matchedCategory;
+            console.log(`[Import API] 🏷 智能分类匹配: ${dbProduct.name} -> ${matchedCategory}`);
+          } else {
+            console.log(`[Import API] ⚠️ 产品 "${dbProduct.name}" 未匹配到分类`);
+          }
+        }
 
         console.log('[Import API] 构造的数据库记录:', JSON.stringify(dbProduct, null, 2));
 
