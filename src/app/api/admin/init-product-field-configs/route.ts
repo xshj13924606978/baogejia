@@ -62,23 +62,23 @@ CREATE TABLE IF NOT EXISTS product_field_configs (
   updated_by UUID REFERENCES auth.users(id)
 );
 
--- 插入默认字段配置
+-- 插入默认字段配置（field_label 使用中文）
 INSERT INTO product_field_configs (field_key, field_name, field_label, field_type, is_required, is_duplicate_check, is_visible, display_order) VALUES
-('name', '产品名称', 'product_name', 'text', TRUE, TRUE, TRUE, 1),
-('model', '规格型号', 'model', 'text', FALSE, TRUE, TRUE, 2),
-('brand', '品牌', 'brand', 'text', FALSE, FALSE, TRUE, 3),
-('price', '指导价', 'price', 'number', TRUE, FALSE, TRUE, 4),
-('cost_price', '成本价', 'cost_price', 'number', FALSE, FALSE, FALSE, 5),
-('min_price', '最低售价', 'min_price', 'number', FALSE, FALSE, FALSE, 6),
-('parameter_description', '参数描述', 'parameter_description', 'text', FALSE, FALSE, TRUE, 7),
-('description', '描述', 'description', 'text', FALSE, FALSE, TRUE, 8),
-('unit', '单位', 'unit', 'text', FALSE, FALSE, TRUE, 9),
-('stock', '库存', 'stock', 'number', FALSE, FALSE, TRUE, 10),
-('category', '分类', 'category', 'text', FALSE, FALSE, TRUE, 11),
-('supplier', '供应商', 'supplier', 'text', FALSE, FALSE, TRUE, 12),
-('contact_person', '联系人', 'contact_person', 'text', FALSE, FALSE, TRUE, 13),
-('contact_phone', '联系电话', 'contact_phone', 'text', FALSE, FALSE, TRUE, 14),
-('image_url', '图片', 'image_url', 'text', FALSE, FALSE, TRUE, 15)
+('product_name', '产品名称', '产品名称', 'text', TRUE, TRUE, TRUE, 1),
+('model', '规格型号', '规格型号', 'text', FALSE, TRUE, TRUE, 2),
+('brand', '品牌', '品牌', 'text', FALSE, FALSE, TRUE, 3),
+('price', '指导价', '指导价', 'number', TRUE, FALSE, TRUE, 4),
+('cost_price', '成本', '成本', 'number', FALSE, FALSE, FALSE, 5),
+('min_price', '最低售价', '最低售价', 'number', FALSE, FALSE, FALSE, 6),
+('specifications', '参数描述', '参数描述', 'text', FALSE, FALSE, TRUE, 7),
+('description', '描述', '描述', 'text', FALSE, FALSE, TRUE, 8),
+('unit', '单位', '单位', 'text', FALSE, FALSE, TRUE, 9),
+('stock', '库存', '库存', 'number', FALSE, FALSE, TRUE, 10),
+('category', '分类', '分类', 'text', FALSE, FALSE, TRUE, 11),
+('supplier', '供应商', '供应商', 'text', FALSE, FALSE, TRUE, 12),
+('contact_person', '联系人', '联系人', 'text', FALSE, FALSE, TRUE, 13),
+('contact_phone', '联系电话', '联系电话', 'text', FALSE, FALSE, TRUE, 14),
+('image_url', '图片', '图片', 'text', FALSE, FALSE, TRUE, 15)
 ON CONFLICT (field_key) DO NOTHING;
 
 -- 添加索引

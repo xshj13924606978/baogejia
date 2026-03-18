@@ -441,46 +441,46 @@ export default function ImportFieldMapping({
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>字段映射</CardTitle>
-        <CardDescription>请将文件的列映射到系统字段，红色*号为必填项</CardDescription>
+    <Card className="w-full max-w-3xl mx-auto max-h-[80vh] flex flex-col">
+      <CardHeader className="flex-shrink-0 pb-2">
+        <CardTitle className="text-lg">字段映射</CardTitle>
+        <CardDescription className="text-sm">请将文件的列映射到系统字段，红色*号为必填项</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+        <div className="flex-1 overflow-y-auto -mx-6 px-6">
           {/* 字段映射表格 */}
           <div className="border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted">
+            <table className="w-full text-sm">
+              <thead className="bg-muted sticky top-0">
                 <tr>
-                  <th className="text-left p-3 font-medium">系统字段</th>
-                  <th className="text-left p-3 font-medium">文件列名</th>
-                  <th className="text-left p-3 font-medium w-48">示例数据</th>
+                  <th className="text-left p-2 font-medium w-32">系统字段</th>
+                  <th className="text-left p-2 font-medium">文件列名</th>
+                  <th className="text-left p-2 font-medium w-36">示例数据</th>
                 </tr>
               </thead>
               <tbody>
                 {fieldConfigs.map((field) => (
-                  <tr key={field.key} className="border-t">
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <Label className={field.required ? 'text-red-500' : ''}>
+                  <tr key={field.key} className="border-t hover:bg-muted/50">
+                    <td className="p-2">
+                      <div className="flex flex-col gap-0.5">
+                        <Label className={`text-sm ${field.required ? 'text-red-500' : ''}`}>
                           {field.required ? '* ' : ''}
                           {field.label}
                         </Label>
-                        <span className="text-xs text-muted-foreground">({field.description})</span>
+                        <span className="text-xs text-muted-foreground">{field.description}</span>
                       </div>
                     </td>
-                    <td className="p-3">
+                    <td className="p-2">
                       <Select
                         value={mapping[field.key] || 'none'}
                         onValueChange={(value) =>
                           handleFieldMapping(field.key, value === 'none' ? '' : value)
                         }
                       >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="请选择文件列" />
+                        <SelectTrigger className="w-full h-8">
+                          <SelectValue placeholder="请选择..." />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-48">
                           <SelectItem value="none">不导入</SelectItem>
                           {excelHeaders.map((header) => (
                             <SelectItem key={header} value={header}>
@@ -490,9 +490,9 @@ export default function ImportFieldMapping({
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="p-3">
+                    <td className="p-2">
                       {mapping[field.key] && (
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-xs text-muted-foreground truncate block max-w-[140px]">
                           {getExcelHeaderPreview(mapping[field.key]) || '-'}
                         </span>
                       )}
@@ -502,14 +502,14 @@ export default function ImportFieldMapping({
               </tbody>
             </table>
           </div>
+        </div>
 
-          {/* 操作按钮 */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="outline" onClick={onCancel}>
-              取消
-            </Button>
-            <Button onClick={handleConfirm}>确认并导入</Button>
-          </div>
+        {/* 操作按钮 */}
+        <div className="flex justify-end gap-3 pt-3 mt-3 border-t flex-shrink-0">
+          <Button variant="outline" size="sm" onClick={onCancel}>
+            取消
+          </Button>
+          <Button size="sm" onClick={handleConfirm}>确认并导入</Button>
         </div>
       </CardContent>
     </Card>
