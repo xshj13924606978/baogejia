@@ -16,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 // 中文同义词映射表 - 用于智能匹配Excel列名到系统字段
 const FIELD_SYNONYMS: Record<string, string[]> = {
   product_name: [
-    '产品名称', '名称', '产品名', '产品', '货品名称', '商品名称', '品名', '设备名称',
+    '产品名称', '名称', '产品名', '产品', '货品名称', '商品名称', '品名', '设备名称', '设备名', '物料名称',
     'product_name', 'name', 'product name', 'product'
   ],
   model: [
@@ -28,7 +28,7 @@ const FIELD_SYNONYMS: Record<string, string[]> = {
     'brand', 'manufacturer', 'make'
   ],
   specifications: [
-    '参数描述', '参数', '技术参数', '规格参数', '产品参数', '参数说明', '简介说明', '描述', '产品描述',
+    '参数描述', '参数', '技术参数', '规格参数', '产品参数', '参数说明', '简介说明', '描述', '产品描述', '备注',
     'specifications', 'specs', 'description', 'parameters', 'params'
   ],
   supplier: [
@@ -48,15 +48,15 @@ const FIELD_SYNONYMS: Record<string, string[]> = {
     'unit', 'uom', 'unit of measure'
   ],
   cost_price: [
-    '成本', '成本价', '成本价格', '进价', '进货价', '采购价', '采购价格',
+    '成本', '成本价', '成本价格', '进价', '进货价', '采购价', '采购价格', '成本（元）',
     'cost_price', 'cost', 'purchase price'
   ],
   min_price: [
-    '最低售价', '最低价', '最低价格', '底价', '最低销售价',
+    '最低售价', '最低价', '最低价格', '底价', '最低销售价', '最低售价（元）',
     'min_price', 'minimum price', 'min price'
   ],
   price: [
-    '指导价', '价格', '单价', '售价', '销售价', '报价', '参考价', '市场价', '指导价格',
+    '指导价', '价格', '单价', '售价', '销售价', '报价', '参考价', '市场价', '指导价格', '指导价（元）',
     'price', 'unit price', 'selling price', 'quote price'
   ],
 };
@@ -179,14 +179,20 @@ export default function ImportFieldMapping({
 
       if (data.success && data.data && data.data.length > 0) {
         // 将API返回的配置转换为组件需要的格式
-        const configs = data.data.map((config: FieldConfig) => ({
-          key: config.field_key,
-          label: config.field_label,
-          required: config.is_required,
-          description: getFieldDescription(config.field_key),
-          sampleValues: getFieldSampleValues(config.field_key),
-        }));
+        // 确保使用中文标签
+        const configs = data.data.map((config: FieldConfig) => {
+          // 从默认配置中获取中文标签
+          const defaultField = SYSTEM_FIELDS.find(f => f.key === config.field_key);
+          return {
+            key: config.field_key,
+            label: defaultField?.label || config.field_label || config.field_key,
+            required: config.is_required,
+            description: getFieldDescription(config.field_key),
+            sampleValues: getFieldSampleValues(config.field_key),
+          };
+        });
         setFieldConfigs(configs);
+        console.log('加载的字段配置:', configs.map((c: { label: string; key: string }) => `${c.label} (${c.key})`));
       }
     } catch (error) {
       console.error('加载字段配置失败:', error);

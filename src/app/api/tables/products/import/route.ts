@@ -170,22 +170,15 @@ export async function POST(request: NextRequest) {
         console.log('[Import API] ✅ 字段验证通过');
 
         // 构造数据库记录（根据实际数据库表结构）
+        // products 表字段: id, name, model, category, brand, price, unit, specifications, keywords, verified, metadata, created_at, updated_at
         const dbProduct: any = {
           name: product.product_name || product.name || '',
           model: product.model || '',
           price: product.price || 0,
-          stock: product.stock || 0,
-          supplier: product.supplier || '',
           category: product.category || '',
-          description: product.description || '',
-          image_url: product.image_url || null,
-          contact_person: product.contact_person || '',
-          contact_phone: product.contact_phone || '',
-          cost_price: product.cost_price || 0,
-          min_price: product.min_price || 0,
-          parameter_description: product.specifications || product.parameter_description || '',
           brand: product.brand || '',
-          unit: product.unit || '',
+          unit: product.unit || '台',
+          specifications: product.specifications || product.parameter_description || '',
         };
 
         console.log('[Import API] 构造的数据库记录:', JSON.stringify(dbProduct, null, 2));
@@ -194,7 +187,7 @@ export async function POST(request: NextRequest) {
         if (!dbProduct.category) {
           const matchedCategory = matchCategory(
             dbProduct.name,
-            dbProduct.parameter_description || dbProduct.description
+            dbProduct.specifications
           );
           if (matchedCategory) {
             dbProduct.category = matchedCategory;
@@ -204,7 +197,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        console.log('[Import API] ✅ 查重通过，准备插入数据库');
+        console.log('[Import API] 准备插入数据库');
 
         // 使用判重检查器进行查重
         const checkResult = await duplicateChecker.checkDuplicate(dbProduct);
