@@ -31,12 +31,11 @@ export async function GET(request: NextRequest) {
 
     // 搜索条件
     if (search) {
-      query = query.or(`name.ilike.%${search}%,model.ilike.%${search}%,keywords.ilike.%${search}%`);
+      query = query.or(`name.ilike.%${search}%,model.ilike.%${search}%,parameter_description.ilike.%${search}%`);
     }
 
     // 分页和排序
     const { data, error, count } = await query
-      .order('verified', { ascending: false })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -92,11 +91,13 @@ export async function POST(request: NextRequest) {
         brand: body.brand || '',
         price: parseFloat(body.price) || 0,
         unit: body.unit || '台',
-        specifications: body.specifications || '',
-        keywords: body.keywords || '',
-        verified: body.verified || false,
-        created_at: now,
-        updated_at: now,
+        parameter_description: body.parameter_description || body.specifications || '',
+        supplier: body.supplier || '',
+        contact_person: body.contact_person || '',
+        contact_phone: body.contact_phone || '',
+        cost_price: body.cost_price || 0,
+        min_price: body.min_price || 0,
+        stock: body.stock || 0,
       })
       .select()
       .single();
@@ -141,10 +142,13 @@ export async function PUT(request: NextRequest) {
         brand: body.brand,
         price: parseFloat(body.price) || 0,
         unit: body.unit,
-        specifications: body.specifications,
-        keywords: body.keywords,
-        verified: body.verified,
-        updated_at: new Date().toISOString(),
+        parameter_description: body.parameter_description || body.specifications,
+        supplier: body.supplier,
+        contact_person: body.contact_person,
+        contact_phone: body.contact_phone,
+        cost_price: body.cost_price,
+        min_price: body.min_price,
+        stock: body.stock,
       })
       .eq('id', body.id)
       .select()

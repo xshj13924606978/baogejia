@@ -114,8 +114,17 @@ export async function POST(request: NextRequest) {
           Object.keys(fieldMapping).forEach((systemField) => {
             const excelHeader = fieldMapping[systemField];
             if (excelHeader && item[excelHeader] !== undefined) {
-              product[systemField] = item[excelHeader];
-              console.log(`[Import API]   ${excelHeader} -> ${systemField}:`, product[systemField]);
+              // 处理字段名映射：name -> product_name（兼容前端映射）
+              if (systemField === 'name') {
+                product['product_name'] = item[excelHeader];
+                console.log(`[Import API]   ${excelHeader} -> name(product_name):`, item[excelHeader]);
+              } else if (systemField === 'parameter_description') {
+                product['specifications'] = item[excelHeader];
+                console.log(`[Import API]   ${excelHeader} -> parameter_description(specifications):`, item[excelHeader]);
+              } else {
+                product[systemField] = item[excelHeader];
+                console.log(`[Import API]   ${excelHeader} -> ${systemField}:`, product[systemField]);
+              }
             }
           });
         } else {
@@ -145,12 +154,17 @@ export async function POST(request: NextRequest) {
 
         console.log('[Import API] 映射后的产品数据:', JSON.stringify(product, null, 2));
 
-        // 验证必填字段
+        // 验证必填字段 - 兼容 name 和 product_name
         const missingFields = requiredFields.filter(
-          (field) => !product[field] || product[field] === '' || product[field] === 0
+          (field) => {
+            if (field === 'product_name' || field === 'name') {
+              return !product.product_name && !product.name;
+            }
+            return !product[field] || product[field] === '' || product[field] === 0;
+          }
         );
         if (missingFields.length > 0) {
-          const errorMsg = `产品 "${product.product_name || '未知'}" 缺少必填字段: ${missingFields.join('、')}`;
+          const errorMsg = `产品 "${product.product_name || product.name || '未知'}" 缺少必填字段: ${missingFields.join('、')}`;
           console.error(`[Import API] ❌ ${errorMsg}`);
           console.error('[Import API] 产品数据:', JSON.stringify(product, null, 2));
           errorCount++;
@@ -160,7 +174,7 @@ export async function POST(request: NextRequest) {
 
         // 验证价格
         if (product.price <= 0) {
-          const errorMsg = `产品 "${product.product_name || '未知'}" 价格必须大于0`;
+          const errorMsg = `产品 "${product.product_name || product.name || '未知'}" 价格必须大于0`;
           console.error(`[Import API] ❌ ${errorMsg}`);
           errorCount++;
           errors.push(errorMsg);
@@ -169,8 +183,7 @@ export async function POST(request: NextRequest) {
 
         console.log('[Import API] ✅ 字段验证通过');
 
-        // 构造数据库记录（根据实际数据库表结构）
-        // products 表字段: id, name, model, category, brand, price, unit, specifications, keywords, verified, metadata, created_at, updated_at
+        // 构造数据库记录（包含扩展字段）
         const dbProduct: any = {
           name: product.product_name || product.name || '',
           model: product.model || '',
@@ -178,8 +191,23 @@ export async function POST(request: NextRequest) {
           category: product.category || '',
           brand: product.brand || '',
           unit: product.unit || '台',
-          specifications: product.specifications || product.parameter_description || '',
+          // 扩展字段
+          parameter_description: product.parameter_description || product.specifications || '',
+          supplier: product.supplier || '',
+          contact_person: product.contact_person || '',
+          contact_phone: product.contact_phone || '',
+          cost_price: product.cost_price || 0,
+          min_price: product.min_price || 0,
+          image_url: product.image_url || '',
+          stock: product.stock || 0,
         };
+
+        // 移除空值字段，避免数据库约束错误
+        Object.keys(dbProduct).forEach(key => {
+          if (dbProduct[key] === '' || dbProduct[key] === null || dbProduct[key] === undefined) {
+            delete dbProduct[key];
+          }
+        });
 
         console.log('[Import API] 构造的数据库记录:', JSON.stringify(dbProduct, null, 2));
 
@@ -187,7 +215,7 @@ export async function POST(request: NextRequest) {
         if (!dbProduct.category) {
           const matchedCategory = matchCategory(
             dbProduct.name,
-            dbProduct.specifications
+            dbProduct.parameter_description || ''
           );
           if (matchedCategory) {
             dbProduct.category = matchedCategory;
