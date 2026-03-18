@@ -13,6 +13,54 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 
+// 中文同义词映射表 - 用于智能匹配Excel列名到系统字段
+const FIELD_SYNONYMS: Record<string, string[]> = {
+  product_name: [
+    '产品名称', '名称', '产品名', '产品', '货品名称', '商品名称', '品名', '设备名称',
+    'product_name', 'name', 'product name', 'product'
+  ],
+  model: [
+    '规格型号', '型号', '规格', '型号规格', '产品型号', '设备型号', '产品规格',
+    'model', 'specification', 'spec', 'type'
+  ],
+  brand: [
+    '品牌', '品牌名称', '厂家', '制造商', '生产厂家', '品牌厂家',
+    'brand', 'manufacturer', 'make'
+  ],
+  specifications: [
+    '参数描述', '参数', '技术参数', '规格参数', '产品参数', '参数说明', '简介说明', '描述', '产品描述',
+    'specifications', 'specs', 'description', 'parameters', 'params'
+  ],
+  supplier: [
+    '供应商', '供应商名称', '供货商', '厂商', '供应商名称', '供货单位',
+    'supplier', 'vendor', 'provider'
+  ],
+  contact_person: [
+    '联系人', '联系人姓名', '业务联系人', '对接人', '负责人', '联系人员',
+    'contact_person', 'contact', 'contact name'
+  ],
+  contact_phone: [
+    '联系电话', '电话', '联系方式', '手机', '手机号码', '电话号码', '联系电话号码',
+    'contact_phone', 'phone', 'tel', 'mobile', 'telephone'
+  ],
+  unit: [
+    '单位', '计量单位', '数量单位', '单位名称',
+    'unit', 'uom', 'unit of measure'
+  ],
+  cost_price: [
+    '成本', '成本价', '成本价格', '进价', '进货价', '采购价', '采购价格',
+    'cost_price', 'cost', 'purchase price'
+  ],
+  min_price: [
+    '最低售价', '最低价', '最低价格', '底价', '最低销售价',
+    'min_price', 'minimum price', 'min price'
+  ],
+  price: [
+    '指导价', '价格', '单价', '售价', '销售价', '报价', '参考价', '市场价', '指导价格',
+    'price', 'unit price', 'selling price', 'quote price'
+  ],
+};
+
 // 系统字段定义（默认配置，如果API加载失败会使用）
 export const SYSTEM_FIELDS = [
   {
@@ -182,7 +230,56 @@ export default function ImportFieldMapping({
     return samples[key] || [];
   };
 
-  // 模糊匹配函数
+  // 智能匹配函数 - 使用同义词表进行匹配
+  const findBestMatchBySynonyms = (excelHeader: string): { fieldKey: string; score: number } | null => {
+    if (!excelHeader) return null;
+
+    // 清理Excel列名
+    const cleanHeader = excelHeader
+      .replace(/[（(）)]/g, '')
+      .replace(/\s+/g, '')
+      .trim();
+
+    let bestMatch: { fieldKey: string; score: number } | null = null;
+
+    // 遍历所有字段的同义词
+    for (const [fieldKey, synonyms] of Object.entries(FIELD_SYNONYMS)) {
+      for (const synonym of synonyms) {
+        const cleanSynonym = synonym
+          .replace(/[（(）)]/g, '')
+          .replace(/\s+/g, '')
+          .toLowerCase();
+
+        const cleanHeaderLower = cleanHeader.toLowerCase();
+
+        // 完全匹配 (优先级最高)
+        if (cleanHeaderLower === cleanSynonym) {
+          return { fieldKey, score: 100 };
+        }
+
+        // 包含匹配
+        if (cleanHeaderLower.includes(cleanSynonym) || cleanSynonym.includes(cleanHeaderLower)) {
+          if (!bestMatch || 90 > bestMatch.score) {
+            bestMatch = { fieldKey, score: 90 };
+          }
+        }
+
+        // 计算字符相似度
+        const commonChars = cleanHeaderLower.split('').filter(c => cleanSynonym.includes(c)).length;
+        const maxLength = Math.max(cleanHeaderLower.length, cleanSynonym.length);
+        if (maxLength > 0) {
+          const similarity = (commonChars / maxLength) * 100;
+          if (similarity >= 60 && (!bestMatch || similarity > bestMatch.score)) {
+            bestMatch = { fieldKey, score: similarity };
+          }
+        }
+      }
+    }
+
+    return bestMatch;
+  };
+
+  // 模糊匹配函数 (保留原有逻辑作为备用)
   const findBestMatch = (fileName: string, systemFields: string[]): string | null => {
     if (!fileName || !systemFields || systemFields.length === 0) return null;
 
@@ -232,25 +329,47 @@ export default function ImportFieldMapping({
     return highestScore > 50 ? bestMatch : null;
   };
 
-  // 自动映射字段
+  // 自动映射字段 - 优化版
   useEffect(() => {
     if (!autoMapped && excelHeaders.length > 0 && !loadingConfigs) {
       const autoMapping: Record<string, string> = {};
+      const usedHeaders = new Set<string>(); // 记录已映射的列名，避免重复映射
 
       console.log('=== 开始自动映射字段 ===');
       console.log('文件列名:', excelHeaders);
       console.log('系统字段:', fieldConfigs.map(f => f.label));
 
+      // 第一轮：使用同义词表进行智能匹配
+      excelHeaders.forEach((header) => {
+        if (usedHeaders.has(header)) return;
+
+        const matchResult = findBestMatchBySynonyms(header);
+        if (matchResult && matchResult.score >= 70) {
+          // 检查该系统字段是否已被映射
+          const fieldConfig = fieldConfigs.find(f => f.key === matchResult.fieldKey);
+          if (fieldConfig && !autoMapping[matchResult.fieldKey]) {
+            autoMapping[matchResult.fieldKey] = header;
+            usedHeaders.add(header);
+            console.log(`同义词匹配: ${fieldConfig.label} (${matchResult.fieldKey}) -> ${header} (分数: ${matchResult.score})`);
+          }
+        }
+      });
+
+      // 第二轮：使用原有的精确匹配和包含匹配作为补充
       fieldConfigs.forEach((field) => {
+        if (autoMapping[field.key]) return; // 已映射则跳过
+
         // 先尝试精确匹配
         const exactMatch = excelHeaders.find(
           (header) =>
-            header.toLowerCase() === field.label.toLowerCase() ||
-            header.toLowerCase().replace(/\s/g, '') === field.label.toLowerCase().replace(/\s/g, '')
+            !usedHeaders.has(header) &&
+            (header.toLowerCase() === field.label.toLowerCase() ||
+            header.toLowerCase().replace(/\s/g, '') === field.label.toLowerCase().replace(/\s/g, ''))
         );
 
         if (exactMatch) {
           autoMapping[field.key] = exactMatch;
+          usedHeaders.add(exactMatch);
           console.log(`精确匹配: ${field.label} -> ${exactMatch}`);
           return;
         }
@@ -258,26 +377,29 @@ export default function ImportFieldMapping({
         // 尝试包含匹配
         const containsMatch = excelHeaders.find(
           (header) =>
-            header.toLowerCase().includes(field.label.toLowerCase()) ||
-            field.label.toLowerCase().includes(header.toLowerCase())
+            !usedHeaders.has(header) &&
+            (header.toLowerCase().includes(field.label.toLowerCase()) ||
+            field.label.toLowerCase().includes(header.toLowerCase()))
         );
 
         if (containsMatch) {
           autoMapping[field.key] = containsMatch;
+          usedHeaders.add(containsMatch);
           console.log(`包含匹配: ${field.label} -> ${containsMatch}`);
           return;
         }
 
         // 尝试模糊匹配
-        const systemFieldLabels = fieldConfigs.map(f => f.label);
-        const bestMatch = findBestMatch(field.label, excelHeaders);
+        const bestMatch = findBestMatch(field.label, excelHeaders.filter(h => !usedHeaders.has(h)));
         if (bestMatch) {
           autoMapping[field.key] = bestMatch;
+          usedHeaders.add(bestMatch);
           console.log(`模糊匹配: ${field.label} -> ${bestMatch}`);
         }
       });
 
       console.log('自动映射结果:', autoMapping);
+      console.log('未映射的系统字段:', fieldConfigs.filter(f => !autoMapping[f.key]).map(f => f.label));
       setMapping(autoMapping);
       setAutoMapped(true);
     }
