@@ -3,6 +3,25 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { createDuplicateChecker, DuplicateChecker } from '@/lib/duplicate-checker';
 import { matchCategory } from '@/lib/category-matcher';
 
+// 字段映射：从系统字段名映射到数据库字段名
+const FIELD_TO_DB_MAP: Record<string, string> = {
+  product_name: 'name',
+  specifications: 'parameter_description',
+  contact_phone: 'contact_phone',
+  contact_person: 'contact_person',
+  cost_price: 'cost_price',
+  min_price: 'min_price',
+  brand: 'brand',
+  model: 'model',
+  supplier: 'supplier',
+  category: 'category',
+  description: 'description',
+  image_url: 'image_url',
+  unit: 'unit',
+  price: 'price',
+  stock: 'stock',
+};
+
 // 导入产品
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -22,10 +41,7 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(productData)) {
       console.error('[Import API] ❌ 产品数据格式不正确，必须是数组');
       return NextResponse.json(
-        {
-          success: false,
-          error: '产品数据格式不正确，必须是数组',
-        },
+        { success: false, error: '产品数据格式不正确，必须是数组' },
         { status: 400 }
       );
     }
@@ -33,10 +49,7 @@ export async function POST(request: NextRequest) {
     if (productData.length === 0) {
       console.error('[Import API] ❌ 产品数据为空');
       return NextResponse.json(
-        {
-          success: false,
-          error: '产品数据为空',
-        },
+        { success: false, error: '产品数据为空' },
         { status: 400 }
       );
     }
@@ -95,7 +108,7 @@ export async function POST(request: NextRequest) {
         let product: Record<string, any>;
 
         // 如果提供了字段映射，使用映射转换数据
-        if (fieldMapping && typeof fieldMapping === 'object') {
+        if (fieldMapping && typeof fieldMapping === 'object' && Object.keys(fieldMapping).length > 0) {
           console.log('[Import API] 使用自定义字段映射:', JSON.stringify(fieldMapping, null, 2));
           product = {};
           Object.keys(fieldMapping).forEach((systemField) => {
@@ -130,6 +143,8 @@ export async function POST(request: NextRequest) {
           console.log('[Import API] 默认映射结果:', product);
         }
 
+        console.log('[Import API] 映射后的产品数据:', JSON.stringify(product, null, 2));
+
         // 验证必填字段
         const missingFields = requiredFields.filter(
           (field) => !product[field] || product[field] === '' || product[field] === 0
@@ -156,31 +171,24 @@ export async function POST(request: NextRequest) {
 
         // 构造数据库记录（根据实际数据库表结构）
         const dbProduct: any = {
-          name: product.product_name || '',
+          name: product.product_name || product.name || '',
           model: product.model || '',
           price: product.price || 0,
-          stock: product.stock || item['库存'] || item['stock'] || 0,
-          supplier: product.supplier || item['供应商'] || item['supplier'] || '',
-          category: product.category || item['分类'] || item['category'] || '',
-          description: product.description || item['描述'] || item['description'] || '',
-          image_url: product.image_url || item['图片'] || item['image_url'] || null,
-          contact_person: product.contact_person || item['联系人'] || item['contact_person'] || '',
-          contact_phone:
-            product.contact_phone ||
-            item['联系电话'] ||
-            item['电话'] ||
-            item['contact_phone'] ||
-            '',
-          cost_price: product.cost_price || item['成本'] || item['cost_price'] || 0,
-          min_price: product.min_price || item['最低售价'] || item['min_price'] || 0,
-          parameter_description:
-            product.parameter_description ||
-            item['参数描述'] ||
-            item['parameter_description'] ||
-            '',
-          brand: product.brand || item['品牌'] || item['brand'] || '',
-          unit: product.unit || item['单位'] || item['unit'] || '',
+          stock: product.stock || 0,
+          supplier: product.supplier || '',
+          category: product.category || '',
+          description: product.description || '',
+          image_url: product.image_url || null,
+          contact_person: product.contact_person || '',
+          contact_phone: product.contact_phone || '',
+          cost_price: product.cost_price || 0,
+          min_price: product.min_price || 0,
+          parameter_description: product.specifications || product.parameter_description || '',
+          brand: product.brand || '',
+          unit: product.unit || '',
         };
+
+        console.log('[Import API] 构造的数据库记录:', JSON.stringify(dbProduct, null, 2));
 
         // 智能分类匹配 - 如果没有提供分类则尝试智能匹配
         if (!dbProduct.category) {
@@ -190,13 +198,13 @@ export async function POST(request: NextRequest) {
           );
           if (matchedCategory) {
             dbProduct.category = matchedCategory;
-            console.log(`[Import API] 🏷 智能分类匹配: ${dbProduct.name} -> ${matchedCategory}`);
+            console.log(`[Import API] 🏷️ 智能分类匹配: ${dbProduct.name} -> ${matchedCategory}`);
           } else {
             console.log(`[Import API] ⚠️ 产品 "${dbProduct.name}" 未匹配到分类`);
           }
         }
 
-        console.log('[Import API] 构造的数据库记录:', JSON.stringify(dbProduct, null, 2));
+        console.log('[Import API] ✅ 查重通过，准备插入数据库');
 
         // 使用判重检查器进行查重
         const checkResult = await duplicateChecker.checkDuplicate(dbProduct);
@@ -313,27 +321,22 @@ export async function POST(request: NextRequest) {
       successCount,
       errorCount,
       duplicateCount,
-      errors,
+      errors: errors.length > 0 ? errors : undefined,
+      duplicateProducts: duplicateCount > 0 ? duplicateProducts : undefined,
       insertedProducts,
-      duplicateProducts,
-      duration,
     });
   } catch (error) {
-    console.error('[Import API] ❌ 导入产品失败:', error);
+    console.error('[Import API] ❌ 导入失败:', error);
     console.error('[Import API] 错误堆栈:', error instanceof Error ? error.stack : error);
-
-    // 记录失败的导入日志
     try {
       const db = getSupabaseClient();
-      const body = await request.clone().json();
-
       await db.from('import_logs').insert({
-        file_name: body.file_name || 'unknown',
-        file_type: body.file_type || 'unknown',
-        total_count: body.products?.length || 0,
+        file_name: 'unknown',
+        file_type: 'unknown',
+        total_count: 0,
         imported_count: 0,
         skipped_count: 0,
-        failed_count: body.products?.length || 0,
+        failed_count: 0,
         duplicate_config: null,
         details: {
           error: error instanceof Error ? error.message : '未知错误',
@@ -349,11 +352,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        error: '导入产品失败',
-        details: error instanceof Error ? error.message : '未知错误',
-      },
+      { success: false, error: '导入产品失败', details: error instanceof Error ? error.message : '未知错误' },
       { status: 500 }
     );
   }

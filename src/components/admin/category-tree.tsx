@@ -369,9 +369,9 @@ export function CategoryTree({
     return (
       <div key={node.id} className="select-none">
         <div
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-md transition-colors ${
+          className={`flex items-center gap-1 px-2 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${
             isSelected
-              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-sm'
               : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
           }`}
           style={{ paddingLeft: `${level * 16 + 8}px` }}
@@ -383,17 +383,13 @@ export function CategoryTree({
         >
           {hasChildren ? (
             <button
-              className="w-5 h-5 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
+              className="w-5 h-5 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-transform duration-200"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleExpand(node.id);
               }}
             >
-              {isExpanded ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronRight className="w-4 h-4" />
-              )}
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? '' : '-rotate-90'}`} />
             </button>
           ) : (
             <span className="w-5"></span>
@@ -574,8 +570,12 @@ export function CategoryTree({
           </div>
         )}
 
-        {hasChildren && isExpanded && (
-          <div>
+        {hasChildren && (
+          <div 
+            className={`overflow-hidden transition-all duration-200 ease-in-out ${
+              isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
             {node.children!.map((child, index) => 
               renderNode(child, level + 1, node.children!.length > 1)
             )}
