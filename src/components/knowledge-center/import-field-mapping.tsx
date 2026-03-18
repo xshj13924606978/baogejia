@@ -14,8 +14,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 
 // 中文同义词映射表 - 用于智能匹配Excel列名到系统字段
+// 注意：键名必须与数据库中的 field_key 一致
 const FIELD_SYNONYMS: Record<string, string[]> = {
-  product_name: [
+  // 产品名称 - 数据库中 field_key 是 'name'
+  name: [
     '产品名称', '名称', '产品名', '产品', '货品名称', '商品名称', '品名', '设备名称', '设备名', '物料名称',
     'product_name', 'name', 'product name', 'product'
   ],
@@ -27,6 +29,12 @@ const FIELD_SYNONYMS: Record<string, string[]> = {
     '品牌', '品牌名称', '厂家', '制造商', '生产厂家', '品牌厂家',
     'brand', 'manufacturer', 'make'
   ],
+  // 参数描述 - 数据库中 field_key 是 parameter_description
+  parameter_description: [
+    '参数描述', '参数', '技术参数', '规格参数', '产品参数', '参数说明', '简介说明', '描述', '产品描述', '备注',
+    'parameter_description', 'specifications', 'specs', 'description', 'parameters', 'params'
+  ],
+  // 兼容 specifications 映射到 parameter_description
   specifications: [
     '参数描述', '参数', '技术参数', '规格参数', '产品参数', '参数说明', '简介说明', '描述', '产品描述', '备注',
     'specifications', 'specs', 'description', 'parameters', 'params'
@@ -48,7 +56,7 @@ const FIELD_SYNONYMS: Record<string, string[]> = {
     'unit', 'uom', 'unit of measure'
   ],
   cost_price: [
-    '成本', '成本价', '成本价格', '进价', '进货价', '采购价', '采购价格', '成本（元）',
+    '成本', '成本价', '成本价格', '进价', '进货价', '采购价', '采购价格', '成本（元）', '成本价（元）',
     'cost_price', 'cost', 'purchase price'
   ],
   min_price: [
@@ -59,12 +67,22 @@ const FIELD_SYNONYMS: Record<string, string[]> = {
     '指导价', '价格', '单价', '售价', '销售价', '报价', '参考价', '市场价', '指导价格', '指导价（元）',
     'price', 'unit price', 'selling price', 'quote price'
   ],
+  category: [
+    '分类', '产品分类', '类别', '产品类别',
+    'category', 'type', 'class'
+  ],
+  // 兼容旧字段名
+  product_name: [
+    '产品名称', '名称', '产品名', '产品', '货品名称', '商品名称', '品名', '设备名称', '设备名', '物料名称',
+    'product_name', 'name', 'product name', 'product'
+  ],
 };
 
 // 系统字段定义（默认配置，如果API加载失败会使用）
+// 注意：key 必须与数据库中的 field_key 一致
 export const SYSTEM_FIELDS = [
   {
-    key: 'product_name',
+    key: 'name',
     label: '产品名称',
     required: true,
     description: '产品的名称',
@@ -85,7 +103,14 @@ export const SYSTEM_FIELDS = [
     sampleValues: ['格兰富', '通用', '景津'],
   },
   {
-    key: 'specifications',
+    key: 'category',
+    label: '分类',
+    required: false,
+    description: '产品分类',
+    sampleValues: ['泵类', '阀门', '电机'],
+  },
+  {
+    key: 'parameter_description',
     label: '参数描述',
     required: false,
     description: '产品详细参数',
@@ -140,6 +165,20 @@ export const SYSTEM_FIELDS = [
     description: '产品指导价格',
     sampleValues: ['3200', '14500', '88000'],
   },
+  {
+    key: 'image_url',
+    label: '图片',
+    required: false,
+    description: '产品图片链接',
+    sampleValues: ['https://example.com/image.jpg'],
+  },
+  {
+    key: 'stock',
+    label: '库存',
+    required: false,
+    description: '产品库存数量',
+    sampleValues: ['10', '100', '500'],
+  },
 ];
 
 interface FieldConfig {
@@ -178,9 +217,12 @@ export default function ImportFieldMapping({
       const data = await res.json();
 
       if (data.success && data.data && data.data.length > 0) {
+        // 过滤掉 description 字段，只保留 parameter_description
+        const filteredData = data.data.filter((config: FieldConfig) => config.field_key !== 'description');
+        
         // 将API返回的配置转换为组件需要的格式
         // 确保使用中文标签
-        const configs = data.data.map((config: FieldConfig) => {
+        const configs = filteredData.map((config: FieldConfig) => {
           // 从默认配置中获取中文标签
           const defaultField = SYSTEM_FIELDS.find(f => f.key === config.field_key);
           return {
@@ -196,7 +238,9 @@ export default function ImportFieldMapping({
       }
     } catch (error) {
       console.error('加载字段配置失败:', error);
-      // 使用默认配置
+      // 使用默认配置（过滤掉description）
+      const defaultConfigs = SYSTEM_FIELDS.filter(f => f.key !== 'description');
+      setFieldConfigs(defaultConfigs);
     } finally {
       setLoadingConfigs(false);
     }
@@ -204,10 +248,11 @@ export default function ImportFieldMapping({
 
   const getFieldDescription = (key: string): string => {
     const descriptions: Record<string, string> = {
+      name: '产品的名称',
       product_name: '产品的名称',
       model: '产品的型号规格',
       brand: '产品品牌',
-      specifications: '产品详细参数',
+      parameter_description: '产品详细参数',
       supplier: '产品供应商',
       contact_person: '供应商联系人',
       contact_phone: '供应商联系电话',
@@ -215,16 +260,20 @@ export default function ImportFieldMapping({
       cost_price: '产品成本价格',
       min_price: '产品最低销售价格',
       price: '产品指导价格',
+      category: '产品分类',
+      image_url: '产品图片链接',
+      stock: '产品库存数量',
     };
     return descriptions[key] || '';
   };
 
   const getFieldSampleValues = (key: string): string[] => {
     const samples: Record<string, string[]> = {
+      name: ['工业提升泵', '搅拌罐', '板框压滤机'],
       product_name: ['工业提升泵', '搅拌罐', '板框压滤机'],
       model: ['CR5-12', '2.5m³', 'XMYZ100/800-U'],
       brand: ['格兰富', '通用', '景津'],
-      specifications: ['流量12m³/h，扬程30m', '不锈钢材质，配搅拌器'],
+      parameter_description: ['流量12m³/h，扬程30m', '不锈钢材质，配搅拌器'],
       supplier: ['格兰富中国', '通用机械', '景津环保'],
       contact_person: ['张三', '李四', '王五'],
       contact_phone: ['13800138000', '13900139000'],
@@ -232,6 +281,9 @@ export default function ImportFieldMapping({
       cost_price: ['3200', '14500', '88000'],
       min_price: ['3500', '15000', '90000'],
       price: ['3200', '14500', '88000'],
+      category: ['泵类', '阀门', '电机'],
+      image_url: ['https://example.com/image.jpg'],
+      stock: ['10', '100', '500'],
     };
     return samples[key] || [];
   };
