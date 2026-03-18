@@ -42,8 +42,8 @@ jobs:
       id: eslint
       run: |
         echo "🔍 运行 ESLint 检查..."
-        npx eslint src/ --format json > eslint-output.json 2>&1 || true
-        
+        npx eslint . --format json > eslint-output.json 2>&1 || true
+
         if [ -f eslint-output.json ]; then
           WARNINGS=$(node -e "try { const d = require('./eslint-output.json'); console.log(d.reduce((s, f) => s + f.messages.length, 0)); } catch(e) { console.log(0); }")
           ERRORS=$(node -e "try { const d = require('./eslint-output.json'); console.log(d.reduce((s, f) => s + f.messages.filter(m => m.severity === 2).length, 0)); } catch(e) { console.log(0); }")
@@ -51,7 +51,7 @@ jobs:
           WARNINGS=0
           ERRORS=0
         fi
-        
+
         echo "warnings=$WARNINGS" >> $GITHUB_OUTPUT
         echo "errors=$ERRORS" >> $GITHUB_OUTPUT
         echo "ESLint 警告数: $WARNINGS"
@@ -72,8 +72,8 @@ jobs:
       if: steps.eslint.outputs.warnings != '0'
       run: |
         echo "🔄 运行 ESLint 自动修复..."
-        npx eslint src/ --fix || true
-        
+        npx eslint . --fix || true
+
         echo "🧹 运行终极清理脚本..."
         node scripts/ultimate-cleanup.js || true
     
