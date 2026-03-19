@@ -137,14 +137,22 @@ export const products = pgTable(
   'products',
   {
     id: serial().primaryKey().notNull(),
-    name: varchar({ length: 255 }).notNull(),
-    model: varchar({ length: 255 }),
-    price: numeric({ precision: 10, scale: 2 }).notNull(),
+    // 统一产品字段规范
+    category: varchar({ length: 100 }),           // 分类
+    name: varchar({ length: 255 }).notNull(),     // 产品名称（必填）
+    model: varchar({ length: 255 }),              // 规格型号
+    parameter_description: text('parameter_description'), // 参数描述
+    brand: varchar({ length: 255 }),              // 品牌
+    unit: varchar({ length: 50 }),                // 单位
+    supplier: varchar({ length: 255 }),           // 供应商
+    contact_person: varchar('contact_person', { length: 100 }), // 联系人
+    contact_phone: varchar('contact_phone', { length: 50 }),    // 联系电话
+    cost_price: numeric('cost_price', { precision: 10, scale: 2 }), // 成本价
+    min_price: numeric('min_price', { precision: 10, scale: 2 }),   // 最低售价
+    price: numeric({ precision: 10, scale: 2 }).notNull(), // 指导价（必填）
+    image_url: text('image_url'),                 // 产品图片
+    // 系统字段
     stock: integer().default(0),
-    supplier: varchar({ length: 255 }),
-    category: varchar({ length: 100 }),
-    description: text(),
-    imageUrl: text('image_url'),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow(),
     userId: integer('user_id'),

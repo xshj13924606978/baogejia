@@ -4,21 +4,26 @@ import { createDuplicateChecker, DuplicateChecker } from '@/lib/duplicate-checke
 import { matchCategory } from '@/lib/category-matcher';
 
 // 字段映射：从系统字段名映射到数据库字段名
+// 统一产品字段规范（13个标准字段）
 const FIELD_TO_DB_MAP: Record<string, string> = {
-  product_name: 'name',
-  specifications: 'parameter_description',
-  contact_phone: 'contact_phone',
+  // 标准字段
+  category: 'category',
+  name: 'name',
+  model: 'model',
+  parameter_description: 'parameter_description',
+  brand: 'brand',
+  unit: 'unit',
+  supplier: 'supplier',
   contact_person: 'contact_person',
+  contact_phone: 'contact_phone',
   cost_price: 'cost_price',
   min_price: 'min_price',
-  brand: 'brand',
-  model: 'model',
-  supplier: 'supplier',
-  category: 'category',
-  description: 'description',
-  image_url: 'image_url',
-  unit: 'unit',
   price: 'price',
+  image_url: 'image_url',
+  // 兼容旧字段名
+  product_name: 'name',
+  specifications: 'parameter_description',
+  // 系统字段
   stock: 'stock',
 };
 
@@ -183,22 +188,23 @@ export async function POST(request: NextRequest) {
 
         console.log('[Import API] ✅ 字段验证通过');
 
-        // 构造数据库记录（包含扩展字段）
+        // 构造数据库记录（统一产品字段规范）
         const dbProduct: any = {
-          name: product.product_name || product.name || '',
-          model: product.model || '',
-          price: product.price || 0,
+          // 13个标准字段
           category: product.category || '',
+          name: product.name || product.product_name || '',
+          model: product.model || '',
+          parameter_description: product.parameter_description || product.specifications || '',
           brand: product.brand || '',
           unit: product.unit || '台',
-          // 扩展字段
-          parameter_description: product.parameter_description || product.specifications || '',
           supplier: product.supplier || '',
           contact_person: product.contact_person || '',
           contact_phone: product.contact_phone || '',
           cost_price: product.cost_price || 0,
           min_price: product.min_price || 0,
+          price: product.price || 0,
           image_url: product.image_url || '',
+          // 系统字段
           stock: product.stock || 0,
         };
 

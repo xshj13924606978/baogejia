@@ -20,18 +20,27 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     const db = getSupabaseClient();
 
-    // 映射前端字段到数据库字段
-    const updateData = {
-      name: body.product_name || body.name,
-      model: body.model || '',
-      specifications: body.specifications || '',
-      price: parseFloat(body.price) || 0,
-      stock: parseInt(body.stock || '0') || 0,
-      supplier: body.supplier || '',
-      category: body.category || '',
-      description: body.description || '',
+    // 映射前端字段到数据库字段（统一产品字段规范）
+    const updateData: Record<string, any> = {
       updated_at: new Date().toISOString(),
     };
+
+    // 13个标准字段
+    if (body.category !== undefined) updateData.category = body.category;
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.model !== undefined) updateData.model = body.model;
+    if (body.parameter_description !== undefined) updateData.parameter_description = body.parameter_description;
+    if (body.brand !== undefined) updateData.brand = body.brand;
+    if (body.unit !== undefined) updateData.unit = body.unit;
+    if (body.supplier !== undefined) updateData.supplier = body.supplier;
+    if (body.contact_person !== undefined) updateData.contact_person = body.contact_person;
+    if (body.contact_phone !== undefined) updateData.contact_phone = body.contact_phone;
+    if (body.cost_price !== undefined) updateData.cost_price = parseFloat(body.cost_price) || 0;
+    if (body.min_price !== undefined) updateData.min_price = parseFloat(body.min_price) || 0;
+    if (body.price !== undefined) updateData.price = parseFloat(body.price) || 0;
+    if (body.image_url !== undefined) updateData.image_url = body.image_url;
+    // 系统字段
+    if (body.stock !== undefined) updateData.stock = parseInt(body.stock) || 0;
 
     const { data, error } = await db
       .from('products')

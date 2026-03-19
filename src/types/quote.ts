@@ -2,6 +2,48 @@
  * 报价单通用类型定义
  */
 
+/**
+ * 统一产品字段规范
+ * 产品库和报价单统一使用以下字段
+ */
+export interface ProductBase {
+  // 统一产品字段规范（13个标准字段）
+  category?: string;              // 分类
+  name: string;                   // 产品名称（必填）
+  model?: string;                 // 规格型号
+  parameter_description?: string; // 参数描述
+  brand?: string;                 // 品牌
+  unit?: string;                  // 单位
+  supplier?: string;              // 供应商
+  contact_person?: string;        // 联系人
+  contact_phone?: string;         // 联系电话
+  cost_price?: number;            // 成本价
+  min_price?: number;             // 最低售价
+  price: number;                  // 指导价（必填）
+  image_url?: string;             // 产品图片
+}
+
+/**
+ * 产品库产品（完整产品信息）
+ */
+export interface Product extends ProductBase {
+  id?: string;
+  stock?: number;                 // 库存
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * 报价单产品（包含报价相关字段）
+ */
+export interface QuoteProduct extends ProductBase {
+  id?: string;
+  quantity: number;               // 数量
+  unitPrice: number;              // 单价（报价用）
+  totalPrice: number;             // 总价
+  system?: string;                // 用于分组
+}
+
 // 供应方信息
 export interface SupplierInfo {
   companyName: string;
@@ -22,21 +64,6 @@ export interface ProjectField {
   editable?: boolean;
 }
 
-// 产品信息
-export interface Product {
-  id?: string;
-  name: string;
-  model?: string;
-  parameter_description?: string;
-  brand?: string;
-  unit?: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  category?: string; // 用于分组
-  system?: string; // 用于分组
-}
-
 // 表格列配置
 export interface TableColumnConfig {
   key: string;
@@ -54,7 +81,7 @@ export type GroupType = 'category' | 'brand' | 'system' | 'none';
 export interface GroupInfo {
   type: GroupType;
   name: string;
-  products: Product[];
+  products: QuoteProduct[];
 }
 
 // 费用配置
@@ -101,7 +128,7 @@ export interface QuoteData {
   projectFields: ProjectField[];
 
   // 产品清单
-  products: Product[];
+  products: QuoteProduct[];
   tableConfig?: {
     columns: TableColumnConfig[];
     groupType: GroupType;

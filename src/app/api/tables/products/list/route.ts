@@ -63,25 +63,28 @@ export async function GET(request: NextRequest) {
         : null,
     });
 
-    // 转换为前端需要的格式
+    // 转换为前端需要的格式（统一产品字段规范）
     const formattedProducts = (data || []).map((p: any) => {
       return {
-        id: p.id,
+        // 13个标准字段
+        category: p.category || '',
         name: p.name || '',
         model: p.model || '',
-        brand: p.brand || '',
         parameter_description: p.parameter_description || '',
-        description: p.description || '',
+        brand: p.brand || '',
         unit: p.unit || '台',
-        cost_price: parseFloat(p.cost_price) || 0,
-        min_price: parseFloat(p.min_price) || 0,
-        price: parseFloat(p.price) || 0,
         supplier: p.supplier || '',
         contact_person: p.contact_person || '',
         contact_phone: p.contact_phone || '',
-        category: p.category || '',
-        stock: p.stock || 0,
+        cost_price: parseFloat(p.cost_price) || 0,
+        min_price: parseFloat(p.min_price) || 0,
+        price: parseFloat(p.price) || 0,
         image_url: p.image_url || '',
+        // 系统字段
+        id: p.id,
+        stock: p.stock || 0,
+        created_at: p.created_at,
+        updated_at: p.updated_at,
       };
     });
 
