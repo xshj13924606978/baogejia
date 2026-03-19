@@ -98,8 +98,14 @@ export class DuplicateChecker {
     const matchValues: Record<string, any> = {};
 
     fields.forEach(field => {
-      const fieldValue = product[field];
-      if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+      const fieldValue = this.normalizeFieldValue(product[field], field);
+      if (fieldValue !== null && fieldValue !== '') {
+        // 对于参数描述字段，不进行精确匹配查询
+        // 改为在内存中进行比较，避免因格式差异导致误判
+        if (field === 'parameter_description') {
+          matchValues[field] = fieldValue;
+          return; // 跳过数据库查询条件
+        }
         query = query.eq(field, fieldValue);
         matchValues[field] = fieldValue;
       } else {
@@ -111,25 +117,151 @@ export class DuplicateChecker {
 
     console.log('[DuplicateChecker] 查询条件:', matchValues);
 
-    const { data: existing, error } = await query.maybeSingle();
+    const { data: existingList, error } = await query;
 
     if (error) {
       console.error('[DuplicateChecker] 查重失败:', error);
       return { isDuplicate: false };
     }
 
-    if (existing) {
-      console.log('[DuplicateChecker] 发现重复产品:', existing);
-      return {
-        isDuplicate: true,
-        duplicateProduct: existing,
-        matchedFields: fields,
-        matchValues,
-      };
+    // 如果查询结果为空，直接返回不重复
+    if (!existingList || existingList.length === 0) {
+      console.log('[DuplicateChecker] 未发现重复产品');
+      return { isDuplicate: false };
     }
 
-    console.log('[DuplicateChecker] 未发现重复产品');
-    return { isDuplicate: false };
+    // 如果配置中包含参数描述字段，需要额外比较
+    if (fields.includes('parameter_description')) {
+      const normalizedParamDesc = this.normalizeFieldValue(product.parameter_description, 'parameter_description');
+      
+      for (const existing of existingList) {
+        const existingParamDesc = this.normalizeFieldValue(existing.parameter_description, 'parameter_description');
+        
+        // 参数描述比较：必须完全匹配才算重复
+        // 因为参数描述中的任何差异（电压、压力、尺寸等）都意味着是不同的产品
+        if (normalizedParamDesc && existingParamDesc) {
+          // 使用精确匹配而非相似度匹配
+          if (normalizedParamDesc !== existingParamDesc) {
+            console.log('[DuplicateChecker] 参数描述不同，不是重复产品:', {
+              new: normalizedParamDesc.substring(0, 80) + '...',
+              existing: existingParamDesc.substring(0, 80) + '...'
+            });
+            continue; // 参数描述不同，跳过这条记录
+          }
+        } else if (normalizedParamDesc !== existingParamDesc) {
+          // 一个有值一个没值，不匹配
+          continue;
+        }
+        
+        // 所有条件都满足，判定为重复
+        console.log('[DuplicateChecker] 发现重复产品:', existing);
+        return {
+          isDuplicate: true,
+          duplicateProduct: existing,
+          matchedFields: fields,
+          matchValues,
+        };
+      }
+      
+      // 所有记录的参数描述都不匹配
+      console.log('[DuplicateChecker] 未发现完全匹配的重复产品');
+      return { isDuplicate: false };
+    }
+
+    // 不包含参数描述字段，直接返回第一条匹配记录
+    const existing = existingList[0];
+    console.log('[DuplicateChecker] 发现重复产品:', existing);
+    return {
+      isDuplicate: true,
+      duplicateProduct: existing,
+      matchedFields: fields,
+      matchValues,
+    };
+  }
+
+  /**
+   * 标准化字段值
+   * @param value 原始值
+   * @param field 字段名
+   * @returns 标准化后的值
+   */
+  private normalizeFieldValue(value: any, field: string): string | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    
+    // 转换为字符串并去除首尾空格
+    let normalized = value.toString().trim();
+    
+    // 对于参数描述字段，进行额外处理
+    if (field === 'parameter_description') {
+      // 移除多余空白字符
+      normalized = normalized.replace(/\s+/g, ' ');
+      // 移除常见的格式符号
+      normalized = normalized.replace(/[，。、；：""''（）【】《》]/g, '');
+    }
+    
+    return normalized;
+  }
+
+  /**
+   * 判断两个参数描述是否匹配
+   * @param desc1 参数描述1
+   * @param desc2 参数描述2
+   * @returns 是否匹配
+   */
+  private isParameterDescriptionMatch(desc1: string, desc2: string): boolean {
+    // 完全相同
+    if (desc1 === desc2) {
+      return true;
+    }
+    
+    // 计算相似度（简单的字符重合度）
+    const similarity = this.calculateSimilarity(desc1, desc2);
+    
+    // 相似度超过90%才认为是相同的参数描述
+    return similarity >= 0.9;
+  }
+
+  /**
+   * 计算两个字符串的相似度
+   * @param str1 字符串1
+   * @param str2 字符串2
+   * @returns 相似度 (0-1)
+   */
+  private calculateSimilarity(str1: string, str2: string): number {
+    if (str1 === str2) return 1;
+    if (!str1 || !str2) return 0;
+    
+    const len1 = str1.length;
+    const len2 = str2.length;
+    
+    // 使用Levenshtein距离计算相似度
+    const matrix: number[][] = [];
+    
+    for (let i = 0; i <= len1; i++) {
+      matrix[i] = [i];
+    }
+    
+    for (let j = 0; j <= len2; j++) {
+      matrix[0][j] = j;
+    }
+    
+    for (let i = 1; i <= len1; i++) {
+      for (let j = 1; j <= len2; j++) {
+        const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j - 1] + cost
+        );
+      }
+    }
+    
+    const distance = matrix[len1][len2];
+    const maxLen = Math.max(len1, len2);
+    
+    return 1 - distance / maxLen;
   }
 
   /**
@@ -149,14 +281,29 @@ export class DuplicateChecker {
 
       // 检查所有判重字段是否都匹配
       for (const field of fields) {
-        const existingValue = existing[field];
-        const productValue = product[field];
+        const existingValue = this.normalizeFieldValue(existing[field], field);
+        const productValue = this.normalizeFieldValue(product[field], field);
 
-        // 标准化比较：都为 null/undefined/空字符串时视为匹配
-        const normalizedExisting = existingValue === null || existingValue === undefined || existingValue === '' ? null : existingValue;
-        const normalizedProduct = productValue === null || productValue === undefined || productValue === '' ? null : productValue;
+        // 对于参数描述字段，使用精确匹配
+        // 因为参数描述中的任何差异（电压、压力、尺寸等）都意味着是不同的产品
+        if (field === 'parameter_description') {
+          if (existingValue && productValue) {
+            // 精确匹配：必须完全相同才算重复
+            if (existingValue !== productValue) {
+              isMatch = false;
+              break;
+            }
+          } else if (existingValue !== productValue) {
+            // 一个有值一个没值，不匹配
+            isMatch = false;
+            break;
+          }
+          matchValues[field] = productValue;
+          continue;
+        }
 
-        if (normalizedExisting !== normalizedProduct) {
+        // 其他字段：标准化比较（精确匹配）
+        if (existingValue !== productValue) {
           isMatch = false;
           break;
         }

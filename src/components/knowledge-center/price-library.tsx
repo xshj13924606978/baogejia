@@ -17,6 +17,27 @@ export default function PriceLibrary() {
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   
+  // 导入进度相关状态
+  const [importProgress, setImportProgress] = useState<{
+    show: boolean;
+    current: number;
+    total: number;
+    successCount: number;
+    errorCount: number;
+    duplicateCount: number;
+    status: 'importing' | 'completed' | 'error';
+    message: string;
+    errors?: string[];
+    duplicateProducts?: Array<{ existing: any; attempted: any }>;
+  } | null>(null);
+  
+  // 导入详情弹窗状态
+  const [importDetailDialog, setImportDetailDialog] = useState<{
+    show: boolean;
+    type: 'errors' | 'duplicates';
+    title: string;
+  } | null>(null);
+  
   // 分页相关状态
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -1093,54 +1114,118 @@ export default function PriceLibrary() {
     }
   };
 
-  // 确认字段映射并导入
+  // 确认字段映射并导入（带进度显示）
   const handleConfirmMapping = async (mapping: Record<string, string>) => {
     if (!pendingExcelData) return;
+
+    const totalProducts = pendingExcelData.data.length;
+    const batchSize = 50; // 每批处理50条
 
     setImporting(true);
     setShowFieldMapping(false);
 
+    // 初始化进度显示
+    setImportProgress({
+      show: true,
+      current: 0,
+      total: totalProducts,
+      successCount: 0,
+      errorCount: 0,
+      duplicateCount: 0,
+      status: 'importing',
+      message: '正在准备导入...',
+    });
+
     try {
-      const response = await fetch('/api/tables/products/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          products: pendingExcelData.data,
-          fieldMapping: mapping,
-        }),
-      });
+      let totalSuccessCount = 0;
+      let totalErrorCount = 0;
+      let totalDuplicateCount = 0;
+      const allErrors: string[] = [];
+      const allDuplicateProducts: any[] = [];
 
-      const result = await response.json();
+      // 分批导入
+      for (let i = 0; i < totalProducts; i += batchSize) {
+        const batch = pendingExcelData.data.slice(i, i + batchSize);
+        const batchEnd = Math.min(i + batchSize, totalProducts);
 
-      if (result.success) {
-        const duplicateMsg =
-          result.duplicateCount > 0 ? `\n跳过 ${result.duplicateCount} 条重复产品` : '';
-        const errorMsg = result.errorCount > 0 ? `\n失败 ${result.errorCount} 条` : '';
+        setImportProgress(prev => prev ? {
+          ...prev,
+          current: batchEnd,
+          message: `正在导入第 ${batchEnd}/${totalProducts} 条...`,
+        } : null);
 
-        alert(
-          `✅ 导入成功！\n\n成功导入 ${result.successCount} 条产品数据${duplicateMsg}${errorMsg}`
-        );
+        const response = await fetch('/api/tables/products/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            products: batch,
+            fieldMapping: mapping,
+          }),
+        });
 
-        // 刷新产品列表
-        await loadProducts(1, pageSize);
-        
-        // 刷新品牌列表
-        await loadAllBrands();
+        const result = await response.json();
 
-        // 显示错误详情（如果有）
-        if (result.errors && result.errors.length > 0) {
-          console.log('导入错误:', result.errors);
+        if (result.success) {
+          totalSuccessCount += result.successCount || 0;
+          totalErrorCount += result.errorCount || 0;
+          totalDuplicateCount += result.duplicateCount || 0;
+          
+          if (result.errors) {
+            allErrors.push(...result.errors);
+          }
+          if (result.duplicateProducts) {
+            allDuplicateProducts.push(...result.duplicateProducts);
+          }
         }
-      } else {
-        alert(`❌ 导入失败：${result.error}`);
+
+        // 更新进度
+        setImportProgress(prev => prev ? {
+          ...prev,
+          successCount: totalSuccessCount,
+          errorCount: totalErrorCount,
+          duplicateCount: totalDuplicateCount,
+        } : null);
+      }
+
+      // 导入完成
+      const duplicateMsg = totalDuplicateCount > 0 ? `，跳过 ${totalDuplicateCount} 条重复` : '';
+      const errorMsg = totalErrorCount > 0 ? `，${totalErrorCount} 条失败` : '';
+
+      setImportProgress(prev => prev ? {
+        ...prev,
+        status: 'completed',
+        message: `导入完成！成功 ${totalSuccessCount} 条${duplicateMsg}${errorMsg}`,
+        errors: allErrors.length > 0 ? allErrors : undefined,
+        duplicateProducts: allDuplicateProducts.length > 0 ? allDuplicateProducts : undefined,
+      } : null);
+
+      // 刷新产品列表
+      await loadProducts(1, pageSize);
+      
+      // 刷新品牌列表
+      await loadAllBrands();
+
+      // 显示错误详情（如果有）
+      if (allErrors.length > 0) {
+        console.log('导入错误:', allErrors);
       }
     } catch (error) {
       console.error('导入产品失败:', error);
-      alert(`❌ 导入产品失败：${error instanceof Error ? error.message : '未知错误'}`);
+      setImportProgress(prev => prev ? {
+        ...prev,
+        status: 'error',
+        message: `导入失败：${error instanceof Error ? error.message : '未知错误'}`,
+      } : null);
     } finally {
       setImporting(false);
       setPendingExcelData(null);
     }
+  };
+
+  // 关闭导入进度对话框
+  const closeImportProgress = () => {
+    setImportProgress(null);
+    setImportDetailDialog(null);
   };
 
   // 取消导入
@@ -2425,6 +2510,214 @@ export default function PriceLibrary() {
             onConfirm={handleConfirmMapping}
             onCancel={handleCancelMapping}
           />
+        </div>
+      )}
+
+      {/* 导入进度对话框 */}
+      {importProgress?.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">
+              产品导入进度
+            </h3>
+            
+            {/* 进度条 */}
+            <div className="mb-4">
+              <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400 mb-2">
+                <span>{importProgress.message}</span>
+                <span>{importProgress.current}/{importProgress.total}</span>
+              </div>
+              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    importProgress.status === 'completed' 
+                      ? 'bg-green-500' 
+                      : importProgress.status === 'error' 
+                        ? 'bg-red-500' 
+                        : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* 统计信息 */}
+            <div className="grid grid-cols-3 gap-4 mb-4 text-center">
+              <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {importProgress.successCount}
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">成功</div>
+              </div>
+              <div 
+                className={`bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-3 ${
+                  importProgress.duplicateCount > 0 && importProgress.duplicateProducts 
+                    ? 'cursor-pointer hover:ring-2 hover:ring-yellow-400 transition-all' 
+                    : ''
+                }`}
+                onClick={() => {
+                  if (importProgress.duplicateCount > 0 && importProgress.duplicateProducts) {
+                    setImportDetailDialog({
+                      show: true,
+                      type: 'duplicates',
+                      title: `重复跳过产品 (${importProgress.duplicateCount} 条)`,
+                    });
+                  }
+                }}
+                title={importProgress.duplicateCount > 0 ? '点击查看详情' : ''}
+              >
+                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                  {importProgress.duplicateCount}
+                  {importProgress.duplicateCount > 0 && importProgress.duplicateProducts && (
+                    <span className="text-xs ml-1">📋</span>
+                  )}
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  重复跳过
+                  {importProgress.duplicateCount > 0 && importProgress.duplicateProducts && (
+                    <span className="text-yellow-600"> (可点击)</span>
+                  )}
+                </div>
+              </div>
+              <div 
+                className={`bg-red-50 dark:bg-red-900/30 rounded-lg p-3 ${
+                  importProgress.errorCount > 0 && importProgress.errors 
+                    ? 'cursor-pointer hover:ring-2 hover:ring-red-400 transition-all' 
+                    : ''
+                }`}
+                onClick={() => {
+                  if (importProgress.errorCount > 0 && importProgress.errors) {
+                    setImportDetailDialog({
+                      show: true,
+                      type: 'errors',
+                      title: `导入失败产品 (${importProgress.errorCount} 条)`,
+                    });
+                  }
+                }}
+                title={importProgress.errorCount > 0 ? '点击查看详情' : ''}
+              >
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                  {importProgress.errorCount}
+                  {importProgress.errorCount > 0 && importProgress.errors && (
+                    <span className="text-xs ml-1">📋</span>
+                  )}
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  失败
+                  {importProgress.errorCount > 0 && importProgress.errors && (
+                    <span className="text-red-600"> (可点击)</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 关闭按钮 - 仅在完成或错误时显示 */}
+            {importProgress.status !== 'importing' && (
+              <div className="flex justify-end">
+                <Button
+                  onClick={closeImportProgress}
+                  variant={importProgress.status === 'error' ? 'destructive' : 'default'}
+                >
+                  关闭
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 导入详情弹窗 */}
+      {importDetailDialog?.show && importProgress && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            {/* 标题栏 */}
+            <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                {importDetailDialog.title}
+              </h3>
+              <button
+                onClick={() => setImportDetailDialog(null)}
+                className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-xl"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* 详情列表 */}
+            <div className="p-4 overflow-y-auto flex-1">
+              {importDetailDialog.type === 'errors' && importProgress.errors && (
+                <div className="space-y-2">
+                  {importProgress.errors.map((error, index) => (
+                    <div 
+                      key={index}
+                      className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3"
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className="text-red-500 font-bold text-sm">#{index + 1}</span>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 flex-1">{error}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {importDetailDialog.type === 'duplicates' && importProgress.duplicateProducts && (
+                <div className="space-y-3">
+                  {importProgress.duplicateProducts.map((item, index) => (
+                    <div 
+                      key={index}
+                      className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4"
+                    >
+                      <div className="text-sm font-medium text-yellow-700 dark:text-yellow-400 mb-2">
+                        #{index + 1} 重复产品
+                      </div>
+                      
+                      {/* 尝试导入的产品 */}
+                      <div className="mb-3">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">尝试导入的产品：</div>
+                        <div className="bg-white dark:bg-slate-800 rounded p-2 text-sm">
+                          <div><span className="font-medium">名称：</span>{item.attempted?.name || '-'}</div>
+                          {item.attempted?.model && <div><span className="font-medium">型号：</span>{item.attempted.model}</div>}
+                          {item.attempted?.brand && <div><span className="font-medium">品牌：</span>{item.attempted.brand}</div>}
+                          {item.attempted?.parameter_description && (
+                            <div><span className="font-medium">参数：</span>{item.attempted.parameter_description}</div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* 已存在的产品 */}
+                      <div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">数据库中已存在：</div>
+                        <div className="bg-white dark:bg-slate-800 rounded p-2 text-sm">
+                          <div><span className="font-medium">名称：</span>{item.existing?.name || '-'}</div>
+                          {item.existing?.model && <div><span className="font-medium">型号：</span>{item.existing.model}</div>}
+                          {item.existing?.brand && <div><span className="font-medium">品牌：</span>{item.existing.brand}</div>}
+                          {item.existing?.parameter_description && (
+                            <div><span className="font-medium">参数：</span>{item.existing.parameter_description}</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* 无数据提示 */}
+              {importDetailDialog.type === 'errors' && (!importProgress.errors || importProgress.errors.length === 0) && (
+                <div className="text-center text-slate-500 py-8">暂无错误信息</div>
+              )}
+              {importDetailDialog.type === 'duplicates' && (!importProgress.duplicateProducts || importProgress.duplicateProducts.length === 0) && (
+                <div className="text-center text-slate-500 py-8">暂无重复产品</div>
+              )}
+            </div>
+            
+            {/* 底部按钮 */}
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end flex-shrink-0">
+              <Button onClick={() => setImportDetailDialog(null)}>
+                关闭
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
