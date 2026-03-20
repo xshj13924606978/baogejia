@@ -407,7 +407,7 @@ function LoginPage() {
 
           {/* 密码登录表单 - 使用key防止自动填充 */}
           {loginMode === 'password' && (
-            <form onSubmit={handleAccountSubmit} className="space-y-4" key={formKey}>
+            <form onSubmit={handleAccountSubmit} className="space-y-4" key={formKey} autoComplete="off">
               <div className="space-y-2">
                 <label className="text-sm font-medium">账号</label>
                 <Input
@@ -416,6 +416,10 @@ function LoginPage() {
                   onChange={handleAccountChange}
                   placeholder="请输入邮箱或手机号"
                   autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-form-type="other"
                   className={accountError ? 'border-red-500' : ''}
                 />
                 {accountError && <p className="text-xs text-red-500">{accountError}</p>}
@@ -429,7 +433,9 @@ function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="请输入密码"
-                  autoComplete="off"
+                  autoComplete="new-password"
+                  data-lpignore="true"
+                  data-form-type="other"
                 />
               </div>
 

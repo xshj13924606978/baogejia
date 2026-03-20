@@ -20,10 +20,27 @@ export async function GET(request: NextRequest) {
     console.log('[UserBalance API] 获取用户余额:', currentUser.id);
 
     // 获取用户余额
-    const balance = await tokenBillingService.getUserBalance(parseInt(currentUser.id));
+    let balance = null;
+    try {
+      balance = await tokenBillingService.getUserBalance(parseInt(currentUser.id));
+    } catch (_balanceError) {
+      // 余额服务异常时降级处理，不影响主流程
+    }
 
     if (!balance) {
-      return NextResponse.json({ error: '获取用户余额失败' }, { status: 500 });
+      // 无余额记录时返回默认值
+      return NextResponse.json({
+        success: true,
+        data: {
+          balance: {
+            pointsBalance: 0,
+            tokenBalance: 0,
+            totalConsumedTokens: 0,
+            totalConsumedPoints: 0,
+          },
+          exchangeRates: null,
+        },
+      });
     }
 
     // 获取兑换比例

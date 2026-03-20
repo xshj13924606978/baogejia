@@ -6,7 +6,6 @@ import bcrypt from 'bcrypt';
 export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json();
-    console.log('[Login] 尝试登录:', { username });
 
     if (!username || !password) {
       return NextResponse.json({ error: '用户名和密码不能为空' }, { status: 400 });
@@ -14,22 +13,46 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseClient();
 
-    // 查询用户（支持用户名或邮箱登录）
-    // 先查询所有匹配的用户，然后取第一个
-    const { data: users, error } = await supabase
+    // 查询用户（支持用户名、邮箱、手机号登录）
+    // 尝试匹配 username / email / metadata.phone 字段
+    let users: any[] | null = null;
+    let queryError: any = null;
+
+    // 第一轮查询：匹配 username 和 email
+    const { data: usersByName, error: err1 } = await supabase
       .from('users')
       .select('*')
       .or(`username.eq.${username},email.eq.${username}`)
       .eq('status', 'active');
 
-    if (error) {
-      console.error('[Login] 查询用户失败:', error?.message);
+    if (!err1 && usersByName && usersByName.length > 0) {
+      users = usersByName;
+    } else {
+      // 第二轮查询：在 metadata JSONB 中查找 phone
+      const { data: usersByMeta, error: err2 } = await supabase
+        .from('users')
+        .select('*')
+        .eq('status', 'active')
+        .filter('metadata->>phone', 'eq', username);
+
+      if (!err2 && usersByMeta && usersByMeta.length > 0) {
+        users = usersByMeta;
+      } else {
+        queryError = err1 || err2;
+      }
+    }
+
+    if (queryError) {
       return NextResponse.json({ error: '用户名或密码错误' }, { status: 401 });
     }
 
     if (!users || users.length === 0) {
-      console.error('[Login] 用户不存在');
-      return NextResponse.json({ error: '用户名或密码错误' }, { status: 401 });
+      // 用户在 Supabase 中不存在，返回 200 + 特定标识让前端降级处理到 localStorage
+      return NextResponse.json({
+        success: false,
+        error: '用户名或密码错误',
+        code: 'USER_NOT_FOUND',
+      });
     }
 
     // 取第一个匹配的用户
@@ -38,49 +61,33 @@ export async function POST(request: NextRequest) {
       console.warn('[Login] 找到多个匹配的用户，使用第一个:', user.username);
     }
 
-    console.log('[Login] 找到用户:', {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      hasPassword: !!user.password,
-      hasPasswordHash: !!user.password_hash,
-    });
-
-    // 验证密码（兼容明文和bcrypt哈希两种方式）
+    // 验证密码
     let isValid = false;
     
     if (user.password_hash) {
-      // 用户已迁移到bcrypt哈希，使用bcrypt比对
-      console.log('[Login] 使用bcrypt验证');
+      // 优先使用 bcrypt 哈希验证
       try {
         isValid = await bcrypt.compare(password, user.password_hash);
-        console.log('[Login] bcrypt验证结果:', isValid);
       } catch (bcryptError) {
         console.error('[Login] bcrypt比对失败:', bcryptError);
         isValid = false;
       }
     } else if (user.password) {
-      // 用户未迁移，使用明文比对（向后兼容）
-      console.log('[Login] 使用明文验证');
+      // 向后兼容：仅有明文密码的老用户，验证成功后立即迁移到 bcrypt
       isValid = user.password === password;
-      console.log('[Login] 明文验证结果:', isValid);
       
-      // 如果明文密码匹配，自动迁移到bcrypt哈希
       if (isValid) {
         try {
           const passwordHash = await bcrypt.hash(password, 10);
           await supabase
             .from('users')
-            .update({ password_hash: passwordHash })
+            .update({ password_hash: passwordHash, password: null })
             .eq('id', user.id);
           console.log('[Login] 密码已自动迁移到bcrypt哈希:', user.username);
         } catch (migrateError) {
-          // 迁移失败不影响登录，只记录日志
           console.error('[Login] 密码迁移失败:', migrateError);
         }
       }
-    } else {
-      console.log('[Login] 用户没有设置密码');
     }
     
     if (!isValid) {

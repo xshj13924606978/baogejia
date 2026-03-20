@@ -968,7 +968,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                     setPasswordForm({ ...passwordForm, oldPassword: e.target.value })
                   }
                   placeholder="请输入当前密码"
-                  autoComplete="off"
+                  autoComplete="new-password"
+                  data-lpignore="true"
+                  data-form-type="other"
                 />
               </div>
               <div className="space-y-2">
@@ -980,7 +982,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                     setPasswordForm({ ...passwordForm, newPassword: e.target.value })
                   }
                   placeholder="请输入新密码"
-                  autoComplete="off"
+                  autoComplete="new-password"
+                  data-lpignore="true"
+                  data-form-type="other"
                 />
               </div>
               <div className="space-y-2">
@@ -992,7 +996,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                     setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
                   }
                   placeholder="请再次输入新密码"
-                  autoComplete="off"
+                  autoComplete="new-password"
+                  data-lpignore="true"
+                  data-form-type="other"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-4">

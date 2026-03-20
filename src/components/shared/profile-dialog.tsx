@@ -61,19 +61,23 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const [unbinding, setUnbinding] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  // 当user变化时更新表单
+  // 记录已被用户主动清空的字段（如解绑后），不被 user 变化覆盖
+  const clearedFieldsRef = React.useRef<Set<string>>(new Set());
+
+  // 当user变化时更新表单（跳过已被主动清空的字段）
   useEffect(() => {
     if (user) {
       console.log('[ProfileDialog] 用户数据更新:', user);
-      setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        company: user.company || '',
-        address: user.address || '',
-        avatar: user.avatar || '',
-        wechat: (user as any).wechat || null,
-      });
+      setFormData(prev => ({
+        name: user.name || prev.name || '',
+        email: clearedFieldsRef.current.has('email') ? '' : (user.email || prev.email || ''),
+        phone: clearedFieldsRef.current.has('phone') ? '' : (user.phone || prev.phone || ''),
+        company: user.company || prev.company || '',
+        address: user.address || prev.address || '',
+        avatar: user.avatar || prev.avatar || '',
+        wechat: clearedFieldsRef.current.has('wechat') ? null : ((user as any).wechat || prev.wechat || null),
+      }));
+      // 解绑成功后下次 user 变化不再保护（只在当前 dialog session 内有效）
     }
   }, [user]);
 
@@ -82,6 +86,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     if (!open) {
       setEditing(false);
       setSaving(false);
+      clearedFieldsRef.current.clear();
     }
   }, [open]);
 
@@ -224,6 +229,17 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
       }
 
       if (success) {
+        // 标记已清空的字段，防止 refreshUser 的 setUser 恢复
+        clearedFieldsRef.current.add(type);
+        // 直接更新表单数据
+        if (type === 'email') {
+          setFormData(prev => ({ ...prev, email: '' }));
+        } else if (type === 'wechat') {
+          setFormData(prev => ({ ...prev, wechat: null }));
+        } else if (type === 'phone') {
+          setFormData(prev => ({ ...prev, phone: '' }));
+        }
+        // 后台静默刷新用户数据（获取等级/余额等信息）
         await refreshUser();
         toast({
           title: '解绑成功',

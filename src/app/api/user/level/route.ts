@@ -30,16 +30,17 @@ export async function GET(request: NextRequest) {
     // 获取用户等级信息
     const levelInfo = await userLevelService.getUserLevel(currentUser.id);
 
-    if (!levelInfo) {
-      return NextResponse.json(
-        { error: '获取等级信息失败' },
-        { status: 500 }
-      );
-    }
-
+    // 即使没有等级信息也返回默认值，不报错
     return NextResponse.json({
       success: true,
-      data: levelInfo
+      data: levelInfo || {
+        level: 1,
+        current_points: 0,
+        next_level_points: 1000,
+        level_name: '等级1',
+        role: 'free',
+        progress: 0,
+      }
     });
   } catch (error) {
     console.error('[UserLevel API] 获取等级信息异常:', error);

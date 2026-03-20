@@ -705,7 +705,9 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
                     placeholder="请输入当前密码"
-                    autoComplete="off"
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    data-form-type="other"
                   />
                 </div>
 
@@ -717,7 +719,9 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="请输入新密码"
-                    autoComplete="off"
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    data-form-type="other"
                   />
                   <p className="text-xs text-gray-400">密码至少6位</p>
                 </div>
@@ -730,7 +734,9 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="请再次输入新密码"
-                    autoComplete="off"
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    data-form-type="other"
                   />
                 </div>
 

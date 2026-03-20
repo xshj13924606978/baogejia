@@ -16,36 +16,68 @@ export async function getCurrentUser(request: NextRequest) {
     let email = null;
 
     if (!cookie) {
-      // 开发环境：如果没有 cookie，返回测试用户
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Auth] 开发环境使用测试用户');
-        // 查询实际的业务用户ID
-        const dbClient = getSupabaseClient();
-        const { data: businessUser } = await dbClient
-          .from('users')
-          .select('id, email')
-          .eq('email', 'admin2@test.com')
-          .single();
-        
-        if (businessUser) {
-          return {
-            id: businessUser.id, // 返回实际的UUID
-            email: businessUser.email,
-          };
+      // 尝试从 Authorization header 获取 Supabase JWT token
+      const authHeader = request.headers.get('authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        // 验证 Supabase JWT token
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser(token);
+
+        if (!error && user) {
+          // token 有效，根据 email 查询业务用户
+          email = user.email;
+          const dbClient = getSupabaseClient();
+          const { data: businessUser } = await dbClient
+            .from('users')
+            .select('id, email')
+            .eq('email', email)
+            .single();
+
+          if (businessUser) {
+            return {
+              id: businessUser.id,
+              email: businessUser.email,
+              name: user.user_metadata?.name || businessUser.email,
+            };
+          }
         }
+
+        // 开发环境：token 无效时降级到测试用户
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[Auth] 开发环境：Bearer token 无效，降级使用测试用户');
+          const dbClient = getSupabaseClient();
+          const { data: businessUser } = await dbClient
+            .from('users')
+            .select('id, email')
+            .eq('email', 'admin2@test.com')
+            .single();
+
+          if (businessUser) {
+            return {
+              id: businessUser.id,
+              email: businessUser.email,
+            };
+          }
+        }
+
+        // 生产环境：token 无效直接返回 null
         return null;
       }
 
-      // 尝试从 Authorization header 获取
-      const authHeader = request.headers.get('authorization');
-      if (authHeader?.startsWith('Bearer ')) {
+      // 无 cookie 也无 Bearer token
+      // 开发环境降级到测试用户
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Auth] 开发环境使用测试用户');
         const dbClient = getSupabaseClient();
         const { data: businessUser } = await dbClient
           .from('users')
           .select('id, email')
           .eq('email', 'admin2@test.com')
           .single();
-        
+
         if (businessUser) {
           return {
             id: businessUser.id,
@@ -53,6 +85,7 @@ export async function getCurrentUser(request: NextRequest) {
           };
         }
       }
+
       return null;
     }
 

@@ -174,8 +174,33 @@ export class UserLevelService {
       // 2. 获取等级定义
       const levelConfig = await this.getLevelDefinition(level);
       if (!levelConfig) {
-        console.error('[UserLevelService] 未找到等级定义:', level);
-        return null;
+        console.warn('[UserLevelService] 未找到等级定义，使用默认配置:', level);
+        // 返回默认等级信息，不返回 null
+        return {
+          level,
+          current_points: currentPoints,
+          next_level_points: 1000,
+          level_name: `等级${level}`,
+          role: 'free',
+          progress: 0,
+          config: {
+            id: 0,
+            level,
+            name: `等级${level}`,
+            required_points: 0,
+            role: 'free',
+            permissions: [],
+            daily_quota: 10,
+            max_files: 5,
+            max_chat_messages: 50,
+            can_view_cost_price: false,
+            can_view_min_price: false,
+            can_view_manufacturer: false,
+            can_view_contact: false,
+            can_view_phone: false,
+            created_at: new Date().toISOString(),
+          },
+        };
       }
 
       // 3. 获取下一等级信息

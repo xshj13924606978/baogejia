@@ -195,14 +195,53 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // 通过ID查找用户
+  // 通过ID查找用户（支持 localStorage ID 和 Supabase ID）
   const findUserById = (id: string): any | null => {
     try {
       const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS_DB) || '[]');
-      return users.find((u: any) => u.id === id) || null;
+      return users.find((u: any) => u.id === id || u.supabaseId === id) || null;
     } catch (error) {
       console.error('[UserContext] 查找用户失败:', error);
       return null;
+    }
+  };
+
+  // 同步用户数据到 Supabase（后台静默执行，不阻塞主流程）
+  const syncToSupabase = async (options?: {
+    clearEmail?: boolean;
+    clearPhone?: boolean;
+  }) => {
+    try {
+      const currentUserId = user?.id || '';
+      const dbUser = findUserById(currentUserId);
+      if (!dbUser) return;
+
+      const res = await fetch('/api/auth/sync-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: dbUser.phone,
+          email: dbUser.email,
+          username: dbUser.username || dbUser.name,
+          password: dbUser.password,
+          name: dbUser.name,
+          role: dbUser.role,
+          supabaseUserId: (user as any)?.supabaseId,
+          clearEmail: options?.clearEmail,
+          clearPhone: options?.clearPhone,
+        }),
+      });
+
+      // 保存返回的 supabaseId 到 localStorage，供后续精确定位
+      const data = await res.json();
+      if (data.success && data.user?.id) {
+        const updatedDbUser = findUserById(currentUserId);
+        if (updatedDbUser && updatedDbUser.supabaseId !== data.user.id) {
+          saveUserToDB({ ...updatedDbUser, supabaseId: data.user.id });
+        }
+      }
+    } catch (e) {
+      console.error('[syncToSupabase] 同步失败（不影响主流程）:', e);
     }
   };
 
@@ -212,7 +251,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS_DB) || '[]');
       const index = users.findIndex((u: any) => u.id === userData.id);
       if (index !== -1) {
-        users[index] = { ...users[index], ...userData };
+        // 先过滤掉 undefined 值的字段，再合并
+        const cleanData: Record<string, any> = {};
+        for (const [key, value] of Object.entries(userData)) {
+          if (value !== undefined) {
+            cleanData[key] = value;
+          }
+        }
+        users[index] = { ...users[index], ...cleanData };
+        // 显式删除被设为 undefined 的字段（如解绑后需要移除 email）
+        for (const [key, value] of Object.entries(userData)) {
+          if (value === undefined) {
+            delete users[index][key];
+          }
+        }
       } else {
         users.push(userData);
       }
@@ -638,36 +690,100 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        console.log('[passwordLogin] 登录失败:', data.error);
-        return { success: false, error: data.error || '登录失败' };
+      if (response.ok && data.success) {
+        // 后端登录成功
+        const supabaseUser = data.user;
+
+        // 尝试在 localStorage 中查找匹配的本地用户，合并个人资料
+        const localUser = findUserInDB(account);
+        let finalUser: any;
+
+        if (localUser) {
+          // 找到本地用户：用本地用户为主体，补充 Supabase 信息
+          // 保留本地用户的 ID、头像、姓名等个人资料
+          const { password: _, password_hash: __, ...localWithoutPassword } = localUser;
+          finalUser = {
+            ...localWithoutPassword,
+            // 记录 Supabase ID，供后续关联
+            supabaseId: supabaseUser.id,
+            // 如果本地缺少某些字段，从 Supabase 补充
+            email: localUser.email || supabaseUser.email,
+            level: supabaseUser.level,
+            currentPoints: supabaseUser.currentPoints,
+          };
+          // 更新本地记录：保存 Supabase 同步来的密码
+          saveUserToDB({ ...localUser, supabaseId: supabaseUser.id });
+        } else {
+          // 本地无匹配用户：将 Supabase 用户写入 localStorage
+          finalUser = supabaseUser;
+          saveUserToDB({
+            id: supabaseUser.id,
+            email: supabaseUser.email,
+            username: supabaseUser.username,
+            phone: supabaseUser.metadata?.phone,
+            name: supabaseUser.metadata?.name || supabaseUser.full_name || supabaseUser.username,
+            role: supabaseUser.role || 'user',
+            createdAt: supabaseUser.created_at,
+          });
+        }
+
+        // 保存最后登录的账号
+        if (isEmail) {
+          localStorage.setItem(STORAGE_KEYS.LAST_EMAIL, account);
+        } else if (isPhone) {
+          localStorage.setItem(STORAGE_KEYS.LAST_PHONE, account);
+        }
+
+        // 保存用户信息
+        setUser(finalUser);
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(finalUser));
+        localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
+
+        return { success: true, user: finalUser };
       }
 
-      if (!data.success) {
-        console.log('[passwordLogin] 登录返回失败:', data.error);
-        return { success: false, error: data.error || '登录失败' };
+      // 后端返回用户未找到，尝试 localStorage 降级查询
+      if (data.code === 'USER_NOT_FOUND' || !response.ok) {
+        const localUser = findUserInDB(account);
+        if (!localUser) {
+          return { success: false, error: data.error || '用户名或密码错误' };
+        }
+
+        // 验证密码（localStorage 中的密码可能是明文）
+        const userPassword = localUser.password || localUser.password_hash;
+        if (!userPassword || userPassword !== password) {
+          return { success: false, error: '用户名或密码错误' };
+        }
+
+        // localStorage 登录成功
+        // 过滤掉密码字段
+        const { password: _, password_hash: __, ...userWithoutPassword } = localUser;
+
+        // 保存最后登录的账号
+        if (isEmail) {
+          localStorage.setItem(STORAGE_KEYS.LAST_EMAIL, account);
+        } else if (isPhone) {
+          localStorage.setItem(STORAGE_KEYS.LAST_PHONE, account);
+        }
+
+        // 保存用户信息到 localStorage
+        setUser(userWithoutPassword as User);
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
+        localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
+
+        // 异步同步用户数据到 Supabase（不阻塞登录流程）
+        try {
+          await syncToSupabase();
+        } catch (syncError) {
+          // 同步失败不影响登录，只记录日志
+          console.error('[passwordLogin] 用户同步失败（不影响登录）:', syncError);
+        }
+
+        return { success: true, user: userWithoutPassword as User };
       }
 
-      // 保存最后登录的账号
-      if (isEmail) {
-        localStorage.setItem(STORAGE_KEYS.LAST_EMAIL, account);
-      } else if (isPhone) {
-        localStorage.setItem(STORAGE_KEYS.LAST_PHONE, account);
-      }
-
-      // 保存用户信息
-      const userData = data.user;
-      console.log(
-        '[passwordLogin] 保存用户信息到 localStorage:',
-        userData.id,
-        userData.email,
-        userData.role
-      );
-      setUser(userData);
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
-      localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
-
-      return { success: true, user: userData };
+      // 其他未知错误
+      return { success: false, error: data.error || '用户名或密码错误' };
     } catch (err) {
       console.error('[passwordLogin] Error:', err);
       return { success: false, error: '登录失败，请检查网络连接' };
@@ -832,6 +948,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     // 保存到数据库
     saveUserToDB(updatedUser);
 
+    // 同步绑定邮箱到 Supabase（包含密码）
+    syncToSupabase();
+
     // 更新当前用户状态（移除密码）
     const { password: _, ...userWithoutPassword } = updatedUser;
     setUser(userWithoutPassword);
@@ -869,6 +988,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const updatedUser = { ...dbUser, phone, phoneVerified: true };
     saveUserToDB(updatedUser);
 
+    // 同步新手机号到 Supabase
+    syncToSupabase();
+
     const { password: _, ...userWithoutPassword } = updatedUser;
     setUser(userWithoutPassword);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
@@ -886,8 +1008,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const dbUser = findUserById(user.id);
     if (!dbUser) return false;
 
-    const updatedUser = { ...dbUser };
-    delete updatedUser.wechat;
+    const updatedUser = { ...dbUser, wechat: undefined };
 
     saveUserToDB(updatedUser);
 
@@ -909,12 +1030,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const dbUser = findUserById(user.id);
     if (!dbUser) return false;
 
-    const updatedUser = { ...dbUser };
-    delete updatedUser.email;
-    delete updatedUser.password;
-    delete updatedUser.emailVerified;
+    const updatedUser = { ...dbUser, email: undefined, password: undefined, emailVerified: undefined };
 
     saveUserToDB(updatedUser);
+
+    // 同步解绑邮箱到 Supabase（清空 email，等待完成）
+    await syncToSupabase({ clearEmail: true });
 
     const { password: _, ...userWithoutPassword } = updatedUser;
     setUser(userWithoutPassword);
@@ -933,11 +1054,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const dbUser = findUserById(user.id);
     if (!dbUser) return false;
 
-    const updatedUser = { ...dbUser };
-    delete updatedUser.phone;
-    delete updatedUser.phoneVerified;
+    const updatedUser = { ...dbUser, phone: undefined, phoneVerified: undefined };
 
     saveUserToDB(updatedUser);
+
+    // 同步解绑手机号到 Supabase（清空 phone）
+    syncToSupabase({ clearPhone: true });
 
     const { password: _, ...userWithoutPassword } = updatedUser;
     setUser(userWithoutPassword);
@@ -1080,6 +1202,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     saveUserToDB({ ...dbUser, password: newPassword });
 
+    // 同步新密码到 Supabase（在清除登录态之前，等待完成）
+    await syncToSupabase();
+
     localStorage.setItem(
       STORAGE_KEYS.PASSWORD_CHANGE_EVENT,
       JSON.stringify({
@@ -1121,7 +1246,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = useCallback(async () => {
     if (!user || !user.id) return;
 
-    setLoading(true);
     try {
       // 从localStorage获取用户信息
       const dbUser = findUserById(user.id);
@@ -1173,8 +1297,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('[UserContext] 刷新用户失败:', error);
-    } finally {
-      setLoading(false);
     }
   }, [user]);
 

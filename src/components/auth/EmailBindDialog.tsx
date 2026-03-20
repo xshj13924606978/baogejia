@@ -109,37 +109,32 @@ export function EmailBindDialog({ open, onOpenChange, onBound }: EmailBindDialog
     }
   };
 
-  if (bindSuccess) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-green-600">
-              <CheckCircle className="h-5 w-5" />
-              绑定成功
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-8 text-center">
-            <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <p className="text-lg font-medium">邮箱绑定成功！</p>
-            <p className="text-sm text-gray-500 mt-2">即将关闭...</p>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5 text-blue-600" />
-            绑定邮箱
+            {bindSuccess ? (
+              <CheckCircle className="h-5 w-5 text-green-600" />
+            ) : (
+              <Mail className="h-5 w-5 text-blue-600" />
+            )}
+            {bindSuccess ? '绑定成功' : '绑定邮箱'}
           </DialogTitle>
-          <DialogDescription>设置密码后，您可以用「邮箱+密码」方式登录</DialogDescription>
+          <DialogDescription>
+            {bindSuccess
+              ? '邮箱已绑定到您的账号'
+              : '设置密码后，您可以用「邮箱+密码」方式登录'}
+          </DialogDescription>
         </DialogHeader>
 
+        {bindSuccess ? (
+          <div className="py-8 text-center">
+            <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+            <p className="text-lg font-medium">邮箱绑定成功！</p>
+            <p className="text-sm text-gray-500 mt-2">即将关闭...</p>
+          </div>
+        ) : (
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">邮箱地址</label>
@@ -148,6 +143,11 @@ export function EmailBindDialog({ open, onOpenChange, onBound }: EmailBindDialog
               onChange={handleEmailChange}
               placeholder="请输入邮箱"
               className={emailError ? 'border-red-500' : ''}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              data-lpignore="true"
+              data-form-type="other"
             />
             {emailError && <p className="text-xs text-red-500">{emailError}</p>}
           </div>
@@ -160,6 +160,9 @@ export function EmailBindDialog({ open, onOpenChange, onBound }: EmailBindDialog
               onChange={(e) => setPassword(e.target.value)}
               placeholder="至少6位"
               minLength={6}
+              autoComplete="new-password"
+              data-lpignore="true"
+              data-form-type="other"
             />
           </div>
 
@@ -171,6 +174,9 @@ export function EmailBindDialog({ open, onOpenChange, onBound }: EmailBindDialog
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="请再次输入密码"
               minLength={6}
+              autoComplete="new-password"
+              data-lpignore="true"
+              data-form-type="other"
             />
           </div>
 
@@ -186,6 +192,7 @@ export function EmailBindDialog({ open, onOpenChange, onBound }: EmailBindDialog
             </Button>
           </div>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );

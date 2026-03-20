@@ -1,16 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { POST as _awardPoints } from '../../points/route';
+import bcrypt from 'bcrypt';
 
 // 注册用户
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, password, email, phone, role, company, contact } = body;
+    const { username, password, email, phone, company, contact } = body;
 
-    if (!username || !password) {
-      return NextResponse.json({ error: '用户名和密码不能为空' }, { status: 400 });
+    if (!username || !password || !email) {
+      return NextResponse.json({ error: '用户名、密码和邮箱不能为空' }, { status: 400 });
     }
+
+    // 密码强度校验：至少6位
+    if (password.length < 6) {
+      return NextResponse.json({ error: '密码长度不能少于6位' }, { status: 400 });
+    }
+
+    // 邮箱格式校验
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: '邮箱格式不正确' }, { status: 400 });
+    }
+
+    // 密码加密
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const db = getSupabaseClient();
 
@@ -25,22 +40,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '用户名已存在' }, { status: 409 });
     }
 
-    // 创建用户
+    // 创建用户（字段适配实际数据库 users 表）
+    const insertData: Record<string, unknown> = {
+      username,
+      password_hash: passwordHash,
+      email,
+      role: 'free', // 注册固定为免费用户，不允许客户端指定
+      status: 'active',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // 可选字段：仅在有值时加入
+    if (phone) insertData.phone = phone;
+    if (company) insertData.company = company;
+    if (contact) insertData.contact = contact;
+
     const { data: user, error: createError } = await db
       .from('users')
-      .insert({
-        username,
-        password, // 实际应用中应该加密
-        email,
-        phone,
-        role: role || 'pending', // 默认为待审核
-        status: 'active',
-        points: 0,
-        total_points: 0,
-        company,
-        contact,
-        verified: false,
-        created_at: new Date().toISOString()})
+      .insert(insertData)
       .select()
       .single();
 
@@ -69,9 +87,8 @@ export async function POST(request: NextRequest) {
         username: user.username,
         email: user.email,
         role: user.role,
-        points: user.points,
-        total_points: user.total_points},
-      message: '注册成功，请等待审核'});
+      },
+      message: '注册成功'});
   } catch (error) {
     console.error('[Auth] 注册请求失败:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
