@@ -1,83 +1,140 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
-// 管理员角色列表
-const ADMIN_ROLES = ['admin', 'super_admin', '管理员', '超级管理员', '系统管理员'];
-
-// 默认模块列表（当数据库表不存在时使用）
+// 默认模块列表
 const DEFAULT_MODULES = [
-  { id: 1, module_code: 'chat', module_name: '智能对话', description: 'AI智能对话与问答功能', is_active: true },
-  { id: 2, module_code: 'quote', module_name: '报价生成', description: '产品报价单智能生成', is_active: true },
-  { id: 3, module_code: 'history', module_name: '历史记录', description: '查看历史对话和报价记录', is_active: true },
-  { id: 4, module_code: 'export', module_name: '导出功能', description: '导出PDF和Excel文件', is_active: true },
-  { id: 5, module_code: 'analytics', module_name: '数据分析', description: '统计分析与数据报告', is_active: true },
-  { id: 6, module_code: 'api', module_name: 'API接口', description: 'API接口调用权限', is_active: true },
+  { module_code: 'chat', module_name: '智能对话', description: 'AI智能对话与问答功能', is_active: true },
+  { module_code: 'quote', module_name: '报价生成', description: '产品报价单智能生成', is_active: true },
+  { module_code: 'history', module_name: '历史记录', description: '查看历史对话和报价记录', is_active: true },
+  { module_code: 'export', module_name: '导出功能', description: '导出PDF和Excel文件', is_active: true },
+  { module_code: 'analytics', module_name: '数据分析', description: '统计分析与数据报告', is_active: true },
+  { module_code: 'api', module_name: 'API接口', description: 'API接口调用权限', is_active: true },
+  { module_code: 'knowledge', module_name: '知识库', description: '知识库上传与管理', is_active: true },
+  { module_code: 'points', module_name: '积分系统', description: '积分获取与消费', is_active: true },
 ];
 
-// 获取用户角色的辅助函数
-async function getUserRole(supabase: any, userId: any): Promise<string | null> {
-  const { data: userRole } = await supabase.from('user_roles').select('role').eq('user_id', userId).single();
-  if (userRole?.role) return userRole.role;
-  const { data: profile } = await supabase.from('profiles').select('metadata').eq('id', userId).single();
-  if (profile?.metadata?.role) return profile.metadata.role;
-  const { data: user } = await supabase.from('users').select('metadata').eq('id', userId).single();
-  if (user?.metadata?.role) return user.metadata.role;
-  if (process.env.NODE_ENV === 'development') return '超级管理员';
-  return null;
-}
-
 /**
- * 模块管理 API（管理员）
- *
- * 功能：
- * - GET: 获取所有模块列表
+ * GET: 获取模块列表
  */
-
-/**
- * 获取模块列表
- */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    console.log('[Modules API] 获取模块列表');
+    const db = getSupabaseServiceClient();
 
-    // 检查用户登录
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-    }
-
-    const supabase = getSupabaseClient();
-    const role = await getUserRole(supabase, currentUser.id);
-
-    if (!role || !ADMIN_ROLES.includes(role)) {
-      return NextResponse.json({ error: '无权限，需要管理员权限' }, { status: 403 });
-    }
-    
-    // 查询模块列表
-    const { data: modules, error } = await supabase
+    const { data: modules, error } = await db
       .from('modules')
       .select('*')
       .order('module_code');
 
     if (error) {
-      console.log('[Modules API] 查询模块列表失败，使用默认值:', error.message);
-      return NextResponse.json({
-        success: true,
-        modules: DEFAULT_MODULES
-      });
+      console.log('[Modules API] 表不存在或查询失败，返回默认值');
+      return NextResponse.json({ success: true, data: DEFAULT_MODULES });
     }
 
-    return NextResponse.json({
-      success: true,
-      modules: modules || DEFAULT_MODULES
-    });
-  } catch (error) {
-    console.error('[Modules API] 获取模块列表异常:', error);
-    // 出错时也返回默认值
-    return NextResponse.json({
-      success: true,
-      modules: DEFAULT_MODULES
-    });
+    return NextResponse.json({ success: true, data: modules || DEFAULT_MODULES });
+  } catch {
+    return NextResponse.json({ success: true, data: DEFAULT_MODULES });
+  }
+}
+
+/**
+ * POST: 创建模块
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const { module_code, module_name, description, is_active } = await request.json();
+
+    if (!module_code || !module_name) {
+      return NextResponse.json({ success: false, error: '模块代码和名称不能为空' }, { status: 400 });
+    }
+
+    const db = getSupabaseServiceClient();
+
+    const { data, error } = await db
+      .from('modules')
+      .insert({
+        module_code,
+        module_name,
+        description: description || '',
+        is_active: is_active !== false,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Modules API] 创建失败:', error);
+      if (error.message?.includes('duplicate') || error.message?.includes('unique')) {
+        return NextResponse.json({ success: false, error: '模块代码已存在' }, { status: 409 });
+      }
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: '模块创建成功', data });
+  } catch (error: any) {
+    console.error('[Modules API] 创建异常:', error);
+    return NextResponse.json({ success: false, error: '创建失败' }, { status: 500 });
+  }
+}
+
+/**
+ * PUT: 更新模块
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const { id, module_name, description, is_active } = await request.json();
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: '缺少模块ID' }, { status: 400 });
+    }
+
+    const db = getSupabaseServiceClient();
+    const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
+
+    if (module_name !== undefined) updateData.module_name = module_name;
+    if (description !== undefined) updateData.description = description;
+    if (is_active !== undefined) updateData.is_active = is_active;
+
+    const { data, error } = await db
+      .from('modules')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Modules API] 更新失败:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: '更新成功', data });
+  } catch (error: any) {
+    console.error('[Modules API] 更新异常:', error);
+    return NextResponse.json({ success: false, error: '更新失败' }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE: 删除模块
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: '缺少模块ID' }, { status: 400 });
+    }
+
+    const db = getSupabaseServiceClient();
+    const { error } = await db.from('modules').delete().eq('id', id);
+
+    if (error) {
+      console.error('[Modules API] 删除失败:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: '已删除' });
+  } catch (error: any) {
+    console.error('[Modules API] 删除异常:', error);
+    return NextResponse.json({ success: false, error: '删除失败' }, { status: 500 });
   }
 }
