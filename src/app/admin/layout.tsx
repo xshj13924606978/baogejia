@@ -88,6 +88,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [user, loading, router, toast]);
 
+  const [pendingAuditCount, setPendingAuditCount] = useState<number>(0);
+
+  // 加载待审核数量
+  useEffect(() => {
+    async function fetchCounts() {
+      try {
+        const res = await fetch('/api/admin/knowledge?status=pending&limit=1');
+        const data = await res.json();
+        if (data.success) setPendingAuditCount(data.total || 0);
+      } catch { /* 静默失败 */ }
+    }
+    fetchCounts();
+    // 每60秒刷新
+    const interval = setInterval(fetchCounts, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   // 导航菜单项
   const navItems: NavItem[] = [
     {
@@ -99,21 +116,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       title: '用户管理',
       href: '/admin/users',
       icon: <Users className="h-5 w-5" />,
-      badge: '12',
-      badgeColor: 'bg-blue-500',
     },
     {
       title: '企业用户管理',
       href: '/admin/enterprise',
       icon: <Building2 className="h-5 w-5" />,
-      badge: '3',
-      badgeColor: 'bg-purple-500',
     },
     {
       title: '内容审核',
       href: '/admin/audit',
       icon: <CheckCircle className="h-5 w-5" />,
-      badge: '5',
+      badge: pendingAuditCount > 0 ? String(pendingAuditCount) : undefined,
       badgeColor: 'bg-yellow-500',
     },
     {
