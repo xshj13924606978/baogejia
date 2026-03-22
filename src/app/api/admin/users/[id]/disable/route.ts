@@ -1,25 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withPermissionCheck } from '@/lib/permission-check';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
-export const POST = withPermissionCheck(
-  { requiresAuth: true, permissions: ['user.disable'] },
-  async (request: NextRequest, _context: any) => {
-    try {
-      // 从 URL 中提取 id
-      const url = new URL(request.url);
-      const pathParts = url.pathname.split('/');
-      const userIdStr = pathParts[pathParts.length - 1];
-      const userId = parseInt(userIdStr);
+/**
+ * POST - 启用/禁用用户
+ * body: { action: 'disable' | 'enable' }
+ */
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  try {
+    const params = await context.params;
+    const { action } = await request.json();
 
-      // 模拟用户状态切换
-      console.log(`切换用户 ${userId} 的状态`);
-
-      return NextResponse.json({
-        success: true,
-        status: 'disabled'});
-    } catch (error) {
-      console.error('更新用户状态失败:', error);
-      return NextResponse.json({ error: '更新用户状态失败' }, { status: 500 });
+    if (!action || !['disable', 'enable'].includes(action)) {
+      return NextResponse.json(
+        { success: false, error: '请指定有效操作: disable 或 enable' },
+        { status: 400 }
+      );
     }
+
+    const db = getSupabaseServiceClient();
+    const newStatus = action === 'disable' ? 'disabled' : 'active';
+
+    const { data, error } = await db
+      .from('users')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', params.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[User Disable API] 操作失败:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: action === 'disable' ? '用户已禁用' : '用户已启用',
+      data: { id: data.id, status: data.status },
+    });
+  } catch (error: any) {
+    console.error('[User Disable API] 异常:', error);
+    return NextResponse.json({ success: false, error: '操作失败' }, { status: 500 });
   }
-);
+}

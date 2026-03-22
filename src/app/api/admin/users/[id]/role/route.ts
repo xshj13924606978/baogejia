@@ -1,30 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withPermissionCheck } from '@/lib/permission-check';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
-export const POST = withPermissionCheck(
-  { requiresAuth: true, permissions: ['admin.access'] },
-  async (request: NextRequest, _context: any) => {
-    try {
-      // 从 URL 中提取 id
-      const url = new URL(request.url);
-      const pathParts = url.pathname.split('/');
-      const userIdStr = pathParts[pathParts.length - 1];
-      const userId = parseInt(userIdStr);
-      const { role } = await request.json();
+/**
+ * POST - 修改用户角色
+ */
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  try {
+    const params = await context.params;
+    const { role } = await request.json();
 
-      const validRoles = ['user', 'vip', 'manufacturer', 'super_admin', 'pending'];
-
-      if (!validRoles.includes(role)) {
-        return NextResponse.json({ error: '无效的角色' }, { status: 400 });
-      }
-
-      // 模拟角色设置
-      console.log(`设置用户 ${userId} 的角色为 ${role}`);
-
-      return NextResponse.json({ success: true, role });
-    } catch (error) {
-      console.error('设置角色失败:', error);
-      return NextResponse.json({ error: '设置角色失败' }, { status: 500 });
+    if (!role) {
+      return NextResponse.json({ success: false, error: '请指定角色' }, { status: 400 });
     }
+
+    const validRoles = ['super_admin', 'admin', 'enterprise_admin', 'manufacturer', 'vip', 'premium', 'free', 'pending'];
+    if (!validRoles.includes(role)) {
+      return NextResponse.json({ success: false, error: '无效的角色值' }, { status: 400 });
+    }
+
+    const db = getSupabaseServiceClient();
+
+    const { data, error } = await db
+      .from('users')
+      .update({ role, updated_at: new Date().toISOString() })
+      .eq('id', params.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[User Role API] 修改角色失败:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `角色已更新为 ${role}`,
+      data: { id: data.id, role: data.role },
+    });
+  } catch (error: any) {
+    console.error('[User Role API] 异常:', error);
+    return NextResponse.json({ success: false, error: '修改角色失败' }, { status: 500 });
   }
-);
+}
