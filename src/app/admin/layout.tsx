@@ -23,6 +23,9 @@ import {
   Shield,
   ScrollText,
   History,
+  BookOpen,
+  Puzzle,
+  ClipboardList,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -154,6 +157,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       title: '数据统计',
       href: '/admin/stats',
       icon: <BarChart3 className="h-5 w-5" />,
+    },
+    {
+      title: '知识库管理',
+      href: '/admin/knowledge',
+      icon: <BookOpen className="h-5 w-5" />,
+    },
+    {
+      title: '模块管理',
+      href: '/admin/modules',
+      icon: <Puzzle className="h-5 w-5" />,
+    },
+    {
+      title: '导入日志',
+      href: '/admin/import-logs',
+      icon: <ClipboardList className="h-5 w-5" />,
     },
     {
       title: '系统设置',
