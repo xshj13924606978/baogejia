@@ -1,369 +1,272 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Search,
-  Filter,
-  Download,
-  UserPlus,
-  MoreHorizontal,
-  Shield,
-  Clock,
-  Calendar,
-  Edit2,
-  Trash2,
-  Ban,
-  CheckCircle,
-  Key,
-  History,
-  Users as UsersIcon,
-  Building2,
-  Star,
-  Gift,
+  Search, Download, UserPlus, MoreHorizontal,
+  Shield, Edit2, Trash2, Ban, CheckCircle, Gift,
+  Users as UsersIcon, Building2, Star, Loader2,
 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { UserRole, UserStatus, UserType, getRoleDisplayName } from '@/lib/auth/roles';
+import { toast } from 'sonner';
+import { getRoleDisplayName } from '@/lib/auth/roles';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
-  userType: UserType;
-  status: UserStatus;
-  department?: string;
-  company?: string;
+  username?: string;
+  role: string;
+  status: string;
   phone?: string;
-  lastActive: string;
-  createdAt: string;
-  expiresAt?: string;
-  membershipLevel?: string;
+  avatar?: string;
   points: number;
-  uploadCount: number;
-  quoteCount: number;
-  storageUsed: string;
-  storageLimit: string;
-  teamSize?: number;
-  teamMembers?: string[];
-  permissions: string[];
-  tags?: string[];
-  inviteCode?: string;
-  invitedBy?: string;
+  createdAt: string;
+  lastLogin?: string;
+  metadata?: Record<string, any>;
 }
 
-// 模拟用户数据（丰富版，包含各种类型）
-const mockUsers: User[] = [
-  // 超级管理员
-  {
-    id: '1',
-    name: '系统管理员',
-    email: 'admin@baogejia.com',
-    role: 'super_admin' as UserRole,
-    userType: 'personal' as UserType,
-    status: 'active' as UserStatus,
-    phone: '13800138001',
-    lastActive: '2024-02-26 14:30',
-    createdAt: '2024-01-01',
-    points: 9999,
-    uploadCount: 999,
-    quoteCount: 999,
-    storageUsed: '5 GB',
-    storageLimit: '无限',
-    permissions: ['all'],
-    tags: ['创始人', '超级管理员'],
-  },
-  // 企业管理员
-  {
-    id: '2',
-    name: '张三',
-    email: 'zhangsan@enterprise.com',
-    role: 'enterprise_admin' as UserRole,
-    userType: 'enterprise' as UserType,
-    status: 'active' as UserStatus,
-    company: '某某制造企业',
-    department: '采购部',
-    phone: '13800138002',
-    lastActive: '2024-02-26 13:45',
-    createdAt: '2024-01-15',
-    points: 8500,
-    uploadCount: 450,
-    quoteCount: 230,
-    storageUsed: '2.3 GB',
-    storageLimit: '50 GB',
-    teamSize: 15,
-    teamMembers: ['user3', 'user4', 'user5'],
-    permissions: ['upload', 'quote', 'team_manage'],
-    tags: ['企业VIP', '大客户'],
-  },
-  // 普通管理员
-  {
-    id: '3',
-    name: '李四',
-    email: 'lisi@company.com',
-    role: 'admin' as UserRole,
-    userType: 'personal' as UserType,
-    status: 'active' as UserStatus,
-    company: '某某科技公司',
-    department: '技术部',
-    phone: '13800138003',
-    lastActive: '2024-02-26 12:30',
-    createdAt: '2024-02-01',
-    points: 5200,
-    uploadCount: 280,
-    quoteCount: 140,
-    storageUsed: '1.2 GB',
-    storageLimit: '20 GB',
-    permissions: ['upload', 'quote'],
-    tags: ['资深用户'],
-  },
-  // 产品厂家
-  {
-    id: '4',
-    name: '王五',
-    email: 'wangwu@factory.com',
-    role: 'manufacturer' as UserRole,
-    userType: 'manufacturer' as UserType,
-    status: 'active' as UserStatus,
-    company: '某某设备制造厂',
-    department: '销售部',
-    phone: '13800138004',
-    lastActive: '2024-02-26 11:20',
-    createdAt: '2024-02-10',
-    points: 3800,
-    uploadCount: 180,
-    quoteCount: 95,
-    storageUsed: '850 MB',
-    storageLimit: '10 GB',
-    permissions: ['upload', 'quote', 'view_analytics'],
-    tags: ['厂家认证'],
-  },
-  // VIP会员
-  {
-    id: '5',
-    name: '赵六',
-    email: 'zhaoliu@vip.com',
-    role: 'vip' as UserRole,
-    userType: 'personal' as UserType,
-    status: 'active' as UserStatus,
-    phone: '13800138005',
-    lastActive: '2024-02-26 10:15',
-    createdAt: '2024-02-18',
-    points: 6800,
-    uploadCount: 350,
-    quoteCount: 175,
-    storageUsed: '1.8 GB',
-    storageLimit: '15 GB',
-    membershipLevel: 'VIP',
-    permissions: ['upload', 'quote', 'export'],
-    tags: ['VIP用户', '活跃'],
-  },
-  // 付费会员
-  {
-    id: '6',
-    name: '孙七',
-    email: 'sunqi@premium.com',
-    role: 'premium' as UserRole,
-    userType: 'personal' as UserType,
-    status: 'active' as UserStatus,
-    phone: '13800138006',
-    lastActive: '2024-02-26 08:45',
-    createdAt: '2024-02-20',
-    points: 2100,
-    uploadCount: 95,
-    quoteCount: 47,
-    storageUsed: '450 MB',
-    storageLimit: '5 GB',
-    membershipLevel: 'Premium',
-    permissions: ['upload', 'quote'],
-    tags: ['付费用户'],
-  },
-  // 待审核用户
-  {
-    id: '7',
-    name: '周八',
-    email: 'zhouba@pending.com',
-    role: 'pending' as UserRole,
-    userType: 'personal' as UserType,
-    status: 'pending' as UserStatus,
-    phone: '13800138007',
-    lastActive: '2024-02-26 08:00',
-    createdAt: '2024-02-26',
-    points: 0,
-    uploadCount: 0,
-    quoteCount: 0,
-    storageUsed: '0 MB',
-    storageLimit: '10 MB',
-    permissions: [],
-    tags: ['待审核'],
-    inviteCode: 'INVITE123',
-    invitedBy: 'user2',
-  },
+const roleOptions = [
+  { value: 'super_admin', label: '超级管理员', color: 'bg-purple-500' },
+  { value: 'admin', label: '系统管理员', color: 'bg-blue-500' },
+  { value: 'enterprise_admin', label: '企业管理员', color: 'bg-indigo-500' },
+  { value: 'manufacturer', label: '产品厂家', color: 'bg-orange-500' },
+  { value: 'vip', label: 'VIP会员', color: 'bg-yellow-500' },
+  { value: 'premium', label: '付费会员', color: 'bg-green-500' },
+  { value: 'free', label: '免费用户', color: 'bg-gray-500' },
+  { value: 'pending', label: '待审核', color: 'bg-red-500' },
+];
+
+const statusOptions = [
+  { value: 'active', label: '活跃', color: 'bg-green-100 text-green-800' },
+  { value: 'disabled', label: '已禁用', color: 'bg-red-100 text-red-800' },
+  { value: 'pending', label: '待审核', color: 'bg-yellow-100 text-yellow-800' },
 ];
 
 export default function UsersPage() {
-  const { toast } = useToast();
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+
+  // 搜索和筛选
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
-  const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+
+  // 对话框
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [_currentUser, _setCurrentUser] = useState<User | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [deleteUser, setDeleteUser] = useState<User | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // 添加用户表单
+  const [addForm, setAddForm] = useState({ name: '', email: '', username: '', password: '', role: 'free', phone: '' });
+  // 编辑用户表单
+  const [editForm, setEditForm] = useState({ name: '', email: '', role: '', phone: '' });
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(pageSize),
+      });
+      if (searchTerm) params.set('keyword', searchTerm);
+      if (selectedRole !== 'all') params.set('role', selectedRole);
+      if (selectedStatus !== 'all') params.set('status', selectedStatus);
+
+      const response = await fetch(`/api/admin/users?${params}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setUsers(data.data || []);
+        setTotalCount(data.total || 0);
+      } else {
+        toast.error(data.error || '加载用户列表失败');
+      }
+    } catch {
+      toast.error('网络错误');
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm, selectedRole, selectedStatus, page]);
 
   useEffect(() => {
-    // 获取当前登录用户
-    try {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        _setCurrentUser(JSON.parse(userStr));
-      }
-    } catch (_error) {
-      console.error('Failed to parse user data');
-    }
-  }, []);
+    loadUsers();
+  }, [loadUsers]);
 
-  // 角色选项
-  const roleOptions = [
-    { value: 'super_admin', label: '超级管理员', color: 'bg-purple-500' },
-    { value: 'admin', label: '系统管理员', color: 'bg-blue-500' },
-    { value: 'enterprise_admin', label: '企业管理员', color: 'bg-indigo-500' },
-    { value: 'manufacturer', label: '产品厂家', color: 'bg-orange-500' },
-    { value: 'vip', label: 'VIP会员', color: 'bg-yellow-500' },
-    { value: 'premium', label: '付费会员', color: 'bg-green-500' },
-    { value: 'free', label: '免费用户', color: 'bg-gray-500' },
-    { value: 'pending', label: '待审核', color: 'bg-red-500' },
-  ];
+  const handleSearch = () => {
+    setSearchTerm(searchInput);
+    setPage(1);
+  };
 
-  // 用户类型选项
-  const typeOptions = [
-    { value: 'personal', label: '个人用户', icon: '👤' },
-    { value: 'enterprise', label: '企业用户', icon: '🏢' },
-    { value: 'manufacturer', label: '产品厂家', icon: '🏭' },
-  ];
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSearch();
+  };
 
-  // 状态选项
-  const statusOptions = [
-    { value: 'active', label: '活跃', color: 'bg-green-100 text-green-800' },
-    { value: 'inactive', label: '未激活', color: 'bg-gray-100 text-gray-800' },
-    { value: 'pending', label: '待审核', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'banned', label: '已禁用', color: 'bg-red-100 text-red-800' },
-    { value: 'expired', label: '已过期', color: 'bg-gray-100 text-gray-800' },
-  ];
-
-  // 筛选用户
-  const filteredUsers = mockUsers.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.department?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = selectedRole === 'all' || user.role === selectedRole;
-    const matchesType = selectedType === 'all' || user.userType === selectedType;
-    const matchesStatus = selectedStatus === 'all' || user.status === selectedStatus;
-    return matchesSearch && matchesRole && matchesType && matchesStatus;
-  });
-
-  // 获取角色标签颜色
   const getRoleColor = (role: string) => {
-    const option = roleOptions.find((opt) => opt.value === role);
-    return option?.color || 'bg-gray-500';
+    return roleOptions.find((opt) => opt.value === role)?.color || 'bg-gray-500';
   };
 
-  // 获取状态标签样式
   const getStatusStyle = (status: string) => {
-    const option = statusOptions.find((opt) => opt.value === status);
-    return option?.color || 'bg-gray-100 text-gray-800';
+    return statusOptions.find((opt) => opt.value === status)?.color || 'bg-gray-100 text-gray-800';
   };
 
-  // 获取状态标签文字
   const getStatusLabel = (status: string) => {
-    const option = statusOptions.find((opt) => opt.value === status);
-    return option?.label || status;
+    return statusOptions.find((opt) => opt.value === status)?.label || status;
   };
 
-  // 处理添加用户
-  const handleAddUser = () => {
-    toast({
-      title: '用户已添加',
-      description: '新用户已成功添加到系统',
-      duration: 2000,
-    });
-    setShowAddDialog(false);
+  // 添加用户
+  const handleAddUser = async () => {
+    if (!addForm.email || !addForm.username || !addForm.password) {
+      toast.error('邮箱、用户名和密码不能为空');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(addForm),
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('用户创建成功');
+        setShowAddDialog(false);
+        setAddForm({ name: '', email: '', username: '', password: '', role: 'free', phone: '' });
+        loadUsers();
+      } else {
+        toast.error(data.error || '创建失败');
+      }
+    } catch {
+      toast.error('网络错误');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // 处理升级会员
-  const handleUpgradeMembership = (_user: User) => {
-    toast({
-      title: '升级会员',
-      description: '会员升级功能即将推出',
-      duration: 2000,
+  // 编辑用户
+  const openEditDialog = (user: User) => {
+    setEditUser(user);
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone || '',
     });
+    setShowEditDialog(true);
   };
 
-  // 处理调整积分
-  const handleAdjustPoints = (_user: User) => {
-    toast({
-      title: '调整积分',
-      description: '积分调整功能即将推出',
-      duration: 2000,
-    });
+  const handleEditUser = async () => {
+    if (!editUser) return;
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/admin/users/${editUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: editForm.name,
+          email: editForm.email,
+          role: editForm.role,
+          phone: editForm.phone,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('用户信息更新成功');
+        setShowEditDialog(false);
+        loadUsers();
+      } else {
+        toast.error(data.error || '更新失败');
+      }
+    } catch {
+      toast.error('网络错误');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // 处理邀请记录
-  const handleViewInvites = (_user: User) => {
-    toast({
-      title: '邀请记录',
-      description: `该用户邀请了 ${Math.floor(Math.random() * 10)} 人`,
-      duration: 2000,
-    });
+  // 删除用户
+  const openDeleteDialog = (user: User) => {
+    setDeleteUser(user);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteUser) return;
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/admin/users/${deleteUser.id}`, { method: 'DELETE' });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('用户已删除');
+        setShowDeleteDialog(false);
+        loadUsers();
+      } else {
+        toast.error(data.error || '删除失败');
+      }
+    } catch {
+      toast.error('网络错误');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // 启用/禁用用户
+  const handleToggleStatus = async (user: User) => {
+    const action = user.status === 'disabled' ? 'enable' : 'disable';
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}/disable`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success(data.message);
+        loadUsers();
+      } else {
+        toast.error(data.error || '操作失败');
+      }
+    } catch {
+      toast.error('网络错误');
+    }
   };
 
   // 统计信息
   const stats = {
-    total: mockUsers.length,
-    active: mockUsers.filter((u: User) => u.status === 'active').length,
-    pending: mockUsers.filter((u: User) => u.status === 'pending').length,
-    enterprise: mockUsers.filter((u: User) => u.userType === 'enterprise').length,
-    vip: mockUsers.filter((u: User) => u.role === 'vip').length,
-    totalPoints: mockUsers.reduce((sum: number, u: User) => sum + u.points, 0),
+    total: totalCount,
+    active: users.filter((u) => u.status === 'active').length,
+    pending: users.filter((u) => u.status === 'pending').length,
+    enterprise: users.filter((u) => u.role === 'enterprise_admin').length,
+    vip: users.filter((u) => u.role === 'vip').length,
+    totalPoints: users.reduce((sum, u) => sum + (u.points || 0), 0),
   };
+
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   return (
     <div className="space-y-6">
@@ -371,10 +274,10 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">用户管理</h1>
-          <p className="text-gray-500">管理系统用户、角色和权限，支持多级用户类型</p>
+          <p className="text-gray-500">管理系统用户、角色和权限</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" disabled>
             <Download className="h-4 w-4 mr-2" />
             导出数据
           </Button>
@@ -417,7 +320,7 @@ export default function UsersPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="bg-yellow-100 p-2 rounded-lg">
-                <Clock className="h-5 w-5 text-yellow-600" />
+                <Shield className="h-5 w-5 text-yellow-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">待审核</p>
@@ -433,7 +336,7 @@ export default function UsersPage() {
                 <Building2 className="h-5 w-5 text-indigo-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">企业用户</p>
+                <p className="text-sm text-gray-500">企业</p>
                 <p className="text-xl font-bold">{stats.enterprise}</p>
               </div>
             </div>
@@ -467,23 +370,34 @@ export default function UsersPage() {
         </Card>
       </div>
 
-      {/* 筛选和搜索 */}
+      {/* 搜索和筛选 */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="搜索用户、邮箱、公司或部门..."
+                placeholder="搜索用户名、邮箱或姓名..."
                 className="pl-9"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={handleKeyDown}
               />
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Select value={selectedRole} onValueChange={setSelectedRole}>
+              <Button variant="outline" size="sm" onClick={handleSearch}>搜索</Button>
+              {(searchTerm || selectedRole !== 'all' || selectedStatus !== 'all') && (
+                <Button variant="ghost" size="sm" onClick={() => {
+                  setSearchTerm(''); setSearchInput('');
+                  setSelectedRole('all'); setSelectedStatus('all');
+                  setPage(1);
+                }}>
+                  清除筛选
+                </Button>
+              )}
+              <Select value={selectedRole} onValueChange={(v) => { setSelectedRole(v); setPage(1); }}>
                 <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="选择角色" />
+                  <SelectValue placeholder="角色" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部角色</SelectItem>
@@ -494,22 +408,9 @@ export default function UsersPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="用户类型" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部类型</SelectItem>
-                  {typeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.icon} {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="选择状态" />
+              <Select value={selectedStatus} onValueChange={(v) => { setSelectedStatus(v); setPage(1); }}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="状态" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部状态</SelectItem>
@@ -520,10 +421,6 @@ export default function UsersPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline">
-                <Filter className="h-4 w-4 mr-2" />
-                筛选
-              </Button>
             </div>
           </div>
         </CardContent>
@@ -532,298 +429,280 @@ export default function UsersPage() {
       {/* 用户列表 */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>用户</TableHead>
-                <TableHead>类型</TableHead>
-                <TableHead>角色</TableHead>
-                <TableHead>状态</TableHead>
-                <TableHead>公司/部门</TableHead>
-                <TableHead>积分</TableHead>
-                <TableHead>使用统计</TableHead>
-                <TableHead>存储</TableHead>
-                <TableHead>有效期</TableHead>
-                <TableHead className="text-right">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{user.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{user.name}</p>
-                        <p className="text-sm text-gray-500">{user.email}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {user.userType === 'enterprise'
-                        ? '🏢 企业'
-                        : user.userType === 'manufacturer'
-                          ? '🏭 厂家'
-                          : '👤 个人'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={`${getRoleColor(user.role)} text-white`}>
-                      {getRoleDisplayName(user.role)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={getStatusStyle(user.status)}>
-                      {getStatusLabel(user.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      {user.company && <p className="text-sm">{user.company}</p>}
-                      {user.department && (
-                        <p className="text-xs text-gray-500">{user.department}</p>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Gift className="h-3 w-3 text-purple-500" />
-                      <span className="font-medium">{user.points}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-xs">
-                        <span>📤 {user.uploadCount}</span>
-                        <span>📄 {user.quoteCount}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-xs">
-                      <div>{user.storageUsed}</div>
-                      <div className="text-gray-500">/ {user.storageLimit}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {user.expiresAt ? (
-                      <div className="flex items-center gap-1 text-yellow-600">
-                        <Calendar className="h-3 w-3" />
-                        <span className="text-xs">{user.expiresAt}</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-gray-400">永久</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuLabel>用户操作</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => {}}>
-                          <Edit2 className="h-4 w-4 mr-2" />
-                          编辑资料
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleUpgradeMembership(user)}>
-                          <Star className="h-4 w-4 mr-2" />
-                          会员升级
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAdjustPoints(user)}>
-                          <Gift className="h-4 w-4 mr-2" />
-                          调整积分
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {}}>
-                          <Shield className="h-4 w-4 mr-2" />
-                          设置权限
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {}}>
-                          <Key className="h-4 w-4 mr-2" />
-                          重置密码
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleViewInvites(user)}>
-                          <UsersIcon className="h-4 w-4 mr-2" />
-                          邀请记录
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <History className="h-4 w-4 mr-2" />
-                          操作日志
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {user.status === 'active' ? (
-                          <DropdownMenuItem className="text-yellow-600">
-                            <Ban className="h-4 w-4 mr-2" />
-                            禁用账号
-                          </DropdownMenuItem>
-                        ) : user.status === 'banned' ? (
-                          <DropdownMenuItem className="text-green-600">
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            启用账号
-                          </DropdownMenuItem>
-                        ) : null}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          删除用户
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">加载中...</span>
+            </div>
+          ) : users.length === 0 ? (
+            <div className="text-center py-16">
+              <UsersIcon className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+              <p className="text-muted-foreground">暂无用户数据</p>
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>用户</TableHead>
+                    <TableHead>角色</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead>手机号</TableHead>
+                    <TableHead>积分</TableHead>
+                    <TableHead>注册时间</TableHead>
+                    <TableHead>最后登录</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            {user.avatar ? <AvatarImage src={user.avatar} /> : null}
+                            <AvatarFallback>{user.name?.[0] || '?'}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{user.name}</p>
+                            <p className="text-sm text-gray-500">{user.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`${getRoleColor(user.role)} text-white`}>
+                          {getRoleDisplayName(user.role as any)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={getStatusStyle(user.status)}>
+                          {getStatusLabel(user.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{user.phone || '-'}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Gift className="h-3 w-3 text-purple-500" />
+                          <span className="font-medium">{user.points || 0}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs">
+                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString('zh-CN') : '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('zh-CN') : '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel>用户操作</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                              <Edit2 className="h-4 w-4 mr-2" />
+                              编辑资料
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {user.status === 'active' ? (
+                              <DropdownMenuItem className="text-yellow-600" onClick={() => handleToggleStatus(user)}>
+                                <Ban className="h-4 w-4 mr-2" />
+                                禁用账号
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem className="text-green-600" onClick={() => handleToggleStatus(user)}>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                启用账号
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(user)}>
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              删除用户
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* 分页 */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between p-4 border-t">
+                  <span className="text-sm text-muted-foreground">
+                    第 {page}/{totalPages} 页，共 {totalCount} 条
+                  </span>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                      上一页
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+                      下一页
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 
-      {/* 添加用户对话框 - 支持多种用户类型 */}
+      {/* 添加用户对话框 */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>添加新用户</DialogTitle>
-            <DialogDescription>填写用户信息，系统将根据用户类型自动分配权限</DialogDescription>
+            <DialogDescription>填写用户信息创建新账号</DialogDescription>
           </DialogHeader>
-          <Tabs defaultValue="personal" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="personal">👤 个人用户</TabsTrigger>
-              <TabsTrigger value="enterprise">🏢 企业用户</TabsTrigger>
-              <TabsTrigger value="manufacturer">🏭 产品厂家</TabsTrigger>
-            </TabsList>
-            <TabsContent value="personal" className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>姓名</Label>
-                  <Input placeholder="输入姓名" />
-                </div>
-                <div className="space-y-2">
-                  <Label>邮箱</Label>
-                  <Input type="email" placeholder="user@example.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label>手机号</Label>
-                  <Input placeholder="13800138000" />
-                </div>
-                <div className="space-y-2">
-                  <Label>会员等级</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择等级" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vip">VIP会员</SelectItem>
-                      <SelectItem value="premium">付费会员</SelectItem>
-                      <SelectItem value="free">免费用户</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>用户名 <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="输入用户名"
+                  value={addForm.username}
+                  onChange={(e) => setAddForm({ ...addForm, username: e.target.value })}
+                />
               </div>
-            </TabsContent>
-            <TabsContent value="enterprise" className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>企业名称</Label>
-                  <Input placeholder="输入企业名称" />
-                </div>
-                <div className="space-y-2">
-                  <Label>管理员姓名</Label>
-                  <Input placeholder="输入管理员姓名" />
-                </div>
-                <div className="space-y-2">
-                  <Label>企业邮箱</Label>
-                  <Input type="email" placeholder="company@example.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label>联系电话</Label>
-                  <Input placeholder="021-12345678" />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label>企业地址</Label>
-                  <Input placeholder="详细地址" />
-                </div>
-                <div className="space-y-2">
-                  <Label>团队规模</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择规模" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1-10">1-10人</SelectItem>
-                      <SelectItem value="11-50">11-50人</SelectItem>
-                      <SelectItem value="51-200">51-200人</SelectItem>
-                      <SelectItem value="200+">200人以上</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>套餐类型</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择套餐" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="basic">基础版</SelectItem>
-                      <SelectItem value="professional">专业版</SelectItem>
-                      <SelectItem value="enterprise">企业版</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label>姓名</Label>
+                <Input
+                  placeholder="输入姓名"
+                  value={addForm.name}
+                  onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+                />
               </div>
-            </TabsContent>
-            <TabsContent value="manufacturer" className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>厂家名称</Label>
-                  <Input placeholder="输入厂家名称" />
-                </div>
-                <div className="space-y-2">
-                  <Label>联系人</Label>
-                  <Input placeholder="联系人姓名" />
-                </div>
-                <div className="space-y-2">
-                  <Label>联系电话</Label>
-                  <Input placeholder="13800138000" />
-                </div>
-                <div className="space-y-2">
-                  <Label>主营品类</Label>
-                  <Input placeholder="如：工业设备、泵阀" />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label>厂家地址</Label>
-                  <Input placeholder="详细地址" />
-                </div>
-                <div className="space-y-2">
-                  <Label>产品数量</Label>
-                  <Input type="number" placeholder="0" />
-                </div>
-                <div className="space-y-2">
-                  <Label>合作等级</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择等级" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="platinum">铂金厂家</SelectItem>
-                      <SelectItem value="gold">金牌厂家</SelectItem>
-                      <SelectItem value="silver">银牌厂家</SelectItem>
-                      <SelectItem value="basic">基础厂家</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            </div>
+            <div className="space-y-2">
+              <Label>邮箱 <span className="text-destructive">*</span></Label>
+              <Input
+                type="email"
+                placeholder="user@example.com"
+                value={addForm.email}
+                onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>密码 <span className="text-destructive">*</span></Label>
+                <Input
+                  type="password"
+                  placeholder="输入密码"
+                  value={addForm.password}
+                  onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                />
               </div>
-            </TabsContent>
-          </Tabs>
+              <div className="space-y-2">
+                <Label>手机号</Label>
+                <Input
+                  placeholder="13800138000"
+                  value={addForm.phone}
+                  onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>角色</Label>
+              <Select value={addForm.role} onValueChange={(v) => setAddForm({ ...addForm, role: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-              取消
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>取消</Button>
+            <Button onClick={handleAddUser} disabled={submitting}>
+              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              创建用户
             </Button>
-            <Button onClick={handleAddUser}>添加用户</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 编辑用户对话框 */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>编辑用户</DialogTitle>
+            <DialogDescription>修改用户信息</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>姓名</Label>
+              <Input
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>邮箱</Label>
+              <Input
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>手机号</Label>
+              <Input
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>角色</Label>
+              <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>取消</Button>
+            <Button onClick={handleEditUser} disabled={submitting}>
+              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              保存修改
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除确认对话框 */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription>
+              确定要删除用户「{deleteUser?.name}」（{deleteUser?.email}）吗？此操作不可撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>取消</Button>
+            <Button variant="destructive" onClick={handleDeleteUser} disabled={submitting}>
+              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              确认删除
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
