@@ -16,6 +16,7 @@ import {
   X,
   Home,
   ChevronLeft,
+  ChevronRight,
   CheckCircle,
   Building2,
   Star,
@@ -26,6 +27,10 @@ import {
   BookOpen,
   Puzzle,
   ClipboardList,
+  SlidersHorizontal,
+  Briefcase,
+  Crown,
+  Wrench,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -41,6 +46,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
 import { useUser } from '@/contexts/UserContext';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface NavItem {
   title: string;
@@ -105,97 +115,63 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => clearInterval(interval);
   }, []);
 
-  // 导航菜单项
-  const navItems: NavItem[] = [
+interface NavGroup {
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  defaultOpen: boolean;
+  items: NavItem[];
+}
+
+  // 导航分组定义
+  const navGroups: NavGroup[] = [
     {
-      title: '仪表盘',
-      href: '/admin',
-      icon: <LayoutDashboard className="h-5 w-5" />,
+      key: 'core',
+      label: '核心业务',
+      icon: <Briefcase className="h-4 w-4" />,
+      defaultOpen: true,
+      items: [
+        { title: '仪表盘', href: '/admin', icon: <LayoutDashboard className="h-5 w-5" /> },
+        { title: '用户管理', href: '/admin/users', icon: <Users className="h-5 w-5" /> },
+        { title: '企业用户管理', href: '/admin/enterprise', icon: <Building2 className="h-5 w-5" /> },
+        { title: '内容审核', href: '/admin/audit', icon: <CheckCircle className="h-5 w-5" />, badge: pendingAuditCount > 0 ? String(pendingAuditCount) : undefined, badgeColor: 'bg-yellow-500' },
+        { title: '产品管理', href: '/admin/products', icon: <Database className="h-5 w-5" /> },
+        { title: '报价单管理', href: '/admin/quotes', icon: <FileText className="h-5 w-5" /> },
+      ],
     },
     {
-      title: '用户管理',
-      href: '/admin/users',
-      icon: <Users className="h-5 w-5" />,
+      key: 'membership',
+      label: '会员与积分',
+      icon: <Crown className="h-4 w-4" />,
+      defaultOpen: true,
+      items: [
+        { title: '会员管理', href: '/admin/membership', icon: <Star className="h-5 w-5" />, badge: 'VIP', badgeColor: 'bg-yellow-500' },
+        { title: '等级权限配置', href: '/admin/points/levels', icon: <Shield className="h-5 w-5" /> },
+        { title: '积分规则配置', href: '/admin/points/rules', icon: <Coins className="h-5 w-5" /> },
+        { title: '积分流水', href: '/admin/points/history', icon: <History className="h-5 w-5" /> },
+        { title: '积分规则管理', href: '/admin/points-rules', icon: <ScrollText className="h-5 w-5" /> },
+      ],
     },
     {
-      title: '企业用户管理',
-      href: '/admin/enterprise',
-      icon: <Building2 className="h-5 w-5" />,
-    },
-    {
-      title: '内容审核',
-      href: '/admin/audit',
-      icon: <CheckCircle className="h-5 w-5" />,
-      badge: pendingAuditCount > 0 ? String(pendingAuditCount) : undefined,
-      badgeColor: 'bg-yellow-500',
-    },
-    {
-      title: '产品管理',
-      href: '/admin/products',
-      icon: <Database className="h-5 w-5" />,
-    },
-    {
-      title: '报价单管理',
-      href: '/admin/quotes',
-      icon: <FileText className="h-5 w-5" />,
-    },
-    {
-      title: '会员管理',
-      href: '/admin/membership',
-      icon: <Star className="h-5 w-5" />,
-      badge: 'VIP',
-      badgeColor: 'bg-yellow-500',
-    },
-    {
-      title: '等级权限配置',
-      href: '/admin/points/levels',
-      icon: <Shield className="h-5 w-5" />,
-    },
-    {
-      title: '积分规则配置',
-      href: '/admin/points/rules',
-      icon: <Coins className="h-5 w-5" />,
-    },
-    {
-      title: '积分流水',
-      href: '/admin/points/history',
-      icon: <History className="h-5 w-5" />,
-    },
-    {
-      title: '积分规则管理',
-      href: '/admin/points-rules',
-      icon: <ScrollText className="h-5 w-5" />,
-    },
-    {
-      title: '数据统计',
-      href: '/admin/stats',
-      icon: <BarChart3 className="h-5 w-5" />,
-    },
-    {
-      title: '知识库管理',
-      href: '/admin/knowledge',
-      icon: <BookOpen className="h-5 w-5" />,
-    },
-    {
-      title: '模块管理',
-      href: '/admin/modules',
-      icon: <Puzzle className="h-5 w-5" />,
-    },
-    {
-      title: '导入日志',
-      href: '/admin/import-logs',
-      icon: <ClipboardList className="h-5 w-5" />,
-    },
-    {
-      title: '系统设置',
-      href: '/admin/settings',
-      icon: <Settings className="h-5 w-5" />,
+      key: 'system',
+      label: '系统管理',
+      icon: <Wrench className="h-4 w-4" />,
+      defaultOpen: true,
+      items: [
+        { title: '数据统计', href: '/admin/stats', icon: <BarChart3 className="h-5 w-5" /> },
+        { title: '知识库管理', href: '/admin/knowledge', icon: <BookOpen className="h-5 w-5" /> },
+        { title: '模块管理', href: '/admin/modules', icon: <Puzzle className="h-5 w-5" /> },
+        { title: '导入日志', href: '/admin/import-logs', icon: <ClipboardList className="h-5 w-5" /> },
+        { title: '系统设置', href: '/admin/settings', icon: <Settings className="h-5 w-5" /> },
+        { title: '动态配置', href: '/admin/system-config', icon: <SlidersHorizontal className="h-5 w-5" /> },
+      ],
     },
   ];
 
   // 调试：开发环境输出菜单项
   if (process.env.NODE_ENV === 'development') {
-    console.log('[AdminLayout] 导航菜单项:', navItems.map(item => item.title));
+    const allTitles = navGroups.flatMap(g => g.items.map(i => i.title));
+    console.log('[AdminLayout] 导航菜单项:', allTitles);
     console.log('[AdminLayout] 用户角色:', user?.role);
   }
 
@@ -209,8 +185,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     logout();
   };
 
-  // 获取当前页面标题
-  const currentPageTitle = navItems.find((item) => item.href === pathname)?.title || '管理后台';
+  // 获取当前页面标题（从分组中查找）
+  const allNavItems = navGroups.flatMap(g => g.items);
+  const currentPageTitle = allNavItems.find((item) => item.href === pathname)?.title || '管理后台';
+
+  // 分组折叠状态
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    navGroups.forEach(g => { init[g.key] = false; }); // false = 展开
+    return init;
+  });
+
+  const toggleGroup = (key: string) => {
+    setCollapsedGroups(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   if (loading) {
     return (
@@ -236,7 +224,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* 侧边栏 */}
       <div
         className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 ease-in-out
+        fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 ease-in-out flex flex-col
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-64'}
         lg:translate-x-0
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -263,7 +251,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* 返回主应用按钮 */}
-        <div className="p-4">
+        <div className="px-4 pt-3 pb-2 shrink-0">
           <Button
             variant="outline"
             className="w-full justify-start gap-2"
@@ -274,38 +262,69 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Button>
         </div>
 
-        {/* 导航菜单 */}
-        <ScrollArea className="flex-1 px-3">
+        {/* 导航菜单 - 分组折叠，可滚动 */}
+        <ScrollArea className="flex-1 overflow-y-auto px-3 scrollbar-thin">
           <div className="space-y-1 py-2">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`
-                    flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
-                    hover:bg-gray-100 dark:hover:bg-gray-800
-                    ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
-                        : 'text-gray-700 dark:text-gray-300'
-                    }
-                  `}
-                >
-                  {item.icon}
-                  <span className="flex-1 text-sm">{item.title}</span>
-                  {item.badge && (
-                    <Badge className={`${item.badgeColor} text-white text-xs`}>{item.badge}</Badge>
-                  )}
-                </Link>
-              );
-            })}
+            {navGroups.map((group) => (
+              <Collapsible
+                key={group.key}
+                open={!collapsedGroups[group.key]}
+                onOpenChange={() => toggleGroup(group.key)}
+              >
+                {/* 分组标题 */}
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <span className="text-muted-foreground">{group.icon}</span>
+                  <span className="flex-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {group.label}
+                  </span>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-5 w-5">
+                      <ChevronRight
+                        className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                          !collapsedGroups[group.key] ? 'rotate-90' : ''
+                        }`}
+                      />
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+
+                {/* 分组菜单项 */}
+                <CollapsibleContent>
+                  <div className="ml-2 pl-3 border-l border-gray-200 dark:border-gray-700 space-y-0.5">
+                    {group.items.map((item) => {
+                      const isActive = pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={`
+                            flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
+                            hover:bg-gray-100 dark:hover:bg-gray-800
+                            ${
+                              isActive
+                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                                : 'text-gray-700 dark:text-gray-300'
+                            }
+                          `}
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          {item.icon}
+                          <span className="flex-1 text-sm">{item.title}</span>
+                          {item.badge && (
+                            <Badge className={`${item.badgeColor} text-white text-xs`}>{item.badge}</Badge>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            ))}
           </div>
         </ScrollArea>
 
-        {/* 底部用户信息 - 只保留头像和退出登录 */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+        {/* 底部用户信息 - 固定在底部不滚动 */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start gap-3">

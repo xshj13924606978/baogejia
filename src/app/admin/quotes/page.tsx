@@ -21,9 +21,10 @@ import {
 } from '@/components/ui/select';
 import {
   FileText, Search, MoreHorizontal, Eye, Send, CheckCircle, XCircle,
-  Trash2, Loader2, ClipboardList, AlertCircle,
+  Trash2, Loader2, ClipboardList, AlertCircle, ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePermission } from '@/hooks/usePermission';
 
 interface Quote {
   id: string;
@@ -61,6 +62,19 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
 };
 
 export default function QuotesPage() {
+  const { loading: permLoading, canAccessModule, getFieldPermission, canUseAction } = usePermission();
+
+  // 模块级权限检查
+  if (!permLoading && !canAccessModule('quote')) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground/30 mb-4" />
+        <h2 className="text-lg font-semibold mb-1">无访问权限</h2>
+        <p className="text-muted-foreground text-sm">您没有访问报价单管理的权限，请联系管理员</p>
+      </div>
+    );
+  }
+
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -205,6 +219,20 @@ export default function QuotesPage() {
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
+  // 字段权限
+  const fieldTotalAmount = getFieldPermission('totalAmount');
+  const fieldCreatorName = getFieldPermission('creatorName');
+  const fieldCreatedAt = getFieldPermission('createdAt');
+  const fieldStatus = getFieldPermission('status');
+
+  // 按钮权限
+  const canView = canUseAction('quote_list_view');
+  const canSend = canUseAction('quote_list_send');
+  const canApprove = canUseAction('quote_list_approve');
+  const canReject = canUseAction('quote_list_reject');
+  const canRevert = canUseAction('quote_list_revert');
+  const canDelete = canUseAction('quote_list_delete');
+
   return (
     <div className="space-y-6">
       {/* 页面标题 */}
@@ -314,10 +342,10 @@ export default function QuotesPage() {
                       <TableHead>报价编号</TableHead>
                       <TableHead>客户名称</TableHead>
                       <TableHead>产品数量</TableHead>
-                      <TableHead className="text-right">金额</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>创建者</TableHead>
-                      <TableHead>创建时间</TableHead>
+                      {fieldTotalAmount.visible && <TableHead className="text-right">金额</TableHead>}
+                      {fieldStatus.visible && <TableHead>状态</TableHead>}
+                      {fieldCreatorName.visible && <TableHead>创建者</TableHead>}
+                      {fieldCreatedAt.visible && <TableHead>创建时间</TableHead>}
                       <TableHead className="text-right">操作</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -333,20 +361,26 @@ export default function QuotesPage() {
                           )}
                         </TableCell>
                         <TableCell>{quote.productCount} 项</TableCell>
+                        {fieldTotalAmount.visible && (
                         <TableCell className="text-right font-medium">
                           ¥{quote.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell>{getStatusBadge(quote.status)}</TableCell>
+                        )}
+                        {fieldStatus.visible && <TableCell>{getStatusBadge(quote.status)}</TableCell>}
+                        {fieldCreatorName.visible && (
                         <TableCell>
                           <div>
                             <p className="text-sm">{quote.creatorName || '-'}</p>
                           </div>
                         </TableCell>
+                        )}
+                        {fieldCreatedAt.visible && (
                         <TableCell>
                           <span className="text-xs text-muted-foreground">
                             {new Date(quote.createdAt).toLocaleString('zh-CN')}
                           </span>
                         </TableCell>
+                        )}
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -357,12 +391,14 @@ export default function QuotesPage() {
                             <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuLabel>报价操作</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => openDetail(quote)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                查看详情
-                              </DropdownMenuItem>
+                              {canView && (
+                                <DropdownMenuItem onClick={() => openDetail(quote)}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  查看详情
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
-                              {quote.status === 'draft' && (
+                              {quote.status === 'draft' && canSend && (
                                 <DropdownMenuItem onClick={() => handleStatusChange(quote, 'sent')}>
                                   <Send className="h-4 w-4 mr-2" />
                                   发送报价
@@ -370,27 +406,37 @@ export default function QuotesPage() {
                               )}
                               {quote.status === 'sent' && (
                                 <>
-                                  <DropdownMenuItem onClick={() => handleStatusChange(quote, 'approved')}>
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    批准
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleStatusChange(quote, 'rejected')}>
-                                    <XCircle className="h-4 w-4 mr-2" />
-                                    拒绝
-                                  </DropdownMenuItem>
+                                  {canApprove && (
+                                    <DropdownMenuItem onClick={() => handleStatusChange(quote, 'approved')}>
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      批准
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canReject && (
+                                    <DropdownMenuItem onClick={() => handleStatusChange(quote, 'rejected')}>
+                                      <XCircle className="h-4 w-4 mr-2" />
+                                      拒绝
+                                    </DropdownMenuItem>
+                                  )}
                                 </>
                               )}
-                              {(quote.status === 'approved' || quote.status === 'rejected') && (
+                              {(quote.status === 'approved' || quote.status === 'rejected') && canRevert && (
                                 <DropdownMenuItem onClick={() => handleStatusChange(quote, 'draft')}>
                                   <FileText className="h-4 w-4 mr-2" />
                                   退回草稿
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(quote)}>
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                删除
-                              </DropdownMenuItem>
+                              {(canView || canSend || canApprove || canReject || canRevert || canDelete) && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  {canDelete && (
+                                    <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(quote)}>
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      删除
+                                    </DropdownMenuItem>
+                                  )}
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
