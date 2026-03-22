@@ -6,7 +6,7 @@ import {
   calculateFeeSummary,
   groupProducts,
 } from '@/lib/quote-utils';
-import type { Product, FeeConfig } from '@/types/quote';
+import type { QuoteProduct, FeeConfig } from '@/types/quote';
 
 // Helper function to create test products with calculated totalPrice
 const createTestProduct = (
@@ -15,9 +15,10 @@ const createTestProduct = (
   quantity: number,
   unitPrice: number,
   options?: { category?: string; brand?: string; system?: string }
-): Product => ({
+): QuoteProduct => ({
   id,
   name,
+  price: unitPrice,
   quantity,
   unitPrice,
   totalPrice: quantity * unitPrice,
@@ -51,7 +52,7 @@ describe('quote-utils', () => {
 
   describe('calculateSubtotal', () => {
     it('should calculate subtotal of multiple products', () => {
-      const products: Product[] = [
+      const products: QuoteProduct[] = [
         createTestProduct('1', 'Product A', 2, 100),
         createTestProduct('2', 'Product B', 3, 50),
       ];
@@ -64,7 +65,7 @@ describe('quote-utils', () => {
     });
 
     it('should handle single product', () => {
-      const products: Product[] = [
+      const products: QuoteProduct[] = [
         createTestProduct('1', 'Product A', 5, 20),
       ];
 
@@ -72,7 +73,7 @@ describe('quote-utils', () => {
     });
 
     it('should handle products with zero values', () => {
-      const products: Product[] = [
+      const products: QuoteProduct[] = [
         createTestProduct('1', 'Product A', 0, 100),
         createTestProduct('2', 'Product B', 5, 0),
       ];
@@ -103,7 +104,7 @@ describe('quote-utils', () => {
 
   describe('calculateFeeSummary', () => {
     it('should calculate complete fee summary', () => {
-      const products: Product[] = [
+      const products: QuoteProduct[] = [
         createTestProduct('1', 'Product A', 2, 500),
       ];
 
@@ -140,7 +141,7 @@ describe('quote-utils', () => {
     });
 
     it('should handle all zero fees', () => {
-      const products: Product[] = [
+      const products: QuoteProduct[] = [
         createTestProduct('1', 'Product A', 1, 1000),
       ];
 
@@ -159,7 +160,7 @@ describe('quote-utils', () => {
   });
 
   describe('groupProducts', () => {
-    const products: Product[] = [
+    const products: QuoteProduct[] = [
       createTestProduct('1', 'Product A', 1, 100, { category: 'Electronics', brand: 'BrandA' }),
       createTestProduct('2', 'Product B', 1, 200, { category: 'Electronics', brand: 'BrandB' }),
       createTestProduct('3', 'Product C', 1, 300, { category: 'Clothing', brand: 'BrandA' }),
@@ -190,7 +191,7 @@ describe('quote-utils', () => {
     });
 
     it('should handle products without category/brand', () => {
-      const productsWithoutCategory: Product[] = [
+      const productsWithoutCategory: QuoteProduct[] = [
         createTestProduct('1', 'Product A', 1, 100),
         createTestProduct('2', 'Product B', 1, 200, { category: 'Electronics' }),
       ];

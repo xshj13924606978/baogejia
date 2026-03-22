@@ -67,6 +67,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   { id: 'admin.access', name: '访问后台', description: '访问管理后台', category: 'admin' },
   { id: 'admin.view_stats', name: '查看统计', description: '查看数据统计', category: 'admin' },
   { id: 'admin.manage_settings', name: '系统设置', description: '修改系统配置', category: 'admin' },
+  { id: 'admin.manage_points_rules', name: '积分规则管理', description: '管理积分规则配置', category: 'admin' },
 
   // 计费配置权限（从数据库迁移）
   { id: 'admin.billing.view', name: '查看计费配置', description: '查看计费配置信息', category: 'billing' },
@@ -114,6 +115,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     'admin.manage_settings',
     'admin.billing.view',
     'admin.billing.edit',
+    'admin.manage_points_rules',
     'user.view',
   ],
 
@@ -232,12 +234,39 @@ export const getRoleByLevel = (level: number): UserRole => {
 export const hasPermission = (user: any, permissionId: string): boolean => {
   if (!user) return false;
 
-  // 如果是超级管理员，拥有所有权限
-  if (user.role === 'super_admin') return true;
+  // 中文角色名到标准英文角色的映射（兼容数据库中存储的中文角色名）
+  const ROLE_NAME_MAP: Record<string, UserRole> = {
+    '超级管理员': 'super_admin',
+    'super_admin': 'super_admin',
+    'Super_Admin': 'super_admin',
+    'SUPER_ADMIN': 'super_admin',
+    '管理员': 'admin',
+    'admin': 'admin',
+    'Admin': 'admin',
+    'ADMIN': 'admin',
+    '企业管理员': 'enterprise_admin',
+    'enterprise_admin': 'enterprise_admin',
+    'Enterprise_Admin': 'enterprise_admin',
+    '产品厂家': 'manufacturer',
+    'manufacturer': 'manufacturer',
+    'VIP会员': 'vip',
+    'vip': 'vip',
+    'VIP': 'vip',
+    '付费会员': 'premium',
+    'premium': 'premium',
+    '免费用户': 'free',
+    'free': 'free',
+    '待审核': 'pending',
+    'pending': 'pending',
+  };
 
-  // 优先使用用户角色
-  const role: UserRole = user.role || getRoleByLevel(user.level || 1);
-  const permissions = ROLE_PERMISSIONS[role] || [];
+  // 规范化角色名为标准 UserRole
+  const normalizedRole: UserRole = ROLE_NAME_MAP[user.role] || getRoleByLevel(user.level || 1);
+
+  // 如果是超级管理员，拥有所有权限
+  if (normalizedRole === 'super_admin') return true;
+
+  const permissions = ROLE_PERMISSIONS[normalizedRole] || [];
 
   return permissions.includes(permissionId);
 };
