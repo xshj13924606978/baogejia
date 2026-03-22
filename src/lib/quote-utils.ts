@@ -2,7 +2,7 @@
  * 报价单工具函数
  */
 
-import { Product, FeeConfig, FeeSummary, GroupInfo, GroupType } from '@/types/quote';
+import { QuoteProduct, FeeConfig, FeeSummary, GroupInfo, GroupType } from '@/types/quote';
 
 /**
  * 计算产品总价
@@ -14,7 +14,7 @@ export const calculateProductTotal = (quantity: number, unitPrice: number): numb
 /**
  * 计算小计
  */
-export const calculateSubtotal = (products: Product[]): number => {
+export const calculateSubtotal = (products: QuoteProduct[]): number => {
   return products.reduce((sum, product) => {
     return sum + calculateProductTotal(product.quantity, product.unitPrice);
   }, 0);
@@ -30,7 +30,7 @@ export const calculateTaxAmount = (subtotal: number, taxRate: number): number =>
 /**
  * 计算费用汇总
  */
-export const calculateFeeSummary = (products: Product[], feeConfig: FeeConfig): FeeSummary => {
+export const calculateFeeSummary = (products: QuoteProduct[], feeConfig: FeeConfig): FeeSummary => {
   const subtotal = calculateSubtotal(products);
   const taxAmount = calculateTaxAmount(subtotal, feeConfig.taxRate);
 
@@ -48,12 +48,12 @@ export const calculateFeeSummary = (products: Product[], feeConfig: FeeConfig): 
 /**
  * 按分组类型对产品进行分组
  */
-export const groupProducts = (products: Product[], groupType: GroupType): GroupInfo[] => {
+export const groupProducts = (products: QuoteProduct[], groupType: GroupType): GroupInfo[] => {
   if (groupType === 'none') {
     return [{ type: 'none', name: '全部产品', products }];
   }
 
-  const groups = new Map<string, Product[]>();
+  const groups = new Map<string, QuoteProduct[]>();
 
   products.forEach((product) => {
     let key = '未分类';

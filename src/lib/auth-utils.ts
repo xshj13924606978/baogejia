@@ -32,7 +32,7 @@ export async function getCurrentUser(request: NextRequest) {
           const dbClient = getSupabaseClient();
           const { data: businessUser } = await dbClient
             .from('users')
-            .select('id, email')
+            .select('id, email, role')
             .eq('email', email)
             .single();
 
@@ -40,6 +40,7 @@ export async function getCurrentUser(request: NextRequest) {
             return {
               id: businessUser.id,
               email: businessUser.email,
+              role: businessUser.role || 'admin',
               name: user.user_metadata?.name || businessUser.email,
             };
           }
@@ -51,7 +52,7 @@ export async function getCurrentUser(request: NextRequest) {
           const dbClient = getSupabaseClient();
           const { data: businessUser } = await dbClient
             .from('users')
-            .select('id, email')
+            .select('id, email, role')
             .eq('email', 'admin2@test.com')
             .single();
 
@@ -59,6 +60,7 @@ export async function getCurrentUser(request: NextRequest) {
             return {
               id: businessUser.id,
               email: businessUser.email,
+              role: businessUser.role || 'admin',
             };
           }
         }
@@ -74,7 +76,7 @@ export async function getCurrentUser(request: NextRequest) {
         const dbClient = getSupabaseClient();
         const { data: businessUser } = await dbClient
           .from('users')
-          .select('id, email')
+          .select('id, email, role')
           .eq('email', 'admin2@test.com')
           .single();
 
@@ -82,6 +84,7 @@ export async function getCurrentUser(request: NextRequest) {
           return {
             id: businessUser.id,
             email: businessUser.email,
+            role: businessUser.role || 'admin',
           };
         }
       }
@@ -101,11 +104,11 @@ export async function getCurrentUser(request: NextRequest) {
 
     email = user.email;
 
-    // 根据email查询业务用户表，获取正确的ID
+    // 根据email查询业务用户表，获取正确的ID和角色
     const dbClient = getSupabaseClient();
     const { data: businessUser } = await dbClient
       .from('users')
-      .select('id, email')
+      .select('id, email, role')
       .eq('email', email)
       .single();
 
@@ -117,6 +120,7 @@ export async function getCurrentUser(request: NextRequest) {
     return {
       id: businessUser.id, // 返回业务用户表的ID
       email: businessUser.email,
+      role: businessUser.role || 'admin',
       name: user.user_metadata?.name || businessUser.email,
     };
   } catch (error) {

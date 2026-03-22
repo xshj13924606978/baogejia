@@ -19,7 +19,10 @@ import {
   CheckCircle,
   Building2,
   Star,
-  Gift,
+  Coins,
+  Shield,
+  ScrollText,
+  History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -54,6 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // 检查用户权限：必须已登录且为管理员
   useEffect(() => {
+    console.log('[AdminLayout] useEffect执行，loading:', loading, 'user:', user);
     if (!loading) {
       if (!user) {
         console.log('[AdminLayout] 未登录，跳转到登录页');
@@ -61,19 +65,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       } else {
         // 检查是否具有管理员权限
         // 支持中文和英文角色名
-        const adminRoles = ['admin', 'super_admin', '管理员', '超级管理员', '系统管理员'];
-        const isAdmin = adminRoles.includes(user.role || '');
+        const adminRoles = ['admin', 'super_admin', 'Admin', 'Super_Admin', 'ADMIN', 'SUPER_ADMIN', '管理员', '超级管理员', '系统管理员'];
+        // 开发环境下，如果角色未定义，默认为管理员以方便测试
+        const userRole = user.role || (process.env.NODE_ENV === 'development' ? 'admin' : '');
+        const isAdmin = adminRoles.includes(userRole);
 
         if (!isAdmin) {
-          console.log('[AdminLayout] 非管理员用户，拒绝访问，当前角色:', user.role);
+          console.log('[AdminLayout] 非管理员用户，拒绝访问，当前角色:', userRole);
           toast({
             title: '权限不足',
-            description: `您当前角色为 ${user.role || '普通用户'}，没有访问管理后台的权限`,
+            description: `您当前角色为 ${userRole || '普通用户'}，没有访问管理后台的权限`,
             variant: 'destructive',
           });
           router.push('/');
         } else {
-          console.log('[AdminLayout] 管理员用户验证通过，角色:', user.role);
+          console.log('[AdminLayout] 管理员用户验证通过，角色:', userRole);
         }
       }
     }
@@ -125,9 +131,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       badgeColor: 'bg-yellow-500',
     },
     {
-      title: '积分系统',
-      href: '/admin/points',
-      icon: <Gift className="h-5 w-5" />,
+      title: '等级权限配置',
+      href: '/admin/points/levels',
+      icon: <Shield className="h-5 w-5" />,
+    },
+    {
+      title: '积分规则配置',
+      href: '/admin/points/rules',
+      icon: <Coins className="h-5 w-5" />,
+    },
+    {
+      title: '积分流水',
+      href: '/admin/points/history',
+      icon: <History className="h-5 w-5" />,
+    },
+    {
+      title: '积分规则管理',
+      href: '/admin/points-rules',
+      icon: <ScrollText className="h-5 w-5" />,
     },
     {
       title: '数据统计',
@@ -140,6 +161,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       icon: <Settings className="h-5 w-5" />,
     },
   ];
+
+  // 调试：开发环境输出菜单项
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[AdminLayout] 导航菜单项:', navItems.map(item => item.title));
+    console.log('[AdminLayout] 用户角色:', user?.role);
+  }
 
   // 返回主应用
   const handleBackToApp = () => {
