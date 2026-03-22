@@ -13,12 +13,21 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
     const { data, error } = await db
       .from('knowledge_entries')
-      .select('*, user:users(id, username, full_name)')
+      .select('*')
       .eq('id', params.id)
       .single();
 
     if (error || !data) {
       return NextResponse.json({ success: false, error: '条目不存在' }, { status: 404 });
+    }
+
+    // 获取上传者信息
+    let uploaderName = data.user_id || '未知';
+    if (data.user_id) {
+      try {
+        const { data: user } = await db.from('users').select('username, full_name').eq('id', data.user_id).single();
+        if (user) uploaderName = user.full_name || user.username || data.user_id;
+      } catch { /* ignore */ }
     }
 
     return NextResponse.json({
@@ -34,7 +43,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         fileSize: data.file_size,
         fileType: data.file_type,
         status: data.status,
-        uploaderName: data.user?.full_name || data.user?.username || data.user_id || '未知',
+        uploaderName: uploaderName,
         createdAt: data.created_at,
       },
     });

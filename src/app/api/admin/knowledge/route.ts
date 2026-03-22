@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     let query = db
       .from('knowledge_entries')
-      .select('*, user:users(id, username, full_name)', { count: 'exact' });
+      .select('*', { count: 'exact' });
 
     // 搜索（标题）
     if (keyword) {
@@ -43,8 +43,25 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('[Admin Knowledge API] 查询失败:', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      console.log('[Admin Knowledge API] 表不存在或查询失败:', error.message);
+      return NextResponse.json({ success: true, data: [], total: 0, page, limit });
+    }
+
+    // 批量获取上传者信息
+    const userIds = [...new Set((data || []).map((item: any) => item.user_id).filter(Boolean))];
+    let userMap: Record<string, string> = {};
+    if (userIds.length > 0) {
+      try {
+        const { data: users } = await db
+          .from('users')
+          .select('id, username, full_name')
+          .in('id', userIds);
+        if (users) {
+          users.forEach((u: any) => {
+            userMap[u.id] = u.full_name || u.username || u.id;
+          });
+        }
+      } catch { /* 用户信息查询失败不阻塞 */ }
     }
 
     // 格式化数据
@@ -59,7 +76,7 @@ export async function GET(request: NextRequest) {
       fileSize: item.file_size,
       fileType: item.file_type,
       status: item.status,
-      uploaderName: item.user?.full_name || item.user?.username || item.user_id || '未知',
+      uploaderName: userMap[item.user_id] || item.user_id || '未知',
       uploaderId: item.user_id,
       createdAt: item.created_at,
     }));

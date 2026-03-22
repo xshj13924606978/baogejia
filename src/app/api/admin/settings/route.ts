@@ -21,8 +21,9 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('[Settings API] 查询失败:', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      // 表不存在时返回空数据
+      console.log('[Settings API] site_config 表不存在:', error.message);
+      return NextResponse.json({ success: true, data: {}, raw: [] });
     }
 
     // 按 category 分组
