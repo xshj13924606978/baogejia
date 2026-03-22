@@ -268,6 +268,51 @@ export default function UsersPage() {
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
+  // 导出用户数据为 CSV
+  const handleExport = async () => {
+    try {
+      // 获取全量数据（不分页）
+      const params = new URLSearchParams({ limit: '9999' });
+      if (searchTerm) params.set('keyword', searchTerm);
+      if (selectedRole !== 'all') params.set('role', selectedRole);
+      if (selectedStatus !== 'all') params.set('status', selectedStatus);
+
+      const res = await fetch(`/api/admin/users?${params}`);
+      const data = await res.json();
+      if (!data.success || !data.data?.length) {
+        toast.error('没有可导出的数据');
+        return;
+      }
+
+      const headers = ['ID', '姓名', '邮箱', '用户名', '角色', '状态', '手机', '积分', '注册时间', '最后登录'];
+      const rows = (data.data as User[]).map((u) => [
+        u.id,
+        u.name || '',
+        u.email || '',
+        u.username || '',
+        u.role || '',
+        u.status || '',
+        u.phone || '',
+        String(u.points || 0),
+        u.createdAt ? new Date(u.createdAt).toLocaleString('zh-CN') : '',
+        u.lastLogin ? new Date(u.lastLogin).toLocaleString('zh-CN') : '',
+      ]);
+
+      // 生成 CSV（带 BOM 以支持 Excel 中文）
+      const csvContent = '\uFEFF' + [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `用户数据_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`已导出 ${data.data.length} 条用户数据`);
+    } catch {
+      toast.error('导出失败');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* 页面标题 */}
@@ -277,7 +322,7 @@ export default function UsersPage() {
           <p className="text-gray-500">管理系统用户、角色和权限</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" disabled>
+          <Button variant="outline" onClick={handleExport} disabled={users.length === 0}>
             <Download className="h-4 w-4 mr-2" />
             导出数据
           </Button>

@@ -232,12 +232,12 @@ export default function AdminDashboard() {
                         </p>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => window.location.href = '/admin/audit'}>
                       审核
                     </Button>
                   </div>
                 ))}
-                <Button variant="link" className="w-full">
+                <Button variant="link" className="w-full" onClick={() => window.location.href = '/admin/audit'}>
                   查看全部审核项
                 </Button>
               </div>
@@ -273,12 +273,12 @@ export default function AdminDashboard() {
                         </p>
                       </div>
                     </div>
-                    <Button size="sm" variant="ghost">
+                    <Button size="sm" variant="ghost" onClick={() => window.location.href = '/admin/knowledge'}>
                       预览
                     </Button>
                   </div>
                 ))}
-                <Button variant="link" className="w-full">
+                <Button variant="link" className="w-full" onClick={() => window.location.href = '/admin/knowledge'}>
                   查看全部上传
                 </Button>
               </div>
@@ -295,19 +295,19 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-4">
-            <Button variant="outline" className="h-20 flex-col gap-2">
+            <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => window.location.href = '/admin/users'}>
               <Users className="h-5 w-5" />
               <span>添加用户</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
+            <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => window.location.href = '/admin/products'}>
               <Package className="h-5 w-5" />
               <span>新增产品</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
+            <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => window.location.href = '/admin/import-logs'}>
               <Upload className="h-5 w-5" />
               <span>批量导入</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
+            <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => window.location.href = '/admin/stats'}>
               <TrendingUp className="h-5 w-5" />
               <span>生成报表</span>
             </Button>
