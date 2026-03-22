@@ -1,24 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withPermissionCheck } from '@/lib/permission-check';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
-export const POST = withPermissionCheck(
-  { requiresAuth: true, permissions: ['admin.audit.approve'] },
-  async (request: NextRequest, _context: any) => {
-    try {
-      // 从 URL 中提取 id
-      const url = new URL(request.url);
-      const pathParts = url.pathname.split('/');
-      const auditIdStr = pathParts[pathParts.length - 1];
-      const auditId = parseInt(auditIdStr);
-      const { points = 0 } = await request.json();
+/**
+ * 审核通过 API
+ * POST /api/admin/audit/[id]/approve
+ */
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  try {
+    const params = await context.params;
+    const db = getSupabaseServiceClient();
 
-      // 模拟审核通过
-      console.log(`审核通过项目 ${auditId}，奖励积分: ${points}`);
+    const { data, error } = await db
+      .from('knowledge_entries')
+      .update({ status: 'approved', updated_at: new Date().toISOString() })
+      .eq('id', params.id)
+      .eq('status', 'pending') // 只能审核 pending 状态的
+      .select()
+      .single();
 
-      return NextResponse.json({ success: true, points });
-    } catch (error) {
-      console.error('审核通过失败:', error);
-      return NextResponse.json({ error: '审核通过失败' }, { status: 500 });
+    if (error) {
+      console.error('[Audit Approve] 失败:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
+
+    if (!data) {
+      return NextResponse.json({ success: false, error: '条目不存在或状态不是待审核' }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, message: '审核通过' });
+  } catch (error: any) {
+    console.error('[Audit Approve] 异常:', error);
+    return NextResponse.json({ success: false, error: '审核通过失败' }, { status: 500 });
   }
-);
+}

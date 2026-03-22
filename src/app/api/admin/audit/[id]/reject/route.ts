@@ -1,28 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withPermissionCheck } from '@/lib/permission-check';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
-export const POST = withPermissionCheck(
-  { requiresAuth: true, permissions: ['admin.audit.reject'] },
-  async (request: NextRequest, _context: any) => {
-    try {
-      // 从 URL 中提取 id
-      const url = new URL(request.url);
-      const pathParts = url.pathname.split('/');
-      const auditIdStr = pathParts[pathParts.length - 1];
-      const auditId = parseInt(auditIdStr);
-      const { reason } = await request.json();
+/**
+ * 审核拒绝 API
+ * POST /api/admin/audit/[id]/reject
+ */
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  try {
+    const params = await context.params;
+    const { reason } = await request.json();
 
-      if (!reason) {
-        return NextResponse.json({ error: '请提供拒绝原因' }, { status: 400 });
-      }
-
-      // 模拟审核拒绝
-      console.log(`审核拒绝项目 ${auditId}，原因: ${reason}`);
-
-      return NextResponse.json({ success: true, reason });
-    } catch (error) {
-      console.error('审核拒绝失败:', error);
-      return NextResponse.json({ error: '审核拒绝失败' }, { status: 500 });
+    if (!reason || !reason.trim()) {
+      return NextResponse.json({ success: false, error: '请提供拒绝原因' }, { status: 400 });
     }
+
+    const db = getSupabaseServiceClient();
+
+    const { data, error } = await db
+      .from('knowledge_entries')
+      .update({
+        status: 'rejected',
+        description: reason.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', params.id)
+      .eq('status', 'pending')
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Audit Reject] 失败:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ success: false, error: '条目不存在或状态不是待审核' }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, message: '已拒绝' });
+  } catch (error: any) {
+    console.error('[Audit Reject] 异常:', error);
+    return NextResponse.json({ success: false, error: '审核拒绝失败' }, { status: 500 });
   }
-);
+}
