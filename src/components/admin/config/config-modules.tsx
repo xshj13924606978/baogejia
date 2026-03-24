@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Plus, Edit, Trash2, Eye, Loader2, GripVertical } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -17,26 +17,71 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
-import { Empty } from '@/components/ui/empty';
+// 通用图标列表（供图标选择使用，含中文名称）
+const ICON_OPTIONS: { name: string; label: string }[] = [
+  { name: 'LayoutDashboard', label: '仪表盘' },
+  { name: 'Users', label: '用户管理' },
+  { name: 'Building2', label: '企业用户' },
+  { name: 'CheckCircle', label: '内容审核' },
+  { name: 'Database', label: '产品管理' },
+  { name: 'FileText', label: '报价管理' },
+  { name: 'BarChart3', label: '数据统计' },
+  { name: 'Settings', label: '系统设置' },
+  { name: 'BookOpen', label: '知识库' },
+  { name: 'Puzzle', label: '模块管理' },
+  { name: 'ClipboardList', label: '导入日志' },
+  { name: 'Shield', label: '等级权限' },
+  { name: 'Star', label: '会员管理' },
+  { name: 'Coins', label: '积分管理' },
+  { name: 'History', label: '积分流水' },
+  { name: 'ScrollText', label: '积分规则' },
+  { name: 'Crown', label: 'VIP会员' },
+  { name: 'Briefcase', label: '公文包' },
+  { name: 'SlidersHorizontal', label: '参数调整' },
+  { name: 'Wrench', label: '工具' },
+  { name: 'Bell', label: '通知' },
+  { name: 'Home', label: '首页' },
+  { name: 'Package', label: '包裹' },
+  { name: 'MessageSquare', label: '消息' },
+  { name: 'Image', label: '图片' },
+  { name: 'Link', label: '链接' },
+  { name: 'Tag', label: '标签' },
+  { name: 'Calendar', label: '日历' },
+  { name: 'Map', label: '地图' },
+  { name: 'Globe', label: '全局' },
+  { name: 'Lock', label: '锁定' },
+  { name: 'Unlock', label: '解锁' },
+  { name: 'Eye', label: '查看' },
+  { name: 'Edit', label: '编辑' },
+  { name: 'Trash2', label: '删除' },
+  { name: 'Plus', label: '新增' },
+  { name: 'Search', label: '搜索' },
+  { name: 'Filter', label: '筛选' },
+  { name: 'Download', label: '下载' },
+  { name: 'Upload', label: '上传' },
+  { name: 'RefreshCw', label: '刷新' },
+  { name: 'ChevronRight', label: '右箭头' },
+  { name: 'Menu', label: '菜单' },
+  { name: 'X', label: '关闭' },
+  { name: 'User', label: '用户' },
+];
 const API = '/api/admin/config/modules';
 
 interface Module {
   id: string;
-  module_key: string;
-  name_zh: string;
-  name_en: string | null;
+  module_code: string;
+  module_name: string;
+  module_name_en: string | null;
   icon: string | null;
   path: string | null;
+  description: string | null;
   sort_order: number;
-  is_enabled: boolean;
-  is_visible_in_menu: boolean;
-  parent_module_id: string | null;
-  config: Record<string, unknown>;
-  parent?: { id: string; module_key: string; name_zh: string } | null;
-  enabled_page_count?: number;
+  is_active: boolean;
+  permission_code: string | null;
+ page_count?: number;
 }
 
-const emptyForm = { module_key: '', name_zh: '', name_en: '', icon: '', path: '', sort_order: 0, is_enabled: true, is_visible_in_menu: true, parent_module_id: '' as string };
+const emptyForm = { module_code: '', module_name: '', icon: '', path: '', sort_order: 0, is_active: true };
 
 export default function ConfigModules() {
   const [items, setItems] = useState<Module[]>([]);
@@ -56,12 +101,12 @@ export default function ConfigModules() {
   const [deleting, setDeleting] = useState(false);
 
   // 模块列表（用于父级选择，排除递归）
-  const [allModules, setAllModules] = useState<Module[]>([]);
+  // const [allModules, setAllModules] = useState<Module[]>([]);
 
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
+      const params = new URLSearchParams({ page: String(page), limit: String(pageSize), with_page_count: 'true' });
       if (keyword) params.set('keyword', keyword);
       const res = await fetch(`${API}?${params}`);
       const data = await res.json();
@@ -78,13 +123,7 @@ export default function ConfigModules() {
     }
   }, [page, pageSize, keyword]);
 
-  const loadAllModules = useCallback(async () => {
-    const res = await fetch(`${API}?all=true`);
-    const data = await res.json();
-    if (data.success) setAllModules(data.data || []);
-  }, []);
-
-  useEffect(() => { loadItems(); loadAllModules(); }, [loadItems, loadAllModules]);
+  useEffect(() => { loadItems(); }, [loadItems]);
 
   const handleSearch = () => { setPage(1); setKeyword(searchInput); };
 
@@ -97,34 +136,32 @@ export default function ConfigModules() {
   const openEdit = (m: Module) => {
     setEditing(m);
     setForm({
-      module_key: m.module_key,
-      name_zh: m.name_zh,
-      name_en: m.name_en || '',
+      module_code: m.module_code,
+      module_name: m.module_name,
       icon: m.icon || '',
       path: m.path || '',
       sort_order: m.sort_order,
-      is_enabled: m.is_enabled,
-      is_visible_in_menu: m.is_visible_in_menu,
-      parent_module_id: m.parent_module_id || '',
+      is_active: m.is_active,
     });
     setDialogOpen(true);
   };
 
   const handleSubmit = async () => {
-    if (!form.module_key || !form.name_zh) { toast.error('模块代码和名称不能为空'); return; }
+    if (!form.module_code || !form.module_name) { toast.error('模块标识和名称不能为空'); return; }
     setSubmitting(true);
     try {
-      const res = await fetch(API, {
-        method: 'POST',
+      const isEdit = !!editing;
+      const url = isEdit ? `${API}/${editing.id}` : API;
+      const res = await fetch(url, {
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, module_key: form.module_key || undefined, parent_module_id: form.parent_module_id || null }),
+        body: JSON.stringify({ ...form, module_code: form.module_code || undefined }),
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(editing ? '更新成功' : '创建成功');
+        toast.success(isEdit ? '更新成功' : '创建成功');
         setDialogOpen(false);
         loadItems();
-        loadAllModules();
       } else {
         toast.error(data.error || '操作失败');
       }
@@ -137,10 +174,10 @@ export default function ConfigModules() {
       const res = await fetch(`${API}/${m.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_enabled: !m.is_enabled }),
+        body: JSON.stringify({ is_active: !m.is_active }),
       });
       const data = await res.json();
-      if (data.success) { toast.success(m.is_enabled ? '已禁用' : '已启用'); loadItems(); }
+      if (data.success) { toast.success(m.is_active ? '已禁用' : '已启用'); loadItems(); }
       else toast.error(data.error || '操作失败');
     } catch { toast.error('网络错误'); }
   };
@@ -151,7 +188,7 @@ export default function ConfigModules() {
     try {
       const res = await fetch(`${API}/${deleteTarget.id}`, { method: 'DELETE' });
       const data = await res.json();
-      if (data.success) { toast.success('已删除'); loadItems(); loadAllModules(); }
+      if (data.success) { toast.success('已删除'); loadItems(); }
       else toast.error(data.error || '删除失败');
     } catch { toast.error('网络错误'); }
     finally { setDeleting(false); setDeleteTarget(null); }
@@ -192,7 +229,7 @@ export default function ConfigModules() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]">排序</TableHead>
-                <TableHead>模块代码</TableHead>
+                <TableHead>模块标识</TableHead>
                 <TableHead>名称</TableHead>
                 <TableHead>图标</TableHead>
                 <TableHead>路径</TableHead>
@@ -205,23 +242,20 @@ export default function ConfigModules() {
               {items.map((m) => (
                 <TableRow key={m.id}>
                   <TableCell className="text-muted-foreground text-sm">{m.sort_order}</TableCell>
-                  <TableCell><code className="text-xs bg-muted px-1.5 py-0.5 rounded">{m.module_key}</code></TableCell>
-                  <TableCell className="font-medium">{m.name_zh}</TableCell>
-                  <TableCell>{m.icon ? <code className="text-xs text-muted-foreground">{m.icon}</code> : '-'}</TableCell>
+                  <TableCell><code className="text-xs bg-muted px-1.5 py-0.5 rounded">{m.module_code}</code></TableCell>
+                  <TableCell className="font-medium">{m.module_name}</TableCell>
+                  <TableCell>{m.icon ? <code className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{m.icon}</code> : <span className="text-muted-foreground text-xs">-</span>}</TableCell>
                   <TableCell><code className="text-xs text-muted-foreground">{m.path || '-'}</code></TableCell>
                   <TableCell>
-                    <Badge variant={m.is_enabled ? 'default' : 'secondary'} className={m.is_enabled ? 'bg-green-100 text-green-700 hover:bg-green-100' : ''}>
-                      {m.is_enabled ? '启用' : '禁用'}
+                    <Badge variant={m.is_active ? 'default' : 'secondary'} className={m.is_active ? 'bg-green-100 text-green-700 hover:bg-green-100 cursor-pointer' : 'cursor-pointer'} onClick={() => handleToggle(m)}>
+                      {m.is_active ? '已启用' : '已禁用'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-center">{(m as any).enabled_page_count ?? '-'}</TableCell>
+                  <TableCell className="text-center">{m.page_count ?? '-'}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(m)} title="编辑"><Edit className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggle(m)} title={m.is_enabled ? '禁用' : '启用'}>
-                        <Eye className={`h-4 w-4 ${m.is_enabled ? 'text-green-600' : 'text-muted-foreground'}`} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteTarget(m)} title="删除"><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="sm" className="h-8 gap-1" onClick={() => openEdit(m)}><Edit className="h-3.5 w-3.5" />编辑</Button>
+                      <Button variant="ghost" size="sm" className="h-8 gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(m)}><Trash2 className="h-3.5 w-3.5" />删除</Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -251,45 +285,44 @@ export default function ConfigModules() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>模块代码 <span className="text-destructive">*</span></Label>
-              <Input value={form.module_key} onChange={(e) => setForm({ ...form, module_key: e.target.value })} placeholder="如 user_management" disabled={!!editing} />
+              <Label>模块标识 <span className="text-destructive">*</span></Label>
+              <Input value={form.module_code} onChange={(e) => setForm({ ...form, module_code: e.target.value })} placeholder="如 dashboard, user" disabled={!!editing} />
             </div>
             <div className="grid gap-2">
-              <Label>中文名称 <span className="text-destructive">*</span></Label>
-              <Input value={form.name_zh} onChange={(e) => setForm({ ...form, name_zh: e.target.value })} placeholder="如 用户管理" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>英文名称</Label>
-                <Input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} placeholder="User Management" />
-              </div>
-              <div className="grid gap-2">
-                <Label>图标</Label>
-                <Input value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} placeholder="lucide-react 图标名" />
-              </div>
+              <Label>模块名称 <span className="text-destructive">*</span></Label>
+              <Input value={form.module_name} onChange={(e) => setForm({ ...form, module_name: e.target.value })} placeholder="如 仪表盘、用户管理" />
             </div>
             <div className="grid gap-2">
-              <Label>路由路径</Label>
+              <Label>图标</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors"
+                value={form.icon}
+                onChange={(e) => setForm({ ...form, icon: e.target.value })}
+              >
+                <option value="">请选择图标</option>
+                {ICON_OPTIONS.map(({ name, label }) => (
+                  <option key={name} value={name}>{label} ({name})</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <Label>路径</Label>
               <Input value={form.path} onChange={(e) => setForm({ ...form, path: e.target.value })} placeholder="/admin/users" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>排序</Label>
-                <Input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
-              </div>
-              <div className="grid gap-2">
-                <Label>父模块</Label>
-                <select
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors"
-                  value={form.parent_module_id || ''}
-                  onChange={(e) => setForm({ ...form, parent_module_id: e.target.value || '' })}
-                >
-                  <option value="">无（顶级模块）</option>
-                  {allModules.filter(m => m.id !== editing?.id).map(m => (
-                    <option key={m.id} value={m.id}>{m.name_zh} ({m.module_key})</option>
-                  ))}
-                </select>
-              </div>
+            <div className="grid gap-2">
+              <Label>排序</Label>
+              <Input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
+            </div>
+            <div className="grid gap-2">
+              <Label>状态</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors"
+                value={form.is_active ? 'true' : 'false'}
+                onChange={(e) => setForm({ ...form, is_active: e.target.value === 'true' })}
+              >
+                <option value="true">已启用</option>
+                <option value="false">已禁用</option>
+              </select>
             </div>
           </div>
           <DialogFooter>
@@ -304,7 +337,7 @@ export default function ConfigModules() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>确定要删除模块「{deleteTarget?.name_zh}」吗？该模块下的所有页面、字段和按钮将被级联删除，此操作不可恢复。</AlertDialogDescription>
+            <AlertDialogDescription>确定要删除模块「{deleteTarget?.module_name}」吗？该模块下的所有页面、字段和按钮将被级联删除，此操作不可恢复。</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>

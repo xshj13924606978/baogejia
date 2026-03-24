@@ -57,7 +57,7 @@ export default function ConfigPages() {
   const loadModules = useCallback(async () => {
     const res = await fetch(`${MODULES_API}?all=true`);
     const data = await res.json();
-    if (data.success) setModules((data.data || []).map((m: any) => ({ id: m.id, module_key: m.module_key, name_zh: m.name_zh })));
+    if (data.success) setModules((data.data || []).map((m: any) => ({ id: m.id, module_code: m.module_code, module_name: m.module_name })));
   }, []);
 
   const loadItems = useCallback(async () => {
@@ -133,7 +133,7 @@ export default function ConfigPages() {
 
   const getModuleName = (moduleId: string) => {
     const m = modules.find(m => m.id === moduleId);
-    return m ? m.name_zh : moduleId.slice(0, 8);
+    return m ? m.module_name : moduleId.slice(0, 8);
   };
 
   return (
@@ -146,7 +146,7 @@ export default function ConfigPages() {
             onChange={(e) => { setFilterModule(e.target.value); setPage(1); }}
           >
             <option value="">全部模块</option>
-            {modules.map(m => <option key={m.id} value={m.id}>{m.name_zh}</option>)}
+            {modules.map(m => <option key={m.id} value={m.id}>{m.module_name}</option>)}
           </select>
         </div>
         <Button size="sm" onClick={openCreate} disabled={!filterModule}><Plus className="h-4 w-4 mr-1" /> 新增页面</Button>
@@ -180,7 +180,7 @@ export default function ConfigPages() {
                   <TableCell><code className="text-xs bg-muted px-1.5 py-0.5 rounded">{p.page_key}</code></TableCell>
                   <TableCell className="font-medium">{p.name_zh}</TableCell>
                   <TableCell><Badge variant="outline">{getModuleName(p.module_id)}</Badge></TableCell>
-                  <TableCell><Badge variant="secondary">{p.layout_template}</Badge></TableCell>
+                  <TableCell><Badge variant="secondary">{LAYOUT_TEMPLATES.find(t => t.value === p.layout_template)?.label || p.layout_template}</Badge></TableCell>
                   <TableCell><code className="text-xs text-muted-foreground">{p.route_path || '-'}</code></TableCell>
                   <TableCell>
                     <Badge variant={p.is_enabled ? 'default' : 'secondary'} className={p.is_enabled ? 'bg-green-100 text-green-700' : ''}>
@@ -223,7 +223,7 @@ export default function ConfigPages() {
               <Label>所属模块</Label>
               <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm" value={form.module_id} onChange={(e) => setForm({ ...form, module_id: e.target.value })} disabled={!!editing}>
                 <option value="">请选择模块</option>
-                {modules.map(m => <option key={m.id} value={m.id}>{m.name_zh}</option>)}
+                {modules.map(m => <option key={m.id} value={m.id}>{m.module_name}</option>)}
               </select>
             </div>
             <div className="grid gap-2">

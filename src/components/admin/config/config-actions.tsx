@@ -66,7 +66,7 @@ export default function ConfigActions() {
   const loadModules = useCallback(async () => {
     const res = await fetch(`${MODULES_API}?all=true`);
     const data = await res.json();
-    if (data.success) setModules((data.data || []).map((m: any) => ({ id: m.id, name_zh: m.name_zh })));
+    if (data.success) setModules((data.data || []).map((m: any) => ({ id: m.id, module_name: m.module_name })));
   }, []);
 
   const loadPages = useCallback(async (moduleId: string) => {
@@ -166,7 +166,7 @@ export default function ConfigActions() {
       <div className="flex items-center gap-2 flex-1">
         <select className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm" value={filterModule} onChange={(e) => { setFilterModule(e.target.value); setFilterPage(''); setPage(1); }}>
           <option value="">选择模块</option>
-          {modules.map(m => <option key={m.id} value={m.id}>{m.name_zh}</option>)}
+          {modules.map(m => <option key={m.id} value={m.id}>{m.module_name}</option>)}
         </select>
         <select className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm" value={filterPage} onChange={(e) => { setFilterPage(e.target.value); setPage(1); }} disabled={!filterModule}>
           <option value="">选择页面</option>
@@ -191,7 +191,7 @@ export default function ConfigActions() {
               <TableRow>
                 <TableHead className="w-[50px]">排序</TableHead>
                 <TableHead>按钮代码</TableHead>
-                <TableHead>名称</TableHead>
+                <TableHead>按钮名称</TableHead>
                 <TableHead>API 端点</TableHead>
                 <TableHead>方法</TableHead>
                 <TableHead>权限</TableHead>

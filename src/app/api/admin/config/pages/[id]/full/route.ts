@@ -17,7 +17,7 @@ export const GET = withPermissionCheckWithParams(
 
       // 并行查询页面信息、字段、按钮
       const [pageRes, fieldsRes, actionsRes] = await Promise.all([
-        db.from('system_pages').select('*, module:system_modules(id, module_key, name_zh, icon, route_path)').eq('id', id).single(),
+        db.from('system_pages').select('*, module:system_modules(id, module_code, module_name, icon, path)').eq('id', id).single(),
         db.from('system_fields').select('*').eq('page_id', id).order('sort_order', { ascending: true }),
         db.from('system_actions').select('*').eq('page_id', id).order('sort_order', { ascending: true }),
       ]);

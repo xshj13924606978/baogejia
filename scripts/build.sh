@@ -6,17 +6,21 @@ COZE_WORKSPACE_PATH="${COZE_WORKSPACE_PATH:-$(pwd)}"
 cd "${COZE_WORKSPACE_PATH}"
 
 echo "Installing dependencies..."
-pnpm install --prefer-frozen-lockfile --prefer-offline --loglevel debug --reporter=append-only
+pnpm install --prefer-frozen-lockfile --prefer-offline --reporter=append-only
 
 echo "Building the project..."
 
-# 捕获构建输出和退出码
-BUILD_OUTPUT=$(NODE_ENV=production npx next build 2>&1) || BUILD_EXIT=$? || true
+# 捕获构建输出和退出码（临时禁用 set -e 以允许非零退出码）
+set +e
+BUILD_OUTPUT=$(NODE_ENV=production npx next build 2>&1)
+BUILD_EXIT=$?
+set -e
 
 echo "$BUILD_OUTPUT"
 
-if [ "${BUILD_EXIT:-0}" -ne 0 ]; then
+if [ "${BUILD_EXIT}" -ne 0 ]; then
   # 检查是否仅是 _global-error 预渲染错误（Next.js 16 已知 bug）
+  # 参见 https://github.com/vercel/next.js/issues/84994
   if echo "$BUILD_OUTPUT" | grep -q "✓ Compiled successfully" && \
      echo "$BUILD_OUTPUT" | grep -q "_global-error"; then
     echo ""

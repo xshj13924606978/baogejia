@@ -27,7 +27,7 @@ export const GET = withAdmin(async (request: NextRequest) => {
 
     // 并行加载所有配置数据
     const [modulesRes, pagesRes, fieldsRes, actionsRes] = await Promise.all([
-      db.from('system_modules').select('*').eq('is_enabled', true).order('sort_order', { ascending: true }),
+      db.from('system_modules').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
       db.from('system_pages').select('*').eq('is_enabled', true).order('sort_order', { ascending: true }),
       db.from('system_fields').select('*').order('sort_order', { ascending: true }),
       db.from('system_actions').select('*').order('sort_order', { ascending: true }),
@@ -81,11 +81,11 @@ export const GET = withAdmin(async (request: NextRequest) => {
     // 构建树
     const tree: TreeNode[] = modules.map((m: any) => {
       const modulePages = pagesByModule.get(m.id) || [];
-      const moduleOverride = overrides[`module:${m.module_key}`];
+      const moduleOverride = overrides[`module:${m.module_code}`];
 
       return {
-        key: m.module_key,
-        label: m.name_zh,
+        key: m.module_code,
+        label: m.module_name,
         type: 'module' as const,
         defaultVisible: m.is_visible_in_menu !== false,
         override: moduleOverride ? { visible: moduleOverride.visible } : undefined,

@@ -24,7 +24,7 @@ export default function SystemConfigPage() {
           <TabsTrigger value="modules">模块配置</TabsTrigger>
           <TabsTrigger value="pages">页面配置</TabsTrigger>
           <TabsTrigger value="fields">字段配置</TabsTrigger>
-          <TabsTrigger value="actions">操作按钮</TabsTrigger>
+          <TabsTrigger value="actions">操作按钮配置</TabsTrigger>
           <TabsTrigger value="permissions">权限覆盖</TabsTrigger>
         </TabsList>
 
