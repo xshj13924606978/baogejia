@@ -136,7 +136,7 @@ export default function AuditPage() {
       const res = await fetch(`/api/admin/knowledge/${rejectItem.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'rejected', description: rejectReason }),
+        body: JSON.stringify({ status: 'rejected', reject_reason: rejectReason }),
       });
       const data = await res.json();
       if (data.success) {

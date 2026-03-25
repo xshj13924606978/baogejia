@@ -150,7 +150,7 @@ export default function UsersPage() {
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(addForm),
+        body: JSON.stringify({ ...addForm, fullName: addForm.name }),
       });
       const data = await response.json();
       if (data.success) {

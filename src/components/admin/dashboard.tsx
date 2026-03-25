@@ -28,17 +28,21 @@ interface DashboardStats {
 interface AuditItem {
   id: string;
   type: string;
-  user_name: string;
-  created_at: string;
+  title: string;
+  uploaderName: string;
+  createdAt: string;
   status: string;
 }
 
 interface UploadItem {
   id: string;
   title: string;
-  user_name: string;
+  user_id?: string;
   created_at: string;
   file_size?: number;
+  file_name?: string;
+  file_type?: string;
+  status?: string;
 }
 
 export default function AdminDashboard() {
@@ -68,7 +72,7 @@ export default function AdminDashboard() {
       // 处理统计数据
       if (statsRes.ok) {
         const statsData = await statsRes.json();
-        setStats(statsData);
+        setStats(statsData.data || statsData);
       }
 
       // 处理审核数据
@@ -226,9 +230,9 @@ export default function AdminDashboard() {
                     <div className="flex items-start gap-3">
                       <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
                       <div>
-                        <p className="font-medium">{item.type || '用户上传'}</p>
+                        <p className="font-medium">{item.title || item.type || '用户上传'}</p>
                         <p className="text-sm text-gray-500">
-                          上传者：{item.user_name} · {formatTime(item.created_at)}
+                          上传者：{item.uploaderName || '未知'} · {formatTime(item.createdAt)}
                         </p>
                       </div>
                     </div>
@@ -267,9 +271,9 @@ export default function AdminDashboard() {
                     <div className="flex items-start gap-3">
                       <FileText className="h-5 w-5 text-blue-500 mt-0.5" />
                       <div>
-                        <p className="font-medium">{item.title || '未命名文件'}</p>
+                        <p className="font-medium">{item.title || item.file_name || '未命名文件'}</p>
                         <p className="text-sm text-gray-500">
-                          {item.user_name} · {formatTime(item.created_at)} · {formatFileSize(item.file_size)}
+                          {formatTime(item.created_at)} · {formatFileSize(item.file_size)}
                         </p>
                       </div>
                     </div>

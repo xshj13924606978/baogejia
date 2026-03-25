@@ -21,13 +21,13 @@ interface EnterpriseUser {
   id: string;
   email: string;
   username: string;
-  full_name: string;
+  fullName?: string;
   role: string;
   status: string;
   points: number;
-  phone: string;
-  created_at: string;
-  last_sign_in_at?: string;
+  phone?: string;
+  createdAt: string;
+  lastLogin?: string;
 }
 
 export default function EnterprisePage() {
@@ -89,13 +89,13 @@ export default function EnterprisePage() {
     setSubmitting(true);
     try {
       const res = await fetch(`/api/admin/users/${roleUser.id}/role`, {
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(`已将 ${roleUser.full_name || roleUser.username} 的角色更改为 ${newRole}`);
+        toast.success(`已将 ${roleUser.fullName || roleUser.username} 的角色更改为 ${newRole}`);
         setRoleOpen(false);
         loadUsers();
       } else {
@@ -179,7 +179,7 @@ export default function EnterprisePage() {
                       <TableRow key={user.id}>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-sm">{user.full_name || user.username || '-'}</p>
+                            <p className="font-medium text-sm">{user.fullName || user.username || '-'}</p>
                             <p className="text-xs text-muted-foreground">{user.email}</p>
                           </div>
                         </TableCell>
@@ -193,7 +193,7 @@ export default function EnterprisePage() {
                         </TableCell>
                         <TableCell className="text-sm">{user.points || 0}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {new Date(user.created_at).toLocaleString('zh-CN')}
+                          {new Date(user.createdAt).toLocaleString('zh-CN')}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
@@ -232,16 +232,16 @@ export default function EnterprisePage() {
           {detailUser && (
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
-                <div><span className="text-muted-foreground">姓名：</span>{detailUser.full_name || '-'}</div>
+                <div><span className="text-muted-foreground">姓名：</span>{detailUser.fullName || '-'}</div>
                 <div><span className="text-muted-foreground">用户名：</span>{detailUser.username || '-'}</div>
                 <div className="col-span-2"><span className="text-muted-foreground">邮箱：</span>{detailUser.email}</div>
                 <div><span className="text-muted-foreground">角色：</span>{detailUser.role}</div>
                 <div><span className="text-muted-foreground">状态：</span>{detailUser.status || '-'}</div>
                 <div><span className="text-muted-foreground">积分：</span>{detailUser.points || 0}</div>
                 <div><span className="text-muted-foreground">手机：</span>{detailUser.phone || '-'}</div>
-                <div className="col-span-2"><span className="text-muted-foreground">注册时间：</span>{new Date(detailUser.created_at).toLocaleString('zh-CN')}</div>
-                {detailUser.last_sign_in_at && (
-                  <div className="col-span-2"><span className="text-muted-foreground">最后登录：</span>{new Date(detailUser.last_sign_in_at).toLocaleString('zh-CN')}</div>
+                <div className="col-span-2"><span className="text-muted-foreground">注册时间：</span>{new Date(detailUser.createdAt).toLocaleString('zh-CN')}</div>
+                {detailUser.lastLogin && (
+                  <div className="col-span-2"><span className="text-muted-foreground">最后登录：</span>{new Date(detailUser.lastLogin).toLocaleString('zh-CN')}</div>
                 )}
               </div>
             </div>
@@ -254,7 +254,7 @@ export default function EnterprisePage() {
         <DialogContent className="max-w-[400px]">
           <DialogHeader>
             <DialogTitle>修改用户角色</DialogTitle>
-            <DialogDescription>修改 {roleUser?.full_name || roleUser?.username} 的角色</DialogDescription>
+            <DialogDescription>修改 {roleUser?.fullName || roleUser?.username} 的角色</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Select value={newRole} onValueChange={setNewRole}>
@@ -262,7 +262,7 @@ export default function EnterprisePage() {
               <SelectContent>
                 <SelectItem value="enterprise_admin">企业管理员</SelectItem>
                 <SelectItem value="admin">管理员</SelectItem>
-                <SelectItem value="user">普通用户</SelectItem>
+                <SelectItem value="free">免费用户</SelectItem>
                 <SelectItem value="vip">VIP用户</SelectItem>
               </SelectContent>
             </Select>

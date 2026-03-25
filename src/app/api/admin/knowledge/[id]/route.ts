@@ -65,6 +65,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (body.status !== undefined) updateData.status = body.status;
     if (body.title !== undefined) updateData.title = body.title;
     if (body.description !== undefined) updateData.description = body.description;
+    if (body.reject_reason !== undefined) updateData.reject_reason = body.reject_reason;
     if (body.type !== undefined) updateData.type = body.type;
 
     // 验证状态值
