@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -22,12 +22,14 @@ import {
   Star,
   Coins,
   Briefcase,
-  Crown,
   ClipboardList,
   BookOpen,
   SlidersHorizontal,
   Trophy,
   FolderOpen,
+  TrendingUp,
+  CircleDot,
+  type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -49,26 +51,36 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 
-interface NavChild {
-  title: string;
-  href: string;
-}
+// ====== 图标映射 ======
+const ICON_MAP: Record<string, LucideIcon> = {
+  LayoutDashboard, Users, Building2, CheckCircle, Database, FileText,
+  Star, Coins, BarChart3, TrendingUp, FolderOpen, BookOpen, Settings,
+  SlidersHorizontal, ClipboardList, Trophy, Briefcase,
+};
 
-interface NavItem {
-  title: string;
-  href?: string;
-  icon: React.ReactNode;
-  badge?: string;
-  badgeColor?: string;
-  children?: NavChild[];
-}
+const getIcon = (name: string, size = 'h-5 w-5'): React.ReactNode => {
+  const Icon = ICON_MAP[name] || CircleDot;
+  return <Icon className={size} />;
+};
 
-interface NavGroup {
-  key: string;
-  label: string;
-  icon: React.ReactNode;
-  defaultOpen: boolean;
-  items: NavItem[];
+// ====== 分组配置 ======
+const GROUP_CONFIG: { label: string; icon: LucideIcon }[] = [
+  { label: '核心业务', icon: Briefcase },
+  { label: '运营管理', icon: Trophy },
+  { label: '内容管理', icon: FolderOpen },
+  { label: '系统管理', icon: Settings },
+];
+
+interface MenuItem {
+  id: string;
+  module_key: string;
+  name_zh: string;
+  icon: string;
+  route_path: string | null;
+  sort_order: number;
+  is_visible_in_menu: boolean;
+  group_label: string;
+  menu_pages: { page_key: string; name_zh: string; route_path: string }[];
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -78,8 +90,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, loading, logout } = useUser();
+  const isSuperAdmin = ['super_admin', 'Super_Admin', '超级管理员'].includes(user?.role || '');
 
-  // 检查用户权限
+  // ====== 权限检查 ======
   useEffect(() => {
     if (!loading) {
       if (!user) {
@@ -87,8 +100,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       } else {
         const adminRoles = ['admin', 'super_admin', 'Admin', 'Super_Admin', 'ADMIN', 'SUPER_ADMIN', '管理员', '超级管理员', '系统管理员'];
         const userRole = user.role || (process.env.NODE_ENV === 'development' ? 'admin' : '');
-        const isAdmin = adminRoles.includes(userRole);
-        if (!isAdmin) {
+        if (!adminRoles.includes(userRole)) {
           toast({
             title: '权限不足',
             description: `您当前角色为 ${userRole || '普通用户'}，没有访问管理后台的权限`,
@@ -100,6 +112,66 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [user, loading, router, toast]);
 
+  // ====== 菜单数据 ======
+  const [menuModules, setMenuModules] = useState<MenuItem[]>([]);
+
+  useEffect(() => {
+    async function fetchMenu() {
+      try {
+        const res = await fetch('/api/admin/config/query/menu');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          setMenuModules(data.data);
+        }
+      } catch { /* 静默失败，使用空菜单 */ }
+    }
+    fetchMenu();
+  }, []);
+
+  // 转换 API 数据为菜单项
+  const menuItems = useMemo(() => {
+    return menuModules.map(m => {
+      // 过滤掉含动态参数的详情页（:id, :type 等）
+      const menuPages = (m.children || [])
+        .filter(p => !p.route_path.includes(':'))
+        .map(p => ({ page_key: p.page_key, name_zh: p.name_zh, route_path: p.route_path }));
+
+      return {
+        id: m.id,
+        module_key: m.module_key,
+        name_zh: m.name_zh,
+        icon: m.icon,
+        route_path: m.route_path,
+        sort_order: m.sort_order,
+        is_visible_in_menu: m.is_visible_in_menu,
+        group_label: m.group_label || '其他',
+        menu_pages: menuPages,
+      };
+    });
+  }, [menuModules]);
+
+  // 按 group_label 分组
+  const navGroups = useMemo(() => {
+    const groups: { label: string; icon: LucideIcon; items: MenuItem[] }[] = [];
+
+    for (const gc of GROUP_CONFIG) {
+      const items = menuItems.filter(m => m.group_label === gc.label);
+      if (items.length > 0) {
+        groups.push({ label: gc.label, icon: gc.icon, items });
+      }
+    }
+
+    // 未匹配的分组归入"其他"
+    const matched = new Set(GROUP_CONFIG.map(g => g.label));
+    const others = menuItems.filter(m => !matched.has(m.group_label));
+    if (others.length > 0) {
+      groups.push({ label: '其他', icon: CircleDot, items: others });
+    }
+
+    return groups;
+  }, [menuItems]);
+
+  // ====== 审核未读计数 ======
   const [pendingAuditCount, setPendingAuditCount] = useState<number>(0);
 
   useEffect(() => {
@@ -115,144 +187,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => clearInterval(interval);
   }, []);
 
-  // 4 个分组，一级模块含二级子页面
-  const navGroups: NavGroup[] = [
-    {
-      key: 'core',
-      label: '核心业务',
-      icon: <Briefcase className="h-4 w-4" />,
-      defaultOpen: true,
-      items: [
-        { title: '仪表盘', href: '/admin', icon: <LayoutDashboard className="h-5 w-5" /> },
-        { title: '用户管理', href: '/admin/users', icon: <Users className="h-5 w-5" /> },
-        { title: '企业用户管理', href: '/admin/enterprise', icon: <Building2 className="h-5 w-5" /> },
-        {
-          title: '内容审核',
-          icon: <CheckCircle className="h-5 w-5" />,
-          badge: pendingAuditCount > 0 ? String(pendingAuditCount) : undefined,
-          badgeColor: 'bg-yellow-500',
-          children: [
-            { title: '待审核列表', href: '/admin/audit' },
-            { title: '审核历史', href: '/admin/audit/history' },
-          ],
-        },
-        {
-          title: '产品管理',
-          icon: <Database className="h-5 w-5" />,
-          children: [
-            { title: '产品列表', href: '/admin/products' },
-            { title: '产品导入', href: '/admin/products/import' },
-            { title: '判重配置', href: '/admin/products/duplicate-config' },
-          ],
-        },
-        {
-          title: '报价管理',
-          icon: <FileText className="h-5 w-5" />,
-          children: [
-            { title: '报价单列表', href: '/admin/quotes' },
-            { title: '报价条款管理', href: '/admin/quotes/terms' },
-          ],
-        },
-      ],
-    },
-    {
-      key: 'operations',
-      label: '运营管理',
-      icon: <Trophy className="h-4 w-4" />,
-      defaultOpen: true,
-      items: [
-        {
-          title: '会员管理',
-          icon: <Star className="h-5 w-5" />,
-          children: [
-            { title: '等级配置', href: '/admin/membership' },
-            { title: '字段权限', href: '/admin/membership/fields' },
-            { title: '等级分布', href: '/admin/membership/stats' },
-          ],
-        },
-        {
-          title: '积分管理',
-          icon: <Coins className="h-5 w-5" />,
-          children: [
-            { title: '等级权限配置', href: '/admin/points/levels' },
-            { title: '积分兑换配置', href: '/admin/points/rules' },
-            { title: '积分流水', href: '/admin/points/history' },
-            { title: '积分规则管理', href: '/admin/points-rules' },
-          ],
-        },
-        {
-          title: '数据统计',
-          icon: <BarChart3 className="h-5 w-5" />,
-          children: [
-            { title: '统计概览', href: '/admin/stats' },
-            { title: '收入统计', href: '/admin/stats/revenue' },
-          ],
-        },
-        { title: '导入日志', href: '/admin/import-logs', icon: <ClipboardList className="h-5 w-5" /> },
-      ],
-    },
-    {
-      key: 'content',
-      label: '内容管理',
-      icon: <FolderOpen className="h-4 w-4" />,
-      defaultOpen: true,
-      items: [
-        {
-          title: '资料中心',
-          icon: <BookOpen className="h-5 w-5" />,
-          children: [
-            { title: '产品价格库', href: '/admin/knowledge-center/price-library' },
-            { title: '技术文档库', href: '/admin/knowledge-center/document-library' },
-            { title: '案例库', href: '/admin/knowledge-center/case-library' },
-            { title: '标准规范库', href: '/admin/knowledge-center/standard-library' },
-            { title: '图纸图片库', href: '/admin/knowledge-center/drawing-library' },
-            { title: '定额库', href: '/admin/knowledge-center/quota-library' },
-            { title: '全局搜索', href: '/admin/knowledge-center/global-search' },
-          ],
-        },
-      ],
-    },
-    {
-      key: 'system',
-      label: '系统管理',
-      icon: <Settings className="h-4 w-4" />,
-      defaultOpen: true,
-      items: [
-        {
-          title: '系统设置',
-          icon: <Settings className="h-5 w-5" />,
-          children: [
-            { title: '基本设置', href: '/admin/settings' },
-            { title: '安全设置', href: '/admin/settings/security' },
-            { title: '动态配置', href: '/admin/system-config' },
-          ],
-        },
-      ],
-    },
-  ];
-
-  // 递归查找当前页面标题
-  const findTitle = (items: NavItem[]): string | undefined => {
-    for (const item of items) {
-      if (item.href === pathname) return item.title;
-      if (item.children) {
-        const child = item.children.find(c => c.href === pathname);
-        if (child) return child.title;
+  // ====== 当前页面标题 ======
+  const currentPageTitle = useMemo(() => {
+    for (const m of menuItems) {
+      // 检查模块 route_path
+      if (m.route_path && pathname === m.route_path) return m.name_zh;
+      // 检查子页面（包括详情页）
+      for (const c of m.children || []) {
+        // 精确匹配
+        if (c.route_path === pathname) return c.name_zh;
+        // 前缀匹配详情页 (如 /admin/users/123 匹配 /admin/users/:id)
+        const cleanPath = c.route_path.replace(/\/:[^/]+/g, '');
+        if (cleanPath && pathname.startsWith(cleanPath)) return c.name_zh;
       }
     }
-    return undefined;
-  };
-  const allNavItems = navGroups.flatMap(g => g.items);
-  const currentPageTitle = findTitle(allNavItems) || '管理后台';
+    return '管理后台';
+  }, [menuModules, pathname]);
 
-  // 分组折叠状态
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
-    const init: Record<string, boolean> = {};
-    navGroups.forEach(g => { init[g.key] = false; });
-    return init;
-  });
+  // ====== 分组折叠 ======
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // ====== 判断模块是否为直接链接 ======
+  const isDirectLink = (item: MenuItem) => {
+    if (item.menu_pages.length === 0) return false;
+    // 只有一个页面且 route_path 与模块路径相同（如仪表盘）
+    const singlePage = item.menu_pages.length === 1;
+    const matchesModuleRoute = item.route_path && item.menu_pages[0].route_path === item.route_path;
+    return singlePage && matchesModuleRoute;
   };
 
   const handleBackToApp = () => router.push('/');
@@ -267,6 +231,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (!user) return null;
+
+  // 过滤可见模块（非超管隐藏 is_visible_in_menu=false 的模块）
+  const visibleGroups = isSuperAdmin
+    ? navGroups
+    : navGroups.map(g => ({ ...g, items: g.items.filter(i => i.is_visible_in_menu !== false) }));
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -319,18 +288,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* 导航菜单 */}
         <ScrollArea className="flex-1 overflow-y-auto px-3 scrollbar-thin">
           <div className="py-3">
-            {navGroups.map((group, groupIndex) => (
+            {visibleGroups.map((group, groupIndex) => (
               <div
-                key={group.key}
+                key={group.label}
                 className={groupIndex > 0 ? 'mt-4 pt-4 border-t border-gray-200 dark:border-gray-700/60' : ''}
               >
                 <Collapsible
-                  open={!collapsedGroups[group.key]}
-                  onOpenChange={() => toggleGroup(group.key)}
+                  open={!collapsedGroups[group.label]}
+                  onOpenChange={() => toggleGroup(group.label)}
                 >
                   {/* 分组标题 */}
                   <div className="flex items-center gap-2 px-3 pb-2">
-                    <span className="text-gray-400 dark:text-gray-500">{group.icon}</span>
+                    <span className="text-gray-400 dark:text-gray-500">
+                      <group.icon className="h-4 w-4" />
+                    </span>
                     <span className="flex-1 text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
                       {group.label}
                     </span>
@@ -338,7 +309,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       <Button variant="ghost" size="icon" className="h-5 w-5">
                         <ChevronRight
                           className={`h-3.5 w-3.5 transition-transform duration-200 text-gray-400 ${
-                            !collapsedGroups[group.key] ? 'rotate-90' : ''
+                            !collapsedGroups[group.label] ? 'rotate-90' : ''
                           }`}
                         />
                       </Button>
@@ -349,73 +320,78 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <CollapsibleContent>
                     <div className="space-y-0.5">
                       {group.items.map((item) => {
-                        // 有子页面：一级可折叠
-                        if (item.children && item.children.length > 0) {
-                          const hasActive = item.children.some(c => c.href === pathname);
+                        // 直接链接（如仪表盘）
+                        if (isDirectLink(item)) {
+                          const href = item.menu_pages[0]?.route_path || item.route_path || '#';
+                          const active = pathname === href;
                           return (
-                            <Collapsible key={item.title} defaultOpen={hasActive}>
-                              <CollapsibleTrigger asChild>
-                                <button className={
-                                  `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left hover:bg-gray-100 dark:hover:bg-gray-800 ${
-                                    hasActive
-                                      ? 'text-blue-600 dark:text-blue-400'
-                                      : 'text-gray-700 dark:text-gray-300'
-                                  }`
-                                }>
-                                  {item.icon}
-                                  <span className="flex-1 text-sm font-semibold">{item.title}</span>
-                                  {item.badge && (
-                                    <Badge className={`${item.badgeColor} text-white text-[10px] px-1.5 py-0 mr-1`}>{item.badge}</Badge>
-                                  )}
-                                  <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${hasActive ? 'rotate-90 text-blue-500' : 'text-gray-400'}`} />
-                                </button>
-                              </CollapsibleTrigger>
-                              <CollapsibleContent>
-                                <div className="ml-4 pl-3 border-l-2 border-gray-200 dark:border-gray-700 space-y-0.5 mt-0.5 mb-1">
-                                  {item.children.map((child) => {
-                                    const active = child.href === pathname;
-                                    return (
-                                      <Link
-                                        key={child.href}
-                                        href={child.href}
-                                        className={
-                                          `flex items-center gap-2 px-2.5 py-1.5 rounded-md transition-colors ${
-                                            active
-                                              ? 'bg-blue-50 text-blue-600 font-medium dark:bg-blue-950/60 dark:text-blue-400'
-                                              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300'
-                                          }`
-                                        }
-                                        onClick={() => setMobileMenuOpen(false)}
-                                      >
-                                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
-                                        <span className="text-xs">{child.title}</span>
-                                      </Link>
-                                    );
-                                  })}
-                                </div>
-                              </CollapsibleContent>
-                            </Collapsible>
+                            <Link
+                              key={item.id}
+                              href={href}
+                              className={`
+                                flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
+                                ${active
+                                  ? 'bg-blue-50/80 text-blue-600 font-semibold dark:bg-blue-950/60 dark:text-blue-400'
+                                  : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+                                }
+                              `}
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              {getIcon(item.icon)}
+                              <span className="flex-1 text-sm font-medium">{item.name_zh}</span>
+                            </Link>
                           );
                         }
 
-                        // 无子页面：直接链接
-                        const active = item.href === pathname;
+                        // 有多个子页面：可折叠菜单
+                        const hasActive = item.menu_pages.some(p => pathname === p.route_path);
+                        const badge = item.module_key === 'audit' && pendingAuditCount > 0
+                          ? String(pendingAuditCount)
+                          : undefined;
+
                         return (
-                          <Link
-                            key={item.href}
-                            href={item.href!}
-                            className={`
-                              flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
-                              ${active
-                                ? 'bg-blue-50/80 text-blue-600 font-semibold dark:bg-blue-950/60 dark:text-blue-400'
-                                : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                              }
-                            `}
-                            onClick={() => setMobileMenuOpen(false)}
-                          >
-                            {item.icon}
-                            <span className="flex-1 text-sm font-medium">{item.title}</span>
-                          </Link>
+                          <Collapsible key={item.id} defaultOpen={hasActive}>
+                            <CollapsibleTrigger asChild>
+                              <button className={
+                                `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                                  hasActive
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : 'text-gray-700 dark:text-gray-300'
+                                }`
+                              }>
+                                {getIcon(item.icon)}
+                                <span className="flex-1 text-sm font-semibold">{item.name_zh}</span>
+                                {badge && (
+                                  <Badge className="bg-yellow-500 text-white text-[10px] px-1.5 py-0 mr-1">{badge}</Badge>
+                                )}
+                                <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${hasActive ? 'rotate-90 text-blue-500' : 'text-gray-400'}`} />
+                              </button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="ml-4 pl-3 border-l-2 border-gray-200 dark:border-gray-700 space-y-0.5 mt-0.5 mb-1">
+                                {item.menu_pages.map((page) => {
+                                  const active = pathname === page.route_path;
+                                  return (
+                                    <Link
+                                      key={page.page_key}
+                                      href={page.route_path}
+                                      className={
+                                        `flex items-center gap-2 px-2.5 py-1.5 rounded-md transition-colors ${
+                                          active
+                                            ? 'bg-blue-50 text-blue-600 font-medium dark:bg-blue-950/60 dark:text-blue-400'
+                                            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300'
+                                        }`
+                                      }
+                                      onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                                      <span className="text-xs">{page.name_zh}</span>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
                         );
                       })}
                     </div>
