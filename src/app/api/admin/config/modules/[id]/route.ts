@@ -19,7 +19,7 @@ export const GET = withPermissionCheckWithParams(
 
       const { data, error } = await db
         .from('system_modules')
-        .select('*, parent:system_modules!parent_module_id(id, module_code, module_name)')
+        .select('*, parent:system_modules!parent_module_id(id, module_key, name_zh)')
         .eq('id', id)
         .single();
 
@@ -49,7 +49,7 @@ export const PUT = withPermissionCheckWithParams(
         return NextResponse.json({ success: false, error: '模块不存在' }, { status: 404 });
       }
 
-      const allowed = ['module_code', 'module_name', 'module_name_en', 'icon', 'sort_order', 'is_active', 'path', 'description', 'permission_code'];
+      const allowed = ['module_key', 'name_zh', 'name_en', 'icon', 'sort_order', 'is_enabled', 'route_path', 'description', 'permission_code', 'group_label', 'is_visible_in_menu'];
       const updateData: Record<string, any> = {};
       for (const key of allowed) {
         if (body[key] !== undefined) updateData[key] = body[key];
@@ -64,7 +64,7 @@ export const PUT = withPermissionCheckWithParams(
       if (error) {
         console.error('[ModuleAPI] PUT 更新失败:', error);
         if (error.message?.includes('unique') || error.message?.includes('duplicate')) {
-          return NextResponse.json({ success: false, error: `module_code "${body.module_code}" 已被占用` }, { status: 409 });
+          return NextResponse.json({ success: false, error: `module_key "${body.module_key}" 已被占用` }, { status: 409 });
         }
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
@@ -75,7 +75,7 @@ export const PUT = withPermissionCheckWithParams(
         targetId: id,
         oldValue: oldData,
         newValue: data,
-        description: body.description || `更新模块: ${oldData.module_name}`,
+        description: body.description || `更新模块: ${oldData.name_zh}`,
       });
 
       return NextResponse.json({ success: true, message: '模块更新成功', data });
@@ -107,7 +107,7 @@ export const DELETE = withPermissionCheckWithParams(
       const { error } = await db.from('system_modules').delete().eq('id', id);
       if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
 
-      await logConfigChange({ adminId: getAdminId(request, user), targetType: 'module', targetId: id, oldValue: oldData, description: `删除模块: ${oldData.module_name}` });
+      await logConfigChange({ adminId: getAdminId(request, user), targetType: 'module', targetId: id, oldValue: oldData, description: `删除模块: ${oldData.name_zh}` });
 
       return NextResponse.json({ success: true, message: '模块已删除（级联删除了关联页面、字段和按钮）' });
     } catch (error) {

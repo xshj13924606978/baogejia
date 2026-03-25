@@ -18,7 +18,7 @@ export const GET = withPermissionCheckWithParams(
 
       const db = getSupabaseServiceClient();
 
-      const { data: moduleData, error: modErr } = await db.from('system_modules').select('id, module_code, module_name').eq('id', id).single();
+      const { data: moduleData, error: modErr } = await db.from('system_modules').select('id, module_key, name_zh').eq('id', id).single();
       if (modErr || !moduleData) {
         return NextResponse.json({ success: false, error: '模块不存在' }, { status: 404 });
       }

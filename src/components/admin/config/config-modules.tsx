@@ -69,19 +69,21 @@ const API = '/api/admin/config/modules';
 
 interface Module {
   id: string;
-  module_code: string;
-  module_name: string;
-  module_name_en: string | null;
+  module_key: string;
+  name_zh: string;
+  name_en: string | null;
   icon: string | null;
-  path: string | null;
+  route_path: string | null;
   description: string | null;
   sort_order: number;
-  is_active: boolean;
+  is_enabled: boolean;
+  is_visible_in_menu: boolean;
   permission_code: string | null;
- page_count?: number;
+  group_label: string;
+  page_count?: number;
 }
 
-const emptyForm = { module_code: '', module_name: '', icon: '', path: '', sort_order: 0, is_active: true };
+const emptyForm = { module_key: '', name_zh: '', icon: '', route_path: '', sort_order: 0, is_enabled: true, group_label: '核心业务' };
 
 export default function ConfigModules() {
   const [items, setItems] = useState<Module[]>([]);
@@ -136,18 +138,19 @@ export default function ConfigModules() {
   const openEdit = (m: Module) => {
     setEditing(m);
     setForm({
-      module_code: m.module_code,
-      module_name: m.module_name,
+      module_key: m.module_key,
+      name_zh: m.name_zh,
       icon: m.icon || '',
-      path: m.path || '',
+      route_path: m.route_path || '',
       sort_order: m.sort_order,
-      is_active: m.is_active,
+      is_enabled: m.is_enabled,
+      group_label: m.group_label || '核心业务',
     });
     setDialogOpen(true);
   };
 
   const handleSubmit = async () => {
-    if (!form.module_code || !form.module_name) { toast.error('模块标识和名称不能为空'); return; }
+    if (!form.module_key || !form.name_zh) { toast.error('模块标识和名称不能为空'); return; }
     setSubmitting(true);
     try {
       const isEdit = !!editing;
@@ -155,7 +158,7 @@ export default function ConfigModules() {
       const res = await fetch(url, {
         method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, module_code: form.module_code || undefined }),
+        body: JSON.stringify({ ...form, module_key: form.module_key || undefined }),
       });
       const data = await res.json();
       if (data.success) {
@@ -174,10 +177,10 @@ export default function ConfigModules() {
       const res = await fetch(`${API}/${m.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: !m.is_active }),
+        body: JSON.stringify({ is_enabled: !m.is_enabled }),
       });
       const data = await res.json();
-      if (data.success) { toast.success(m.is_active ? '已禁用' : '已启用'); loadItems(); }
+      if (data.success) { toast.success(m.is_enabled ? '已禁用' : '已启用'); loadItems(); }
       else toast.error(data.error || '操作失败');
     } catch { toast.error('网络错误'); }
   };
@@ -242,13 +245,13 @@ export default function ConfigModules() {
               {items.map((m) => (
                 <TableRow key={m.id}>
                   <TableCell className="text-muted-foreground text-sm">{m.sort_order}</TableCell>
-                  <TableCell><code className="text-xs bg-muted px-1.5 py-0.5 rounded">{m.module_code}</code></TableCell>
-                  <TableCell className="font-medium">{m.module_name}</TableCell>
+                  <TableCell><code className="text-xs bg-muted px-1.5 py-0.5 rounded">{m.module_key}</code></TableCell>
+                  <TableCell className="font-medium">{m.name_zh}</TableCell>
                   <TableCell>{m.icon ? <code className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{m.icon}</code> : <span className="text-muted-foreground text-xs">-</span>}</TableCell>
-                  <TableCell><code className="text-xs text-muted-foreground">{m.path || '-'}</code></TableCell>
+                  <TableCell><code className="text-xs text-muted-foreground">{m.route_path || '-'}</code></TableCell>
                   <TableCell>
-                    <Badge variant={m.is_active ? 'default' : 'secondary'} className={m.is_active ? 'bg-green-100 text-green-700 hover:bg-green-100 cursor-pointer' : 'cursor-pointer'} onClick={() => handleToggle(m)}>
-                      {m.is_active ? '已启用' : '已禁用'}
+                    <Badge variant={m.is_enabled ? 'default' : 'secondary'} className={m.is_enabled ? 'bg-green-100 text-green-700 hover:bg-green-100 cursor-pointer' : 'cursor-pointer'} onClick={() => handleToggle(m)}>
+                      {m.is_enabled ? '已启用' : '已禁用'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center">{m.page_count ?? '-'}</TableCell>
@@ -286,11 +289,11 @@ export default function ConfigModules() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>模块标识 <span className="text-destructive">*</span></Label>
-              <Input value={form.module_code} onChange={(e) => setForm({ ...form, module_code: e.target.value })} placeholder="如 dashboard, user" disabled={!!editing} />
+              <Input value={form.module_key} onChange={(e) => setForm({ ...form, module_key: e.target.value })} placeholder="如 dashboard, user" disabled={!!editing} />
             </div>
             <div className="grid gap-2">
               <Label>模块名称 <span className="text-destructive">*</span></Label>
-              <Input value={form.module_name} onChange={(e) => setForm({ ...form, module_name: e.target.value })} placeholder="如 仪表盘、用户管理" />
+              <Input value={form.name_zh} onChange={(e) => setForm({ ...form, name_zh: e.target.value })} placeholder="如 仪表盘、用户管理" />
             </div>
             <div className="grid gap-2">
               <Label>图标</Label>
@@ -307,7 +310,7 @@ export default function ConfigModules() {
             </div>
             <div className="grid gap-2">
               <Label>路径</Label>
-              <Input value={form.path} onChange={(e) => setForm({ ...form, path: e.target.value })} placeholder="/admin/users" />
+              <Input value={form.route_path} onChange={(e) => setForm({ ...form, route_path: e.target.value })} placeholder="/admin/users" />
             </div>
             <div className="grid gap-2">
               <Label>排序</Label>
@@ -317,8 +320,8 @@ export default function ConfigModules() {
               <Label>状态</Label>
               <select
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors"
-                value={form.is_active ? 'true' : 'false'}
-                onChange={(e) => setForm({ ...form, is_active: e.target.value === 'true' })}
+                value={form.is_enabled ? 'true' : 'false'}
+                onChange={(e) => setForm({ ...form, is_enabled: e.target.value === 'true' })}
               >
                 <option value="true">已启用</option>
                 <option value="false">已禁用</option>
@@ -337,7 +340,7 @@ export default function ConfigModules() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>确定要删除模块「{deleteTarget?.module_name}」吗？该模块下的所有页面、字段和按钮将被级联删除，此操作不可恢复。</AlertDialogDescription>
+            <AlertDialogDescription>确定要删除模块「{deleteTarget?.name_zh}」吗？该模块下的所有页面、字段和按钮将被级联删除，此操作不可恢复。</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>

@@ -8,6 +8,7 @@ import ConfigPages from '@/components/admin/config/config-pages';
 import ConfigFields from '@/components/admin/config/config-fields';
 import ConfigActions from '@/components/admin/config/config-actions';
 import PermissionOverrides from '@/components/admin/config/config-permissions';
+import ConfigLogs from '@/components/admin/config/config-logs';
 
 export default function SystemConfigPage() {
   const [activeTab, setActiveTab] = useState('modules');
@@ -26,6 +27,7 @@ export default function SystemConfigPage() {
           <TabsTrigger value="fields">字段配置</TabsTrigger>
           <TabsTrigger value="actions">操作按钮配置</TabsTrigger>
           <TabsTrigger value="permissions">权限覆盖</TabsTrigger>
+          <TabsTrigger value="logs">变更日志</TabsTrigger>
         </TabsList>
 
         <Card className="mt-6">
@@ -43,6 +45,9 @@ export default function SystemConfigPage() {
           </TabsContent>
           <TabsContent value="permissions" className="mt-0 p-6">
             <PermissionOverrides />
+          </TabsContent>
+          <TabsContent value="logs" className="mt-0 p-6">
+            <ConfigLogs />
           </TabsContent>
         </Card>
       </Tabs>

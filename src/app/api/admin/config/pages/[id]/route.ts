@@ -19,7 +19,7 @@ export const GET = withPermissionCheckWithParams(
 
       const { data, error } = await db
         .from('system_pages')
-        .select('*, module:system_modules(id, module_code, module_name, icon, path)')
+        .select('*, module:system_modules(id, module_key, name_zh, icon, route_path)')
         .eq('id', id)
         .single();
 

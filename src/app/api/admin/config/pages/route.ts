@@ -19,7 +19,7 @@ export const GET = withAdmin(async (request: NextRequest) => {
     const limit = parseInt(sp.get('limit') || '50');
 
     const db = getSupabaseServiceClient();
-    let query = db.from('system_pages').select('*, module:system_modules(id, module_code, module_name, icon)', { count: 'exact' });
+    let query = db.from('system_pages').select('*, module:system_modules(id, module_key, name_zh, icon)', { count: 'exact' });
 
     if (module_id) query = query.eq('module_id', module_id);
     if (keyword) query = query.or(`name_zh.ilike.%${keyword}%,page_key.ilike.%${keyword}%`);

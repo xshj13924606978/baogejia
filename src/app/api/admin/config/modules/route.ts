@@ -24,10 +24,10 @@ export const GET = withAdmin(async (request: NextRequest, user: any) => {
     let query = db.from('system_modules').select('*', { count: 'exact' });
 
     if (keyword) {
-      query = query.or(`module_name.ilike.%${keyword}%,module_code.ilike.%${keyword}%`);
+      query = query.or(`name_zh.ilike.%${keyword}%,module_key.ilike.%${keyword}%`);
     }
     if (parentKey) {
-      const { data: parent } = await db.from('system_modules').select('id').eq('module_code', parentKey).single();
+      const { data: parent } = await db.from('system_modules').select('id').eq('module_key', parentKey).single();
       if (parent) {
         query = query.eq('parent_module_id', parent.id);
       }
@@ -72,21 +72,21 @@ export const GET = withAdmin(async (request: NextRequest, user: any) => {
 export const POST = withAdmin(async (request: NextRequest, user: any) => {
   try {
     const body = await request.json();
-    const { module_code, module_name, module_name_en, icon, sort_order, is_active, path, description, permission_code } = body;
+    const { module_key, name_zh, name_en, icon, sort_order, is_enabled, route_path, description, permission_code } = body;
 
-    if (!module_code || !module_name) {
-      return NextResponse.json({ success: false, error: 'module_code 和 module_name 不能为空' }, { status: 400 });
+    if (!module_key || !name_zh) {
+      return NextResponse.json({ success: false, error: 'module_key 和 name_zh 不能为空' }, { status: 400 });
     }
 
     const db = getSupabaseServiceClient();
     const insertData: Record<string, any> = {
-      module_code,
-      module_name,
-      module_name_en: module_name_en || null,
+      module_key,
+      name_zh,
+      name_en: name_en || null,
       icon: icon || null,
       sort_order: sort_order ?? 0,
-      is_active: is_active ?? true,
-      path: path || null,
+      is_enabled: is_enabled ?? true,
+      route_path: route_path || null,
       description: description || null,
       permission_code: permission_code || null,
     };
@@ -95,12 +95,12 @@ export const POST = withAdmin(async (request: NextRequest, user: any) => {
 
     if (error) {
       if (error.message?.includes('unique') || error.message?.includes('duplicate')) {
-        return NextResponse.json({ success: false, error: `module_code "${module_code}" 已存在` }, { status: 409 });
+        return NextResponse.json({ success: false, error: `module_key "${module_key}" 已存在` }, { status: 409 });
       }
       console.error('[ModuleAPI] POST 失败:', error);
     }
 
-    await logConfigChange({ adminId: getAdminId(request, user), targetType: 'module', targetId: data.id, newValue: data, description: `创建模块: ${module_name}` });
+    await logConfigChange({ adminId: getAdminId(request, user), targetType: 'module', targetId: data.id, newValue: data, description: `创建模块: ${name_zh}` });
 
     return NextResponse.json({ success: true, message: '模块创建成功', data });
   } catch (error) {
