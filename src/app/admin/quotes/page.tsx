@@ -64,17 +64,6 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
 export default function QuotesPage() {
   const { loading: permLoading, canAccessModule, getFieldPermission, canUseAction } = usePermission();
 
-  // 模块级权限检查
-  if (!permLoading && !canAccessModule('quote')) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <ShieldAlert className="h-12 w-12 text-muted-foreground/30 mb-4" />
-        <h2 className="text-lg font-semibold mb-1">无访问权限</h2>
-        <p className="text-muted-foreground text-sm">您没有访问报价单管理的权限，请联系管理员</p>
-      </div>
-    );
-  }
-
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -232,6 +221,17 @@ export default function QuotesPage() {
   const canReject = canUseAction('quote_list_reject');
   const canRevert = canUseAction('quote_list_revert');
   const canDelete = canUseAction('quote_list_delete');
+
+  // 权限检查
+  if (!permLoading && !canAccessModule('quote')) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground/30 mb-4" />
+        <h2 className="text-lg font-semibold mb-1">无访问权限</h2>
+        <p className="text-muted-foreground text-sm">您没有访问报价单管理的权限，请联系管理员</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
