@@ -40,7 +40,7 @@ export const GET = withAdmin(async (request: NextRequest) => {
     // 并行查询字段和按钮
     const [fieldsRes, actionsRes] = await Promise.all([
       db.from('system_fields')
-        .select('id, field_key, field_type, label_zh, is_visible, is_editable, is_required, group_name, sort_order, config, validation_rules, depends_on')
+        .select('id, field_key, field_type, label_zh, is_visible, is_editable, is_required, group_name, sort_order, config, validation_rules, depends_on, options_config')
         .eq('page_id', page.id)
         .order('sort_order', { ascending: true }),
       db.from('system_actions')

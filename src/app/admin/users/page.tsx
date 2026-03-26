@@ -1,18 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle,
@@ -22,12 +16,18 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Search, Download, UserPlus, MoreHorizontal,
   Shield, Edit2, Trash2, Ban, CheckCircle, Gift,
   Users as UsersIcon, Building2, Star, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getRoleDisplayName } from '@/lib/auth/roles';
+import { usePageConfig } from '@/hooks/usePageConfig';
+import { DynamicTable, DynamicPagination } from '@/components/admin/dynamic-table';
 
 interface User {
   id: string;
@@ -44,24 +44,22 @@ interface User {
   metadata?: Record<string, any>;
 }
 
-const roleOptions = [
-  { value: 'super_admin', label: '超级管理员', color: 'bg-purple-500' },
-  { value: 'admin', label: '系统管理员', color: 'bg-blue-500' },
-  { value: 'enterprise_admin', label: '企业管理员', color: 'bg-indigo-500' },
-  { value: 'manufacturer', label: '产品厂家', color: 'bg-orange-500' },
-  { value: 'vip', label: 'VIP会员', color: 'bg-yellow-500' },
-  { value: 'premium', label: '付费会员', color: 'bg-green-500' },
-  { value: 'free', label: '免费用户', color: 'bg-gray-500' },
-  { value: 'pending', label: '待审核', color: 'bg-red-500' },
-];
-
-const statusOptions = [
-  { value: 'active', label: '活跃', color: 'bg-green-100 text-green-800' },
-  { value: 'disabled', label: '已禁用', color: 'bg-red-100 text-red-800' },
-  { value: 'pending', label: '待审核', color: 'bg-yellow-100 text-yellow-800' },
-];
-
 export default function UsersPage() {
+  const { fields, getField, actionsByPosition } = usePageConfig('user_list');
+  const router = useRouter();
+
+  // 从动态配置中提取 select 字段的选项列表（不再硬编码）
+  const getSelectOptions = (fieldKey: string): { value: string; label: string; color?: string }[] => {
+    const field = getField(fieldKey);
+    if (!field?.options_config) return [];
+    const opts = (field.options_config as any).options || field.options_config;
+    if (!Array.isArray(opts)) return [];
+    return opts.map((o: any) => ({ value: o.value, label: o.label, color: o.color }));
+  };
+
+  const roleOptions = getSelectOptions('role');
+  const statusOptions = getSelectOptions('status');
+
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -474,130 +472,65 @@ export default function UsersPage() {
       {/* 用户列表 */}
       <Card>
         <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-muted-foreground">加载中...</span>
-            </div>
-          ) : users.length === 0 ? (
-            <div className="text-center py-16">
-              <UsersIcon className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground">暂无用户数据</p>
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>用户</TableHead>
-                    <TableHead>角色</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>手机号</TableHead>
-                    <TableHead>积分</TableHead>
-                    <TableHead>注册时间</TableHead>
-                    <TableHead>最后登录</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            {user.avatar ? <AvatarImage src={user.avatar} /> : null}
-                            <AvatarFallback>{user.name?.[0] || '?'}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{user.name}</p>
-                            <p className="text-sm text-gray-500">{user.email}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`${getRoleColor(user.role)} text-white`}>
-                          {getRoleDisplayName(user.role as any)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={getStatusStyle(user.status)}>
-                          {getStatusLabel(user.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{user.phone || '-'}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Gift className="h-3 w-3 text-purple-500" />
-                          <span className="font-medium">{user.points || 0}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs">
-                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString('zh-CN') : '-'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs text-muted-foreground">
-                          {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('zh-CN') : '-'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuLabel>用户操作</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => openEditDialog(user)}>
-                              <Edit2 className="h-4 w-4 mr-2" />
-                              编辑资料
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {user.status === 'active' ? (
-                              <DropdownMenuItem className="text-yellow-600" onClick={() => handleToggleStatus(user)}>
-                                <Ban className="h-4 w-4 mr-2" />
-                                禁用账号
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem className="text-green-600" onClick={() => handleToggleStatus(user)}>
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                启用账号
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600" onClick={() => openDeleteDialog(user)}>
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              删除用户
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              {/* 分页 */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between p-4 border-t">
-                  <span className="text-sm text-muted-foreground">
-                    第 {page}/{totalPages} 页，共 {totalCount} 条
-                  </span>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-                      上一页
-                    </Button>
-                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-                      下一页
-                    </Button>
+          <DynamicTable
+            data={users}
+            fields={fields}
+            rowActions={actionsByPosition.row_action || []}
+            onAction={(actionKey, row) => {
+              switch (actionKey) {
+                case 'edit': openEditDialog(row); break;
+                case 'delete': openDeleteDialog(row); break;
+                case 'toggle_status': handleToggleStatus(row); break;
+              }
+            }}
+            onRowClick={(row) => router.push(`/admin/users/${row.id}`)}
+            renderCell={(row, field) => {
+              // 用户列：头像 + 姓名 + 邮箱
+              if (field.field_key === 'email') {
+                return (
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      {row.avatar ? <AvatarImage src={row.avatar} /> : null}
+                      <AvatarFallback>{row.name?.[0] || '?'}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{row.name}</p>
+                      <p className="text-sm text-gray-500">{row.email}</p>
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
+                );
+              }
+              // 角色列：彩色 Badge
+              if (field.field_key === 'role') {
+                return (
+                  <Badge className={`${getRoleColor(row.role)} text-white`}>
+                    {getRoleDisplayName(row.role as any)}
+                  </Badge>
+                );
+              }
+              // 积分列
+              if (field.field_key === 'points') {
+                return (
+                  <div className="flex items-center gap-1">
+                    <Gift className="h-3 w-3 text-purple-500" />
+                    <span className="font-medium">{row.points || 0}</span>
+                  </div>
+                );
+              }
+              // 状态列：select 类型使用自定义渲染
+              if (field.field_key === 'status') {
+                return (
+                  <Badge variant="outline" className={getStatusStyle(row.status)}>
+                    {getStatusLabel(row.status)}
+                  </Badge>
+                );
+              }
+              return undefined; // fallback 到 defaultRender
+            }}
+            loading={loading}
+            emptyText="暂无用户数据"
+          />
+          <DynamicPagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} />
         </CardContent>
       </Card>
 

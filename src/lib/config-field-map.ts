@@ -1,10 +1,18 @@
 /**
- * 模块字段映射 - 数据库列名与前端字段名统一
+ * 配置字段映射 - 数据库列名与前端字段名统一
  *
- * 数据库表 system_modules 实际列名与前端使用的字段名一致：
- *   module_code, module_name, is_active, path
+ * 数据库表 system_modules 实际列名（017 迁移 v2.0）：
+ *   id, module_key, name_zh, name_en, icon, sort_order,
+ *   parent_module_id, is_enabled, is_visible_in_menu, route_path,
+ *   config, group_label, description, permission_code,
+ *   created_at, updated_at
  *
- * 映射函数保留为透传，以便后续如需分离字段名时修改。
+ * 数据库表 system_pages 实际列名：
+ *   id, module_id, page_key, name_zh, route_path,
+ *   layout_template, is_enabled, config, sort_order,
+ *   created_at, updated_at
+ *
+ * 前端字段名与数据库列名完全一致，映射函数为透传。
  */
 
 /** 透传：DB 列名即前端字段名，无需转换 */

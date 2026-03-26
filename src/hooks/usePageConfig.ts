@@ -15,6 +15,7 @@ export interface FieldConfig {
   group_name: string;
   sort_order: number;
   config: Record<string, any>;
+  options_config?: any;
   validation_rules?: Record<string, any>;
   depends_on?: string | null;
 }
@@ -155,6 +156,8 @@ export function usePageConfig(pageKey: string | null | undefined) {
 
   return {
     ...state,
+    fields: state.data?.fields || [],
+    actions: state.data?.actions || [],
     actionsByPosition,
     fieldsByGroup,
     getField,

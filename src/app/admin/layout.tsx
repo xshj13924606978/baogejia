@@ -51,6 +51,9 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 
+// 管理员角色列表（全项目统一）
+const ADMIN_ROLES = ['admin', 'super_admin', 'Admin', 'Super_Admin', 'ADMIN', 'SUPER_ADMIN', '管理员', '超级管理员', '系统管理员'];
+
 // ====== 图标映射 ======
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Users, Building2, CheckCircle, Database, FileText,
@@ -63,13 +66,15 @@ const getIcon = (name: string, size = 'h-5 w-5'): React.ReactNode => {
   return <Icon className={size} />;
 };
 
-// ====== 分组配置 ======
-const GROUP_CONFIG: { label: string; icon: LucideIcon }[] = [
-  { label: '核心业务', icon: Briefcase },
-  { label: '运营管理', icon: Trophy },
-  { label: '内容管理', icon: FolderOpen },
-  { label: '系统管理', icon: Settings },
-];
+// ====== 分组配置（默认图标映射，新增分组时在此注册） ======
+const GROUP_ICON_MAP: Record<string, LucideIcon> = {
+  '核心业务': Briefcase,
+  '运营管理': Trophy,
+  '内容管理': FolderOpen,
+  '系统管理': Settings,
+};
+
+const getGroupIcon = (label: string): LucideIcon => GROUP_ICON_MAP[label] || CircleDot;
 
 interface MenuItem {
   id: string;
@@ -81,6 +86,7 @@ interface MenuItem {
   is_visible_in_menu: boolean;
   group_label: string;
   menu_pages: { page_key: string; name_zh: string; route_path: string }[];
+  children?: any[];
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -98,7 +104,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (!user) {
         router.push('/login');
       } else {
-        const adminRoles = ['admin', 'super_admin', 'Admin', 'Super_Admin', 'ADMIN', 'SUPER_ADMIN', '管理员', '超级管理员', '系统管理员'];
+        const adminRoles = ADMIN_ROLES;
         const userRole = user.role || (process.env.NODE_ENV === 'development' ? 'admin' : '');
         if (!adminRoles.includes(userRole)) {
           toast({
@@ -133,8 +139,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return menuModules.map(m => {
       // 过滤掉含动态参数的详情页（:id, :type 等）
       const menuPages = (m.children || [])
-        .filter(p => !p.route_path.includes(':'))
-        .map(p => ({ page_key: p.page_key, name_zh: p.name_zh, route_path: p.route_path }));
+        .filter((p: any) => !(p.route_path as string).includes(':'))
+        .map((p: any) => ({ page_key: p.page_key, name_zh: p.name_zh, route_path: p.route_path }));
 
       return {
         id: m.id,
@@ -146,26 +152,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         is_visible_in_menu: m.is_visible_in_menu,
         group_label: m.group_label || '其他',
         menu_pages: menuPages,
+        children: (m as any).children || [],
       };
     });
   }, [menuModules]);
 
-  // 按 group_label 分组
+  // 按 group_label 动态分组（从菜单数据中提取分组，无需硬编码分组列表）
   const navGroups = useMemo(() => {
-    const groups: { label: string; icon: LucideIcon; items: MenuItem[] }[] = [];
+    const groupOrder = ['核心业务', '运营管理', '内容管理', '系统管理'];
+    const grouped = new Map<string, MenuItem[]>();
 
-    for (const gc of GROUP_CONFIG) {
-      const items = menuItems.filter(m => m.group_label === gc.label);
-      if (items.length > 0) {
-        groups.push({ label: gc.label, icon: gc.icon, items });
-      }
+    // 按 group_label 收集模块
+    for (const item of menuItems) {
+      const label = item.group_label || '其他';
+      const list = grouped.get(label) || [];
+      list.push(item);
+      grouped.set(label, list);
     }
 
-    // 未匹配的分组归入"其他"
-    const matched = new Set(GROUP_CONFIG.map(g => g.label));
-    const others = menuItems.filter(m => !matched.has(m.group_label));
-    if (others.length > 0) {
-      groups.push({ label: '其他', icon: CircleDot, items: others });
+    // 按预定义顺序排列已知分组，其余按出现顺序追加
+    const groups: { label: string; icon: LucideIcon; items: MenuItem[] }[] = [];
+    const added = new Set<string>();
+
+    for (const label of groupOrder) {
+      if (grouped.has(label)) {
+        groups.push({ label, icon: getGroupIcon(label), items: grouped.get(label)! });
+        added.add(label);
+      }
+    }
+    for (const [label, items] of grouped) {
+      if (!added.has(label)) {
+        groups.push({ label, icon: getGroupIcon(label), items });
+      }
     }
 
     return groups;

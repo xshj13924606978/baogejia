@@ -41,6 +41,7 @@ import {
   Plus, Pencil, Trash2, Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePageConfig } from '@/hooks/usePageConfig';
 
 interface Product {
   id: string;
@@ -74,49 +75,39 @@ interface ProductListProps {
   className?: string;
 }
 
-// 默认列配置
-const defaultColumns: ColumnConfig[] = [
-  { key: 'name', label: '产品名称', visible: true },
-  { key: 'model', label: '规格型号', visible: true },
-  { key: 'brand', label: '品牌', visible: true },
-  { key: 'category', label: '分类', visible: true },
-  { key: 'price', label: '指导价', visible: true, className: 'text-right' },
-  { key: 'unit', label: '单位', visible: true },
-  { key: 'supplier', label: '供应商', visible: true },
-  { key: 'parameter_description', label: '参数描述', visible: false },
-  { key: 'cost_price', label: '成本价', visible: false, className: 'text-right' },
-  { key: 'min_price', label: '最低售价', visible: false, className: 'text-right' },
-  { key: 'stock', label: '库存', visible: false },
-  { key: 'contact_person', label: '联系人', visible: false },
-  { key: 'contact_phone', label: '联系电话', visible: false },
-  { key: 'created_at', label: '创建时间', visible: false },
-];
-
+// 列配置从动态配置加载，localStorage 仅保存用户的可见性/排序覆盖
 const STORAGE_KEY = 'product-list-columns';
 
-// 产品表单字段定义
-const productFields = [
-  { key: 'name', label: '产品名称', required: true, type: 'text' },
-  { key: 'category', label: '分类', type: 'text' },
-  { key: 'model', label: '规格型号', type: 'text' },
-  { key: 'parameter_description', label: '参数描述', type: 'text', colSpan: 2 },
-  { key: 'brand', label: '品牌', type: 'text' },
-  { key: 'unit', label: '单位', type: 'text' },
-  { key: 'supplier', label: '供应商', type: 'text' },
-  { key: 'contact_person', label: '联系人', type: 'text' },
-  { key: 'contact_phone', label: '联系电话', type: 'text' },
-  { key: 'cost_price', label: '成本价', type: 'number' },
-  { key: 'min_price', label: '最低售价', type: 'number' },
-  { key: 'price', label: '指导价', type: 'number' },
-  { key: 'stock', label: '库存', type: 'number' },
-  { key: 'image_url', label: '产品图片URL', type: 'text', colSpan: 2 },
-];
-
+// 产品表单字段从动态配置加载
 export function ProductList({ className }: ProductListProps) {
+  const { fields, getField } = usePageConfig('product_list');
+
+  // 从动态配置生成列定义
+  const dynamicColumns: ColumnConfig[] = fields
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map(f => ({
+      key: f.field_key,
+      label: f.label_zh,
+      visible: f.is_visible,
+      width: f.config?.width,
+      className: f.config?.align ? `text-${f.config.align}` : undefined,
+    }));
+
+  // 产品表单字段从动态配置生成
+  const dynamicProductFields = fields
+    .filter(f => f.is_editable)
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map(f => ({
+      key: f.field_key,
+      label: f.label_zh,
+      required: f.is_required,
+      type: f.field_type,
+    }));
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
+  const [columns, setColumns] = useState<ColumnConfig[]>(dynamicColumns);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const dragStartIndex = useRef<number | null>(null);
 
@@ -141,14 +132,14 @@ export function ProductList({ className }: ProductListProps) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        const merged = defaultColumns.map((col) => {
+        const merged = dynamicColumns.map((col) => {
           const savedCol = parsed.find((c: ColumnConfig) => c.key === col.key);
           return savedCol ? { ...col, visible: savedCol.visible } : col;
         });
         const ordered = parsed
           .filter((c: ColumnConfig) => merged.find((m) => m.key === c.key))
           .map((c: ColumnConfig) => merged.find((m) => m.key === c.key));
-        setColumns(ordered.length > 0 ? ordered : defaultColumns);
+        setColumns(ordered.length > 0 ? ordered : dynamicColumns);
       } catch (e) {
         console.error('加载列配置失败:', e);
       }
@@ -591,8 +582,8 @@ export function ProductList({ className }: ProductListProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
-            {productFields.map((field) => (
-              <div key={field.key} className={field.colSpan === 2 ? 'col-span-2' : ''}>
+            {dynamicProductFields.map((field) => (
+              <div key={field.key}>
                 <Label htmlFor={field.key}>
                   {field.label}
                   {field.required && <span className="text-destructive ml-1">*</span>}
