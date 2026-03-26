@@ -14,11 +14,12 @@ export const GET = withAdmin(async (_req, user) => {
     const db = getSupabaseServiceClient();
     const isSuperAdmin = ['super_admin', 'Super_Admin', '超级管理员'].includes(user?.role || '');
 
-    // 1. 查询所有启用的模块
+    // 1. 查询所有启用的模块（排除功能模块，功能模块仅用于权限管控，不在菜单中显示）
     const { data: modules, error: modErr } = await db
       .from('system_modules')
       .select('id, module_key, name_zh, icon, route_path, sort_order, is_enabled, is_visible_in_menu, parent_module_id, config, group_label')
       .eq('is_enabled', true)
+      .or('config->>type.is.null,config->>type.neq.feature')
       .order('sort_order', { ascending: true });
 
     if (modErr) return NextResponse.json({ success: false, error: modErr.message }, { status: 500 });

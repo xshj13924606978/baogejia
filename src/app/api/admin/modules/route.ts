@@ -1,47 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
-// 默认模块列表
-const DEFAULT_MODULES = [
-  { module_code: 'chat', module_name: '智能对话', description: 'AI智能对话与问答功能', is_active: true },
-  { module_code: 'quote', module_name: '报价生成', description: '产品报价单智能生成', is_active: true },
-  { module_code: 'history', module_name: '历史记录', description: '查看历史对话和报价记录', is_active: true },
-  { module_code: 'export', module_name: '导出功能', description: '导出PDF和Excel文件', is_active: true },
-  { module_code: 'analytics', module_name: '数据分析', description: '统计分析与数据报告', is_active: true },
-  { module_code: 'api', module_name: 'API接口', description: 'API接口调用权限', is_active: true },
-  { module_code: 'knowledge', module_name: '知识库', description: '知识库上传与管理', is_active: true },
-  { module_code: 'points', module_name: '积分系统', description: '积分获取与消费', is_active: true },
-];
+// system_modules -> 旧字段映射（兼容 LevelEditor 等旧组件）
+const mapToFront = (row: Record<string, any>) => ({
+  id: row.id,
+  module_code: row.module_key,
+  module_name: row.name_zh,
+  description: row.description || '',
+  is_active: row.is_enabled,
+});
+
+const mapToDb = (body: Record<string, any>) => {
+  const mapped: Record<string, any> = { updated_at: new Date().toISOString() };
+  if (body.module_code) mapped.module_key = body.module_code;
+  if (body.module_name) mapped.name_zh = body.module_name;
+  if (body.description !== undefined) mapped.description = body.description;
+  if (body.is_active !== undefined) mapped.is_enabled = body.is_active;
+  return mapped;
+};
 
 /**
- * GET: 获取模块列表
+ * GET: 获取功能模块列表
  */
 export async function GET() {
   try {
     const db = getSupabaseServiceClient();
 
-    const { data: modules, error } = await db
-      .from('modules')
-      .select('*')
-      .order('module_code');
+    const { data, error } = await db
+      .from('system_modules')
+      .select('id, module_key, name_zh, description, is_enabled, config')
+      .eq('config->>type', 'feature')
+      .order('sort_order');
 
     if (error) {
-      console.log('[Modules API] 表不存在或查询失败，返回默认值');
-      return NextResponse.json({ success: true, data: DEFAULT_MODULES });
+      console.error('[Modules API] 查询失败:', error.message);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, data: modules || DEFAULT_MODULES });
+    return NextResponse.json({ success: true, data: (data || []).map(mapToFront) });
   } catch {
-    return NextResponse.json({ success: true, data: DEFAULT_MODULES });
+    return NextResponse.json({ success: false, error: '服务器错误' }, { status: 500 });
   }
 }
 
 /**
- * POST: 创建模块
+ * POST: 创建功能模块
  */
 export async function POST(request: NextRequest) {
   try {
-    const { module_code, module_name, description, is_active } = await request.json();
+    const body = await request.json();
+    const { module_code, module_name } = body;
 
     if (!module_code || !module_name) {
       return NextResponse.json({ success: false, error: '模块代码和名称不能为空' }, { status: 400 });
@@ -50,27 +58,27 @@ export async function POST(request: NextRequest) {
     const db = getSupabaseServiceClient();
 
     const { data, error } = await db
-      .from('modules')
+      .from('system_modules')
       .insert({
-        module_code,
-        module_name,
-        description: description || '',
-        is_active: is_active !== false,
+        module_key: module_code,
+        name_zh: module_name,
+        description: body.description || '',
+        is_enabled: body.is_active !== false,
+        is_visible_in_menu: false,
+        config: { type: 'feature' },
       })
       .select()
       .single();
 
     if (error) {
-      console.error('[Modules API] 创建失败:', error);
       if (error.message?.includes('duplicate') || error.message?.includes('unique')) {
         return NextResponse.json({ success: false, error: '模块代码已存在' }, { status: 409 });
       }
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, message: '模块创建成功', data });
+    return NextResponse.json({ success: true, message: '模块创建成功', data: mapToFront(data) });
   } catch (error: any) {
-    console.error('[Modules API] 创建异常:', error);
     return NextResponse.json({ success: false, error: '创建失败' }, { status: 500 });
   }
 }
@@ -80,34 +88,28 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const { id, module_name, description, is_active } = await request.json();
+    const body = await request.json();
 
-    if (!id) {
+    if (!body.id) {
       return NextResponse.json({ success: false, error: '缺少模块ID' }, { status: 400 });
     }
 
     const db = getSupabaseServiceClient();
-    const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
-
-    if (module_name !== undefined) updateData.module_name = module_name;
-    if (description !== undefined) updateData.description = description;
-    if (is_active !== undefined) updateData.is_active = is_active;
+    const updateData = mapToDb(body);
 
     const { data, error } = await db
-      .from('modules')
+      .from('system_modules')
       .update(updateData)
-      .eq('id', id)
+      .eq('id', body.id)
       .select()
       .single();
 
     if (error) {
-      console.error('[Modules API] 更新失败:', error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, message: '更新成功', data });
+    return NextResponse.json({ success: true, message: '更新成功', data: mapToFront(data) });
   } catch (error: any) {
-    console.error('[Modules API] 更新异常:', error);
     return NextResponse.json({ success: false, error: '更新失败' }, { status: 500 });
   }
 }
@@ -125,16 +127,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     const db = getSupabaseServiceClient();
-    const { error } = await db.from('modules').delete().eq('id', id);
+    const { error } = await db.from('system_modules').delete().eq('id', id);
 
     if (error) {
-      console.error('[Modules API] 删除失败:', error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, message: '已删除' });
   } catch (error: any) {
-    console.error('[Modules API] 删除异常:', error);
     return NextResponse.json({ success: false, error: '删除失败' }, { status: 500 });
   }
 }

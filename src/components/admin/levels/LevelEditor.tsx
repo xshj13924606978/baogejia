@@ -255,7 +255,7 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
       });
       const data = await res.json();
       if (data.success) {
-        setModules(data.modules || []);
+        setModules(data.data || []);
       }
     } catch (error) {
       toast({
