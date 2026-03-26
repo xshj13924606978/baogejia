@@ -54,7 +54,7 @@ export default function ProductImportPage() {
           return;
         }
 
-        const headers = Object.keys(json[0]);
+        const headers = Object.keys(json[0] as object);
         setFile(f);
         setExcelHeaders(headers);
         setExcelData(json);

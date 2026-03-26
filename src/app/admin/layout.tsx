@@ -320,7 +320,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <span className="text-gray-400 dark:text-gray-500">
                       <group.icon className="h-4 w-4" />
                     </span>
-                    <span className="flex-1 text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                    <span className="flex-1 text-[13px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
                       {group.label}
                     </span>
                     <CollapsibleTrigger asChild>
@@ -356,7 +356,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                               onClick={() => setMobileMenuOpen(false)}
                             >
                               {getIcon(item.icon)}
-                              <span className="flex-1 text-sm font-medium">{item.name_zh}</span>
+                              <span className="flex-1 text-[12px] font-medium">{item.name_zh}</span>
                             </Link>
                           );
                         }
@@ -378,7 +378,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 }`
                               }>
                                 {getIcon(item.icon)}
-                                <span className="flex-1 text-sm font-semibold">{item.name_zh}</span>
+                                <span className="flex-1 text-[12px] font-medium">{item.name_zh}</span>
                                 {badge && (
                                   <Badge className="bg-yellow-500 text-white text-[10px] px-1.5 py-0 mr-1">{badge}</Badge>
                                 )}
@@ -386,7 +386,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                               </button>
                             </CollapsibleTrigger>
                             <CollapsibleContent>
-                              <div className="ml-4 pl-3 border-l-2 border-gray-200 dark:border-gray-700 space-y-0.5 mt-0.5 mb-1">
+                              <div className="ml-6 pl-3 border-l-2 border-gray-200 dark:border-gray-700 space-y-0.5 mt-0.5 mb-1">
                                 {item.menu_pages.map((page) => {
                                   const active = pathname === page.route_path;
                                   return (
@@ -403,7 +403,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                       onClick={() => setMobileMenuOpen(false)}
                                     >
                                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
-                                      <span className="text-xs">{page.name_zh}</span>
+                                      <span className="text-[11px]">{page.name_zh}</span>
                                     </Link>
                                   );
                                 })}

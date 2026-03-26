@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 
 interface SecurityConfig {
   key: string;
+  config_key?: string;
   value: string;
   type: string;
   label: string;

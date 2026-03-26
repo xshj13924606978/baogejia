@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
     // 解析 SQL 语句
     const statements = sql
       .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--') && !s.startsWith('/*'));
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0 && !s.startsWith('--') && !s.startsWith('/*'));
 
     const results: { sql: string; status: string; error?: string; detail?: string }[] = [];
 

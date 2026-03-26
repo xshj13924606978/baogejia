@@ -55,7 +55,6 @@ async function main() {
   const client = new Client({
     connectionString: connStr,
     ssl: { rejectUnauthorized: false },
-    family: 4,
   });
 
   try {
