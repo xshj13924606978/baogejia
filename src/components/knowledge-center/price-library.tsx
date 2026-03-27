@@ -10,6 +10,7 @@ import FieldConfigManager from './field-config-manager';
 import MultiUploadDialog from './multi-upload-dialog';
 import { CategoryTree } from '@/components/admin/category-tree';
 import { defaultCategoryTree } from '@/data/product-categories';
+import { fixWorksheetSuperscript } from '@/utils/excel-superscript-fix';
 
 export default function PriceLibrary() {
   const [products, setProducts] = useState<any[]>([]);
@@ -685,7 +686,7 @@ export default function PriceLibrary() {
             const workbook = XLSX.read(data, { 
               type: 'array', 
               cellDates: true, 
-              cellText: false,
+              cellText: true,
               codepage: 65001, // UTF-8
               cellStyles: false,
               bookVBA: false
@@ -694,6 +695,9 @@ export default function PriceLibrary() {
             // 获取第一个工作表
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
+            
+            // 修复上标字符丢失问题（如 m³ → m）
+            fixWorksheetSuperscript(worksheet);
             
             // 转换为JSON，使用 raw 选项获取格式化后的值
             jsonData = XLSX.utils.sheet_to_json(worksheet, { 
@@ -883,7 +887,13 @@ export default function PriceLibrary() {
     }
 
     // 最后清理残留的乱码字符
-    return fixed.replace(/[Ãâ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ]+/g, '').trim();
+    // 匹配 UTF-8 伪序列（高字节+后续字节），以及孤立的 Latin 扩展乱码首字节
+    // 但保留合法字符：³²°µ×÷¼½¾±§¤¥¦©®«»¶·¸¹º¨¬¯等
+    const validLatinChars = new Set(['×','÷','µ','°','²','³','¼','½','¾','±','§','¤','¥','¦','©','®','«','»','¶','·','¸','¹','º','¨','¬','¯','¡','¿']);
+    return fixed.replace(
+      /(?:[\u00C0-\u00FF][\u0080-\u00BF]{1,2})+|[\u00C0-\u00C6\u00C8-\u00CF\u00D0-\u00D6\u00D8-\u00DE\u00E0-\u00F6\u00F8-\u00FF]/g,
+      (match) => (match.length === 1 && validLatinChars.has(match)) ? match : ''
+    ).trim();
   };
 
   // 递归修复数据中的所有字符串乱码 - 增强版
@@ -1074,13 +1084,16 @@ export default function PriceLibrary() {
         const workbook = XLSX.read(data, { 
           type: 'array', 
           cellDates: true, 
-          cellText: false,
+          cellText: true,
           codepage: 65001, // UTF-8
           cellStyles: false,
           bookVBA: false
         });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
+
+        // 修复上标字符丢失问题（如 m³ → m）
+        fixWorksheetSuperscript(worksheet);
 
         // 使用 sheet_to_json 转换数据，使用 raw 选项获取格式化后的值
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { 

@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     // 解析Excel
     let workbook;
     try {
-      workbook = XLSX.read(buffer, { type: 'buffer' });
+      workbook = XLSX.read(buffer, { type: 'buffer', cellText: true });
     } catch (error) {
       console.error('[Product Batch] Excel解析失败:', error);
       return NextResponse.json({ error: 'Excel文件解析失败，请检查文件格式' }, { status: 400 });
@@ -132,7 +132,15 @@ export async function POST(request: NextRequest) {
         if (categoryIndex !== -1 && row[categoryIndex])
           product.category = row[categoryIndex].toString().trim();
         if (brandIndex !== -1 && row[brandIndex]) product.brand = row[brandIndex].toString().trim();
-        if (unitIndex !== -1 && row[unitIndex]) product.unit = row[unitIndex].toString().trim();
+        if (unitIndex !== -1 && row[unitIndex]) {
+          let unitStr = row[unitIndex].toString().trim();
+          // 修复上标字符丢失：m3 -> m³, m2 -> m²
+          unitStr = unitStr.replace(/^m3$/i, 'm³').replace(/^m2$/i, 'm²')
+            .replace(/^cm3$/i, 'cm³').replace(/^cm2$/i, 'cm²')
+            .replace(/^mm3$/i, 'mm³').replace(/^mm2$/i, 'mm²')
+            .replace(/^KG$/i, 'kg').replace(/^KW$/i, 'kW');
+          product.unit = unitStr;
+        }
         if (specsIndex !== -1 && row[specsIndex])
           product.specifications = row[specsIndex].toString().trim();
 

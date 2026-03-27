@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import ImportFieldMapping from '@/components/knowledge-center/import-field-mapping';
+import { fixWorksheetSuperscript } from '@/utils/excel-superscript-fix';
 
 type Step = 'upload' | 'mapping' | 'importing' | 'result';
 
@@ -47,7 +48,9 @@ export default function ProductImportPage() {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const wb = XLSX.read(data, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        // 修复上标字符丢失问题（如 m³ → m）
+        fixWorksheetSuperscript(ws);
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, blankrows: false });
 
         if (json.length === 0) {
           toast.error('文件为空或格式不正确');

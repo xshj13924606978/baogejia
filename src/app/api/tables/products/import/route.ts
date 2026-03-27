@@ -3,6 +3,27 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { createDuplicateChecker, DuplicateChecker } from '@/lib/duplicate-checker';
 import { matchCategory } from '@/lib/category-matcher';
 
+// 单位标准化：修复 XLSX 解析可能导致的上标字符丢失问题
+function normalizeUnit(unit: any): string {
+  if (!unit || typeof unit !== 'string') return String(unit || '');
+  let normalized = unit.trim();
+  // 修复 XLSX 解析时 m³ 上标 ³ 被丢失为 3 或被截断为 m 的问题
+  // Excel 中 m³ 可能有多种存储形式
+  normalized = normalized.replace(/^m3$/i, 'm³');
+  normalized = normalized.replace(/^m2$/i, 'm²');
+  normalized = normalized.replace(/^m1$/i, 'm');
+  normalized = normalized.replace(/^cm3$/i, 'cm³');
+  normalized = normalized.replace(/^cm2$/i, 'cm²');
+  normalized = normalized.replace(/^mm3$/i, 'mm³');
+  normalized = normalized.replace(/^mm2$/i, 'mm²');
+  normalized = normalized.replace(/^km3$/i, 'km³');
+  normalized = normalized.replace(/^km2$/i, 'km²');
+  normalized = normalized.replace(/^L$/i, 'L');
+  normalized = normalized.replace(/^KG$/i, 'kg');
+  normalized = normalized.replace(/^KW$/i, 'kW');
+  return normalized;
+}
+
 // 字段映射：从系统字段名映射到数据库字段名
 // 统一产品字段规范（13个标准字段）
 const FIELD_TO_DB_MAP: Record<string, string> = {
@@ -126,6 +147,9 @@ export async function POST(request: NextRequest) {
               } else if (systemField === 'parameter_description') {
                 product['specifications'] = item[excelHeader];
                 console.log(`[Import API]   ${excelHeader} -> parameter_description(specifications):`, item[excelHeader]);
+              } else if (systemField === 'unit') {
+                product['unit'] = normalizeUnit(item[excelHeader]);
+                console.log(`[Import API]   ${excelHeader} -> unit:`, product['unit']);
               } else {
                 product[systemField] = item[excelHeader];
                 console.log(`[Import API]   ${excelHeader} -> ${systemField}:`, product[systemField]);
@@ -144,7 +168,7 @@ export async function POST(request: NextRequest) {
             supplier: item['供应商'] || item['supplier'] || '',
             contact_person: item['联系人'] || item['contact_person'] || '',
             contact_phone: item['联系电话'] || item['电话'] || item['contact_phone'] || '',
-            unit: item['单位'] || item['unit'] || '',
+            unit: normalizeUnit(item['单位'] || item['unit'] || ''),
             cost_price:
               parseFloat(item['成本'] || item['成本价(元)'] || item['cost_price'] || '0') || 0,
             min_price:
@@ -196,7 +220,7 @@ export async function POST(request: NextRequest) {
           model: product.model || '',
           parameter_description: product.parameter_description || product.specifications || '',
           brand: product.brand || '',
-          unit: product.unit || '台',
+          unit: normalizeUnit(product.unit || '台'),
           supplier: product.supplier || '',
           contact_person: product.contact_person || '',
           contact_phone: product.contact_phone || '',
