@@ -17,6 +17,7 @@ export const GET = withAdmin(async (request: NextRequest) => {
     const action_type = sp.get('action_type') || '';
     const page = parseInt(sp.get('page') || '1');
     const limit = parseInt(sp.get('limit') || '50');
+    const all = sp.get('all') === 'true';
 
     const db = getSupabaseServiceClient();
     let query = db.from('user_pages').select('*, menu:user_menus(id, menu_key, name_zh, icon)', { count: 'exact' });
@@ -24,6 +25,12 @@ export const GET = withAdmin(async (request: NextRequest) => {
     if (menu_id) query = query.eq('menu_id', menu_id);
     if (keyword) query = query.or(`name_zh.ilike.%${keyword}%,page_key.ilike.%${keyword}%`);
     if (action_type) query = query.eq('action_type', action_type);
+
+    if (all) {
+      const { data, error } = await query.order('sort_order', { ascending: true });
+      if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: true, data: data || [] });
+    }
 
     const offset = (page - 1) * limit;
     const { data, error, count } = await query.order('sort_order', { ascending: true }).range(offset, offset + limit - 1);

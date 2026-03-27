@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { usePermission } from './usePermission';
 
 export interface UserMenuItem {
   id: string;
@@ -46,6 +47,8 @@ export function useUserMenuConfig() {
     error: null,
   });
 
+  const { loading: permLoading, canAccessUserMenu, canAccessUserMenuPage } = usePermission();
+
   const loadMenu = useCallback(async (force = false) => {
     if (!force && cache.data && Date.now() - cache.timestamp < CACHE_TTL) {
       setState({ data: cache.data, loading: false, error: null });
@@ -72,5 +75,17 @@ export function useUserMenuConfig() {
 
   const refresh = useCallback(() => loadMenu(true), [loadMenu]);
 
-  return { ...state, refresh };
+  // 根据权限过滤菜单
+  const filteredData = useMemo(() => {
+    if (permLoading) return state.data;
+    return state.data
+      .filter(group => canAccessUserMenu(group.menu_key))
+      .map(group => ({
+        ...group,
+        items: group.items.filter(item => canAccessUserMenuPage(item.page_key)),
+      }))
+      .filter(group => group.items.length > 0);
+  }, [state.data, permLoading, canAccessUserMenu, canAccessUserMenuPage]);
+
+  return { ...state, data: filteredData, refresh };
 }

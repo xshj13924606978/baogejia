@@ -21,6 +21,10 @@ export interface UserPermissions {
   pages: Record<string, boolean>;                 // { page_key: visible }
   fields: Record<string, FieldPermission>;        // { "page_key:field_key": {visible, editable} }
   actions: Record<string, boolean>;               // { "page_key:action_key": visible }
+  userMenus: Record<string, boolean>;              // { menu_key: visible }
+  userMenuPages: Record<string, boolean>;          // { page_key: visible }
+  userMenuFields: Record<string, FieldPermission>; // { "page_key:field_key": {visible, editable} }
+  userMenuActions: Record<string, boolean>;        // { "page_key:action_key": visible }
 }
 
 interface OverrideRule {
@@ -84,24 +88,25 @@ export async function getUserPermissions(
   sorted.sort((a, b) => a.priority - b.priority);
 
   // 2. 查询系统默认配置（启用的模块/页面/字段/按钮）
-  const { data: defaultModules } = await db
-    .from('system_modules')
-    .select('module_key, is_enabled, is_visible_in_menu')
-    .eq('is_enabled', true);
-
-  const { data: defaultPages } = await db
-    .from('system_pages')
-    .select('page_key, module_id, is_enabled')
-    .eq('is_enabled', true);
-
-  // JOIN 页面获取 page_key，用于构建复合键
-  const { data: defaultFields } = await db
-    .from('system_fields')
-    .select('field_key, page_id, is_visible, is_editable, system_pages!page_id(page_key)');
-
-  const { data: defaultActions } = await db
-    .from('system_actions')
-    .select('action_key, page_id, is_visible, system_pages!page_id(page_key)');
+  const [
+    { data: defaultModules },
+    { data: defaultPages },
+    { data: defaultFields },
+    { data: defaultActions },
+    { data: defaultUserMenus },
+    { data: defaultUserPages },
+    { data: defaultUserFields },
+    { data: defaultUserActions },
+  ] = await Promise.all([
+    db.from('system_modules').select('module_key, is_enabled, is_visible_in_menu').eq('is_enabled', true),
+    db.from('system_pages').select('page_key, module_id, is_enabled').eq('is_enabled', true),
+    db.from('system_fields').select('field_key, page_id, is_visible, is_editable, system_pages!page_id(page_key)'),
+    db.from('system_actions').select('action_key, page_id, is_visible, system_pages!page_id(page_key)'),
+    db.from('user_menus').select('menu_key, is_enabled, is_visible').eq('is_enabled', true),
+    db.from('user_pages').select('page_key, menu_id, is_enabled, is_visible').eq('is_enabled', true),
+    db.from('user_fields').select('field_key, page_id, is_visible, is_editable, user_pages!page_id(page_key)'),
+    db.from('user_actions').select('action_key, page_id, is_visible, user_pages!page_id(page_key)'),
+  ]);
 
   // 3. 构建默认权限
   const perms = defaultPermissions();
@@ -126,6 +131,24 @@ export async function getUserPermissions(
     perms.actions[compositeKey] = a.is_visible;
   }
 
+  // 用户菜单默认权限
+  for (const m of defaultUserMenus || []) {
+    perms.userMenus[m.menu_key] = m.is_visible !== false;
+  }
+  for (const p of defaultUserPages || []) {
+    perms.userMenuPages[p.page_key] = p.is_visible !== false;
+  }
+  for (const f of defaultUserFields || []) {
+    const pageKey = (f as any).user_pages?.page_key || '';
+    const compositeKey = pageKey ? `${pageKey}:${f.field_key}` : f.field_key;
+    perms.userMenuFields[compositeKey] = { visible: f.is_visible, editable: f.is_editable };
+  }
+  for (const a of defaultUserActions || []) {
+    const pageKey = (a as any).user_pages?.page_key || '';
+    const compositeKey = pageKey ? `${pageKey}:${a.action_key}` : a.action_key;
+    perms.userMenuActions[compositeKey] = a.is_visible;
+  }
+
   // 4. 应用覆盖规则（按优先级从高到低，低优先级不会覆盖高优先级的显式设置）
   for (const rule of sorted) {
     switch (rule.permission_type) {
@@ -145,6 +168,23 @@ export async function getUserPermissions(
       }
       case 'action':
         if (rule.is_visible !== null) perms.actions[rule.permission_key] = rule.is_visible;
+        break;
+      case 'user_menu':
+        if (rule.is_visible !== null) perms.userMenus[rule.permission_key] = rule.is_visible;
+        break;
+      case 'user_menu_page':
+        if (rule.is_visible !== null) perms.userMenuPages[rule.permission_key] = rule.is_visible;
+        break;
+      case 'user_menu_field': {
+        if (!perms.userMenuFields[rule.permission_key]) {
+          perms.userMenuFields[rule.permission_key] = { visible: true, editable: true };
+        }
+        if (rule.is_visible !== null) perms.userMenuFields[rule.permission_key].visible = rule.is_visible;
+        if (rule.is_editable !== null) perms.userMenuFields[rule.permission_key].editable = rule.is_editable;
+        break;
+      }
+      case 'user_menu_action':
+        if (rule.is_visible !== null) perms.userMenuActions[rule.permission_key] = rule.is_visible;
         break;
     }
   }
@@ -208,6 +248,58 @@ export async function canUseAction(
 }
 
 /**
+ * 检查用户能否访问某个用户菜单分组
+ */
+export async function canAccessUserMenu(
+  userId: string,
+  menuKey: string,
+  userRole?: string,
+  userLevel?: number
+): Promise<boolean> {
+  const perms = await getUserPermissions(userId, userRole, userLevel);
+  return perms.userMenus[menuKey] !== false;
+}
+
+/**
+ * 检查用户能否访问某个用户菜单项
+ */
+export async function canAccessUserMenuPage(
+  userId: string,
+  pageKey: string,
+  userRole?: string,
+  userLevel?: number
+): Promise<boolean> {
+  const perms = await getUserPermissions(userId, userRole, userLevel);
+  return perms.userMenuPages[pageKey] !== false;
+}
+
+/**
+ * 获取用户对某个用户菜单字段的权限
+ */
+export async function getUserMenuFieldPermission(
+  userId: string,
+  fieldKey: string,
+  userRole?: string,
+  userLevel?: number
+): Promise<FieldPermission> {
+  const perms = await getUserPermissions(userId, userRole, userLevel);
+  return perms.userMenuFields[fieldKey] || { visible: true, editable: true };
+}
+
+/**
+ * 检查用户能否使用某个用户菜单操作按钮
+ */
+export async function canUseUserMenuAction(
+  userId: string,
+  actionKey: string,
+  userRole?: string,
+  userLevel?: number
+): Promise<boolean> {
+  const perms = await getUserPermissions(userId, userRole, userLevel);
+  return perms.userMenuActions[actionKey] !== false;
+}
+
+/**
  * 清除用户权限缓存（配置变更时调用）
  */
 export function clearUserCache(userId?: string): void {
@@ -255,5 +347,5 @@ export async function getUserRoleAndLevel(userId: string): Promise<{ role: strin
 // ── 内部工具 ──
 
 function defaultPermissions(): UserPermissions {
-  return { modules: {}, pages: {}, fields: {}, actions: {} };
+  return { modules: {}, pages: {}, fields: {}, actions: {}, userMenus: {}, userMenuPages: {}, userMenuFields: {}, userMenuActions: {} };
 }

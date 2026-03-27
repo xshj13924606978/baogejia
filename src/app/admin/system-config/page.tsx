@@ -63,9 +63,16 @@ export default function SystemConfigPage() {
   );
 }
 
-/** 用户菜单配置子 Tab */
+/** 用户菜单配置子 Tab（使用 forceMount + hidden 避免嵌套 TabsContent 和组件卸载问题） */
 function UserMenuConfigTabs() {
   const [subTab, setSubTab] = useState('user-menu-groups');
+
+  const TABS = [
+    { value: 'user-menu-groups', label: '菜单分组', Component: ConfigUserMenus },
+    { value: 'user-menu-items', label: '菜单项', Component: ConfigUserPages },
+    { value: 'user-menu-fields', label: '字段配置', Component: ConfigUserFields },
+    { value: 'user-menu-actions', label: '按钮配置', Component: ConfigUserActions },
+  ] as const;
 
   return (
     <div className="space-y-4">
@@ -76,26 +83,16 @@ function UserMenuConfigTabs() {
 
       <Tabs value={subTab} onValueChange={setSubTab}>
         <TabsList>
-          <TabsTrigger value="user-menu-groups">菜单分组</TabsTrigger>
-          <TabsTrigger value="user-menu-items">菜单项</TabsTrigger>
-          <TabsTrigger value="user-menu-fields">字段配置</TabsTrigger>
-          <TabsTrigger value="user-menu-actions">按钮配置</TabsTrigger>
+          {TABS.map(t => (
+            <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
+          ))}
         </TabsList>
 
-        <div className="mt-4">
-          <TabsContent value="user-menu-groups" className="mt-0">
-            <ConfigUserMenus />
+        {TABS.map(t => (
+          <TabsContent key={t.value} value={t.value} forceMount className="mt-0">
+            {subTab === t.value ? <t.Component /> : null}
           </TabsContent>
-          <TabsContent value="user-menu-items" className="mt-0">
-            <ConfigUserPages />
-          </TabsContent>
-          <TabsContent value="user-menu-fields" className="mt-0">
-            <ConfigUserFields />
-          </TabsContent>
-          <TabsContent value="user-menu-actions" className="mt-0">
-            <ConfigUserActions />
-          </TabsContent>
-        </div>
+        ))}
       </Tabs>
     </div>
   );

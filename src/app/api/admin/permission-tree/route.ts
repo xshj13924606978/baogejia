@@ -10,7 +10,8 @@ import { withAdmin } from '@/lib/permission-check';
 interface TreeNode {
   key: string;
   label: string;
-  type: 'module' | 'page' | 'field' | 'action';
+  type: 'module' | 'page' | 'field' | 'action' | 'user_menu' | 'user_menu_page' | 'user_menu_field' | 'user_menu_action';
+  category?: 'system' | 'user_menu';
   children?: TreeNode[];
   defaultVisible: boolean;
   defaultEditable?: boolean;
@@ -26,17 +27,28 @@ export const GET = withAdmin(async (request: NextRequest) => {
     const db = getSupabaseServiceClient();
 
     // 并行加载所有配置数据
-    const [modulesRes, pagesRes, fieldsRes, actionsRes] = await Promise.all([
+    const [
+      modulesRes, pagesRes, fieldsRes, actionsRes,
+      userMenusRes, userPagesRes, userFieldsRes, userActionsRes,
+    ] = await Promise.all([
       db.from('system_modules').select('*').eq('is_enabled', true).order('sort_order', { ascending: true }),
       db.from('system_pages').select('*').eq('is_enabled', true).order('sort_order', { ascending: true }),
       db.from('system_fields').select('*').order('sort_order', { ascending: true }),
       db.from('system_actions').select('*').order('sort_order', { ascending: true }),
+      db.from('user_menus').select('*').eq('is_enabled', true).order('sort_order', { ascending: true }),
+      db.from('user_pages').select('*').eq('is_enabled', true).order('sort_order', { ascending: true }),
+      db.from('user_fields').select('*').order('sort_order', { ascending: true }),
+      db.from('user_actions').select('*').order('sort_order', { ascending: true }),
     ]);
 
     const modules = modulesRes.data || [];
     const pages = pagesRes.data || [];
     const fields = fieldsRes.data || [];
     const actions = actionsRes.data || [];
+    const userMenus = userMenusRes.data || [];
+    const userPages = userPagesRes.data || [];
+    const userFields = userFieldsRes.data || [];
+    const userActions = userActionsRes.data || [];
 
     // 查询该目标的覆盖规则
     let overrides: Record<string, any> = {};
@@ -78,8 +90,32 @@ export const GET = withAdmin(async (request: NextRequest) => {
       actionsByPage.set(a.page_id, list);
     }
 
+    // 构建用户菜单字段映射
+    const userFieldsByPage = new Map<string, any[]>();
+    for (const f of userFields) {
+      const list = userFieldsByPage.get(f.page_id) || [];
+      list.push(f);
+      userFieldsByPage.set(f.page_id, list);
+    }
+
+    // 构建用户菜单按钮映射
+    const userActionsByPage = new Map<string, any[]>();
+    for (const a of userActions) {
+      const list = userActionsByPage.get(a.page_id) || [];
+      list.push(a);
+      userActionsByPage.set(a.page_id, list);
+    }
+
+    // 构建用户菜单页面映射
+    const userPagesByMenu = new Map<string, any[]>();
+    for (const p of userPages) {
+      const list = userPagesByMenu.get(p.menu_id) || [];
+      list.push(p);
+      userPagesByMenu.set(p.menu_id, list);
+    }
+
     // 构建树
-    const tree: TreeNode[] = modules.map((m: any) => {
+    const systemTree: TreeNode[] = modules.map((m: any) => {
       const modulePages = pagesByModule.get(m.id) || [];
       const moduleOverride = overrides[`module:${m.module_key}`];
 
@@ -133,7 +169,63 @@ export const GET = withAdmin(async (request: NextRequest) => {
       };
     });
 
-    return NextResponse.json({ success: true, data: tree });
+    // 构建用户菜单树
+    const userMenuTree: TreeNode[] = userMenus.map((m: any) => {
+      const menuPages = userPagesByMenu.get(m.id) || [];
+      const menuOverride = overrides[`user_menu:${m.menu_key}`];
+
+      return {
+        key: m.menu_key,
+        label: m.name_zh,
+        type: 'user_menu' as const,
+        category: 'user_menu' as const,
+        defaultVisible: m.is_visible !== false,
+        override: menuOverride ? { visible: menuOverride.visible } : undefined,
+        children: [
+          ...menuPages.map((p: any) => {
+            const pageFields = userFieldsByPage.get(p.id) || [];
+            const pageActions = userActionsByPage.get(p.id) || [];
+            const pageOverride = overrides[`user_menu_page:${p.page_key}`];
+
+            return {
+              key: p.page_key,
+              label: p.name_zh,
+              type: 'user_menu_page' as const,
+              category: 'user_menu' as const,
+              defaultVisible: p.is_visible !== false,
+              override: pageOverride ? { visible: pageOverride.visible } : undefined,
+              children: [
+                ...pageFields.map((f: any) => {
+                  const fieldOverride = overrides[`user_menu_field:${p.page_key}:${f.field_key}`];
+                  return {
+                    key: `${p.page_key}:${f.field_key}`,
+                    label: f.label_zh,
+                    type: 'user_menu_field' as const,
+                    category: 'user_menu' as const,
+                    defaultVisible: f.is_visible !== false,
+                    defaultEditable: f.is_editable !== false,
+                    override: fieldOverride,
+                  };
+                }),
+                ...pageActions.map((a: any) => {
+                  const actionOverride = overrides[`user_menu_action:${p.page_key}:${a.action_key}`];
+                  return {
+                    key: `${p.page_key}:${a.action_key}`,
+                    label: a.name_zh,
+                    type: 'user_menu_action' as const,
+                    category: 'user_menu' as const,
+                    defaultVisible: a.is_visible !== false,
+                    override: actionOverride ? { visible: actionOverride.visible } : undefined,
+                  };
+                }),
+              ],
+            };
+          }),
+        ],
+      };
+    });
+
+    return NextResponse.json({ success: true, data: [...systemTree, ...userMenuTree] });
   } catch (error) {
     console.error('[PermissionTreeAPI] 失败:', error);
     return NextResponse.json({ success: false, error: '服务器错误' }, { status: 500 });

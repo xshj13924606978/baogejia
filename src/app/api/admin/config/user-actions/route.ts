@@ -16,12 +16,19 @@ export const GET = withAdmin(async (request: NextRequest) => {
     const keyword = sp.get('keyword') || '';
     const page = parseInt(sp.get('page') || '1');
     const limit = parseInt(sp.get('limit') || '50');
+    const all = sp.get('all') === 'true';
 
     const db = getSupabaseServiceClient();
     let query = db.from('user_actions').select('*, page:user_pages(id, page_key, name_zh)', { count: 'exact' });
 
     if (page_id) query = query.eq('page_id', page_id);
     if (keyword) query = query.or(`name_zh.ilike.%${keyword}%,action_key.ilike.%${keyword}%`);
+
+    if (all) {
+      const { data, error } = await query.order('sort_order', { ascending: true });
+      if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: true, data: data || [] });
+    }
 
     const offset = (page - 1) * limit;
     const { data, error, count } = await query.order('sort_order', { ascending: true }).range(offset, offset + limit - 1);

@@ -29,7 +29,8 @@ interface PermRule {
 interface TreeNode {
   key: string;
   label: string;
-  type: 'module' | 'page' | 'field' | 'action';
+  type: 'module' | 'page' | 'field' | 'action' | 'user_menu' | 'user_menu_page' | 'user_menu_field' | 'user_menu_action';
+  category?: 'system' | 'user_menu';
   children?: TreeNode[];
   defaultVisible?: boolean;
   defaultEditable?: boolean;
@@ -311,7 +312,8 @@ export default function PermissionOverrides() {
     const isBlocked = visibleStatus === false;
     const isEditableBlocked = getOverrideStatus(node.type, node.key, 'editable') === false;
     const hasOverride = visibleStatus !== null || isEditableBlocked !== null;
-    const isField = node.type === 'field';
+    const isField = node.type === 'field' || node.type === 'user_menu_field';
+    const isUserMenu = node.type.startsWith('user_menu');
 
     return (
       <div key={node.key}>
@@ -364,8 +366,8 @@ export default function PermissionOverrides() {
             {node.label}
           </span>
           <code className="text-xs text-muted-foreground">{node.key}</code>
-          <Badge variant="outline" className={`text-[10px] shrink-0 ${isField ? 'border-blue-300 text-blue-600' : ''}`}>
-            {{ module: '模块', page: '页面', field: '字段', action: '按钮' }[node.type] || node.type}
+          <Badge variant="outline" className={`text-[10px] shrink-0 ${isField ? 'border-blue-300 text-blue-600' : ''} ${isUserMenu ? 'border-purple-300 text-purple-600' : ''}`}>
+            {{ module: '模块', page: '页面', field: '字段', action: '按钮', user_menu: '菜单分组', user_menu_page: '菜单项', user_menu_field: '字段', user_menu_action: '按钮' }[node.type] || node.type}
           </Badge>
 
           {/* 字段可编辑状态 */}

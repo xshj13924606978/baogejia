@@ -17,6 +17,7 @@ export const GET = withAdmin(async (request: NextRequest) => {
     const field_type = sp.get('field_type') || '';
     const page = parseInt(sp.get('page') || '1');
     const limit = parseInt(sp.get('limit') || '50');
+    const all = sp.get('all') === 'true';
 
     const db = getSupabaseServiceClient();
     let query = db.from('user_fields').select('*, page:user_pages(id, page_key, name_zh)', { count: 'exact' });
@@ -24,6 +25,12 @@ export const GET = withAdmin(async (request: NextRequest) => {
     if (page_id) query = query.eq('page_id', page_id);
     if (keyword) query = query.or(`label_zh.ilike.%${keyword}%,field_key.ilike.%${keyword}%`);
     if (field_type) query = query.eq('field_type', field_type);
+
+    if (all) {
+      const { data, error } = await query.order('sort_order', { ascending: true });
+      if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: true, data: data || [] });
+    }
 
     const offset = (page - 1) * limit;
     const { data, error, count } = await query.order('sort_order', { ascending: true }).range(offset, offset + limit - 1);

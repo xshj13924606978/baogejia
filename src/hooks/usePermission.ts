@@ -14,6 +14,10 @@ interface UserPermissions {
   pages: Record<string, boolean>;
   fields: Record<string, FieldPermission>;
   actions: Record<string, boolean>;
+  userMenus: Record<string, boolean>;
+  userMenuPages: Record<string, boolean>;
+  userMenuFields: Record<string, FieldPermission>;
+  userMenuActions: Record<string, boolean>;
 }
 
 // ── Hook ──
@@ -31,10 +35,10 @@ export function usePermission() {
         setPermissions(data.data);
       } else {
         // 无权限接口时使用默认（全部允许）
-        setPermissions({ modules: {}, pages: {}, fields: {}, actions: {} });
+        setPermissions({ modules: {}, pages: {}, fields: {}, actions: {}, userMenus: {}, userMenuPages: {}, userMenuFields: {}, userMenuActions: {} });
       }
     } catch {
-      setPermissions({ modules: {}, pages: {}, fields: {}, actions: {} });
+      setPermissions({ modules: {}, pages: {}, fields: {}, actions: {}, userMenus: {}, userMenuPages: {}, userMenuFields: {}, userMenuActions: {} });
     } finally {
       setLoading(false);
     }
@@ -68,6 +72,30 @@ export function usePermission() {
     return permissions.actions[actionKey] !== false;
   }, [permissions]);
 
+  /** 检查用户菜单分组访问权限 */
+  const canAccessUserMenu = useCallback((menuKey: string): boolean => {
+    if (!permissions) return true;
+    return permissions.userMenus[menuKey] !== false;
+  }, [permissions]);
+
+  /** 检查用户菜单项访问权限 */
+  const canAccessUserMenuPage = useCallback((pageKey: string): boolean => {
+    if (!permissions) return true;
+    return permissions.userMenuPages[pageKey] !== false;
+  }, [permissions]);
+
+  /** 获取用户菜单字段权限 */
+  const getUserMenuFieldPermission = useCallback((fieldKey: string): FieldPermission => {
+    if (!permissions) return { visible: true, editable: true };
+    return permissions.userMenuFields[fieldKey] || { visible: true, editable: true };
+  }, [permissions]);
+
+  /** 检查用户菜单按钮权限 */
+  const canUseUserMenuAction = useCallback((actionKey: string): boolean => {
+    if (!permissions) return true;
+    return permissions.userMenuActions[actionKey] !== false;
+  }, [permissions]);
+
   /** 刷新权限（配置变更时调用） */
   const refreshPermissions = useCallback(() => {
     loadPermissions();
@@ -79,6 +107,10 @@ export function usePermission() {
     canAccessPage,
     getFieldPermission,
     canUseAction,
+    canAccessUserMenu,
+    canAccessUserMenuPage,
+    getUserMenuFieldPermission,
+    canUseUserMenuAction,
     refreshPermissions,
   };
 }
