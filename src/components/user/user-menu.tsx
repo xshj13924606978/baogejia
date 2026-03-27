@@ -1015,40 +1015,10 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
                 <DropdownMenuSeparator />
 
-                <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-                  系统管理
-                </DropdownMenuLabel>
-
-                <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    onClick={() => handleNavigation('/admin')}
-                  >
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    <span>管理后台</span>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    onClick={() => handleNavigation('/admin/users')}
-                  >
-                    <Users className="mr-2 h-4 w-4" />
-                    <span>用户管理</span>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    onClick={() => setShowSettingsDialog(true)}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>设置</span>
-                  </DropdownMenuItem>
-
                   <DropdownMenuItem className="cursor-pointer" onClick={handleHelp}>
                     <HelpCircle className="mr-2 h-4 w-4" />
                     <span>帮助</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
+                </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
 
