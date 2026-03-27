@@ -73,9 +73,9 @@ export const POST = withAdmin(async (request: NextRequest, user: any) => {
           { status: 400 }
         );
       }
-      if (!['module', 'page', 'field', 'action'].includes(r.permission_type)) {
+      if (!['module', 'page', 'field', 'action', 'user_menu', 'user_menu_page', 'user_menu_field', 'user_menu_action'].includes(r.permission_type)) {
         return NextResponse.json(
-          { success: false, error: 'permission_type 必须是 module/page/field/action 之一' },
+          { success: false, error: 'permission_type 无效' },
           { status: 400 }
         );
       }

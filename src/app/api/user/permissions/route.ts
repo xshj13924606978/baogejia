@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
   try {
     const userInfo = await getUserFromRequest(request);
     if (!userInfo) {
-      return NextResponse.json({ success: true, data: { modules: {}, pages: {}, fields: {}, actions: {} } });
+      return NextResponse.json({ success: true, data: { modules: {}, pages: {}, fields: {}, actions: {}, userMenus: {}, userMenuPages: {}, userMenuFields: {}, userMenuActions: {} } });
     }
 
     const perms = await getUserPermissions(userInfo.id, userInfo.role, userInfo.level);
@@ -44,6 +44,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[UserPermissionsAPI] 失败:', error);
     // 降级返回全部允许
-    return NextResponse.json({ success: true, data: { modules: {}, pages: {}, fields: {}, actions: {} } });
+    return NextResponse.json({ success: true, data: { modules: {}, pages: {}, fields: {}, actions: {}, userMenus: {}, userMenuPages: {}, userMenuFields: {}, userMenuActions: {} } });
   }
 }
