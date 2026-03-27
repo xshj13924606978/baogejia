@@ -58,6 +58,8 @@ import { ProfileDialog } from '@/components/shared/profile-dialog';
 import { useUser } from '@/contexts/UserContext';
 import CustomerPanel from '@/components/user/customer-panel';
 import { useRouter } from 'next/navigation';
+import { useUserMenuConfig, type UserMenuGroup } from '@/hooks/useUserMenuConfig';
+import { DynamicIcon } from '@/components/ui/dynamic-icon';
 
 export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   const { user, loading, updateUser, logout, changePassword } = useUser();
@@ -725,6 +727,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     };
   }, []);
 
+  // 动态菜单配置（必须在条件返回之前调用，遵守 Hooks 规则）
+  const { data: menuConfig, loading: menuLoading } = useUserMenuConfig();
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 px-2">
@@ -746,6 +751,97 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     );
   }
 
+  // dialogKey → dialog 状态 setter 映射
+  const dialogHandlers: Record<string, (open: boolean) => void> = {
+    profile: setShowProfileDialog,
+    password: setShowPasswordDialog,
+    points: setShowPointsDialog,
+    invite: setShowInviteDialog,
+    notifications: setShowNotificationsDialog,
+    supplier: setShowSupplierDialog,
+    customer: setShowCustomerDialog,
+    terms: setShowTermsDialog,
+    stats: setShowStatsDialog,
+    records: setShowRecordsDialog,
+    settings: setShowSettingsDialog,
+  };
+
+  // 处理菜单项点击
+  const handleMenuItemClick = (item: any) => {
+    const dialogKey = item.config?.dialogKey;
+    const actionType = item.action_type;
+
+    if (actionType === 'navigate' && item.route_path) {
+      handleNavigation(item.route_path);
+    } else if (actionType === 'external') {
+      const url = item.config?.externalUrl || item.route_path;
+      if (url) window.open(url, '_blank');
+      else handleHelp();
+    } else if (actionType === 'dialog' && dialogKey) {
+ if (dialogKey === 'payment') {
+        setShowPaymentPanel(!showPaymentPanel);
+      } else {
+        const handler = dialogHandlers[dialogKey];
+        if (handler) handler(true);
+      }
+    }
+  };
+
+  // 获取徽标值
+  const getBadgeValue = (item: any) => {
+    const badgeKey = item.config?.badgeKey;
+    if (badgeKey === 'points') return userPoints;
+    if (badgeKey === 'unreadCount') return unreadCount;
+    return null;
+  };
+
+  // 动态渲染菜单内容
+  const renderDynamicMenu = (groups: UserMenuGroup[]) => {
+    return groups.map((group, groupIdx) => (
+      <React.Fragment key={group.id}>
+        {groupIdx > 0 && <DropdownMenuSeparator />}
+        <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+          {group.name_zh}
+        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          {group.items.map((item) => {
+            const badgeValue = getBadgeValue(item);
+            const isPaymentPanel = item.config?.hasSubPanel;
+            return (
+              <DropdownMenuItem
+                key={item.id}
+                className="cursor-pointer"
+                onClick={() => handleMenuItemClick(item)}
+              >
+                <DynamicIcon name={item.icon || group.icon || 'User'} className="mr-2 h-4 w-4" />
+                <span>{item.name_zh}</span>
+                {isPaymentPanel && (
+                  <ChevronDown
+                    className={`ml-auto h-4 w-4 transition-transform duration-200 ${
+                      showPaymentPanel ? 'rotate-180' : ''
+                    }`}
+                  />
+                )}
+                {!isPaymentPanel && badgeValue !== null && badgeValue > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className={`ml-auto border-0 text-xs ${
+                      item.badge_type === 'danger'
+                        ? 'bg-red-50 text-red-700'
+                        : 'bg-amber-50 text-amber-700'
+                    }`}
+                  >
+                    {badgeValue}
+                  </Badge>
+                )}
+              </DropdownMenuItem>
+            );
+          })}
+        </DropdownMenuGroup>
+      </React.Fragment>
+    ));
+  };
+
   const initials =
     user.name
       ?.split(' ')
@@ -756,6 +852,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     'U';
 
   const gradientClass = getGradientByInitial(initials);
+
+  // 判断是否使用动态菜单：配置加载成功且有数据时使用动态菜单，否则降级到硬编码菜单
+  const useDynamicMenu = !menuLoading && menuConfig.length > 0;
 
   return (
     <TooltipProvider>
@@ -782,169 +881,186 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-72 max-h-[80vh] overflow-y-auto mt-1">
-            <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-              我的账户
-            </DropdownMenuLabel>
+            {useDynamicMenu ? (
+              <>
+                {renderDynamicMenu(menuConfig)}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer text-red-600 hover:text-red-700"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>退出登录</span>
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <>
+                {/* 降级：硬编码菜单（配置加载失败时使用） */}
+                <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                  我的账户
+                </DropdownMenuLabel>
 
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => setShowProfileDialog(true)}
-              >
-                <User className="mr-2 h-4 w-4" />
-                <span>个人资料</span>
-              </DropdownMenuItem>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setShowProfileDialog(true)}
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    <span>个人资料</span>
+                  </DropdownMenuItem>
 
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => setShowPasswordDialog(true)}
-              >
-                <Lock className="mr-2 h-4 w-4" />
-                <span>修改密码</span>
-              </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setShowPasswordDialog(true)}
+                  >
+                    <Lock className="mr-2 h-4 w-4" />
+                    <span>修改密码</span>
+                  </DropdownMenuItem>
 
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => setShowPointsDialog(true)}
-              >
-                <CreditCard className="mr-2 h-4 w-4" />
-                <span>积分明细</span>
-                <Badge variant="secondary" className="ml-auto bg-amber-50 text-amber-700 border-0">
-                  {userPoints}
-                </Badge>
-              </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setShowPointsDialog(true)}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    <span>积分明细</span>
+                    <Badge variant="secondary" className="ml-auto bg-amber-50 text-amber-700 border-0">
+                      {userPoints}
+                    </Badge>
+                  </DropdownMenuItem>
 
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => setShowInviteDialog(true)}
-              >
-                <Gift className="mr-2 h-4 w-4" />
-                <span>邀请好友</span>
-              </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setShowInviteDialog(true)}
+                  >
+                    <Gift className="mr-2 h-4 w-4" />
+                    <span>邀请好友</span>
+                  </DropdownMenuItem>
 
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => setShowNotificationsDialog(true)}
-              >
-                <Bell className="mr-2 h-4 w-4" />
-                <span>通知中心</span>
-                {unreadCount > 0 && (
-                  <Badge className="ml-auto bg-red-50 text-red-700 border-0 text-xs">
-                    {unreadCount}
-                  </Badge>
-                )}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setShowNotificationsDialog(true)}
+                  >
+                    <Bell className="mr-2 h-4 w-4" />
+                    <span>通知中心</span>
+                    {unreadCount > 0 && (
+                      <Badge className="ml-auto bg-red-50 text-red-700 border-0 text-xs">
+                        {unreadCount}
+                      </Badge>
+                    )}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
 
-            <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
 
-            <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-              商务信息
-            </DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                  商务信息
+                </DropdownMenuLabel>
 
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => setShowSupplierDialog(true)}
-              >
-                <Building2 className="mr-2 h-4 w-4" />
-                <span>供应方信息</span>
-              </DropdownMenuItem>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setShowSupplierDialog(true)}
+                  >
+                    <Building2 className="mr-2 h-4 w-4" />
+                    <span>供应方信息</span>
+                  </DropdownMenuItem>
 
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => setShowCustomerDialog(true)}
-              >
-                <Users className="mr-2 h-4 w-4" />
-                <span>客户管理</span>
-              </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setShowCustomerDialog(true)}
+                  >
+                    <Users className="mr-2 h-4 w-4" />
+                    <span>客户管理</span>
+                  </DropdownMenuItem>
 
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowTermsDialog(true)}>
-                <FileText className="mr-2 h-4 w-4" />
-                <span>商务条款</span>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => setShowTermsDialog(true)}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    <span>商务条款</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
 
-            <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
 
-            <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-              数据与统计
-            </DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                  数据与统计
+                </DropdownMenuLabel>
 
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => setShowPaymentPanel(!showPaymentPanel)}
-              >
-                <TrendingUp className="mr-2 h-4 w-4" />
-                <span>厂商支付排行</span>
-                <ChevronDown
-                  className={`ml-auto h-4 w-4 transition-transform duration-200 ${
-                    showPaymentPanel ? 'rotate-180' : ''
-                  }`}
-                />
-              </DropdownMenuItem>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setShowPaymentPanel(!showPaymentPanel)}
+                  >
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    <span>厂商支付排行</span>
+                    <ChevronDown
+                      className={`ml-auto h-4 w-4 transition-transform duration-200 ${
+                        showPaymentPanel ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </DropdownMenuItem>
 
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowStatsDialog(true)}>
-                <BarChart3 className="mr-2 h-4 w-4" />
-                <span>数据统计</span>
-              </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => setShowStatsDialog(true)}>
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    <span>数据统计</span>
+                  </DropdownMenuItem>
 
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => setShowRecordsDialog(true)}
-              >
-                <History className="mr-2 h-4 w-4" />
-                <span>最近记录</span>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setShowRecordsDialog(true)}
+                  >
+                    <History className="mr-2 h-4 w-4" />
+                    <span>最近记录</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
 
-            <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
 
-            <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-              系统管理
-            </DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                  系统管理
+                </DropdownMenuLabel>
 
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => handleNavigation('/admin')}
-              >
-                <LayoutDashboard className="mr-2 h-4 w-4" />
-                <span>管理后台</span>
-              </DropdownMenuItem>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => handleNavigation('/admin')}
+                  >
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>管理后台</span>
+                  </DropdownMenuItem>
 
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => handleNavigation('/admin/users')}
-              >
-                <Users className="mr-2 h-4 w-4" />
-                <span>用户管理</span>
-              </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => handleNavigation('/admin/users')}
+                  >
+                    <Users className="mr-2 h-4 w-4" />
+                    <span>用户管理</span>
+                  </DropdownMenuItem>
 
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => setShowSettingsDialog(true)}
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                <span>设置</span>
-              </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setShowSettingsDialog(true)}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>设置</span>
+                  </DropdownMenuItem>
 
-              <DropdownMenuItem className="cursor-pointer" onClick={handleHelp}>
-                <HelpCircle className="mr-2 h-4 w-4" />
-                <span>帮助</span>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+                  <DropdownMenuItem className="cursor-pointer" onClick={handleHelp}>
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    <span>帮助</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
 
-            <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
 
-            <DropdownMenuItem
-              className="cursor-pointer text-red-600 hover:text-red-700"
-              onClick={handleLogout}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>退出登录</span>
-            </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer text-red-600 hover:text-red-700"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>退出登录</span>
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
 

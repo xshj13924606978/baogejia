@@ -5,7 +5,7 @@
 
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
-type TargetType = 'module' | 'page' | 'field' | 'action' | 'user_override';
+type TargetType = 'module' | 'page' | 'field' | 'action' | 'user_override' | 'user_menu' | 'user_page' | 'user_field' | 'user_action';
 
 interface LogEntry {
   adminId: string;
