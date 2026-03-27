@@ -18,7 +18,7 @@ const SUB_TABS = [
 export default function UserMenuConfig() {
   const [activeSubTab, setActiveSubTab] = useState('groups');
 
-  const ActiveComponent = SUB_TABS.find(t => t.key === activeSubTab)?.component;
+  const ActiveComponent = SUB_TABS.find(t => t.key === activeSubTab)?.Component;
 
   return (
     <div className="space-y-4">
