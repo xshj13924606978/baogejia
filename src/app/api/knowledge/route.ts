@@ -123,35 +123,54 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 格式化数据
-    const formatted = filteredData.map((item: any) => ({
-      id: item.id,
-      user_id: item.user_id,
-      type: item.type,
-      title: item.title,
-      description: item.description || '',
-      file_name: item.file_name,
-      file_key: item.file_key,
-      file_url: item.file_url,
-      file_size: item.file_size,
-      file_type: item.file_type,
-      content: item.content,
-      metadata: item.metadata || {},
-      status: item.status,
-      reject_reason: item.reject_reason || null,
-      views: item.views || 0,
-      downloads: item.downloads || 0,
-      uploader_name: userMap[item.user_id] || '未知',
-      tags: tagMap[item.id] || [],
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-    }));
+    // 格式化数据（非 approved 条目只返回标题和状态，不暴露文件信息）
+    const formatted = filteredData.map((item: any) => {
+      if (item.status !== 'approved') {
+        // 只返回 uploader 自己能看到的摘要信息
+        return {
+          id: item.id,
+          user_id: item.user_id,
+          type: item.type,
+          title: item.title,
+          status: item.status,
+          reject_reason: item.reject_reason || null,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+        };
+      }
+      return {
+        id: item.id,
+        user_id: item.user_id,
+        type: item.type,
+        title: item.title,
+        description: item.description || '',
+        file_name: item.file_name,
+        file_key: item.file_key,
+        file_url: item.file_url,
+        file_size: item.file_size,
+        file_type: item.file_type,
+        content: item.content,
+        metadata: item.metadata || {},
+        status: item.status,
+        reject_reason: null,
+        views: item.views || 0,
+        downloads: item.downloads || 0,
+        uploader_name: userMap[item.user_id] || '未知',
+        tags: tagMap[item.id] || [],
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      };
+    });
 
-    // 去重（用户自己的条目与 approved 查询可能重复）
+    // 去重 + 隐私过滤：非 approved 条目只保留当前用户自己的
     const seen = new Set<string>();
     const unique = formatted.filter(item => {
       if (seen.has(item.id)) return false;
       seen.add(item.id);
+      // 非通过条目必须是当前用户自己的，其他人不可见
+      if (item.status !== 'approved' && currentUserId && item.user_id !== currentUserId) {
+        return false;
+      }
       return true;
     });
 

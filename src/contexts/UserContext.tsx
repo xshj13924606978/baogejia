@@ -1423,6 +1423,39 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const loadUser = async () => {
       try {
         setLoading(true);
+
+        // ========== 开发环境用户模拟 ==========
+        if (process.env.NODE_ENV === 'development') {
+          const savedTestUser = localStorage.getItem('dev_test_user');
+          if (savedTestUser) {
+            try {
+              const testUser = JSON.parse(savedTestUser);
+              if (testUser.id && testUser.email && testUser.role) {
+                setUser(testUser);
+                setLoading(false);
+                return;
+              }
+            } catch (e) {
+              console.error('[UserContext] 解析测试用户失败', e);
+            }
+          }
+          // 默认使用超级管理员
+          const defaultDevUser = {
+            id: 'dev-super-admin',
+            email: 'admin2@test.com',
+            username: 'admin2',
+            role: 'super_admin',
+            level: 5,
+            currentPoints: 9999,
+            name: '超级管理员',
+            phone: '13924606978'
+          };
+          setUser(defaultDevUser);
+          setLoading(false);
+          return;
+        }
+        // ========== 开发环境用户模拟结束 ==========
+
         const localUser = localStorage.getItem(STORAGE_KEYS.USER);
         if (localUser) {
           const parsedUser = JSON.parse(localUser);
