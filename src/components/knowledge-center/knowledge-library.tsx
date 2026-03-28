@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { AdminUploadDialog } from './admin-upload-dialog';
+import { getMetadataColumns } from './metadata-columns';
 
 interface KnowledgeLibraryProps {
   title: string;
@@ -41,6 +42,9 @@ interface KnowledgeItem {
   fileUrl: string;
   fileSize: number;
   fileType: string;
+  content: string;
+  metadata: Record<string, any>;
+  tags: string[];
   status: string;
   uploaderName: string;
   uploaderId: string;
@@ -212,6 +216,9 @@ export default function KnowledgeLibrary({ title, type, search: externalSearch }
                 <TableHead className="w-[300px]">标题</TableHead>
                 <TableHead>文件名</TableHead>
                 <TableHead>大小</TableHead>
+                {getMetadataColumns(type).map(col => (
+                  <TableHead key={col.key}>{col.label}</TableHead>
+                ))}
                 <TableHead>上传者</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>上传时间</TableHead>
@@ -239,6 +246,11 @@ export default function KnowledgeLibrary({ title, type, search: externalSearch }
                     <TableCell className="text-muted-foreground text-sm">
                       {formatFileSize(item.fileSize)}
                     </TableCell>
+                    {getMetadataColumns(type).map(col => (
+                      <TableCell key={col.key} className="text-sm">
+                        {col.render(item.metadata?.[col.key])}
+                      </TableCell>
+                    ))}
                     <TableCell className="text-sm">{item.uploaderName}</TableCell>
                     <TableCell>
                       <Badge variant={st.variant} className={`text-xs ${st.className}`}>{st.label}</Badge>
@@ -327,6 +339,23 @@ export default function KnowledgeLibrary({ title, type, search: externalSearch }
               </div>
               {viewItem.description && (
                 <div className="text-sm"><span className="text-muted-foreground">描述：</span>{viewItem.description}</div>
+              )}
+              {viewItem.metadata && Object.keys(viewItem.metadata).length > 0 && (
+                <div className="space-y-1 text-sm border-t pt-2 mt-2">
+                  <span className="text-muted-foreground">分类信息：</span>
+                  {Object.entries(viewItem.metadata).map(([key, val]) => (
+                    <div key={key} className="text-xs">
+                      <span className="text-muted-foreground">{key}：</span>{String(val)}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {viewItem.tags && viewItem.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {viewItem.tags.map((tag) => (
+                    <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
+                  ))}
+                </div>
               )}
             </div>
           )}

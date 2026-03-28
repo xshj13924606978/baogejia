@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { pointsService } from '@/lib/points-service';
 
 /**
  * 知识条目详情/审核/删除 API（管理员）
@@ -30,6 +31,20 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       } catch { /* ignore */ }
     }
 
+    // 获取 tags
+    let tags: string[] = [];
+    try {
+      const { data: tagRelations } = await db
+        .from('knowledge_entry_tags')
+        .select('knowledge_tags(name)')
+        .eq('entry_id', params.id);
+      if (tagRelations) {
+        tags = tagRelations
+          .map((r: any) => r.knowledge_tags?.name)
+          .filter(Boolean);
+      }
+    } catch { /* ignore */ }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -42,9 +57,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         fileUrl: data.file_url,
         fileSize: data.file_size,
         fileType: data.file_type,
+        content: data.content,
+        metadata: data.metadata || {},
         status: data.status,
-        uploaderName: uploaderName,
+        uploaderName,
+        tags,
         createdAt: data.created_at,
+        updatedAt: data.updated_at,
       },
     });
   } catch (error: any) {
@@ -67,10 +86,46 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (body.description !== undefined) updateData.description = body.description;
     if (body.reject_reason !== undefined) updateData.reject_reason = body.reject_reason;
     if (body.type !== undefined) updateData.type = body.type;
+    if (body.metadata !== undefined) updateData.metadata = body.metadata;
 
     // 验证状态值
     if (body.status && !['pending', 'approved', 'rejected'].includes(body.status)) {
       return NextResponse.json({ success: false, error: '无效的状态值' }, { status: 400 });
+    }
+
+    // 审核通过时奖励上传者积分
+    if (body.status === 'approved') {
+      // 先获取条目的上传者（审核前查询）
+      const { data: before } = await db
+        .from('knowledge_entries')
+        .select('status, user_id, title')
+        .eq('id', params.id)
+        .single();
+
+      // 只有从非 approved 变为 approved 时才奖励（避免重复奖励）
+      if (before && before.status !== 'approved' && before.user_id) {
+        try {
+          const { data: rule } = await db
+            .from('points_rules')
+            .select('*')
+            .eq('rule_key', 'knowledge_upload_reward')
+            .eq('is_active', true)
+            .single();
+
+          const rewardPoints = rule
+            ? (rule.rule_config?.points || rule.base_points || 20)
+            : 20;
+
+          await pointsService.addPoints(
+            before.user_id,
+            rewardPoints,
+            'task_reward',
+            `知识库文件「${before.title}」审核通过奖励`
+          );
+        } catch (rewardErr: any) {
+          console.warn('[Knowledge Update API] 积分奖励失败（不影响审核）:', rewardErr?.message);
+        }
+      }
     }
 
     const { data, error } = await db

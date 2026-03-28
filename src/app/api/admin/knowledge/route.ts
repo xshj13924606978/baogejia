@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || '';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
+    const metadataFilterStr = searchParams.get('metadata_filter') || '';
+    const tagFilter = searchParams.get('tag') || '';
 
     let query = db
       .from('knowledge_entries')
@@ -30,6 +32,18 @@ export async function GET(request: NextRequest) {
     // 类型筛选
     if (type) {
       query = query.eq('type', type);
+    }
+
+    // metadata JSONB 筛选
+    if (metadataFilterStr) {
+      try {
+        const filterObj = JSON.parse(metadataFilterStr);
+        if (Object.keys(filterObj).length > 0) {
+          query = query.contains('metadata', filterObj);
+        }
+      } catch {
+        // metadata_filter 解析失败，忽略
+      }
     }
 
     // 状态筛选
@@ -64,8 +78,34 @@ export async function GET(request: NextRequest) {
       } catch { /* 用户信息查询失败不阻塞 */ }
     }
 
+    // 批量获取 tags
+    const entryIds = (data || []).map((item: any) => item.id);
+    let tagMap: Record<string, string[]> = {};
+    if (entryIds.length > 0) {
+      try {
+        const { data: tagRelations } = await db
+          .from('knowledge_entry_tags')
+          .select('entry_id, knowledge_tags(name)')
+          .in('entry_id', entryIds);
+        if (tagRelations) {
+          tagRelations.forEach((r: any) => {
+            if (!tagMap[r.entry_id]) tagMap[r.entry_id] = [];
+            if (r.knowledge_tags?.name) tagMap[r.entry_id].push(r.knowledge_tags.name);
+          });
+        }
+      } catch { /* tags 查询失败不阻塞 */ }
+    }
+
+    // 按 tag 筛选
+    let filteredData = data || [];
+    if (tagFilter && entryIds.length > 0) {
+      filteredData = filteredData.filter((item: any) =>
+        (tagMap[item.id] || []).includes(tagFilter)
+      );
+    }
+
     // 格式化数据
-    const formatted = (data || []).map((item: any) => ({
+    const formatted = filteredData.map((item: any) => ({
       id: item.id,
       type: item.type,
       title: item.title,
@@ -75,35 +115,35 @@ export async function GET(request: NextRequest) {
       fileUrl: item.file_url,
       fileSize: item.file_size,
       fileType: item.file_type,
+      content: item.content,
+      metadata: item.metadata || {},
       status: item.status,
       uploaderName: userMap[item.user_id] || item.user_id || '未知',
       uploaderId: item.user_id,
+      tags: tagMap[item.id] || [],
       createdAt: item.created_at,
     }));
 
-    // 统计各状态数量
-    let statusCounts = null;
-    if (!keyword && !type && !status) {
-      const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
-        db.from('knowledge_entries').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        db.from('knowledge_entries').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-        db.from('knowledge_entries').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-      ]);
-      statusCounts = {
-        total: count || 0,
-        pending: pendingRes.count || 0,
-        approved: approvedRes.count || 0,
-        rejected: rejectedRes.count || 0,
-      };
-    }
+    // 统计各状态数量（始终返回，不受筛选条件影响）
+    const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
+      db.from('knowledge_entries').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      db.from('knowledge_entries').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+      db.from('knowledge_entries').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+    ]);
+    const statusCounts = {
+      total: count || 0,
+      pending: pendingRes.count || 0,
+      approved: approvedRes.count || 0,
+      rejected: rejectedRes.count || 0,
+    };
 
     return NextResponse.json({
       success: true,
       data: formatted,
-      total: count || 0,
+      total: tagFilter ? filteredData.length : (count || 0),
       page,
       limit,
-      ...(statusCounts && { statusCounts }),
+      statusCounts,
     });
   } catch (error: any) {
     console.error('[Admin Knowledge API] 异常:', error);

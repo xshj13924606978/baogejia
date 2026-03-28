@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {  ServerDatabaseUtils } from '@/lib/server-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getCurrentUser } from '@/lib/auth-utils';
 
 // 知识库类型枚举
 const KNOWLEDGE_TYPES = {
@@ -41,12 +42,24 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[Knowledge Upload] ========== 开始知识库上传 ==========');
 
+    // 从 session 获取用户身份
+    let userId = 'anonymous';
+    try {
+      const currentUser = await getCurrentUser(request);
+      if (currentUser && currentUser.id) {
+        userId = currentUser.id;
+      }
+    } catch {
+      // 未登录时使用 anonymous，允许游客上传
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const type = formData.get('type') as string;
     const title = formData.get('title') as string;
-    const userId = (formData.get('userId') as string) || 'anonymous';
     const description = (formData.get('description') as string) || '';
+    const metadataStr = (formData.get('metadata') as string) || '';
+    const tagsStr = (formData.get('tags') as string) || '';
 
     // 验证必要参数
     if (!file) {
@@ -87,6 +100,19 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json({ error: '不支持的文件类型' }, { status: 400 });
     }
+
+    // 解析 metadata
+    let metadata: Record<string, any> = {};
+    if (metadataStr) {
+      try {
+        metadata = JSON.parse(metadataStr);
+      } catch {
+        console.warn('[Knowledge Upload] metadata JSON 解析失败，使用空对象');
+      }
+    }
+
+    // 解析 tags
+    const tagNames = tagsStr ? tagsStr.split(',').map((t: string) => t.trim()).filter(Boolean) : [];
 
     // 读取文件内容
     const bytes = await file.arrayBuffer();
@@ -137,6 +163,7 @@ export async function POST(request: NextRequest) {
         file_size: buffer.length,
         file_type: file.type,
         status: 'pending', // 需要审核
+        metadata: metadata,
         created_at: new Date().toISOString()})
       .select()
       .single();
@@ -154,6 +181,42 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[Knowledge Upload] 记录保存成功，ID:', record.id);
+
+    // 处理 tags：自动创建并关联
+    if (tagNames.length > 0) {
+      for (const tagName of tagNames) {
+        try {
+          // 查找或创建标签
+          let tagId: string;
+          const { data: existingTag } = await supabase
+            .from('knowledge_tags')
+            .select('id')
+            .eq('name', tagName)
+            .single();
+
+          if (existingTag) {
+            tagId = existingTag.id;
+          } else {
+            const { data: newTag } = await supabase
+              .from('knowledge_tags')
+              .insert({ name: tagName })
+              .select('id')
+              .single();
+            tagId = newTag?.id;
+          }
+
+          // 关联条目和标签
+          if (tagId) {
+            await supabase
+              .from('knowledge_entry_tags')
+              .insert({ entry_id: record.id, tag_id: tagId });
+          }
+        } catch (tagErr: any) {
+          console.warn('[Knowledge Upload] 标签处理失败（已忽略）:', tagErr.message);
+        }
+      }
+    }
+
     console.log('[Knowledge Upload] ========== 上传完成 ==========');
 
     return NextResponse.json({

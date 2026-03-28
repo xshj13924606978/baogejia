@@ -1,172 +1,79 @@
 'use client';
 
-import { useState } from 'react';
-import MultiUploadDialog from './multi-upload-dialog';
+import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
+import { useKnowledgeList } from '@/hooks/useKnowledgeList';
+import { useKnowledgeUpload } from '@/hooks/useKnowledgeUpload';
+import { Button } from '@/components/ui/button';
+import UserUploadDialog from './user-upload-dialog';
+import { DOCUMENT_CATEGORIES } from '@/types/knowledge';
 
-interface Document {
-  id: string;
-  name: string;
-  type: 'pdf' | 'doc' | 'xls' | 'other' | 'weblink' | 'clouddrive';
-  category: string;
-  tags: string[];
-  size: string;
-  uploadTime: string;
-  description: string;
-  source?: 'local' | 'weblink' | 'clouddrive';
-  sourceUrl?: string;
+function formatFileSize(bytes: number | null): string {
+  if (!bytes) return '-';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function getFileIcon(fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  if (ext === 'pdf') return '📕';
+  if (ext === 'doc' || ext === 'docx') return '📘';
+  if (ext === 'xls' || ext === 'xlsx') return '📗';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) return '🖼️';
+  return '📄';
 }
 
 export default function DocumentLibrary() {
-  const [documents, setDocuments] = useState<Document[]>([
-    {
-      id: '1',
-      name: '一体化设备说明书.pdf',
-      type: 'pdf',
-      category: '产品说明书',
-      tags: ['一体化设备', '操作手册'],
-      size: '2.3 MB',
-      uploadTime: '2026-02-18',
-      description: '详细操作维护说明',
-    },
-    {
-      id: '2',
-      name: '安装调试手册.docx',
-      type: 'doc',
-      category: '技术文档',
-      tags: ['安装', '调试'],
-      size: '1.1 MB',
-      uploadTime: '2026-02-17',
-      description: '现场安装调试指南',
-    },
-    {
-      id: '3',
-      name: '维护保养手册.pdf',
-      type: 'pdf',
-      category: '维护指南',
-      tags: ['维护', '保养'],
-      size: '1.8 MB',
-      uploadTime: '2026-02-16',
-      description: '日常维护保养流程',
-    },
-    {
-      id: '4',
-      name: '设备参数表.xlsx',
-      type: 'xls',
-      category: '技术文档',
-      tags: ['参数', '规格'],
-      size: '0.5 MB',
-      uploadTime: '2026-02-15',
-      description: '所有设备技术参数',
-    },
-  ]);
-
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState('all');
-  const [uploading, setUploading] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
 
-  const categories = ['全部', '产品说明书', '技术文档', '操作手册', '维护指南'];
+  const metadataFilter = useMemo(() => {
+    if (category === 'all') return undefined;
+    return { category };
+  }, [category]);
 
-  const filteredDocs = documents.filter((doc) => {
-    if (category !== 'all' && doc.category !== category) return false;
-    if (searchTerm) {
-      return (
-        doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    return true;
+  const { items, loading, total, permissions, refresh } = useKnowledgeList('document', {
+    include_mine: true,
+    keyword: searchTerm || undefined,
+    metadata_filter: metadataFilter,
   });
 
-  const handleUpload = () => {
-    setShowUploadDialog(true);
+  const { uploadFile, uploading } = useKnowledgeUpload('document');
+
+  const handleDownload = async (entryId: string) => {
+    try {
+      const res = await fetch('/api/knowledge/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entryId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.points_deducted > 0) toast.info(data.message);
+        const a = document.createElement('a');
+        a.href = data.file_url;
+        a.download = data.file_name;
+        a.target = '_blank';
+        a.click();
+      } else {
+        toast.error(data.error || '下载失败');
+      }
+    } catch { toast.error('网络错误'); }
   };
 
-  const handleLocalFileUpload = (file: File) => {
-    setUploading(true);
-    // 模拟上传
-    setTimeout(() => {
-      const newDoc: Document = {
-        id: String(documents.length + 1),
-        name: file.name,
-        type: file.name.endsWith('.pdf')
-          ? 'pdf'
-          : file.name.endsWith('.doc') || file.name.endsWith('.docx')
-            ? 'doc'
-            : file.name.endsWith('.xls') || file.name.endsWith('.xlsx')
-              ? 'xls'
-              : 'other',
-        category: '技术文档',
-        tags: [],
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        uploadTime: new Date().toISOString().split('T')[0],
-        description: '通过本地文件上传',
-        source: 'local',
-      };
-      setDocuments([...documents, newDoc]);
-      setUploading(false);
-    }, 1000);
+  const handleUpload = async (params: { file: File; title: string; description: string; metadata: Record<string, any>; tags: string[] }) => {
+    await uploadFile(params);
+    refresh();
   };
 
-  const handleWebLinkUpload = (url: string, content: string) => {
-    setUploading(true);
-    setTimeout(() => {
-      const newDoc: Document = {
-        id: String(documents.length + 1),
-        name: content.substring(0, 50) + '...',
-        type: 'weblink',
-        category: '技术文档',
-        tags: ['网页链接'],
-        size: '-',
-        uploadTime: new Date().toISOString().split('T')[0],
-        description: content.substring(0, 200),
-        source: 'weblink',
-        sourceUrl: url,
-      };
-      setDocuments([...documents, newDoc]);
-      setUploading(false);
-    }, 1000);
-  };
-
-  const handleCloudFileUpload = (
-    url: string,
-    fileName: string,
-    description: string,
-    extractCode: string
-  ) => {
-    setUploading(true);
-    setTimeout(() => {
-      const newDoc: Document = {
-        id: String(documents.length + 1),
-        name: fileName,
-        type: 'clouddrive',
-        category: '技术文档',
-        tags: ['网盘链接'],
-        size: '-',
-        uploadTime: new Date().toISOString().split('T')[0],
-        description: `${description}${extractCode ? ` (提取码: ${extractCode})` : ''}`,
-        source: 'clouddrive',
-        sourceUrl: url,
-      };
-      setDocuments([...documents, newDoc]);
-      setUploading(false);
-    }, 1000);
-  };
-
-  const handleCloudFileWithFile = (
-    url: string,
-    fileName: string,
-    description: string,
-    extractCode: string,
-    file: File
-  ) => {
-    // 直接使用文件上传功能
-    handleLocalFileUpload(file);
-  };
-
-  const handleRefresh = () => {
-    // 刷新当前模块
-    alert('刷新功能：重新加载文档库数据');
+  const handleDirectDownload = (url: string, fileName: string) => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.target = '_blank';
+    a.click();
   };
 
   return (
@@ -175,26 +82,15 @@ export default function DocumentLibrary() {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-bold flex items-center gap-2">
           <span>📄</span> 技术文档库
-          <span className="text-sm font-normal text-gray-500 ml-2">{documents.length}个文档</span>
+          <span className="text-sm font-normal text-gray-500 ml-2">{total}个文档</span>
         </h3>
         <div className="flex gap-2">
-          <button
-            onClick={handleUpload}
-            disabled={uploading}
-            className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-300 flex items-center gap-1"
-          >
-            <span>📤</span> {uploading ? '上传中...' : '上传文档'}
-          </button>
-          <button className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center gap-1">
-            <span>📁</span> 新建文件夹
-          </button>
-          <button
-            onClick={handleRefresh}
-            className="px-3 py-1 bg-slate-500 text-white rounded hover:bg-slate-600 flex items-center gap-1"
-            title="刷新当前模块"
-          >
+          <Button size="sm" onClick={() => setShowUploadDialog(true)}>
+            <span>📤</span> 上传文档
+          </Button>
+          <Button size="sm" variant="outline" onClick={refresh}>
             <span>🔄</span> 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -208,7 +104,7 @@ export default function DocumentLibrary() {
         >
           全部
         </button>
-        {categories.slice(1).map((cat) => (
+        {DOCUMENT_CATEGORIES.map((cat) => (
           <button
             key={cat}
             onClick={() => setCategory(cat)}
@@ -225,73 +121,92 @@ export default function DocumentLibrary() {
       <div className="flex gap-2 mb-4">
         <input
           type="text"
-          placeholder="搜索文档名称、描述..."
+          placeholder="搜索文档名称..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 p-2 border rounded"
         />
-        <select className="px-3 py-2 border rounded bg-white">
-          <option>按时间排序</option>
-          <option>按名称排序</option>
-          <option>按大小排序</option>
-        </select>
       </div>
+
+      {/* 加载状态 */}
+      {loading && (
+        <div className="text-center py-10 text-gray-500">加载中...</div>
+      )}
 
       {/* 文档列表 - 网格视图 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredDocs.map((doc) => (
-          <div key={doc.id} className="border rounded-lg p-3 hover:shadow-md transition-shadow">
-            <div className="flex items-start gap-3">
-              <span className="text-3xl">
-                {doc.type === 'pdf' ? '📕' : doc.type === 'doc' ? '📘' : '📄'}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{doc.name}</div>
-                <div className="text-xs text-gray-500 mt-1">{doc.size}</div>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {doc.tags.map((tag) => (
-                    <span key={tag} className="px-2 py-0.5 bg-gray-100 rounded-full text-xs">
-                      {tag}
+      {!loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {items.map((doc) => (
+            <div key={doc.id} className={`border rounded-lg p-3 hover:shadow-md transition-shadow ${doc.status !== 'approved' ? 'opacity-70' : ''}`}>
+              <div className="flex items-start gap-3">
+                {doc.status === 'approved' && <span className="text-3xl">{getFileIcon(doc.file_name)}</span>}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate" title={doc.title}>{doc.title}</div>
+                  {doc.status !== 'approved' && (
+                    <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs ${
+                      doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {doc.status === 'pending' ? '待审核' : '已拒绝'}
                     </span>
-                  ))}
+                  )}
+                  {doc.reject_reason && (
+                    <div className="text-xs text-red-500 mt-1">拒绝原因：{doc.reject_reason}</div>
+                  )}
+                  {doc.status === 'approved' && (
+                    <>
+                      <div className="text-xs text-gray-500 mt-1">{formatFileSize(doc.file_size)}</div>
+                      {doc.tags && doc.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {doc.tags.map((tag) => (
+                            <span key={tag} className="px-2 py-0.5 bg-gray-100 rounded-full text-xs">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {doc.description && (
+                        <div className="text-xs text-gray-600 mt-2 line-clamp-2">{doc.description}</div>
+                      )}
+                    </>
+                  )}
                 </div>
-                <div className="text-xs text-gray-600 mt-2">{doc.description}</div>
+              </div>
+              <div className="flex justify-between items-center mt-3 pt-2 border-t">
+                <span className="text-xs text-gray-400">{doc.created_at?.split('T')[0]}</span>
+                {doc.status === 'approved' && doc.file_url && permissions.can_download && (
+                  <button
+                    onClick={() => handleDownload(doc.id)}
+                    className="text-xs text-green-600 hover:text-green-800"
+                  >
+                    下载{permissions.download_cost > 0 ? `(-${permissions.download_cost}积分)` : ''}
+                  </button>
+                )}
               </div>
             </div>
-            <div className="flex justify-end gap-2 mt-3 pt-2 border-t">
-              <button className="text-xs text-blue-600 hover:text-blue-800">预览</button>
-              <button className="text-xs text-green-600 hover:text-green-800">下载</button>
-              <button className="text-xs text-red-600 hover:text-red-800">删除</button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* 空状态 */}
-      {filteredDocs.length === 0 && (
-        <div className="text-center py-10 text-gray-500">
-          <div className="text-5xl mb-3">📄</div>
-          <div>暂无文档</div>
-          <button className="mt-3 px-4 py-2 bg-green-500 text-white rounded text-sm">
-            上传第一个文档
-          </button>
+          ))}
         </div>
       )}
 
-      {/* 提示信息 */}
-      <div className="mt-4 p-3 bg-yellow-50 text-yellow-700 text-sm rounded border border-yellow-200">
-        ⚠️ 当前使用模拟数据展示，上传功能开发中。
-      </div>
+      {/* 空状态 */}
+      {!loading && items.length === 0 && (
+        <div className="text-center py-10 text-gray-500">
+          <div className="text-5xl mb-3">📄</div>
+          <div>暂无文档</div>
+          <Button size="sm" className="mt-3" onClick={() => setShowUploadDialog(true)}>
+            上传第一个文档
+          </Button>
+        </div>
+      )}
 
-      {/* 多渠道上传对话框 */}
+      {/* 上传对话框 */}
       {showUploadDialog && (
-        <MultiUploadDialog
+        <UserUploadDialog
+          type="document"
+          metadataFields={[
+            { key: 'category', label: '分类', type: 'select', options: DOCUMENT_CATEGORIES },
+          ]}
           onClose={() => setShowUploadDialog(false)}
-          onLocalFileUpload={handleLocalFileUpload}
-          onWebLinkUpload={handleWebLinkUpload}
-          onCloudFileUpload={handleCloudFileUpload}
-          onCloudFileWithFile={handleCloudFileWithFile}
-          moduleType="document"
+          onSubmit={handleUpload}
           uploading={uploading}
         />
       )}

@@ -80,8 +80,8 @@ export default function AuditPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<AuditItem | null>(null);
 
-  // 待审核数
-  const [pendingCount, setPendingCount] = useState(0);
+  // 各状态计数
+  const [statusCounts, setStatusCounts] = useState({ pending: 0, approved: 0, rejected: 0 });
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -96,7 +96,7 @@ export default function AuditPage() {
       if (data.success) {
         setItems(data.data || []);
         setTotal(data.total || 0);
-        if (data.statusCounts) setPendingCount(data.statusCounts.pending || 0);
+        if (data.statusCounts) setStatusCounts(data.statusCounts);
       } else {
         toast.error(data.error || '加载失败');
       }
@@ -159,10 +159,10 @@ export default function AuditPage() {
           <h1 className="text-2xl font-bold">内容审核</h1>
           <p className="text-gray-500">审核用户上传的知识条目</p>
         </div>
-        {pendingCount > 0 && (
+        {statusCounts.pending > 0 && (
           <Badge variant="outline" className="bg-yellow-100 text-yellow-800 text-sm px-3 py-1">
             <Clock className="h-4 w-4 mr-1" />
-            {pendingCount} 条待审核
+            {statusCounts.pending} 条待审核
           </Badge>
         )}
       </div>
@@ -173,7 +173,7 @@ export default function AuditPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="bg-yellow-100 p-2 rounded-lg"><Clock className="h-5 w-5 text-yellow-600" /></div>
-              <div><p className="text-sm text-gray-500">待审核</p><p className="text-xl font-bold">{pendingCount}</p></div>
+              <div><p className="text-sm text-gray-500">待审核</p><p className="text-xl font-bold">{statusCounts.pending}</p></div>
             </div>
           </CardContent>
         </Card>
@@ -181,7 +181,7 @@ export default function AuditPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="bg-green-100 p-2 rounded-lg"><CheckCircle className="h-5 w-5 text-green-600" /></div>
-              <div><p className="text-sm text-gray-500">已通过</p><p className="text-xl font-bold text-green-600">{statusFilter === 'all' ? '-' : statusFilter === 'approved' ? total : '-'}</p></div>
+              <div><p className="text-sm text-gray-500">已通过</p><p className="text-xl font-bold text-green-600">{statusCounts.approved}</p></div>
             </div>
           </CardContent>
         </Card>
@@ -189,7 +189,7 @@ export default function AuditPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="bg-red-100 p-2 rounded-lg"><XCircle className="h-5 w-5 text-red-600" /></div>
-              <div><p className="text-sm text-gray-500">已拒绝</p><p className="text-xl font-bold text-red-600">{statusFilter === 'all' ? '-' : statusFilter === 'rejected' ? total : '-'}</p></div>
+              <div><p className="text-sm text-gray-500">已拒绝</p><p className="text-xl font-bold text-red-600">{statusCounts.rejected}</p></div>
             </div>
           </CardContent>
         </Card>

@@ -1,183 +1,64 @@
 'use client';
 
-import { useState } from 'react';
-import MultiUploadDialog from './multi-upload-dialog';
-
-interface Standard {
-  id: string;
-  code: string;
-  name: string;
-  type: '国标' | '行标' | '地标' | '企标';
-  industry: string;
-  publishDate: string;
-  status: '现行' | '废止' | '修订中';
-  description: string;
-  source?: 'local' | 'weblink' | 'clouddrive';
-  sourceUrl?: string;
-}
+import { useState, useMemo } from 'react';
+import { useKnowledgeList } from '@/hooks/useKnowledgeList';
+import { useKnowledgeUpload } from '@/hooks/useKnowledgeUpload';
+import { Button } from '@/components/ui/button';
+import UserUploadDialog from './user-upload-dialog';
+import { toast } from 'sonner';
+import { STANDARD_TYPES, STANDARD_STATUSES } from '@/types/knowledge';
 
 export default function StandardLibrary() {
-  const [standards, setStandards] = useState<Standard[]>([
-    {
-      id: '1',
-      code: 'GB 50014-2021',
-      name: '室外排水设计标准',
-      type: '国标',
-      industry: '建筑给排水',
-      publishDate: '2021-04-09',
-      status: '现行',
-      description: '室外排水工程设计标准',
-    },
-    {
-      id: '2',
-      code: 'GB 50242-2002',
-      name: '建筑给水排水及采暖工程施工质量验收规范',
-      type: '国标',
-      industry: '建筑给排水',
-      publishDate: '2002-03-01',
-      status: '现行',
-      description: '建筑给水排水工程施工质量验收',
-    },
-    {
-      id: '3',
-      code: 'CJJ 68-2016',
-      name: '城镇排水管道检测与评估技术规程',
-      type: '行标',
-      industry: '市政工程',
-      publishDate: '2016-06-01',
-      status: '现行',
-      description: '城镇排水管道检测与评估',
-    },
-    {
-      id: '4',
-      code: 'DBJ 15-67-2019',
-      name: '广东省城镇污水处理厂运行管理规程',
-      type: '地标',
-      industry: '环保工程',
-      publishDate: '2019-05-01',
-      status: '现行',
-      description: '广东省地方标准',
-    },
-  ]);
-
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [stdType, setStdType] = useState('all');
+  const [effectiveStatus, setEffectiveStatus] = useState('all');
   const [showUploadDialog, setShowUploadDialog] = useState(false);
 
-  const standardTypes = ['全部', '国标', '行标', '地标', '企标'];
-  const statusTypes = ['全部', '现行', '废止', '修订中'];
+  const metadataFilter = useMemo(() => {
+    const filter: Record<string, any> = {};
+    if (stdType !== 'all') filter.standard_type = stdType;
+    if (effectiveStatus !== 'all') filter.effective_status = effectiveStatus;
+    return Object.keys(filter).length > 0 ? filter : undefined;
+  }, [stdType, effectiveStatus]);
 
-  const filteredStandards = standards.filter((item) => {
-    if (filterType !== 'all' && item.type !== filterType) return false;
-    if (filterStatus !== 'all' && item.status !== filterStatus) return false;
-    if (searchTerm) {
-      return (
-        item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    return true;
+  const { items, loading, total, permissions, refresh } = useKnowledgeList('standard', {
+    include_mine: true,
+    keyword: searchTerm || undefined,
+    metadata_filter: metadataFilter,
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case '现行':
-        return 'bg-green-100 text-green-700';
-      case '废止':
-        return 'bg-red-100 text-red-700';
-      case '修订中':
-        return 'bg-yellow-100 text-yellow-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
+  const { uploadFile, uploading } = useKnowledgeUpload('standard');
+
+  const handleUpload = async (params: { file: File; title: string; description: string; metadata: Record<string, any>; tags: string[] }) => {
+    await uploadFile(params);
+    refresh();
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case '国标':
-        return 'bg-blue-100 text-blue-700';
-      case '行标':
-        return 'bg-purple-100 text-purple-700';
-      case '地标':
-        return 'bg-orange-100 text-orange-700';
-      case '企标':
-        return 'bg-teal-100 text-teal-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
+  const handleDownload = async (entryId: string) => {
+    try {
+      const res = await fetch('/api/knowledge/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entryId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.points_deducted > 0) toast.info(data.message);
+        const a = document.createElement('a');
+        a.href = data.file_url;
+        a.download = data.file_name;
+        a.target = '_blank';
+        a.click();
+      } else {
+        toast.error(data.error || '下载失败');
+      }
+    } catch { toast.error('网络错误'); }
   };
 
-  const handleImport = () => {
-    setShowUploadDialog(true);
-  };
-
-  const handleLocalFileUpload = (file: File) => {
-    const newStandard: Standard = {
-      id: String(standards.length + 1),
-      code: '自定义-' + String(standards.length + 1),
-      name: file.name.replace(/\.[^/.]+$/, ''),
-      type: '企标',
-      industry: '自定义',
-      publishDate: new Date().toISOString().split('T')[0],
-      status: '现行',
-      description: '通过本地文件导入的规范',
-      source: 'local',
-    };
-    setStandards([...standards, newStandard]);
-  };
-
-  const handleWebLinkUpload = (url: string, content: string) => {
-    const newStandard: Standard = {
-      id: String(standards.length + 1),
-      code: '链接-' + String(standards.length + 1),
-      name: content.substring(0, 50) + '...',
-      type: '企标',
-      industry: '自定义',
-      publishDate: new Date().toISOString().split('T')[0],
-      status: '现行',
-      description: content.substring(0, 200),
-      source: 'weblink',
-      sourceUrl: url,
-    };
-    setStandards([...standards, newStandard]);
-  };
-
-  const handleCloudFileUpload = (
-    url: string,
-    fileName: string,
-    description: string,
-    extractCode: string
-  ) => {
-    const newStandard: Standard = {
-      id: String(standards.length + 1),
-      code: '网盘-' + String(standards.length + 1),
-      name: fileName,
-      type: '企标',
-      industry: '自定义',
-      publishDate: new Date().toISOString().split('T')[0],
-      status: '现行',
-      description: `${description}${extractCode ? ` (提取码: ${extractCode})` : ''}`,
-      source: 'clouddrive',
-      sourceUrl: url,
-    };
-    setStandards([...standards, newStandard]);
-  };
-
-  const handleCloudFileWithFile = (
-    url: string,
-    fileName: string,
-    description: string,
-    extractCode: string,
-    file: File
-  ) => {
-    // 直接使用文件上传功能
-    handleLocalFileUpload(file);
-  };
-
-  const handleRefresh = () => {
-    // 刷新当前模块
-    alert('刷新功能：重新加载标准库数据');
+  const statusColors: Record<string, string> = {
+    '现行': 'text-green-600 bg-green-50',
+    '废止': 'text-red-600 bg-red-50',
+    '修订中': 'text-orange-600 bg-orange-50',
   };
 
   return (
@@ -185,123 +66,148 @@ export default function StandardLibrary() {
       {/* 工具栏 */}
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-bold flex items-center gap-2">
-          <span>📋</span> 规范库
-          <span className="text-sm font-normal text-gray-500 ml-2">{standards.length}条规范</span>
+          <span>📖</span> 标准规范库
+          <span className="text-sm font-normal text-gray-500 ml-2">{total}个标准</span>
         </h3>
         <div className="flex gap-2">
-          <button className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center gap-1">
-            <span>➕</span> 新增规范
-          </button>
-          <button
-            onClick={handleImport}
-            className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 flex items-center gap-1"
-          >
-            <span>📥</span> 导入规范
-          </button>
-          <button
-            onClick={handleRefresh}
-            className="px-3 py-1 bg-slate-500 text-white rounded hover:bg-slate-600 flex items-center gap-1"
-            title="刷新当前模块"
-          >
+          <Button size="sm" onClick={() => setShowUploadDialog(true)}>
+            <span>📤</span> 上传标准
+          </Button>
+          <Button size="sm" variant="outline" onClick={refresh}>
             <span>🔄</span> 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* 筛选栏 */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="p-2 border rounded bg-white"
-        >
-          {standardTypes.map((type) => (
-            <option key={type} value={type === '全部' ? 'all' : type}>
-              {type}
-            </option>
+      {/* 双重筛选 */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex gap-1 mr-4">
+          {['全部', ...STANDARD_TYPES].map((t) => (
+            <button
+              key={t}
+              onClick={() => setStdType(t === '全部' ? 'all' : t)}
+              className={`px-2 py-1 rounded text-xs whitespace-nowrap ${
+                (t === '全部' ? 'all' : t) === stdType ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
+              }`}
+            >
+              {t}
+            </button>
           ))}
-        </select>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="p-2 border rounded bg-white"
-        >
-          {statusTypes.map((status) => (
-            <option key={status} value={status === '全部' ? 'all' : status}>
-              {status}
-            </option>
+        </div>
+        <div className="flex gap-1">
+          {['全部', ...STANDARD_STATUSES].map((s) => (
+            <button
+              key={s}
+              onClick={() => setEffectiveStatus(s === '全部' ? 'all' : s)}
+              className={`px-2 py-1 rounded text-xs whitespace-nowrap ${
+                (s === '全部' ? 'all' : s) === effectiveStatus ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
+              }`}
+            >
+              {s}
+            </button>
           ))}
-        </select>
+        </div>
+      </div>
+
+      {/* 搜索 */}
+      <div className="mb-4">
         <input
           type="text"
-          placeholder="搜索规范编号或名称"
+          placeholder="搜索标准名称、编号..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="p-2 border rounded"
+          className="w-full p-2 border rounded"
         />
       </div>
 
-      {/* 规范列表 */}
-      <div className="border rounded overflow-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-3 py-2 text-left">规范编号</th>
-              <th className="px-3 py-2 text-left">规范名称</th>
-              <th className="px-3 py-2 text-left">类型</th>
-              <th className="px-3 py-2 text-left">行业</th>
-              <th className="px-3 py-2 text-left">发布日期</th>
-              <th className="px-3 py-2 text-left">状态</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredStandards.map((item) => (
-              <tr key={item.id} className="border-t hover:bg-gray-50">
-                <td className="px-3 py-2 font-mono font-medium">{item.code}</td>
-                <td className="px-3 py-2">{item.name}</td>
-                <td className="px-3 py-2">
-                  <span className={`px-2 py-0.5 rounded text-xs ${getTypeColor(item.type)}`}>
-                    {item.type}
-                  </span>
-                </td>
-                <td className="px-3 py-2">{item.industry}</td>
-                <td className="px-3 py-2">{item.publishDate}</td>
-                <td className="px-3 py-2">
-                  <span className={`px-2 py-0.5 rounded text-xs ${getStatusColor(item.status)}`}>
-                    {item.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* 加载 */}
+      {loading && <div className="text-center py-10 text-gray-500">加载中...</div>}
 
-      {/* 空状态 */}
-      {filteredStandards.length === 0 && (
-        <div className="text-center py-10 text-gray-500">
-          <div className="text-5xl mb-3">📋</div>
-          <div>暂无规范</div>
-          <button className="mt-3 px-4 py-2 bg-blue-500 text-white rounded text-sm">
-            添加第一条规范
-          </button>
+      {/* 表格 */}
+      {!loading && items.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="text-left p-2 border">标准编号</th>
+                <th className="text-left p-2 border">标准名称</th>
+                <th className="text-left p-2 border">类型</th>
+                <th className="text-left p-2 border">行业</th>
+                <th className="text-left p-2 border">发布日期</th>
+                <th className="text-left p-2 border">状态</th>
+                <th className="text-left p-2 border">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => {
+                const m = item.metadata || {};
+                return (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="p-2 border font-mono text-xs">{m.standard_code || '-'}</td>
+                    <td className="p-2 border">
+                      <div>{item.title}</div>
+                      {item.status !== 'approved' && (
+                        <span className={`px-1.5 py-0.5 rounded text-xs ${
+                          item.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {item.status === 'pending' ? '待审核' : '已拒绝'}
+                          {item.reject_reason && `：${item.reject_reason}`}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-2 border">{m.standard_type || '-'}</td>
+                    <td className="p-2 border">{m.industry || '-'}</td>
+                    <td className="p-2 border text-xs">{m.publish_date || '-'}</td>
+                    <td className="p-2 border">
+                      {m.effective_status && (
+                        <span className={`px-2 py-0.5 rounded text-xs ${statusColors[m.effective_status] || ''}`}>
+                          {m.effective_status}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-2 border">
+                      {item.status === 'approved' && item.file_url && permissions.can_download ? (
+                        <button
+                          onClick={() => handleDownload(item.id)}
+                          className="text-xs text-green-600 hover:text-green-800"
+                        >
+                          下载{permissions.download_cost > 0 ? `(-${permissions.download_cost}积分)` : ''}
+                        </button>
+                      ) : '-'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* 提示信息 */}
-      <div className="mt-4 p-3 bg-yellow-50 text-yellow-700 text-sm rounded border border-yellow-200">
-        ⚠️ 当前使用模拟数据展示，导入功能开发中。
-      </div>
+      {/* 空状态 */}
+      {!loading && items.length === 0 && (
+        <div className="text-center py-10 text-gray-500">
+          <div className="text-5xl mb-3">📖</div>
+          <div>暂无标准规范</div>
+          <Button size="sm" className="mt-3" onClick={() => setShowUploadDialog(true)}>
+            上传第一个标准
+          </Button>
+        </div>
+      )}
 
-      {/* 多渠道上传对话框 */}
+      {/* 上传对话框 */}
       {showUploadDialog && (
-        <MultiUploadDialog
+        <UserUploadDialog
+          type="standard"
+          metadataFields={[
+            { key: 'standard_code', label: '标准编号', type: 'text', placeholder: '如：GB 50014-2021' },
+            { key: 'standard_type', label: '标准类型', type: 'select', options: STANDARD_TYPES },
+            { key: 'industry', label: '行业', type: 'text', placeholder: '如：建筑给排水' },
+            { key: 'publish_date', label: '发布日期', type: 'date' },
+            { key: 'effective_status', label: '实施状态', type: 'select', options: STANDARD_STATUSES },
+          ]}
           onClose={() => setShowUploadDialog(false)}
-          onLocalFileUpload={handleLocalFileUpload}
-          onWebLinkUpload={handleWebLinkUpload}
-          onCloudFileUpload={handleCloudFileUpload}
-          onCloudFileWithFile={handleCloudFileWithFile}
-          moduleType="standard"
+          onSubmit={handleUpload}
+          uploading={uploading}
         />
       )}
     </div>

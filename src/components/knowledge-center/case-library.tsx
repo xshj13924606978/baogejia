@@ -1,149 +1,55 @@
 'use client';
 
-import { useState } from 'react';
-import MultiUploadDialog from './multi-upload-dialog';
-
-interface Case {
-  id: string;
-  name: string;
-  type: string;
-  industry: string;
-  scale: string;
-  budget: string;
-  completionDate: string;
-  description: string;
-  tags: string[];
-  source?: 'local' | 'weblink' | 'clouddrive';
-  sourceUrl?: string;
-}
+import { useState, useMemo } from 'react';
+import { useKnowledgeList } from '@/hooks/useKnowledgeList';
+import { useKnowledgeUpload } from '@/hooks/useKnowledgeUpload';
+import { Button } from '@/components/ui/button';
+import UserUploadDialog from './user-upload-dialog';
+import { toast } from 'sonner';
+import { CASE_PROJECT_TYPES } from '@/types/knowledge';
 
 export default function CaseLibrary() {
-  const [cases, setCases] = useState<Case[]>([
-    {
-      id: '1',
-      name: '某市污水处理厂升级改造项目',
-      type: '污水处理',
-      industry: '环保工程',
-      scale: '5000m³/d',
-      budget: '1200万元',
-      completionDate: '2024-06-30',
-      description: '老旧污水处理厂升级改造，采用MBR工艺',
-      tags: ['MBR', '升级改造', '污水处理'],
-    },
-    {
-      id: '2',
-      name: '工业园区供水管网改造工程',
-      type: '供水工程',
-      industry: '市政工程',
-      scale: '15km管网',
-      budget: '800万元',
-      completionDate: '2024-03-15',
-      description: '工业园区供水管网全面改造升级',
-      tags: ['管网改造', '供水', '工业园区'],
-    },
-    {
-      id: '3',
-      name: '一体化设备安装项目',
-      type: '设备安装',
-      industry: '环保设备',
-      scale: '3台套',
-      budget: '150万元',
-      completionDate: '2024-01-20',
-      description: '一体化污水处理设备安装调试',
-      tags: ['一体化设备', '安装调试', '环保'],
-    },
-  ]);
-
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [showUploadDialog, setShowUploadDialog] = useState(false);
 
-  const caseTypes = ['全部', '污水处理', '供水工程', '设备安装', '工业废水'];
+  const metadataFilter = useMemo(() => {
+    if (filterType === 'all') return undefined;
+    return { project_type: filterType };
+  }, [filterType]);
 
-  const filteredCases = cases.filter((item) => {
-    if (filterType !== 'all' && item.type !== filterType) return false;
-    if (searchTerm) {
-      return (
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    return true;
+  const { items, loading, total, permissions, refresh } = useKnowledgeList('case', {
+    include_mine: true,
+    keyword: searchTerm || undefined,
+    metadata_filter: metadataFilter,
   });
 
-  const handleImport = () => {
-    setShowUploadDialog(true);
+  const { uploadFile, uploading } = useKnowledgeUpload('case');
+
+  const handleDownload = async (entryId: string) => {
+    try {
+      const res = await fetch('/api/knowledge/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entryId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.points_deducted > 0) toast.info(data.message);
+        const a = document.createElement('a');
+        a.href = data.file_url;
+        a.download = data.file_name;
+        a.target = '_blank';
+        a.click();
+      } else {
+        toast.error(data.error || '下载失败');
+      }
+    } catch { toast.error('网络错误'); }
   };
 
-  const handleLocalFileUpload = (file: File) => {
-    const newCase: Case = {
-      id: String(cases.length + 1),
-      name: file.name.replace(/\.[^/.]+$/, ''),
-      type: '设备安装',
-      industry: '环保工程',
-      scale: '-',
-      budget: '-',
-      completionDate: new Date().toISOString().split('T')[0],
-      description: '通过本地文件导入的案例',
-      tags: ['导入案例'],
-      source: 'local',
-    };
-    setCases([...cases, newCase]);
-  };
-
-  const handleWebLinkUpload = (url: string, content: string) => {
-    const newCase: Case = {
-      id: String(cases.length + 1),
-      name: content.substring(0, 50) + '...',
-      type: '设备安装',
-      industry: '环保工程',
-      scale: '-',
-      budget: '-',
-      completionDate: new Date().toISOString().split('T')[0],
-      description: content.substring(0, 200),
-      tags: ['网页链接'],
-      source: 'weblink',
-      sourceUrl: url,
-    };
-    setCases([...cases, newCase]);
-  };
-
-  const handleCloudFileUpload = (
-    url: string,
-    fileName: string,
-    description: string,
-    extractCode: string
-  ) => {
-    const newCase: Case = {
-      id: String(cases.length + 1),
-      name: fileName,
-      type: '设备安装',
-      industry: '环保工程',
-      scale: '-',
-      budget: '-',
-      completionDate: new Date().toISOString().split('T')[0],
-      description: `${description}${extractCode ? ` (提取码: ${extractCode})` : ''}`,
-      tags: ['网盘链接'],
-      source: 'clouddrive',
-      sourceUrl: url,
-    };
-    setCases([...cases, newCase]);
-  };
-
-  const handleCloudFileWithFile = (
-    url: string,
-    fileName: string,
-    description: string,
-    extractCode: string,
-    file: File
-  ) => {
-    // 直接使用文件上传功能
-    handleLocalFileUpload(file);
-  };
-
-  const handleRefresh = () => {
-    // 刷新当前模块
-    alert('刷新功能：重新加载案例库数据');
+  const handleUpload = async (params: { file: File; title: string; description: string; metadata: Record<string, any>; tags: string[] }) => {
+    await uploadFile(params);
+    refresh();
   };
 
   return (
@@ -152,31 +58,21 @@ export default function CaseLibrary() {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-bold flex items-center gap-2">
           <span>🏗️</span> 案例库
-          <span className="text-sm font-normal text-gray-500 ml-2">{cases.length}个案例</span>
+          <span className="text-sm font-normal text-gray-500 ml-2">{total}个案例</span>
         </h3>
         <div className="flex gap-2">
-          <button className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center gap-1">
-            <span>➕</span> 新增案例
-          </button>
-          <button
-            onClick={handleImport}
-            className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 flex items-center gap-1"
-          >
+          <Button size="sm" onClick={() => setShowUploadDialog(true)}>
             <span>📥</span> 导入案例
-          </button>
-          <button
-            onClick={handleRefresh}
-            className="px-3 py-1 bg-slate-500 text-white rounded hover:bg-slate-600 flex items-center gap-1"
-            title="刷新当前模块"
-          >
+          </Button>
+          <Button size="sm" variant="outline" onClick={refresh}>
             <span>🔄</span> 刷新
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* 分类标签 */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-        {caseTypes.map((type) => (
+        {['全部', ...CASE_PROJECT_TYPES].map((type) => (
           <button
             key={type}
             onClick={() => setFilterType(type === '全部' ? 'all' : type)}
@@ -195,94 +91,129 @@ export default function CaseLibrary() {
       <div className="flex gap-2 mb-4">
         <input
           type="text"
-          placeholder="搜索案例名称、描述..."
+          placeholder="搜索案例名称..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 p-2 border rounded"
         />
-        <select className="px-3 py-2 border rounded bg-white">
-          <option>按时间排序</option>
-          <option>按预算排序</option>
-          <option>按规模排序</option>
-        </select>
       </div>
+
+      {/* 加载状态 */}
+      {loading && (
+        <div className="text-center py-10 text-gray-500">加载中...</div>
+      )}
 
       {/* 案例列表 */}
-      <div className="space-y-4">
-        {filteredCases.map((item) => (
-          <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <h4 className="font-bold text-base mb-2">{item.name}</h4>
-                <p className="text-sm text-gray-600 mb-3">{item.description}</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  <div>
-                    <span className="text-gray-500">类型：</span>
-                    <span className="font-medium">{item.type}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">行业：</span>
-                    <span className="font-medium">{item.industry}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">规模：</span>
-                    <span className="font-medium">{item.scale}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">预算：</span>
-                    <span className="font-medium text-red-600">{item.budget}</span>
-                  </div>
-                  <div className="col-span-2 md:col-span-4">
-                    <span className="text-gray-500">完成时间：</span>
-                    <span className="font-medium">{item.completionDate}</span>
+      {!loading && (
+        <div className="space-y-4">
+          {items.map((item) => {
+            const m = item.metadata || {};
+            return (
+              <div key={item.id} className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${item.status !== 'approved' ? 'opacity-70' : ''}`}>
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="font-bold text-base mb-2">{item.title}</h4>
+                    {item.status !== 'approved' ? (
+                      <>
+                        <span className={`inline-block mb-2 px-2 py-0.5 rounded text-xs ${
+                          item.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {item.status === 'pending' ? '待审核' : '已拒绝'}
+                        </span>
+                        {item.reject_reason && (
+                          <p className="text-xs text-red-500 mb-1">拒绝原因：{item.reject_reason}</p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {item.description && <p className="text-sm text-gray-600 mb-3">{item.description}</p>}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                          {m.project_type && (
+                            <div>
+                              <span className="text-gray-500">类型：</span>
+                              <span className="font-medium">{m.project_type}</span>
+                            </div>
+                          )}
+                          {m.industry && (
+                            <div>
+                              <span className="text-gray-500">行业：</span>
+                              <span className="font-medium">{m.industry}</span>
+                            </div>
+                          )}
+                          {m.scale && (
+                            <div>
+                              <span className="text-gray-500">规模：</span>
+                              <span className="font-medium">{m.scale}</span>
+                            </div>
+                          )}
+                          {m.budget && (
+                            <div>
+                              <span className="text-gray-500">预算：</span>
+                              <span className="font-medium text-red-600">{m.budget}</span>
+                            </div>
+                          )}
+                          {m.completion_date && (
+                            <div className="col-span-2 md:col-span-4">
+                              <span className="text-gray-500">完成时间：</span>
+                              <span className="font-medium">{m.completion_date}</span>
+                            </div>
+                          )}
+                        </div>
+                        {item.tags && item.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-3">
+                            {item.tags.map((tag) => (
+                              <span key={tag} className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-1 mt-3">
-                  {item.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs"
+                <div className="flex justify-between items-center mt-3 pt-2 border-t">
+                  <span className="text-xs text-gray-400">{item.created_at?.split('T')[0]}</span>
+                  {item.status === 'approved' && item.file_url && permissions.can_download && (
+                    <button
+                      onClick={() => handleDownload(item.id)}
+                      className="text-xs text-green-600 hover:text-green-800"
                     >
-                      {tag}
-                    </span>
-                  ))}
+                      下载附件{permissions.download_cost > 0 ? `(-${permissions.download_cost}积分)` : ''}
+                    </button>
+                  )}
                 </div>
               </div>
-              <div className="ml-4">
-                <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
-                  查看详情
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* 空状态 */}
-      {filteredCases.length === 0 && (
-        <div className="text-center py-10 text-gray-500">
-          <div className="text-5xl mb-3">🏗️</div>
-          <div>暂无案例</div>
-          <button className="mt-3 px-4 py-2 bg-blue-500 text-white rounded text-sm">
-            添加第一个案例
-          </button>
+            );
+          })}
         </div>
       )}
 
-      {/* 提示信息 */}
-      <div className="mt-4 p-3 bg-yellow-50 text-yellow-700 text-sm rounded border border-yellow-200">
-        ⚠️ 当前使用模拟数据展示，导入功能开发中。
-      </div>
+      {/* 空状态 */}
+      {!loading && items.length === 0 && (
+        <div className="text-center py-10 text-gray-500">
+          <div className="text-5xl mb-3">🏗️</div>
+          <div>暂无案例</div>
+          <Button size="sm" className="mt-3" onClick={() => setShowUploadDialog(true)}>
+            添加第一个案例
+          </Button>
+        </div>
+      )}
 
-      {/* 多渠道上传对话框 */}
+      {/* 上传对话框 */}
       {showUploadDialog && (
-        <MultiUploadDialog
+        <UserUploadDialog
+          type="case"
+          metadataFields={[
+            { key: 'project_type', label: '项目类型', type: 'select', options: CASE_PROJECT_TYPES },
+            { key: 'industry', label: '行业', type: 'text', placeholder: '如：环保工程' },
+            { key: 'scale', label: '规模', type: 'text', placeholder: '如：5000m³/d' },
+            { key: 'budget', label: '预算', type: 'text', placeholder: '如：1200万元' },
+            { key: 'completion_date', label: '完成日期', type: 'date' },
+          ]}
           onClose={() => setShowUploadDialog(false)}
-          onLocalFileUpload={handleLocalFileUpload}
-          onWebLinkUpload={handleWebLinkUpload}
-          onCloudFileUpload={handleCloudFileUpload}
-          onCloudFileWithFile={handleCloudFileWithFile}
-          moduleType="case"
+          onSubmit={handleUpload}
+          uploading={uploading}
         />
       )}
     </div>
