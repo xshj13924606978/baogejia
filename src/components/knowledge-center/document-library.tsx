@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import UserUploadDialog from './user-upload-dialog';
 import { KnowledgeListSkeleton } from './skeleton';
 import { DOCUMENT_CATEGORIES } from '@/types/knowledge';
+import { useCategories } from '@/hooks/useCategories';
 import type { KnowledgeEntry } from '@/types/knowledge';
 import { getClientAuthHeaders } from '@/lib/client-utils';
 
@@ -37,6 +38,8 @@ function getFileIcon(fileName: string): string {
 export default function DocumentLibrary() {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState('all');
+  const { categoryNames: dbCategories } = useCategories('document');
+  const categories = dbCategories.length > 0 ? dbCategories : DOCUMENT_CATEGORIES;
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [optimisticItems, setOptimisticItems] = useState<KnowledgeEntry[]>([]);
   const isFirstLoad = useRef(true);
@@ -174,17 +177,17 @@ export default function DocumentLibrary() {
         >
           全部
         </button>
-        {DOCUMENT_CATEGORIES.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setCategory(cat)}
-            className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
-              category === cat ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
+{categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
+                  category === cat ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
       </div>
 
       {/* 搜索栏 */}
@@ -286,7 +289,7 @@ export default function DocumentLibrary() {
         <UserUploadDialog
           type="document"
           metadataFields={[
-            { key: 'category', label: '分类', type: 'select', options: DOCUMENT_CATEGORIES },
+            { key: 'category', label: '分类', type: 'select', options: categories },
           ]}
           onClose={() => setShowUploadDialog(false)}
           onSubmit={handleUpload}

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import UserUploadDialog from './user-upload-dialog';
 import { toast } from 'sonner';
 import { CASE_PROJECT_TYPES } from '@/types/knowledge';
+import { useCategories } from '@/hooks/useCategories';
 import { KnowledgeListSkeleton } from './skeleton';
 import type { KnowledgeEntry } from '@/types/knowledge';
 import { getClientAuthHeaders } from '@/lib/client-utils';
@@ -21,6 +22,8 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 export default function CaseLibrary() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const { categoryNames: dbCategories } = useCategories('case');
+  const projectTypes = dbCategories.length > 0 ? dbCategories : CASE_PROJECT_TYPES;
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [optimisticItems, setOptimisticItems] = useState<KnowledgeEntry[]>([]);
   const isFirstLoad = useRef(true);
@@ -139,7 +142,7 @@ export default function CaseLibrary() {
 
       {/* 分类标签 */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-        {['全部', ...CASE_PROJECT_TYPES].map((type) => (
+        {['全部', ...projectTypes].map((type) => (
           <button
             key={type}
             onClick={() => setFilterType(type === '全部' ? 'all' : type)}
@@ -257,7 +260,7 @@ export default function CaseLibrary() {
         <UserUploadDialog
           type="case"
           metadataFields={[
-            { key: 'project_type', label: '项目类型', type: 'select', options: CASE_PROJECT_TYPES },
+            { key: 'project_type', label: '项目类型', type: 'select', options: projectTypes },
             { key: 'industry', label: '行业', type: 'text', placeholder: '如：环保工程' },
             { key: 'scale', label: '规模', type: 'text', placeholder: '如：5000m³/d' },
             { key: 'budget', label: '预算', type: 'text', placeholder: '如：1200万元' },

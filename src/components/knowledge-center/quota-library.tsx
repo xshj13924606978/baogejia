@@ -9,6 +9,7 @@ import { KnowledgeListSkeleton } from './skeleton';
 import type { KnowledgeEntry } from '@/types/knowledge';
 import { toast } from 'sonner';
 import { QUOTA_TYPES } from '@/types/knowledge';
+import { useCategories } from '@/hooks/useCategories';
 import { getClientAuthHeaders } from '@/lib/client-utils';
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
@@ -22,6 +23,8 @@ export default function QuotaLibrary() {
   const [searchTerm, setSearchTerm] = useState('');
   const [quotaType, setQuotaType] = useState('all');
   const [region, setRegion] = useState('all');
+  const { categoryNames: dbQuotaTypes } = useCategories('quota');
+  const quotaTypes = dbQuotaTypes.length > 0 ? dbQuotaTypes : QUOTA_TYPES;
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [optimisticItems, setOptimisticItems] = useState<KnowledgeEntry[]>([]);
   const isFirstLoad = useRef(true);
@@ -152,7 +155,7 @@ export default function QuotaLibrary() {
       {/* 筛选 */}
       <div className="flex flex-wrap gap-2 mb-4">
         <div className="flex gap-1 mr-4">
-          {['全部', ...QUOTA_TYPES].map((t) => (
+          {['全部', ...quotaTypes].map((t) => (
             <button
               key={t}
               onClick={() => setQuotaType(t === '全部' ? 'all' : t)}
@@ -280,7 +283,7 @@ export default function QuotaLibrary() {
         <UserUploadDialog
           type="quota"
           metadataFields={[
-            { key: 'quota_type', label: '定额类型', type: 'select', options: QUOTA_TYPES },
+            { key: 'quota_type', label: '定额类型', type: 'select', options: quotaTypes },
             { key: 'region', label: '地区', type: 'text', placeholder: '如：全国、广东' },
             { key: 'industry', label: '行业', type: 'text', placeholder: '如：环保工程' },
             { key: 'quota_code', label: '定额编号', type: 'text', placeholder: '如：D1-001' },
