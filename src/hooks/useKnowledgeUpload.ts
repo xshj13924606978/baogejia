@@ -97,6 +97,7 @@ export function useKnowledgeUpload(type: KnowledgeType) {
         if (userStr) {
           const user = JSON.parse(userStr);
           if (user.id) xhr.setRequestHeader('x-user-id', user.id);
+          if (user.role) xhr.setRequestHeader('x-user-role', String(user.role));
         }
         const token = localStorage.getItem('token');
         if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);

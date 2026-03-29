@@ -5,7 +5,7 @@
 
 /**
  * 客户端 API 请求专用的认证 headers
- * 从 localStorage 读取用户信息，构造 x-user-id 和 Authorization
+ * 从 localStorage 读取用户信息，构造 x-user-id、x-user-role 和 Authorization
  * 所有客户端 fetch 调用都应使用此函数，避免遗漏认证头
  */
 export function getClientAuthHeaders(): Record<string, string> {
@@ -15,6 +15,7 @@ export function getClientAuthHeaders(): Record<string, string> {
     if (userStr) {
       const user = JSON.parse(userStr);
       if (user.id) headers['x-user-id'] = user.id;
+      if (user.role) headers['x-user-role'] = String(user.role);
     }
     const token = localStorage.getItem('token');
     if (token) headers['Authorization'] = `Bearer ${token}`;

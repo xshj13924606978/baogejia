@@ -37,14 +37,26 @@ export async function GET(request: NextRequest) {
       if (currentUser?.role) currentUserRole = currentUser.role;
     } catch { /* 未登录忽略 */ }
 
+    // 检测 getCurrentUser 是否命中了开发环境降级
+    // 当请求携带了 x-user-id 但返回的用户 ID 与之不匹配时，说明 DB 中找不到该用户，
+    // getCurrentUser 降级返回了默认用户（admin2/super_admin）
+    // 此时必须用请求中的 x-user-role header（前端从 localStorage 传入）来决定权限
+    const requestUserId = request.headers.get('x-user-id');
+    const requestUserRole = request.headers.get('x-user-role');
+    if (requestUserId && currentUserId && requestUserId !== currentUserId) {
+      // 命中降级：DB 中没有 requestUserId 对应的用户，用 header 中的角色
+      currentUserRole = requestUserRole || 'user';
+      currentUserId = null; // mock ID 不在 DB 中，scope=mine 无法匹配真实数据
+    }
+
     // 检测是否为真实认证（区别于开发环境降级）
     // 只有请求实际携带了认证信息时才视为"已登录"
     const hasRealAuth = !!(
-      request.headers.get('x-user-id') ||
+      requestUserId ||
       request.headers.get('authorization') ||
       request.cookies.get('sb-access-token')
     );
-    const isAuthenticated = hasRealAuth && !!currentUserId;
+    const isAuthenticated = hasRealAuth && !!(requestUserId || currentUserId);
 
     // 角色标准化：中文角色名映射为英文
     const ROLE_MAP: Record<string, string> = {

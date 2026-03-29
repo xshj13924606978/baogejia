@@ -22,9 +22,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '请先登录' }, { status: 401 });
     }
 
+    // 检测开发环境降级：如果 x-user-id 与返回的用户 ID 不匹配，说明命中了降级
+    const requestUserId = request.headers.get('x-user-id');
+    const requestUserRole = request.headers.get('x-user-role');
+    let effectiveRole = currentUser.role || 'user';
+    if (requestUserId && currentUser.id !== requestUserId) {
+      effectiveRole = requestUserRole || 'user';
+    }
+
     // 检测是否为真实认证（非开发环境降级）
     const hasRealAuth = !!(
-      request.headers.get('x-user-id') ||
+      requestUserId ||
       request.headers.get('authorization') ||
       request.cookies.get('sb-access-token')
     );
@@ -43,7 +51,7 @@ export async function POST(request: NextRequest) {
       'VIP会员': 'vip', 'VIP用户': 'vip', '付费会员': 'premium', '普通会员': 'premium',
       '免费用户': 'free', '企业用户': 'enterprise', '待审核': 'pending', 'user': 'user',
     };
-    const normalizedRole = ROLE_MAP[currentUser.role || ''] || currentUser.role || 'user';
+    const normalizedRole = ROLE_MAP[effectiveRole || ''] || effectiveRole || 'user';
 
     // 免费用户/待审核用户不可下载
     if (normalizedRole === 'free' || normalizedRole === 'pending') {
