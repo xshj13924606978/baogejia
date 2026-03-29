@@ -102,11 +102,13 @@ export async function checkPermission(
     // 1. 获取当前用户
     const user = await getCurrentUser(request);
     if (!user) {
-      return {
-        allowed: false,
-        reason: '未登录',
-        status: 401,
-      };
+      // requiresAuth=false 时，未登录也放行（以匿名身份继续）
+      if (options.requiresAuth === false) {
+        const fullUser = { id: '', role: 'user', level: 1, currentPoints: 0 };
+        // 跳过后续角色/等级/权限检查，直接放行
+        return { allowed: true, user: fullUser };
+      }
+      return { allowed: false, reason: '未登录', status: 401 };
     }
 
     // 获取用户完整信息（包括角色、等级、积分）

@@ -57,7 +57,19 @@ export function useUserMenuConfig() {
 
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
-      const res = await fetch('/api/admin/config/query/user-menu');
+      // 构建请求头：携带用户身份
+      const headers: Record<string, string> = {};
+      try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          if (user.id) headers['x-user-id'] = user.id;
+        }
+        const token = localStorage.getItem('token');
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      } catch { /* ignore */ }
+
+      const res = await fetch('/api/admin/config/query/user-menu', { headers });
       const json = await res.json();
       if (json.success) {
         cache.data = json.data;

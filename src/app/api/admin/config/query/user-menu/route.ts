@@ -11,7 +11,7 @@ import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { withPermissionCheck } from '@/lib/permission-check';
 
 export const GET = withPermissionCheck(
-  { roles: ['super_admin', 'admin', 'user'] },
+  { roles: ['super_admin', 'admin', 'user', 'vip', 'premium', 'free', 'VIP用户', '免费用户', '普通会员', '企业用户'], requiresAuth: false },
   async () => {
     try {
       const db = getSupabaseServiceClient();

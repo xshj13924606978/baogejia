@@ -8,6 +8,7 @@ import StandardLibrary from './standard-library';
 import DrawingLibrary from './drawing-library';
 import QuotaLibrary from './quota-library';
 import GlobalSearch from './global-search';
+import MyUploads from './my-uploads';
 
 interface KnowledgeCenterProps {
   initialModule: string | null;
@@ -25,6 +26,7 @@ export default function KnowledgeCenter({ initialModule, onClose }: KnowledgeCen
     { id: 'standard', name: '标准规范库', icon: '📋', color: 'yellow', component: StandardLibrary },
     { id: 'drawing', name: '图纸图片库', icon: '🖼️', color: 'pink', component: DrawingLibrary },
     { id: 'quota', name: '定额库', icon: '📊', color: 'orange', component: QuotaLibrary },
+    { id: 'my-uploads', name: '我的上传', icon: '📁', color: 'indigo', component: MyUploads },
     { id: 'search', name: '全局搜索', icon: '🔍', color: 'gray', component: GlobalSearch },
   ];
 
@@ -51,6 +53,7 @@ export default function KnowledgeCenter({ initialModule, onClose }: KnowledgeCen
         {modules.map((module) => (
           <button
             key={module.id}
+            data-tab={module.id}
             onClick={() => setActiveTab(module.id)}
             className={`
               px-4 py-3 whitespace-nowrap flex items-center gap-2 text-sm border-b-2 transition-colors

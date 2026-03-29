@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import type { KnowledgeType } from '@/types/knowledge';
 
 interface UserUploadDialogProps {
@@ -20,11 +21,13 @@ interface UserUploadDialogProps {
     description: string;
     metadata: Record<string, any>;
     tags: string[];
-  }) => Promise<void>;
+    onProgress?: (percent: number) => void;
+  }) => Promise<any>;
   uploading?: boolean;
+  uploadProgress?: number;
 }
 
-export default function UserUploadDialog({ type, metadataFields, onClose, onSubmit, uploading }: UserUploadDialogProps) {
+export default function UserUploadDialog({ type, metadataFields, onClose, onSubmit, uploading, uploadProgress }: UserUploadDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -45,15 +48,22 @@ export default function UserUploadDialog({ type, metadataFields, onClose, onSubm
     setSubmitting(true);
     try {
       const tags = tagInput.split(/[,，]/).map(t => t.trim()).filter(Boolean);
-      await onSubmit({ file, title: title.trim(), description: description.trim(), metadata, tags });
-      toast.success('上传成功，等待管理员审核');
-      onClose();
+      const result = await onSubmit({
+        file, title: title.trim(), description: description.trim(), metadata, tags,
+        onProgress: () => {},
+      });
+      if (result?.success !== false) {
+        toast.success('上传成功，等待管理员审核');
+        onClose();
+      }
     } catch (err: any) {
       toast.error(err.message || '上传失败');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const isSubmitting = submitting || uploading;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -75,9 +85,15 @@ export default function UserUploadDialog({ type, metadataFields, onClose, onSubm
                   setTitle(f.name.replace(/\.[^.]+$/, ''));
                 }
               }}
-              className="w-full border rounded p-2 text-sm"
+              disabled={isSubmitting}
+              className="w-full border rounded p-2 text-sm disabled:bg-gray-100"
             />
-            {file && <p className="text-xs text-gray-500 mt-1">{file.name} ({(file.size / 1024 / 1024).toFixed(1)} MB)</p>}
+            {file && (
+              <p className="text-xs text-gray-500 mt-1">
+                {file.name} ({(file.size / 1024 / 1024).toFixed(1)} MB)
+                <span className="text-gray-400 ml-2">最大 50MB</span>
+              </p>
+            )}
           </div>
 
           {/* 标题 */}
@@ -88,7 +104,8 @@ export default function UserUploadDialog({ type, metadataFields, onClose, onSubm
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder={file?.name || '请输入标题'}
-              className="w-full border rounded p-2 text-sm"
+              disabled={isSubmitting}
+              className="w-full border rounded p-2 text-sm disabled:bg-gray-100"
             />
           </div>
 
@@ -98,7 +115,8 @@ export default function UserUploadDialog({ type, metadataFields, onClose, onSubm
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              className="w-full border rounded p-2 text-sm"
+              disabled={isSubmitting}
+              className="w-full border rounded p-2 text-sm disabled:bg-gray-100"
               rows={2}
             />
           </div>
@@ -114,7 +132,8 @@ export default function UserUploadDialog({ type, metadataFields, onClose, onSubm
                     <select
                       value={metadata[field.key] || ''}
                       onChange={e => setMetadata({ ...metadata, [field.key]: e.target.value })}
-                      className="w-full border rounded p-2 text-sm"
+                      disabled={isSubmitting}
+                      className="w-full border rounded p-2 text-sm disabled:bg-gray-100"
                     >
                       <option value="">请选择</option>
                       {field.options.map(opt => (
@@ -126,7 +145,8 @@ export default function UserUploadDialog({ type, metadataFields, onClose, onSubm
                       type="date"
                       value={metadata[field.key] || ''}
                       onChange={e => setMetadata({ ...metadata, [field.key]: e.target.value })}
-                      className="w-full border rounded p-2 text-sm"
+                      disabled={isSubmitting}
+                      className="w-full border rounded p-2 text-sm disabled:bg-gray-100"
                     />
                   ) : (
                     <input
@@ -134,7 +154,8 @@ export default function UserUploadDialog({ type, metadataFields, onClose, onSubm
                       value={metadata[field.key] || ''}
                       onChange={e => setMetadata({ ...metadata, [field.key]: e.target.value })}
                       placeholder={field.placeholder}
-                      className="w-full border rounded p-2 text-sm"
+                      disabled={isSubmitting}
+                      className="w-full border rounded p-2 text-sm disabled:bg-gray-100"
                     />
                   )}
                 </div>
@@ -150,18 +171,38 @@ export default function UserUploadDialog({ type, metadataFields, onClose, onSubm
               value={tagInput}
               onChange={e => setTagInput(e.target.value)}
               placeholder="标签1, 标签2, 标签3"
-              className="w-full border rounded p-2 text-sm"
+              disabled={isSubmitting}
+              className="w-full border rounded p-2 text-sm disabled:bg-gray-100"
             />
           </div>
+
+          {/* 上传进度条 */}
+          {isSubmitting && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-1.5 text-blue-600">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  正在上传 {file?.name}...
+                </span>
+                <span className="text-gray-500">{uploadProgress || 0}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress || 0}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
         <div className="p-4 border-t flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border rounded text-sm">取消</button>
+          <button onClick={onClose} disabled={isSubmitting} className="px-4 py-2 border rounded text-sm disabled:opacity-50">取消</button>
           <button
             onClick={handleSubmit}
-            disabled={!file || !title.trim() || submitting || uploading}
+            disabled={!file || !title.trim() || isSubmitting}
             className="px-4 py-2 bg-blue-500 text-white rounded text-sm disabled:bg-gray-300"
           >
-            {submitting || uploading ? '上传中...' : '上传'}
+            {isSubmitting ? `上传中 ${uploadProgress || 0}%` : '上传'}
           </button>
         </div>
       </div>

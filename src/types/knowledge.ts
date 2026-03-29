@@ -8,6 +8,9 @@ export type KnowledgeType = 'document' | 'case' | 'standard' | 'drawing' | 'quot
 /** 知识条目状态 */
 export type KnowledgeStatus = 'pending' | 'approved' | 'rejected';
 
+/** 前端乐观更新状态（仅用于 UI 显示，不会持久化） */
+export type OptimisticStatus = KnowledgeStatus | 'uploading';
+
 /** 知识条目（API 返回格式） */
 export interface KnowledgeEntry {
   id: string;
@@ -22,7 +25,7 @@ export interface KnowledgeEntry {
   file_type: string | null;
   content: string | null;
   metadata: Record<string, any>;
-  status: KnowledgeStatus;
+  status: KnowledgeStatus | OptimisticStatus;
   reject_reason: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;

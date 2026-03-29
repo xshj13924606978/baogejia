@@ -1432,6 +1432,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               const testUser = JSON.parse(savedTestUser);
               if (testUser.id && testUser.email && testUser.role) {
                 setUser(testUser);
+                // 同步写入 localStorage.user，确保 hooks 能读到用户信息
+                localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(testUser));
                 setLoading(false);
                 return;
               }
@@ -1451,6 +1453,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             phone: '13924606978'
           };
           setUser(defaultDevUser);
+          // 同步写入 localStorage.user
+          localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(defaultDevUser));
           setLoading(false);
           return;
         }

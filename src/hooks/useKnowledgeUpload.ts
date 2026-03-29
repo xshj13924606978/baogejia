@@ -1,24 +1,37 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import type { KnowledgeType } from '@/types/knowledge';
+import type { KnowledgeType, KnowledgeEntry } from '@/types/knowledge';
+
+export interface UploadResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+  message?: string;
+}
 
 /**
  * 通用知识库上传 hook
- * 调用 /api/knowledge/upload 上传文件
+ * 使用 XMLHttpRequest 实现上传进度跟踪
  */
 export function useKnowledgeUpload(type: KnowledgeType) {
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [lastResult, setLastResult] = useState<UploadResult | null>(null);
 
-  const uploadFile = useCallback(async (params: {
+  const uploadFile = useCallback((params: {
     file: File;
     title: string;
     description?: string;
     metadata?: Record<string, any>;
     tags?: string[];
-  }) => {
+    onProgress?: (percent: number) => void;
+  }): Promise<UploadResult> => {
     setUploading(true);
-    try {
+    setProgress(0);
+    setLastResult(null);
+
+    return new Promise((resolve, reject) => {
       const formData = new FormData();
       formData.append('file', params.file);
       formData.append('type', type);
@@ -31,23 +44,68 @@ export function useKnowledgeUpload(type: KnowledgeType) {
         formData.append('tags', params.tags.join(','));
       }
 
-      const res = await fetch('/api/knowledge/upload', {
-        method: 'POST',
-        body: formData,
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          setProgress(percent);
+          params.onProgress?.(percent);
+        }
       });
 
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || '上传失败');
-      }
-      return json;
-    } catch (err) {
-      console.error('[useKnowledgeUpload] 上传失败:', err);
-      throw err;
-    } finally {
-      setUploading(false);
-    }
+      xhr.addEventListener('load', () => {
+        try {
+          const json = JSON.parse(xhr.responseText);
+          const result: UploadResult = {
+            success: xhr.status >= 200 && xhr.status < 300 && json.success,
+            data: json.data,
+            error: json.error,
+            message: json.message,
+          };
+          setLastResult(result);
+          if (result.success) {
+            resolve(result);
+          } else {
+            reject(new Error(result.error || '上传失败'));
+          }
+        } catch {
+          reject(new Error('响应解析失败'));
+        } finally {
+          setUploading(false);
+          setProgress(100);
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        const result: UploadResult = { success: false, error: '网络错误' };
+        setLastResult(result);
+        reject(new Error('网络错误'));
+        setUploading(false);
+      });
+
+      xhr.addEventListener('abort', () => {
+        const result: UploadResult = { success: false, error: '上传已取消' };
+        setLastResult(result);
+        reject(new Error('上传已取消'));
+        setUploading(false);
+      });
+
+      // 携带用户身份
+      try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          if (user.id) xhr.setRequestHeader('x-user-id', user.id);
+        }
+        const token = localStorage.getItem('token');
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      } catch { /* ignore */ }
+
+      xhr.open('POST', '/api/knowledge/upload');
+      xhr.send(formData);
+    });
   }, [type]);
 
-  return { uploadFile, uploading };
+  return { uploadFile, uploading, progress, lastResult };
 }

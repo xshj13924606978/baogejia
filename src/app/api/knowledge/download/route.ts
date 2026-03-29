@@ -22,9 +22,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '请先登录' }, { status: 401 });
     }
 
+    // 检测是否为真实认证（非开发环境降级）
+    const hasRealAuth = !!(
+      request.headers.get('x-user-id') ||
+      request.headers.get('authorization') ||
+      request.cookies.get('sb-access-token')
+    );
+    if (!hasRealAuth) {
+      return NextResponse.json({ success: false, error: '请先登录' }, { status: 401 });
+    }
+
     const { entryId } = await request.json();
     if (!entryId) {
       return NextResponse.json({ success: false, error: '缺少 entryId' }, { status: 400 });
+    }
+
+    // 角色标准化
+    const ROLE_MAP: Record<string, string> = {
+      '超级管理员': 'super_admin', '系统管理员': 'admin', '管理员': 'admin',
+      'VIP会员': 'vip', 'VIP用户': 'vip', '付费会员': 'premium', '普通会员': 'premium',
+      '免费用户': 'free', '企业用户': 'enterprise', '待审核': 'pending', 'user': 'user',
+    };
+    const normalizedRole = ROLE_MAP[currentUser.role || ''] || currentUser.role || 'user';
+
+    // 免费用户/待审核用户不可下载
+    if (normalizedRole === 'free' || normalizedRole === 'pending') {
+      return NextResponse.json({ success: false, error: '当前等级无下载权限，请升级会员' }, { status: 403 });
     }
 
     const db = getSupabaseServiceClient();
@@ -40,7 +63,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '条目不存在' }, { status: 404 });
     }
 
-    if (entry.status !== 'approved') {
+    // 非approved文件：只有超管和上传者本人可下载
+    if (entry.status !== 'approved' && entry.user_id !== currentUser.id && normalizedRole !== 'super_admin') {
       return NextResponse.json({ success: false, error: '该条目尚未通过审核' }, { status: 403 });
     }
 
