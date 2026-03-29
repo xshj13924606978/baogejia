@@ -29,7 +29,19 @@ export function usePermission() {
   const loadPermissions = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/user/permissions');
+      // 构建请求头：携带用户身份
+      const headers: Record<string, string> = {};
+      try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          if (user.id) headers['x-user-id'] = user.id;
+        }
+        const token = localStorage.getItem('token');
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      } catch { /* ignore */ }
+
+      const res = await fetch('/api/user/permissions', { headers });
       const data = await res.json();
       if (data.success) {
         setPermissions(data.data);

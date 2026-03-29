@@ -1,18 +1,30 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useKnowledgeList } from '@/hooks/useKnowledgeList';
 import { useKnowledgeUpload } from '@/hooks/useKnowledgeUpload';
 import { Button } from '@/components/ui/button';
 import UserUploadDialog from './user-upload-dialog';
+import { KnowledgeListSkeleton } from './skeleton';
+import type { KnowledgeEntry } from '@/types/knowledge';
 import { toast } from 'sonner';
 import { STANDARD_TYPES, STANDARD_STATUSES } from '@/types/knowledge';
+import { getClientAuthHeaders } from '@/lib/client-utils';
+
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+  uploading:  { label: '上传中', cls: 'bg-blue-100 text-blue-700' },
+  pending:    { label: '审核中', cls: 'bg-yellow-100 text-yellow-700' },
+  approved:   { label: '已通过', cls: 'bg-green-100 text-green-700' },
+  rejected:   { label: '已拒绝', cls: 'bg-red-100 text-red-700' },
+};
 
 export default function StandardLibrary() {
   const [searchTerm, setSearchTerm] = useState('');
   const [stdType, setStdType] = useState('all');
   const [effectiveStatus, setEffectiveStatus] = useState('all');
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [optimisticItems, setOptimisticItems] = useState<KnowledgeEntry[]>([]);
+  const isFirstLoad = useRef(true);
 
   const metadataFilter = useMemo(() => {
     const filter: Record<string, any> = {};
@@ -22,23 +34,58 @@ export default function StandardLibrary() {
   }, [stdType, effectiveStatus]);
 
   const { items, loading, total, permissions, refresh } = useKnowledgeList('standard', {
-    include_mine: true,
     keyword: searchTerm || undefined,
     metadata_filter: metadataFilter,
   });
 
-  const { uploadFile, uploading } = useKnowledgeUpload('standard');
+  if (!loading && isFirstLoad.current) {
+    isFirstLoad.current = false;
+  }
+  const displayItems = useMemo(() => {
+    const approvedIds = new Set(items.map(i => i.id));
+    const kept = optimisticItems.filter(i => !approvedIds.has(i.id));
+    if (kept.length !== optimisticItems.length) {
+      setTimeout(() => setOptimisticItems(kept), 0);
+    }
+    return [...kept, ...items];
+  }, [optimisticItems, items]);
 
-  const handleUpload = async (params: { file: File; title: string; description: string; metadata: Record<string, any>; tags: string[] }) => {
-    await uploadFile(params);
-    refresh();
+  const { uploadFile, uploading, progress: uploadProgress } = useKnowledgeUpload('standard');
+
+  const handleUpload = async (params: { file: File; title: string; description: string; metadata: Record<string, any>; tags: string[]; onProgress?: (percent: number) => void }) => {
+    const tempId = `temp_${Date.now()}`;
+    const tempItem: KnowledgeEntry = {
+      id: tempId, user_id: '', type: 'standard', title: params.title, description: params.description,
+      file_name: params.file.name, file_key: '', file_url: '', file_size: params.file.size, file_type: params.file.type,
+      content: '', metadata: params.metadata, status: 'uploading' as any, reject_reason: null, reviewed_by: null, reviewed_at: null, views: 0, downloads: 0,
+      uploader_name: '我', tags: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    };
+    setOptimisticItems(prev => [tempItem, ...prev]);
+    try {
+      const result = await uploadFile(params);
+      const realId = result?.data?.id;
+      setOptimisticItems(prev => prev.map(i =>
+        i.id === tempId ? { ...i, id: realId || i.id, status: 'pending' as any } : i
+      ));
+      refresh();
+      toast.success('文件上传成功，等待管理员审核', {
+        action: { label: '查看审核进度', onClick: () => {
+          const tab = document.querySelector('[data-tab="my-uploads"]') as HTMLElement;
+          tab?.click();
+        }},
+        duration: 6000,
+      });
+    } catch {
+      setOptimisticItems(prev => prev.filter(i => i.id !== tempId));
+      throw new Error('上传失败');
+    }
   };
 
   const handleDownload = async (entryId: string) => {
     try {
       const res = await fetch('/api/knowledge/download', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
         body: JSON.stringify({ entryId }),
       });
       const data = await res.json();
@@ -73,11 +120,31 @@ export default function StandardLibrary() {
           <Button size="sm" onClick={() => setShowUploadDialog(true)}>
             <span>📤</span> 上传标准
           </Button>
-          <Button size="sm" variant="outline" onClick={refresh}>
+          <Button size="sm" variant="outline" onClick={() => refresh()}>
             <span>🔄</span> 刷新
           </Button>
         </div>
       </div>
+
+      {/* 审核进展提示条 */}
+      {optimisticItems.length > 0 && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-yellow-700">
+            <span>⏳</span>
+            <span>{optimisticItems.length}个标准等待审核</span>
+          </div>
+          <button
+            data-tab="my-uploads"
+            className="text-sm text-yellow-700 hover:text-yellow-900 underline"
+            onClick={() => {
+              const tab = document.querySelector('[data-tab="my-uploads"]') as HTMLElement;
+              tab?.click();
+            }}
+          >
+            查看详情
+          </button>
+        </div>
+      )}
 
       {/* 双重筛选 */}
       <div className="flex flex-wrap gap-2 mb-4">
@@ -118,81 +185,105 @@ export default function StandardLibrary() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full p-2 border rounded"
         />
+        {searchTerm && (
+          <Button size="sm" variant="ghost" onClick={() => { setSearchTerm(''); setStdType('all'); setEffectiveStatus('all'); }}>清除</Button>
+        )}
       </div>
 
-      {/* 加载 */}
-      {loading && <div className="text-center py-10 text-gray-500">加载中...</div>}
+      {/* 骨架屏 */}
+      {loading && isFirstLoad.current && <KnowledgeListSkeleton variant="table" count={4} />}
 
-      {/* 表格 */}
-      {!loading && items.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left p-2 border">标准编号</th>
-                <th className="text-left p-2 border">标准名称</th>
-                <th className="text-left p-2 border">类型</th>
-                <th className="text-left p-2 border">行业</th>
-                <th className="text-left p-2 border">发布日期</th>
-                <th className="text-left p-2 border">状态</th>
-                <th className="text-left p-2 border">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => {
-                const m = item.metadata || {};
-                return (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="p-2 border font-mono text-xs">{m.standard_code || '-'}</td>
-                    <td className="p-2 border">
-                      <div>{item.title}</div>
-                      {item.status !== 'approved' && (
-                        <span className={`px-1.5 py-0.5 rounded text-xs ${
-                          item.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                          {item.status === 'pending' ? '待审核' : '已拒绝'}
-                          {item.reject_reason && `：${item.reject_reason}`}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-2 border">{m.standard_type || '-'}</td>
-                    <td className="p-2 border">{m.industry || '-'}</td>
-                    <td className="p-2 border text-xs">{m.publish_date || '-'}</td>
-                    <td className="p-2 border">
-                      {m.effective_status && (
-                        <span className={`px-2 py-0.5 rounded text-xs ${statusColors[m.effective_status] || ''}`}>
-                          {m.effective_status}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-2 border">
-                      {item.status === 'approved' && item.file_url && permissions.can_download ? (
-                        <button
-                          onClick={() => handleDownload(item.id)}
-                          className="text-xs text-green-600 hover:text-green-800"
-                        >
-                          下载{permissions.download_cost > 0 ? `(-${permissions.download_cost}积分)` : ''}
-                        </button>
-                      ) : '-'}
-                    </td>
+      {/* 列表 */}
+      {!loading || !isFirstLoad.current ? (
+        <>
+          {/* 表格 */}
+          {displayItems.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="text-left p-2 border">标准编号</th>
+                    <th className="text-left p-2 border">标准名称</th>
+                    <th className="text-left p-2 border">类型</th>
+                    <th className="text-left p-2 border">行业</th>
+                    <th className="text-left p-2 border">发布日期</th>
+                    <th className="text-left p-2 border">状态</th>
+                    <th className="text-left p-2 border">操作</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                </thead>
+                <tbody>
+                  {displayItems.map((item) => {
+                    const m = item.metadata || {};
+                    const isOptimistic = item.id.startsWith('temp_');
+                    const badge = STATUS_BADGE[item.status];
+                    return (
+                      <tr key={item.id} className={`hover:bg-gray-50 ${isOptimistic ? 'bg-yellow-50' : ''}`}>
+                        <td className="p-2 border font-mono text-xs">{m.standard_code || '-'}</td>
+                        <td className="p-2 border">
+                          <div>{item.title}</div>
+                          {badge && item.status !== 'approved' && (
+                            <span className={`px-1.5 py-0.5 rounded text-xs ${badge.cls}`}>
+                              {badge.label}
+                            </span>
+                          )}
+                          {item.status === 'rejected' && item.reject_reason && (
+                            <span className="text-xs text-red-500 ml-1">{item.reject_reason}</span>
+                          )}
+                        </td>
+                        <td className="p-2 border">{m.standard_type || '-'}</td>
+                        <td className="p-2 border">{m.industry || '-'}</td>
+                        <td className="p-2 border text-xs">{m.publish_date || '-'}</td>
+                        <td className="p-2 border">
+                          {m.effective_status && (
+                            <span className={`px-2 py-0.5 rounded text-xs ${statusColors[m.effective_status] || ''}`}>
+                              {m.effective_status}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-2 border">
+                          {item.status === 'uploading' ? (
+                            <span className="text-xs text-blue-500">上传中...</span>
+                          ) : item.status === 'pending' ? (
+                            <span className="text-xs text-yellow-600">等待审核</span>
+                          ) : item.status === 'rejected' ? (
+                            <span className="text-xs text-red-500">已拒绝</span>
+                          ) : item.file_url && permissions.can_download ? (
+                            <button onClick={() => handleDownload(item.id)} className="text-xs text-green-600 hover:text-green-800">
+                              下载{permissions.download_cost > 0 ? `(-${permissions.download_cost}积分)` : ''}
+                            </button>
+                          ) : item.file_url ? (
+                            <span className="text-xs text-gray-400">暂无权限</span>
+                          ) : '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-      {/* 空状态 */}
-      {!loading && items.length === 0 && (
-        <div className="text-center py-10 text-gray-500">
-          <div className="text-5xl mb-3">📖</div>
-          <div>暂无标准规范</div>
-          <Button size="sm" className="mt-3" onClick={() => setShowUploadDialog(true)}>
-            上传第一个标准
-          </Button>
-        </div>
-      )}
+          {/* 空状态 */}
+          {displayItems.length === 0 && (
+            <div className="text-center py-10 text-gray-500">
+              <div className="text-5xl mb-3">📖</div>
+              {searchTerm ? (
+                <div>
+                  <div>未找到匹配"{searchTerm}"的标准</div>
+                  <div className="text-sm mt-1">请尝试其他关键词或清除筛选条件</div>
+                </div>
+              ) : (
+                <>
+                  <div>暂无标准规范</div>
+                  <Button size="sm" className="mt-3" onClick={() => setShowUploadDialog(true)}>
+                    上传第一个标准
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+        </>
+      ) : null}
 
       {/* 上传对话框 */}
       {showUploadDialog && (
@@ -208,6 +299,7 @@ export default function StandardLibrary() {
           onClose={() => setShowUploadDialog(false)}
           onSubmit={handleUpload}
           uploading={uploading}
+          uploadProgress={uploadProgress}
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { resolveAuthContext } from '@/lib/knowledge/api-utils';
 import { pointsService } from '@/lib/points-service';
 
 /**
@@ -17,14 +17,21 @@ import { pointsService } from '@/lib/points-service';
 
 export async function POST(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser?.id) {
+    const ctx = await resolveAuthContext(request);
+    if (!ctx.isAuthenticated) {
       return NextResponse.json({ success: false, error: '请先登录' }, { status: 401 });
     }
 
     const { entryId } = await request.json();
     if (!entryId) {
       return NextResponse.json({ success: false, error: '缺少 entryId' }, { status: 400 });
+    }
+
+    const normalizedRole = ctx.effectiveRole;
+
+    // 免费用户/待审核用户不可下载
+    if (normalizedRole === 'free' || normalizedRole === 'pending') {
+      return NextResponse.json({ success: false, error: '当前等级无下载权限，请升级会员' }, { status: 403 });
     }
 
     const db = getSupabaseServiceClient();
@@ -40,12 +47,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '条目不存在' }, { status: 404 });
     }
 
-    if (entry.status !== 'approved') {
+    // 非approved文件：只有超管和上传者本人可下载
+    if (entry.status !== 'approved' && entry.user_id !== ctx.currentUserId && normalizedRole !== 'super_admin') {
       return NextResponse.json({ success: false, error: '该条目尚未通过审核' }, { status: 403 });
     }
 
     // 自己上传的文件不扣积分
-    if (entry.user_id === currentUser.id) {
+    if (entry.user_id === ctx.currentUserId) {
       return NextResponse.json({
         success: true,
         file_url: entry.file_url,
@@ -61,7 +69,7 @@ export async function POST(request: NextRequest) {
       const { data: userRecord } = await db
         .from('users')
         .select('metadata')
-        .eq('id', currentUser.id)
+        .eq('id', ctx.currentUserId)
         .single();
       const userLevel = userRecord?.metadata?.level || 1;
 
@@ -98,7 +106,7 @@ export async function POST(request: NextRequest) {
     // 4. 扣减积分
     if (downloadCost > 0) {
       const result = await pointsService.deductPoints(
-        currentUser.id,
+        ctx.currentUserId!,
         downloadCost,
         'exchange',
         `下载知识库文件「${entry.title}」`

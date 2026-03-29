@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {  ServerDatabaseUtils } from '@/lib/server-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { resolveAuthContext } from '@/lib/knowledge/api-utils';
 
 // 知识库类型枚举
 const KNOWLEDGE_TYPES = {
@@ -42,16 +42,12 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[Knowledge Upload] ========== 开始知识库上传 ==========');
 
-    // 从 session 获取用户身份
-    let userId = 'anonymous';
-    try {
-      const currentUser = await getCurrentUser(request);
-      if (currentUser && currentUser.id) {
-        userId = currentUser.id;
-      }
-    } catch {
-      // 未登录时使用 anonymous，允许游客上传
+    // 统一认证上下文解析
+    const ctx = await resolveAuthContext(request);
+    if (!ctx.isAuthenticated) {
+      return NextResponse.json({ error: '请先登录' }, { status: 401 });
     }
+    const userId = ctx.currentUserId!;
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
