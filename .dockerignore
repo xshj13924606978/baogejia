@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.gitignore
+.husky
+*.md
+database/
+scripts/
+supabase/
+.env
+.env.local
+.env.*.local
+pnpm-debug.log*
+.vercel
