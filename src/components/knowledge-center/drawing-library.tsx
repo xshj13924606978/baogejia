@@ -9,6 +9,7 @@ import { KnowledgeListSkeleton } from './skeleton';
 import type { KnowledgeEntry } from '@/types/knowledge';
 import { toast } from 'sonner';
 import { DRAWING_TYPES } from '@/types/knowledge';
+import { useCategories } from '@/hooks/useCategories';
 import { getClientAuthHeaders } from '@/lib/client-utils';
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
@@ -21,6 +22,8 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 export default function DrawingLibrary() {
   const [searchTerm, setSearchTerm] = useState('');
   const [drawingType, setDrawingType] = useState('all');
+  const { categoryNames: dbDrawingTypes } = useCategories('drawing');
+  const drawingTypes = dbDrawingTypes.length > 0 ? dbDrawingTypes : DRAWING_TYPES;
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [optimisticItems, setOptimisticItems] = useState<KnowledgeEntry[]>([]);
   const isFirstLoad = useRef(true);
@@ -152,10 +155,10 @@ export default function DrawingLibrary() {
         >
           全部
         </button>
-        {DRAWING_TYPES.map((t) => (
-          <button
-            key={t}
-            onClick={() => setDrawingType(t)}
+{drawingTypes.map((t) => (
+              <button
+                key={t}
+                onClick={() => setDrawingType(t)}
             className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
               drawingType === t ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
             }`}
@@ -280,7 +283,7 @@ export default function DrawingLibrary() {
         <UserUploadDialog
           type="drawing"
           metadataFields={[
-            { key: 'drawing_type', label: '图纸类型', type: 'select', options: DRAWING_TYPES },
+            { key: 'drawing_type', label: '图纸类型', type: 'select', options: drawingTypes },
             { key: 'project', label: '所属项目', type: 'text', placeholder: '项目名称' },
             { key: 'version', label: '版本号', type: 'text', placeholder: '如：V1.0' },
           ]}

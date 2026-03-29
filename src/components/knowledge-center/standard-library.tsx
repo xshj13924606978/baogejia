@@ -9,6 +9,7 @@ import { KnowledgeListSkeleton } from './skeleton';
 import type { KnowledgeEntry } from '@/types/knowledge';
 import { toast } from 'sonner';
 import { STANDARD_TYPES, STANDARD_STATUSES } from '@/types/knowledge';
+import { useCategories } from '@/hooks/useCategories';
 import { getClientAuthHeaders } from '@/lib/client-utils';
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
@@ -22,6 +23,8 @@ export default function StandardLibrary() {
   const [searchTerm, setSearchTerm] = useState('');
   const [stdType, setStdType] = useState('all');
   const [effectiveStatus, setEffectiveStatus] = useState('all');
+  const { categoryNames: dbStdTypes } = useCategories('standard');
+  const stdTypes = dbStdTypes.length > 0 ? dbStdTypes : STANDARD_TYPES;
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [optimisticItems, setOptimisticItems] = useState<KnowledgeEntry[]>([]);
   const isFirstLoad = useRef(true);
@@ -149,7 +152,7 @@ export default function StandardLibrary() {
       {/* 双重筛选 */}
       <div className="flex flex-wrap gap-2 mb-4">
         <div className="flex gap-1 mr-4">
-          {['全部', ...STANDARD_TYPES].map((t) => (
+          {['全部', ...stdTypes].map((t) => (
             <button
               key={t}
               onClick={() => setStdType(t === '全部' ? 'all' : t)}
@@ -291,7 +294,7 @@ export default function StandardLibrary() {
           type="standard"
           metadataFields={[
             { key: 'standard_code', label: '标准编号', type: 'text', placeholder: '如：GB 50014-2021' },
-            { key: 'standard_type', label: '标准类型', type: 'select', options: STANDARD_TYPES },
+            { key: 'standard_type', label: '标准类型', type: 'select', options: stdTypes },
             { key: 'industry', label: '行业', type: 'text', placeholder: '如：建筑给排水' },
             { key: 'publish_date', label: '发布日期', type: 'date' },
             { key: 'effective_status', label: '实施状态', type: 'select', options: STANDARD_STATUSES },
