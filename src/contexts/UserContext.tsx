@@ -1441,9 +1441,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               console.error('[UserContext] 解析测试用户失败', e);
             }
           }
-          // 默认使用超级管理员
+          // 默认使用超级管理员（使用真实 DB UUID，确保 API 查询和 dev fallback 一致）
           const defaultDevUser = {
-            id: 'dev-super-admin',
+            id: '8aab9b65-32e1-41d2-80c3-8be24fa30059',
             email: 'admin2@test.com',
             username: 'admin2',
             role: 'super_admin',

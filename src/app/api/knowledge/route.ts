@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { resolveAuthContext, normalizeRole } from '@/lib/knowledge/api-utils';
+import { canDownload as checkCanDownload } from '@/lib/knowledge/permission-service';
 
 /**
  * 用户端知识库查询 API
@@ -28,46 +29,9 @@ export async function GET(request: NextRequest) {
     const includeMine = searchParams.get('include_mine') === 'true';
     const scope = searchParams.get('scope') || '';
 
-    // 始终获取当前用户（公共列表也需要根据角色过滤 + 设置下载权限）
-    let currentUserId: string | null = null;
-    let currentUserRole: string | null = null;
-    try {
-      const currentUser = await getCurrentUser(request);
-      if (currentUser?.id) currentUserId = currentUser.id;
-      if (currentUser?.role) currentUserRole = currentUser.role;
-    } catch { /* 未登录忽略 */ }
-
-    // 检测 getCurrentUser 是否命中了开发环境降级
-    // 当请求携带了 x-user-id 但返回的用户 ID 与之不匹配时，说明 DB 中找不到该用户，
-    // getCurrentUser 降级返回了默认用户（admin2/super_admin）
-    // 此时必须用请求中的 x-user-role header（前端从 localStorage 传入）来决定权限
-    const requestUserId = request.headers.get('x-user-id');
-    const requestUserRole = request.headers.get('x-user-role');
-    if (requestUserId && currentUserId && requestUserId !== currentUserId) {
-      // 命中降级：DB 中没有 requestUserId 对应的用户，用 header 中的角色
-      currentUserRole = requestUserRole || 'user';
-      currentUserId = null; // mock ID 不在 DB 中，scope=mine 无法匹配真实数据
-    }
-
-    // 检测是否为真实认证（区别于开发环境降级）
-    // 只有请求实际携带了认证信息时才视为"已登录"
-    const hasRealAuth = !!(
-      requestUserId ||
-      request.headers.get('authorization') ||
-      request.cookies.get('sb-access-token')
-    );
-    const isAuthenticated = hasRealAuth && !!(requestUserId || currentUserId);
-
-    // 角色标准化：中文角色名映射为英文
-    const ROLE_MAP: Record<string, string> = {
-      '超级管理员': 'super_admin', '系统管理员': 'admin', '管理员': 'admin',
-      'VIP会员': 'vip', 'VIP用户': 'vip', '付费会员': 'premium', '普通会员': 'premium',
-      '免费用户': 'free', '企业用户': 'enterprise', '企业管理员': 'enterprise_admin',
-      '待审核': 'pending', 'user': 'user',
-    };
-    const normalizedRole = isAuthenticated
-      ? (ROLE_MAP[currentUserRole || ''] || currentUserRole || 'user')
-      : null;
+    // 统一认证 + 降级检测
+    const ctx = await resolveAuthContext(request);
+    const { currentUserId, effectiveRole: normalizedRole, isAuthenticated } = ctx;
 
     // scope=mine: 只返回当前用户自己的条目（全部状态）
     // 超管可以看到所有人的上传，其他用户只能看自己的
@@ -76,6 +40,7 @@ export async function GET(request: NextRequest) {
       if (!isAuthenticated) {
         return NextResponse.json({
           success: true, data: [], total: 0, page, limit, scope: 'mine',
+          authenticated: false,
           permissions: { can_download: false, download_cost: 5 },
         });
       }
@@ -181,6 +146,7 @@ export async function GET(request: NextRequest) {
         success: true, data: formatted,
         total: tagFilter ? formatted.length : (mineCount || 0),
         page, limit, scope: 'mine',
+        authenticated: true,
         permissions: { can_download: canDownload, download_cost: downloadCost },
       });
     }
@@ -199,6 +165,9 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', 'approved');
     } else if (normalizedRole === 'super_admin') {
       // 超管：看全部，不加 status 过滤
+    } else if (ctx.isDevFallback) {
+      // 降级模式：mock ID 共享 fallback 用户的数据，只看 approved 避免越权
+      query = query.eq('status', 'approved');
     } else {
       // admin/vip/premium/free/enterprise 等：approved + 自己的 pending/rejected
       query = query.or(`status.eq.approved,and(user_id.eq.${currentUserId},status.in.(pending,rejected))`);
@@ -343,7 +312,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: unique,
-      total: includeMine ? unique.length : (count || 0),
+      total: count || 0,
       page,
       limit,
       permissions: { can_download: canDownload, download_cost: downloadCost },

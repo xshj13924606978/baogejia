@@ -10,13 +10,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
-
-const ROLE_MAP: Record<string, string> = {
-  '超级管理员': 'super_admin', '系统管理员': 'admin', '管理员': 'admin',
-  'VIP会员': 'vip', 'VIP用户': 'vip', '付费会员': 'premium', '普通会员': 'premium',
-  '免费用户': 'free', '企业用户': 'enterprise', '待审核': 'pending', 'user': 'user',
-};
+import { resolveAuthContext } from '@/lib/knowledge/api-utils';
 
 export async function GET(
   request: NextRequest,
@@ -36,16 +30,10 @@ export async function GET(
       return NextResponse.json({ success: false, error: '条目不存在' }, { status: 404 });
     }
 
-    // 获取当前用户（可能为 null）
-    let currentUser = null;
-    try {
-      currentUser = await getCurrentUser(request);
-    } catch { /* ignore */ }
-
-    const currentUserId = currentUser?.id || null;
-    const normalizedRole = currentUser?.role
-      ? (ROLE_MAP[currentUser.role] || currentUser.role)
-      : null;
+    // 统一认证上下文解析（含降级检测）
+    const ctx = await resolveAuthContext(request);
+    const currentUserId = ctx.currentUserId;
+    const normalizedRole = ctx.hasRealAuth ? ctx.effectiveRole : null;
 
     // 权限判断
     if (entry.status !== 'approved') {

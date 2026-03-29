@@ -8,41 +8,16 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
-
-const ROLE_MAP: Record<string, string> = {
-  '超级管理员': 'super_admin', '系统管理员': 'admin', '管理员': 'admin',
-  'VIP会员': 'vip', 'VIP用户': 'vip', '付费会员': 'premium', '普通会员': 'premium',
-  '免费用户': 'free', '企业用户': 'enterprise', '待审核': 'pending', 'user': 'user',
-};
+import { resolveAuthContext } from '@/lib/knowledge/api-utils';
 
 export async function POST(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser?.id) {
+    const ctx = await resolveAuthContext(request);
+    if (!ctx.isAuthenticated) {
       return NextResponse.json({ success: false, error: '请先登录' }, { status: 401 });
     }
 
-    // 检测开发环境降级
-    const requestUserId = request.headers.get('x-user-id');
-    const requestUserRole = request.headers.get('x-user-role');
-    let effectiveRole = currentUser.role || 'user';
-    if (requestUserId && currentUser.id !== requestUserId) {
-      effectiveRole = requestUserRole || 'user';
-    }
-
-    // 审核操作需要真实认证（非开发环境降级）
-    const hasRealAuth = !!(
-      requestUserId ||
-      request.headers.get('authorization') ||
-      request.cookies.get('sb-access-token')
-    );
-    if (!hasRealAuth) {
-      return NextResponse.json({ success: false, error: '请先登录' }, { status: 401 });
-    }
-
-    const normalizedRole = ROLE_MAP[effectiveRole || ''] || effectiveRole || 'user';
-    if (normalizedRole !== 'super_admin' && normalizedRole !== 'admin') {
+    if (ctx.effectiveRole !== 'super_admin' && ctx.effectiveRole !== 'admin') {
       return NextResponse.json({ success: false, error: '仅管理员可执行审核操作' }, { status: 403 });
     }
 
@@ -74,7 +49,7 @@ export async function POST(request: NextRequest) {
     // 执行审核
     const updateData: Record<string, any> = {
       status: action === 'approve' ? 'approved' : 'rejected',
-      reviewed_by: currentUser.id,
+      reviewed_by: ctx.currentUserId,
       reviewed_at: new Date().toISOString(),
     };
     if (action === 'reject' && reason) {
@@ -108,29 +83,12 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser?.id) {
+    const ctx = await resolveAuthContext(request);
+    if (!ctx.isAuthenticated) {
       return NextResponse.json({ success: false, error: '请先登录' }, { status: 401 });
     }
 
-    const requestUserId = request.headers.get('x-user-id');
-    const requestUserRole = request.headers.get('x-user-role');
-    let effectiveRole = currentUser.role || 'user';
-    if (requestUserId && currentUser.id !== requestUserId) {
-      effectiveRole = requestUserRole || 'user';
-    }
-
-    const hasRealAuth = !!(
-      requestUserId ||
-      request.headers.get('authorization') ||
-      request.cookies.get('sb-access-token')
-    );
-    if (!hasRealAuth) {
-      return NextResponse.json({ success: false, error: '请先登录' }, { status: 401 });
-    }
-
-    const normalizedRole = ROLE_MAP[effectiveRole || ''] || effectiveRole || 'user';
-    if (normalizedRole !== 'super_admin' && normalizedRole !== 'admin') {
+    if (ctx.effectiveRole !== 'super_admin' && ctx.effectiveRole !== 'admin') {
       return NextResponse.json({ success: false, error: '仅管理员可查看' }, { status: 403 });
     }
 

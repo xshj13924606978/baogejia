@@ -26,18 +26,17 @@ export default function MyUploads() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
-  const { items, loading, total, page, setPage, totalPages, refresh } = useKnowledgeList('', {
+  const { items, loading, total, page, setPage, totalPages, authenticated, refresh } = useKnowledgeList('', {
     scope: 'mine',
     keyword: searchTerm || undefined,
   });
 
-  // 检测登录状态：如果返回空数据且 total=0，可能是未登录
+  // 使用 API 返回的 authenticated 字段判断登录状态（而非数据量推断）
   useEffect(() => {
     if (!loading) {
-      // 如果 scope=mine 返回空数据，视为未登录（API 对未登录返回空）
-      setIsLoggedIn(items.length > 0 || total > 0);
+      setIsLoggedIn(authenticated);
     }
-  }, [loading, items.length, total]);
+  }, [loading, authenticated]);
 
   // 客户端状态过滤
   const filteredItems = items.filter((item) => {

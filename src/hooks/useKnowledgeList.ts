@@ -22,6 +22,7 @@ export function useKnowledgeList(type: KnowledgeType | '', options?: {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [permissions, setPermissions] = useState({ can_download: true, download_cost: 5 });
+  const [authenticated, setAuthenticated] = useState(false);
   const pageSize = options?.pageSize || 20;
 
   const fetchData = useCallback(async () => {
@@ -60,6 +61,7 @@ export function useKnowledgeList(type: KnowledgeType | '', options?: {
         setItems(json.data || []);
         setTotal(json.total || 0);
         if (json.permissions) setPermissions(json.permissions);
+        setAuthenticated(!!json.authenticated);
       }
     } catch (err) {
       console.error('[useKnowledgeList] 加载失败:', err);
@@ -80,6 +82,7 @@ export function useKnowledgeList(type: KnowledgeType | '', options?: {
     setPage,
     totalPages: Math.ceil(total / pageSize),
     permissions,
+    authenticated,
     refresh: fetchData,
   };
 }

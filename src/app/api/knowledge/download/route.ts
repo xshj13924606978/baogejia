@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { resolveAuthContext } from '@/lib/knowledge/api-utils';
 import { pointsService } from '@/lib/points-service';
 
 /**
@@ -17,26 +17,8 @@ import { pointsService } from '@/lib/points-service';
 
 export async function POST(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser?.id) {
-      return NextResponse.json({ success: false, error: '请先登录' }, { status: 401 });
-    }
-
-    // 检测开发环境降级：如果 x-user-id 与返回的用户 ID 不匹配，说明命中了降级
-    const requestUserId = request.headers.get('x-user-id');
-    const requestUserRole = request.headers.get('x-user-role');
-    let effectiveRole = currentUser.role || 'user';
-    if (requestUserId && currentUser.id !== requestUserId) {
-      effectiveRole = requestUserRole || 'user';
-    }
-
-    // 检测是否为真实认证（非开发环境降级）
-    const hasRealAuth = !!(
-      requestUserId ||
-      request.headers.get('authorization') ||
-      request.cookies.get('sb-access-token')
-    );
-    if (!hasRealAuth) {
+    const ctx = await resolveAuthContext(request);
+    if (!ctx.isAuthenticated) {
       return NextResponse.json({ success: false, error: '请先登录' }, { status: 401 });
     }
 
@@ -45,13 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '缺少 entryId' }, { status: 400 });
     }
 
-    // 角色标准化
-    const ROLE_MAP: Record<string, string> = {
-      '超级管理员': 'super_admin', '系统管理员': 'admin', '管理员': 'admin',
-      'VIP会员': 'vip', 'VIP用户': 'vip', '付费会员': 'premium', '普通会员': 'premium',
-      '免费用户': 'free', '企业用户': 'enterprise', '待审核': 'pending', 'user': 'user',
-    };
-    const normalizedRole = ROLE_MAP[effectiveRole || ''] || effectiveRole || 'user';
+    const normalizedRole = ctx.effectiveRole;
 
     // 免费用户/待审核用户不可下载
     if (normalizedRole === 'free' || normalizedRole === 'pending') {
@@ -72,12 +48,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 非approved文件：只有超管和上传者本人可下载
-    if (entry.status !== 'approved' && entry.user_id !== currentUser.id && normalizedRole !== 'super_admin') {
+    if (entry.status !== 'approved' && entry.user_id !== ctx.currentUserId && normalizedRole !== 'super_admin') {
       return NextResponse.json({ success: false, error: '该条目尚未通过审核' }, { status: 403 });
     }
 
     // 自己上传的文件不扣积分
-    if (entry.user_id === currentUser.id) {
+    if (entry.user_id === ctx.currentUserId) {
       return NextResponse.json({
         success: true,
         file_url: entry.file_url,
@@ -93,7 +69,7 @@ export async function POST(request: NextRequest) {
       const { data: userRecord } = await db
         .from('users')
         .select('metadata')
-        .eq('id', currentUser.id)
+        .eq('id', ctx.currentUserId)
         .single();
       const userLevel = userRecord?.metadata?.level || 1;
 
@@ -130,7 +106,7 @@ export async function POST(request: NextRequest) {
     // 4. 扣减积分
     if (downloadCost > 0) {
       const result = await pointsService.deductPoints(
-        currentUser.id,
+        ctx.currentUserId!,
         downloadCost,
         'exchange',
         `下载知识库文件「${entry.title}」`

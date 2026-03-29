@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@/contexts/UserContext';
 
-// 预定义测试用户
+// 预定义测试用户（使用真实 DB UUID，确保 API 查询不会因非 UUID 报错）
 const TEST_USERS = [
   {
-    id: 'dev-super-admin',
+    id: '8aab9b65-32e1-41d2-80c3-8be24fa30059',
     email: 'admin2@test.com',
     username: 'admin2',
     role: 'super_admin',
@@ -16,17 +16,7 @@ const TEST_USERS = [
     description: '全部权限，可管理所有内容'
   },
   {
-    id: 'dev-admin',
-    email: 'admin@test.com',
-    username: 'admin',
-    role: 'admin',
-    level: 4,
-    currentPoints: 8000,
-    name: '系统管理员',
-    description: '管理用户、内容，无超级管理员权限'
-  },
-  {
-    id: 'dev-enterprise',
+    id: 'e2f2301b-ae9c-4993-8175-f264f3c1144a',
     email: 'enterprise@test.com',
     username: 'enterprise',
     role: 'enterprise_admin',
@@ -36,7 +26,7 @@ const TEST_USERS = [
     description: '企业用户，可管理企业资料'
   },
   {
-    id: 'dev-vip',
+    id: '045842e8-b8cb-4ffd-8455-cad855398b55',
     email: 'vip2@test.com',
     username: 'vip2',
     role: 'vip',
@@ -46,7 +36,7 @@ const TEST_USERS = [
     description: '高级会员，更多功能'
   },
   {
-    id: 'dev-premium',
+    id: '394ccafb-61ab-482d-8b1e-3acd22a832ec',
     email: 'premium@test.com',
     username: 'premium',
     role: 'premium',
@@ -56,7 +46,7 @@ const TEST_USERS = [
     description: '基础功能，有限制'
   },
   {
-    id: 'dev-free',
+    id: '883f13e3-5a34-461e-a338-f6c59f7aaafb',
     email: 'free@test.com',
     username: 'free',
     role: 'free',
@@ -66,7 +56,7 @@ const TEST_USERS = [
     description: '基础功能，较多限制'
   },
   {
-    id: 'dev-pending',
+    id: '883f13e3-5a34-461e-a338-f6c59f7aaafb',
     email: 'pending@test.com',
     username: 'pending',
     role: 'pending',
@@ -142,7 +132,7 @@ export function DevUserSwitcher() {
               <div className="max-h-96 overflow-y-auto">
                 {TEST_USERS.map((testUser) => (
                   <button
-                    key={testUser.id}
+                    key={testUser.email}
                     onClick={() => switchUser(testUser)}
                     className={`w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-100 transition-colors ${
                       currentUser === testUser.email ? 'bg-blue-50' : ''

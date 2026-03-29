@@ -91,7 +91,8 @@ export function useKnowledgeUpload(type: KnowledgeType) {
         setUploading(false);
       });
 
-      // 携带用户身份
+      // 携带用户身份（必须在 xhr.open() 之后调用）
+      xhr.open('POST', '/api/knowledge/upload');
       try {
         const userStr = localStorage.getItem('user');
         if (userStr) {
@@ -102,8 +103,6 @@ export function useKnowledgeUpload(type: KnowledgeType) {
         const token = localStorage.getItem('token');
         if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       } catch { /* ignore */ }
-
-      xhr.open('POST', '/api/knowledge/upload');
       xhr.send(formData);
     });
   }, [type]);
