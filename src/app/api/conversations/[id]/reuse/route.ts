@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getCurrentUser } from '@/lib/auth-utils';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: originalId } = await params;
   console.log('[Conversations/[id]/reuse] POST 请求，原ID:', originalId);
 
   try {
+    const user = await getCurrentUser(request);
+    if (!user) {
+      console.error('[Conversations/[id]/reuse] 用户未认证');
+      return NextResponse.json({ error: '未认证' }, { status: 401 });
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -14,7 +21,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // 获取原对话
     const { data: original, error: fetchError } = await supabase
       .from('conversations')
-      .select('title')
+      .select('title, user_id')
       .eq('id', originalId)
       .single();
 
@@ -23,12 +30,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: '原对话不存在' }, { status: 404 });
     }
 
+    // 权限检查：非超管/管理员只能复用自己的对话
+    if (user.role !== 'super_admin' && user.role !== 'admin' && original.user_id !== user.id) {
+      console.error('[Conversations/[id]/reuse] 无权复用对话:', originalId);
+      return NextResponse.json({ error: '无权复用' }, { status: 403 });
+    }
+
     // 创建新对话
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('conversations')
       .insert({
         title: `${original.title} (复用)`,
+        user_id: user.id,
         last_message: '',
         status: 'active',
         message_count: 0,
@@ -43,7 +57,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: '创建失败' }, { status: 500 });
     }
 
-    console.log('[Conversations/[id]/reuse] 复用成功, 新ID:', data.id);
+    console.log('[Conversations/[id]/reuse] 复用成功, 新ID:', data.id, ', user_id:', user.id);
 
     return NextResponse.json({
       conversation: {

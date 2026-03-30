@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Logger } from '@/lib/logger';
+import { getCurrentUser } from '@/lib/auth-utils';
 
 export async function POST(request: NextRequest) {
   Logger.info('[Messages] POST 保存消息');
 
   try {
+    const user = await getCurrentUser(request);
+    if (!user) {
+      Logger.error('[Messages] 用户未认证');
+      return NextResponse.json({ error: '未认证' }, { status: 401 });
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -30,7 +37,7 @@ export async function POST(request: NextRequest) {
     // 先检查对话是否存在，不存在则自动创建
     const { data: conversationData, error: checkError } = await supabase
       .from('conversations')
-      .select('id')
+      .select('id, user_id')
       .eq('id', conversationId)
       .single();
 
@@ -46,6 +53,7 @@ export async function POST(request: NextRequest) {
         .insert({
           id: conversationId,
           title: '新对话',
+          user_id: user.id,
           last_message: content?.substring(0, 100) || '',
           status: 'active',
           updated_at: now,
@@ -64,6 +72,12 @@ export async function POST(request: NextRequest) {
 
       conversation = newConv;
       Logger.info('[Messages] 对话创建成功', { conversationId });
+    } else {
+      // 权限检查：非超管/管理员只能向自己的对话发送消息
+      if (user.role !== 'super_admin' && user.role !== 'admin' && conversation.user_id !== user.id) {
+        Logger.error('[Messages] 无权向此对话发送消息', { conversationId });
+        return NextResponse.json({ error: '无权操作' }, { status: 403 });
+      }
     }
 
     // 确保文件数据是数组
@@ -126,10 +140,29 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const user = await getCurrentUser(request);
+    if (!user) {
+      Logger.error('[Messages] 用户未认证');
+      return NextResponse.json({ error: '未认证' }, { status: 401 });
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
+
+    // 权限检查：非超管/管理员只能获取自己对话的消息
+    if (user.role !== 'super_admin' && user.role !== 'admin') {
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('user_id')
+        .eq('id', conversationId)
+        .single();
+      if (conversation && conversation.user_id !== user.id) {
+        Logger.error('[Messages] 无权获取此对话的消息', { conversationId });
+        return NextResponse.json({ error: '无权访问' }, { status: 403 });
+      }
+    }
 
     const { data, error } = await supabase
       .from('messages')
