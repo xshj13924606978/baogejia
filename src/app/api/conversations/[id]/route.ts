@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getCurrentUser } from '@/lib/auth-utils';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   console.log('[Conversations/[id]] GET 请求，ID:', id);
 
   try {
+    const user = await getCurrentUser(request);
+    if (!user) {
+      console.error('[Conversations/[id]] 用户未认证');
+      return NextResponse.json({ error: '未认证' }, { status: 401 });
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -21,6 +28,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (convError || !conversation) {
       console.error('[Conversations/[id]] 查询失败:', convError);
       return NextResponse.json({ error: '对话不存在' }, { status: 404 });
+    }
+
+    // 权限检查：非超管/管理员只能查看自己的对话
+    if (user.role !== 'super_admin' && user.role !== 'admin' && conversation.user_id !== user.id) {
+      console.error('[Conversations/[id]] 无权访问对话:', id);
+      return NextResponse.json({ error: '无权访问' }, { status: 403 });
     }
 
     // 获取对话的消息 - 确保按时间排序
@@ -93,10 +106,29 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   console.log('[Conversations/[id]] PATCH 请求，ID:', id);
 
   try {
+    const user = await getCurrentUser(request);
+    if (!user) {
+      console.error('[Conversations/[id]] 用户未认证');
+      return NextResponse.json({ error: '未认证' }, { status: 401 });
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
+
+    // 权限检查：非超管/管理员只能修改自己的对话
+    if (user.role !== 'super_admin' && user.role !== 'admin') {
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+      if (conversation && conversation.user_id !== user.id) {
+        console.error('[Conversations/[id]] 无权修改对话:', id);
+        return NextResponse.json({ error: '无权修改' }, { status: 403 });
+      }
+    }
 
     const body = await request.json();
     const { title } = body;
@@ -141,10 +173,29 @@ export async function DELETE(
   console.log('[Conversations/[id]] DELETE 请求，ID:', id);
 
   try {
+    const user = await getCurrentUser(request);
+    if (!user) {
+      console.error('[Conversations/[id]] 用户未认证');
+      return NextResponse.json({ error: '未认证' }, { status: 401 });
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
+
+    // 权限检查：非超管/管理员只能删除自己的对话
+    if (user.role !== 'super_admin' && user.role !== 'admin') {
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+      if (conversation && conversation.user_id !== user.id) {
+        console.error('[Conversations/[id]] 无权删除对话:', id);
+        return NextResponse.json({ error: '无权删除' }, { status: 403 });
+      }
+    }
 
     // 先删除相关的消息记录
     await supabase.from('messages').delete().eq('conversation_id', id);

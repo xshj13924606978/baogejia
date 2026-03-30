@@ -23,6 +23,7 @@ import { useSwitch } from './switch-manager';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 import { logOnce, logWithTimestamp, warnOnce } from '@/lib/logger';
+import { getClientAuthHeaders } from '@/lib/client-utils';
 
 interface SupplierInfo {
   companyName: string;
@@ -173,7 +174,7 @@ const saveMessageToDatabase = async (
     console.log('[ChatArea] 保存消息到数据库:', { conversationId, role, content });
     const response = await fetch('/api/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
       body: JSON.stringify({
         conversationId,
         role,
@@ -201,7 +202,7 @@ const updateConversationTitle = async (conversationId: string, title: string) =>
     console.log('[ChatArea] 更新对话标题:', { conversationId, title });
     const response = await fetch(`/api/conversations/${conversationId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
       body: JSON.stringify({ title }),
     });
 
@@ -669,7 +670,9 @@ export default function ChatArea({
   const loadConversation = async (id: string) => {
     try {
       console.log('[ChatArea] 加载对话:', id);
-      const response = await fetch(`/api/conversations/${id}`);
+      const response = await fetch(`/api/conversations/${id}`, {
+        headers: getClientAuthHeaders(),
+      });
       if (response.ok) {
         const data = await response.json();
         console.log('[ChatArea] 加载成功:', data);
@@ -770,7 +773,7 @@ export default function ChatArea({
       logOnce('ChatArea', `创建新对话: ${title}, hasContent: ${hasContent}`);
       const response = await fetch('/api/conversations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
         body: JSON.stringify({
           title,
           hasContent,
@@ -863,7 +866,7 @@ export default function ChatArea({
 
       const response = await fetch(`/api/messages/${messageId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
         body: JSON.stringify({
           content: newContent,
         }),
@@ -983,7 +986,7 @@ export default function ChatArea({
 
       const chatResponse = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
         body: JSON.stringify({
           message: userMessage.content,
           files: filesToSend,
@@ -1141,7 +1144,7 @@ export default function ChatArea({
     try {
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
         body: JSON.stringify({
           message,
           conversationId,
@@ -1422,7 +1425,7 @@ export default function ChatArea({
 
       const chatResponse = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
         body: JSON.stringify({
           message: userMessage.content,
           files: uploadedFiles,
@@ -1712,7 +1715,7 @@ export default function ChatArea({
 
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
         body: JSON.stringify({
           intent,
           files: uploadedFiles,
@@ -1840,7 +1843,7 @@ export default function ChatArea({
 
         const response = await fetch('/api/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
           body: JSON.stringify({
             intent: choice,
             files: files,

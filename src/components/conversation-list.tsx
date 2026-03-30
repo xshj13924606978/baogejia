@@ -27,6 +27,7 @@ import {
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { getClientAuthHeaders } from '@/lib/client-utils';
 
 interface Conversation {
   id: string;
@@ -119,7 +120,9 @@ export default function ConversationList({
     try {
       setIsRefreshing(true);
       setLoading(true);
-      const response = await fetch('/api/conversations');
+      const response = await fetch('/api/conversations', {
+        headers: getClientAuthHeaders(),
+      });
       if (response.ok) {
         const data = await response.json();
         console.log('[ConversationList] 加载对话列表完成', {
@@ -157,7 +160,9 @@ export default function ConversationList({
   const loadConversationDetail = async (conversationId: string) => {
     try {
       console.log('[ConversationList] 加载对话详情:', conversationId);
-      const response = await fetch(`/api/conversations/${conversationId}`);
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        headers: getClientAuthHeaders(),
+      });
       if (response.ok) {
         const data = await response.json();
         console.log('[ConversationList] 对话详情加载成功:', data);
@@ -283,6 +288,7 @@ export default function ConversationList({
     try {
       const response = await fetch(`/api/conversations/${conversationId}`, {
         method: 'DELETE',
+        headers: getClientAuthHeaders(),
       });
       if (response.ok) {
         await loadConversations();
@@ -313,6 +319,7 @@ export default function ConversationList({
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          ...getClientAuthHeaders(),
         },
         body: JSON.stringify({ title: newTitle.trim() }),
       });
@@ -332,7 +339,9 @@ export default function ConversationList({
     e.preventDefault();
 
     try {
-      const response = await fetch(`/api/conversations/${conversationId}`);
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        headers: getClientAuthHeaders(),
+      });
       if (!response.ok) {
         alert('获取对话失败，请稍后重试');
         return;
@@ -375,6 +384,7 @@ export default function ConversationList({
     try {
       const response = await fetch('/api/conversations', {
         method: 'DELETE',
+        headers: getClientAuthHeaders(),
       });
       if (response.ok) {
         await loadConversations();
