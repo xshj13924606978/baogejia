@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import QuoteTable from '@/components/quote-table';
 import { MatchVisualization } from '@/components/match-visualization';
+import { BrandCompareCard } from '@/components/brand-compare-card';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -2552,6 +2553,15 @@ export default function ChatMessage({
               )}
             </div>
           )}
+
+          {/* 产品对比卡片（支持多品牌或多款同品牌产品对比） */}
+          {message.metadata?.entities?.brandCompare &&
+            Array.isArray(message.metadata.entities.brandCompare) &&
+            message.metadata.entities.brandCompare.length >= 2 && (
+              <div className="mt-4">
+                <BrandCompareCard items={message.metadata.entities.brandCompare} />
+              </div>
+            )}
 
           {hasQuote && quoteData && !isDetailedProposal && (
             <div className="mt-4">

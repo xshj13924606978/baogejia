@@ -6,7 +6,7 @@ const nextConfig = {
   // 输出配置
   output: 'standalone',
 
-  // 实验性配置（暂留空）
+  // 实验性配置
   experimental: {},
 
   // 环境变量
