@@ -257,20 +257,50 @@ export async function POST(request: NextRequest) {
         // 第1级：优先从数据库查询知识库价格
         if (!priceData) {
           try {
-            const { data } = await db
-              .from('products')
-              .select('price, name, model')
-              .ilike('name', `%${productName.split(' ')[0]}%`)
-              .limit(1)
-              .single();
+            // 使用完整产品名匹配（而非仅第一个词）
+            const searchName = productName.trim();
+            console.log('[MarketPrice] 知识库查询产品名:', searchName, '型号:', model);
 
-            if (data && data.price) {
-              const price = parseFloat(data.price);
-              priceData = {
-                price: price,
-                source: '知识库价格库',
-                range: `${Math.round(price * 0.8)}-${Math.round(price * 1.2)}`};
-              console.log('[MarketPrice] 从知识库获取价格:', priceData);
+            // 优先：名称 + 型号同时匹配
+            let query = db
+              .from('products')
+              .select('price, min_price, cost_price, name, model');
+
+            if (model) {
+              query = query
+                .ilike('name', `%${searchName}%`)
+                .ilike('model', `%${model}%`);
+            } else {
+              query = query.ilike('name', `%${searchName}%`);
+            }
+
+            const { data } = await query.limit(1).single();
+
+            if (data) {
+              // 优先使用 min_price > price > cost_price
+              let price: number | string = 0;
+              if (data.min_price && data.min_price > 0) price = data.min_price;
+              else if (data.price && data.price > 0) price = data.price;
+              else if (data.cost_price && data.cost_price > 0) price = data.cost_price;
+
+              // NUMRANGE 格式处理
+              if (typeof price === 'string' && price.startsWith('{')) {
+                const matches = price.match(/([0-9.]+)/);
+                if (matches) {
+                  const raw = parseFloat(matches[1]);
+                  price = raw > 1000000 ? raw / 100 : raw;
+                }
+              }
+              price = typeof price === 'string' ? parseFloat(price) : price;
+
+              if (price > 0) {
+                priceData = {
+                  price: price,
+                  source: '知识库价格库',
+                  range: `${Math.round(price * 0.8)}-${Math.round(price * 1.2)}`
+                };
+                console.log('[MarketPrice] 从知识库获取价格:', priceData, '产品:', data.name, '型号:', data.model);
+              }
             }
           } catch (dbError) {
             console.error('[MarketPrice] 知识库查询失败:', dbError);

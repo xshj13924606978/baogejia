@@ -89,6 +89,14 @@ interface Product {
   marketPrice?: number;
   priceRange?: string;
   priceSource?: string;
+  // 多品牌对比字段
+  supplier?: string;
+  contactPhone?: string;
+  bidAmount?: number;
+  quoteCount?: number;
+  rating?: number;
+  responseTime?: number;
+  tags?: string[];
 }
 
 interface FeeConfig {
@@ -202,6 +210,8 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { key: 'unitPrice', label: '单价(元)', align: 'right', visible: true, priority: 7 },
   { key: 'totalPrice', label: '小计(元)', align: 'right', visible: true, priority: 8 },
   { key: 'marketPrice', label: '市场参考价', align: 'right', visible: true, priority: 9 },
+  { key: 'rating', label: '评分', align: 'center', visible: false, priority: 11 },
+  { key: 'quoteCount', label: '报价次数', align: 'center', visible: false, priority: 12 },
   { key: 'actions', label: '操作', align: 'center', visible: true, priority: 10 },
 ];
 
@@ -2138,6 +2148,24 @@ export default function QuoteTable({
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
+                              </TableCell>
+                            )}
+
+                            {selectedColumns.includes('rating') && (
+                              <TableCell key={`cell-rating-${productUniqueKey}`} className="text-center py-3 px-4">
+                                {product.rating != null && product.rating > 0
+                                  ? <span className="text-yellow-500 text-sm">{'★'.repeat(Math.round(product.rating))}{'☆'.repeat(5 - Math.round(product.rating))} {product.rating.toFixed(1)}</span>
+                                  : <span className="text-xs text-muted-foreground">-</span>
+                                }
+                              </TableCell>
+                            )}
+
+                            {selectedColumns.includes('quoteCount') && (
+                              <TableCell key={`cell-quoteCount-${productUniqueKey}`} className="text-center py-3 px-4">
+                                {product.quoteCount != null && product.quoteCount > 0
+                                  ? <span className="text-sm">{product.quoteCount}</span>
+                                  : <span className="text-xs text-muted-foreground">-</span>
+                                }
                               </TableCell>
                             )}
 

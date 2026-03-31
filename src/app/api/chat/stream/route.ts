@@ -166,6 +166,8 @@ export async function POST(request: NextRequest) {
     // 4. 价格查询预处理（优先查询数据库）
     let enhancedMessage = message;
     let databaseInfo: any = null;
+    let priceMatchedProducts: any[] | undefined;
+    let priceBrandCompareData: any[] | undefined;
     try {
       const priceQuery = await (smartChatProcessor as any).detectPriceQuery(message);
       if (priceQuery.isPriceQuery && priceQuery.productName) {
@@ -184,10 +186,12 @@ export async function POST(request: NextRequest) {
             parameterDescription: priceResult.priceData.parameterDescription,
             costPrice: priceResult.priceData.costPrice,
             minPrice: priceResult.priceData.minPrice,
-            description: priceResult.priceData.description,
-            currency: priceResult.priceData.currency
           };
+          // 保存匹配产品列表用于前端卡片展示
+          priceMatchedProducts = priceResult.priceData?.matchedProducts;
+          priceBrandCompareData = priceResult.brandCompareData;
           console.log('[Chat Stream API] 已保存数据库信息:', databaseInfo);
+          console.log('[Chat Stream API] 匹配产品数:', priceMatchedProducts?.length, '品牌对比数:', priceBrandCompareData?.length);
         }
         if (priceResult.contextInfo) {
           enhancedMessage += priceResult.contextInfo;
@@ -309,7 +313,26 @@ export async function POST(request: NextRequest) {
             followUpQuestions: parsedResponse.followUpQuestions,
             metadata: {
               inputType: processedInput.type,
-              confidence: parsedResponse.confidence || 0.9
+              confidence: parsedResponse.confidence || 0.9,
+              entities: {
+                brandCompare: priceBrandCompareData,
+                matchedProducts: priceMatchedProducts?.map((p: any) => ({
+                  brand: p.brand,
+                  supplier: p.supplier,
+                  contactPhone: p.contactPhone,
+                  model: p.model,
+                  price: p.price,
+                  minPrice: p.parameters?.minPrice,
+                  costPrice: p.parameters?.costPrice,
+                  confidence: p.confidence,
+                  isRecommended: p.isRecommended,
+                  source: 'database',
+                  tags: p.tags || [],
+                  matchLevel: p.matchLevel,
+                  matchedBy: p.matchedBy,
+                  parameters: p.parameters,
+                })),
+              },
             }
           })}\n\n`;
           controller.enqueue(encoder.encode(endEvent));

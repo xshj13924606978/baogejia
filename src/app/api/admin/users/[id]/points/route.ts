@@ -46,8 +46,18 @@ export async function GET(
       });
     }
 
-    // 从 metadata 中获取积分，默认为 0
-    const points = user.metadata?.points || 0;
+    // 优先从 user_token_balance 表读取积分，fallback 到 metadata
+    let points = user.metadata?.points || 0;
+    try {
+      const { data: balance } = await supabase
+        .from('user_token_balance')
+        .select('points_balance')
+        .eq('user_id', id)
+        .single();
+      if (balance && balance.points_balance > 0) {
+        points = balance.points_balance;
+      }
+    } catch {}
     console.log('[UserPoints API] 用户积分:', points);
 
     return NextResponse.json({
