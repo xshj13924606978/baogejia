@@ -19,7 +19,7 @@ SELECT
     'detail',
     true,
     1,
-    '{"description":"品牌对比卡片 - 用户询价后展示多品牌产品对比，支持选用产品生成报价表","type":"feature"}'
+    '{"description":"Brand compare card for product inquiry","type":"feature"}'
 FROM system_modules sm
 WHERE sm.module_key = 'chat'
 ON CONFLICT (module_id, page_key) DO UPDATE SET
@@ -42,7 +42,7 @@ SELECT
     true,
     'chat.brand_compare',
     1,
-    '{"icon":"Check","position":"card_action","buttonType":"primary","confirmMessage":null,"description":"点击展开品牌对比卡片后，选用该产品添加到报价表"}'
+    '{"icon":"Check","position":"card_action","buttonType":"primary"}'
 FROM system_pages sp
 JOIN system_modules sm ON sp.module_id = sm.id
 WHERE sm.module_key = 'chat' AND sp.page_key = 'brand_compare'
