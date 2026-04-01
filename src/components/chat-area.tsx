@@ -16,6 +16,7 @@ import {
 import { Upload, Paperclip, Sparkles, Square, Loader2, Plus, Code, ArrowUp, ChevronDown, Layers, ArrowDownToLine, MessageSquare, Zap, FileText, Sparkle, Info, Brain, FileSpreadsheet, FileText as _FileTextIcon, Image as _ImageIcon } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import ChatMessage from '@/components/chat-message';
+import { BrandCompareItem } from '@/components/brand-compare-card';
 import FixedSwitcher from '@/components/fixed-switcher';
 import FloatingSwitcher from '@/components/floating-switcher';
 import KnowledgeCenter from '@/components/knowledge-center';
@@ -1664,6 +1665,134 @@ export default function ChatArea({
     );
   };
 
+  // 将选用的品牌产品转换为报价单产品，并更新消息的 quoteData
+  const handleBrandSelect = (messageId: number, item: BrandCompareItem) => {
+    let newQuoteData: any = null;
+
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id === messageId) {
+          const existingQuoteData = msg.quoteData;
+          const newProduct = {
+            id: undefined,
+            name: item.productName || item.brand,
+            model: item.model,
+            parameter_description: item.parameterDescription || '',
+            brand: item.brand,
+            unit: '台',
+            supplier: item.supplier,
+            contact_person: undefined,
+            contact_phone: item.contactPhone,
+            cost_price: item.costPrice,
+            min_price: item.minPrice,
+            price: item.price,
+            image_url: undefined,
+            quantity: 1,
+            unitPrice: item.price,
+            totalPrice: item.price,
+            system: item.brand,
+          };
+
+          if (existingQuoteData) {
+            // 追加产品到已有 quoteData
+            const updatedProducts = [...existingQuoteData.products, newProduct];
+            const newSubtotal = updatedProducts.reduce((sum: number, p: any) => sum + (p.totalPrice || 0), 0);
+            const newTaxAmount = newSubtotal * ((existingQuoteData.taxRate || 13) / 100);
+            const newTotalAmount = newSubtotal + newTaxAmount + (existingQuoteData.shipping || 0) + (existingQuoteData.installation || 0) + (existingQuoteData.otherFees || 0);
+
+            newQuoteData = {
+              ...existingQuoteData,
+              products: updatedProducts,
+              subtotal: newSubtotal,
+              taxAmount: newTaxAmount,
+              totalAmount: newTotalAmount,
+              updatedAt: new Date().toISOString(),
+            };
+
+            return { ...msg, quoteData: newQuoteData };
+          } else {
+            // 创建新的 quoteData
+            const taxRate = 13;
+            const taxAmount = item.price * (taxRate / 100);
+
+            newQuoteData = {
+              quoteNumber: `QT${Date.now()}`,
+              supplierInfo: {
+                companyName: '',
+                contactPerson: '',
+                phone: '',
+                email: '',
+                address: '',
+                bankName: '',
+                bankAccount: '',
+                taxNumber: '',
+              },
+              customerInfo: {
+                name: '',
+                projectName: '',
+              },
+              products: [newProduct],
+              subtotal: item.price,
+              taxRate,
+              taxAmount,
+              shipping: 0,
+              installation: 0,
+              otherFees: 0,
+              totalAmount: item.price + taxAmount,
+              terms: {
+                payment: '',
+                warranty: '',
+                delivery: '',
+                validity: '',
+              },
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+
+            return { ...msg, quoteData: newQuoteData };
+          }
+        }
+        return msg;
+      })
+    );
+
+    toast({
+      title: '已选用产品',
+      description: `${item.brand} ${item.model} 已添加到报价表`,
+      duration: 2000,
+    });
+
+    // 持久化到数据库
+    if (newQuoteData) {
+      updateMessageQuoteData(messageId, newQuoteData);
+    }
+  };
+
+  // 将消息的 quoteData 持久化到数据库
+  const updateMessageQuoteData = async (messageId: number, quoteData: any) => {
+    const message = messagesRef.current.find((m) => m.id === messageId);
+    if (!message) return;
+
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
+        body: JSON.stringify({
+          quoteData,
+          conversationId: currentConversationIdRef.current,
+          role: message.role,
+          contentPrefix: message.content?.substring(0, 100) || '',
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('[ChatArea] 更新消息 quoteData 失败:', response.status);
+      }
+    } catch (error) {
+      console.error('[ChatArea] 更新消息 quoteData 失败:', error);
+    }
+  };
+
   const handleIntentSelection = async (
     intent: 'quote' | 'proposal' | 'both',
     fileData: any[],
@@ -2016,6 +2145,7 @@ export default function ChatArea({
                 supplierInfo={supplierInfo}
                 onUpdateProductPrice={handleUpdateProductPrice}
                 onUpdateProductQuantity={handleUpdateProductQuantity}
+                onBrandSelect={handleBrandSelect}
                 onIntentSelection={(intent) => {
                   if (message.fileData) {
                     handleIntentSelection(intent, message.fileData, uploadedFilesData);

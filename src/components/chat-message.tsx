@@ -117,6 +117,7 @@ interface ChatMessageProps {
   onUpdateProductPrice?: (messageId: number, productIndex: number, newPrice: number) => void;
   onUpdateProductQuantity?: (messageId: number, productIndex: number, newQuantity: number) => void;
   onIntentSelection?: (intent: 'quote' | 'proposal' | 'both') => void;
+  onBrandSelect?: (messageId: number, item: any) => void;
   onEdit?: (messageId: number, newContent: string) => void;
 }
 
@@ -1214,6 +1215,7 @@ export default function ChatMessage({
   supplierInfo,
   onUpdateProductPrice,
   onUpdateProductQuantity,
+  onBrandSelect,
   onIntentSelection,
   onEdit,
 }: ChatMessageProps) {
@@ -2559,7 +2561,10 @@ export default function ChatMessage({
             Array.isArray(message.metadata.entities.brandCompare) &&
             message.metadata.entities.brandCompare.length >= 2 && (
               <div className="mt-4">
-                <BrandCompareCard items={message.metadata.entities.brandCompare} />
+                <BrandCompareCard
+                  items={message.metadata.entities.brandCompare}
+                  onBrandSelect={(item) => onBrandSelect?.(message.id, item)}
+                />
               </div>
             )}
 
