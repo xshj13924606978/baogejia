@@ -189,3 +189,77 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
+
+// 更新消息的 quote_data 字段
+export async function PATCH(request: NextRequest) {
+  Logger.info('[Messages] PATCH 更新消息');
+
+  try {
+    const user = await getCurrentUser(request);
+    if (!user) {
+      Logger.error('[Messages] 用户未认证');
+      return NextResponse.json({ error: '未认证' }, { status: 401 });
+    }
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const body = await request.json();
+    const { quoteData, conversationId, role, contentPrefix } = body;
+
+    if (!conversationId || !contentPrefix) {
+      return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
+    }
+
+    // 权限检查：非超管/管理员只能更新自己对话的消息
+    if (user.role !== 'super_admin' && user.role !== 'admin') {
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('user_id')
+        .eq('id', conversationId)
+        .single();
+
+      if (conversation && conversation.user_id !== user.id) {
+        Logger.error('[Messages] 无权更新此对话的消息', { conversationId });
+        return NextResponse.json({ error: '无权操作' }, { status: 403 });
+      }
+    }
+
+    // 通过 conversation_id + role + 内容前缀定位消息（前端 ID 为时间戳，与数据库 UUID 不匹配）
+    const { data: matchedMessages, error: findError } = await supabase
+      .from('messages')
+      .select('id')
+      .eq('conversation_id', conversationId)
+      .eq('role', role || 'assistant')
+      .ilike('content', contentPrefix + '%')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (findError || !matchedMessages || matchedMessages.length === 0) {
+      Logger.error('[Messages] 未找到匹配的消息', { conversationId, role, contentPrefix: contentPrefix.substring(0, 50) });
+      return NextResponse.json({ error: '消息未找到' }, { status: 404 });
+    }
+
+    const dbMessageId = matchedMessages[0].id;
+
+    const { data, error } = await supabase
+      .from('messages')
+      .update({ quote_data: quoteData })
+      .eq('id', dbMessageId)
+      .select()
+      .single();
+
+    if (error) {
+      Logger.error('[Messages] PATCH 更新失败', error);
+      return NextResponse.json({ error: '更新失败' }, { status: 500 });
+    }
+
+    Logger.info('[Messages] PATCH 更新成功', { dbMessageId });
+    return NextResponse.json({ success: true, data });
+  } catch (error) {
+    Logger.error('[Messages] PATCH 异常', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}

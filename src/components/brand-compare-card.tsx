@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { ChevronDown, ChevronUp, Factory, Tag, Shield, Eye, EyeOff } from 'lucide-react';
+import { ChevronDown, ChevronUp, Factory, Tag, Shield, Eye, EyeOff, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 
 export interface BrandCompareItem {
@@ -324,6 +325,17 @@ function ProductCard({
                 </div>
               </div>
             )}
+
+            {/* 选用此产品按钮 */}
+            <div className="pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+              <Button
+                className="w-full h-9 text-sm"
+                onClick={() => onSelect()}
+              >
+                <Check className="h-4 w-4 mr-1" />
+                选用此产品
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
