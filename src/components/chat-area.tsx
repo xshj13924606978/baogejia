@@ -250,6 +250,7 @@ export default function ChatArea({
   const [parsedFilesMap, setParsedFilesMap] = useState<Record<string, any[]>>({});
   const parsedFilesMapRef = useRef(parsedFilesMap);
   const [showKnowledgeCenter, setShowKnowledgeCenter] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>('deepseek');
   const [activeModule, setActiveModule] = useState<string | null>(null);
 
   const switchContext = useSwitch();
@@ -1149,6 +1150,7 @@ export default function ChatArea({
         body: JSON.stringify({
           message,
           conversationId,
+          model: selectedModel,
         }),
         signal: abortControllerRef.current?.signal,
       });
@@ -2300,6 +2302,27 @@ export default function ChatArea({
                       className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
                     >
                       管理产品价格库、技术文档、案例等7大模块
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        <SelectTrigger className="h-9 w-auto min-w-[90px] rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs">
+                          <Brain className="h-3.5 w-3.5 mr-1 text-violet-500" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="deepseek">DeepSeek</SelectItem>
+                          <SelectItem value="gemini">Gemini</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
+                    >
+                      AI 模型
                     </TooltipContent>
                   </Tooltip>
 

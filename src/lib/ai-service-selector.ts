@@ -36,7 +36,7 @@ export type TaskType =
   | 'quote-enhancement' // 报价增强（混合任务）
   | 'price-optimization'; // 价格优化建议（DeepSeek）
 
-export type ServiceType = 'deepseek' | 'coze' | 'both' | 'auto' | 'none';
+export type ServiceType = 'deepseek' | 'coze' | 'gemini' | 'both' | 'auto' | 'none';
 
 export interface ServiceSelection {
   service: ServiceType;
@@ -184,6 +184,7 @@ export class AIServiceSelector {
     available: boolean;
     deepseekAvailable: boolean;
     cozeAvailable: boolean;
+    geminiAvailable: boolean;
     cozeTools: {
       webSearch: boolean;
       embedding: boolean;
@@ -202,6 +203,9 @@ export class AIServiceSelector {
       case 'coze':
         available = cozeStatus.enabled;
         break;
+      case 'gemini':
+        available = !!process.env.LAOZHANG_API_KEY;
+        break;
       case 'both':
         available = deepseekAvailable && cozeStatus.enabled;
         break;
@@ -209,7 +213,7 @@ export class AIServiceSelector {
         available = true; // 'none' 总是可用的（表示不使用服务）
         break;
       case 'auto':
-        available = deepseekAvailable || cozeStatus.enabled;
+        available = deepseekAvailable || cozeStatus.enabled || !!process.env.LAOZHANG_API_KEY;
         break;
     }
 
@@ -217,6 +221,7 @@ export class AIServiceSelector {
       available,
       deepseekAvailable,
       cozeAvailable: cozeStatus.enabled,
+      geminiAvailable: !!process.env.LAOZHANG_API_KEY,
       cozeTools: {
         webSearch: cozeStatus.webSearchEnabled,
         embedding: cozeStatus.embeddingEnabled,

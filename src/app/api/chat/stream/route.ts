@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { streamDeepSeekChat } from '@/lib/deepseek-client';
+import { aiClient } from '@/lib/deepseek-client';
 import { InputProcessor } from '@/lib/input-processor';
 import { smartChatProcessor } from '@/lib/smart-chat-processor';
 import { createClient } from '@supabase/supabase-js';
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     // 1. 解析请求
     const body = await request.json();
-    const { message, conversationId } = body;
+    const { message, conversationId, model } = body;
 
     console.log('[Chat Stream API] 请求参数:', {
       hasMessage: !!message,
@@ -228,11 +228,12 @@ export async function POST(request: NextRequest) {
 
           let fullContent = '';
 
-          // 调用流式DeepSeek API
-          for await (const chunk of streamDeepSeekChat({
+          // 调用流式AI API（支持 DeepSeek / Gemini）
+          for await (const chunk of aiClient.streamChat({
             messages,
             temperature: 0.7,
-            maxTokens: 8192
+            maxTokens: 8192,
+            model: model || 'deepseek',
           })) {
             fullContent += chunk;
 
