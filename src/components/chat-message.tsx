@@ -29,6 +29,7 @@ import {
   Copy,
   Edit2,
   Brain,
+  ArrowDownToLine,
 } from 'lucide-react';
 import QuoteTable from '@/components/quote-table';
 import { MatchVisualization } from '@/components/match-visualization';
@@ -2512,6 +2513,37 @@ export default function ChatMessage({
                     <SimpleMarkdown content={message.content} isStreaming={message.isStreaming} />
                   );
                 })()}
+
+          {/* 生图结果 */}
+          {message.metadata?.imageUrl && (
+            <div className="mt-2 space-y-2">
+              <div className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={message.metadata.imageUrl}
+                  alt={message.metadata.imagePrompt || '生成的图片'}
+                  className="w-full max-w-lg rounded-lg"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <a
+                    href={message.metadata.imageUrl}
+                    download="generated-image.png"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity bg-white text-slate-800 rounded-full p-2 shadow-lg hover:bg-slate-100"
+                    title="下载图片"
+                  >
+                    <ArrowDownToLine className="h-5 w-5" />
+                  </a>
+                </div>
+              </div>
+              {message.metadata.imagePrompt && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  提示词: {message.metadata.imagePrompt}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* 置信度指标和匹配详情 - 新增 */}
           {message.metadata?.confidence !== undefined && (

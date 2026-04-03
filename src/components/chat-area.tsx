@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Upload, Paperclip, Sparkles, Square, Loader2, Plus, Code, ArrowUp, ChevronDown, Layers, ArrowDownToLine, MessageSquare, Zap, FileText, Sparkle, Info, Brain, FileSpreadsheet, FileText as _FileTextIcon, Image as _ImageIcon } from 'lucide-react';
+import { Upload, Paperclip, Sparkles, Square, Loader2, Plus, Code, ArrowUp, ChevronDown, Layers, ArrowDownToLine, MessageSquare, Zap, FileText, Sparkle, Info, Brain, FileSpreadsheet, FileText as _FileTextIcon, Image as _ImageIcon, ImageIcon } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import ChatMessage from '@/components/chat-message';
 import { BrandCompareItem } from '@/components/brand-compare-card';
@@ -251,6 +251,7 @@ export default function ChatArea({
   const parsedFilesMapRef = useRef(parsedFilesMap);
   const [showKnowledgeCenter, setShowKnowledgeCenter] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>('deepseek');
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [activeModule, setActiveModule] = useState<string | null>(null);
 
   const switchContext = useSwitch();
@@ -2069,6 +2070,82 @@ export default function ChatArea({
     [conversationId, scrollToBottom]
   );
 
+  /**
+   * 生图功能
+   */
+  const handleGenerateImage = async (promptOverride?: string) => {
+    const imagePrompt = promptOverride || input.trim();
+    if (!imagePrompt) {
+      toast({ title: '请输入图片描述', variant: 'destructive' });
+      return;
+    }
+
+    if (isGeneratingImage || loading) return;
+
+    const activeConversationId = await ensureConversationId(true);
+    if (!activeConversationId) return;
+
+    setIsGeneratingImage(true);
+    setInput('');
+
+    // 添加用户消息
+    const userMsg: Message = {
+      id: Date.now(),
+      role: 'user',
+      content: `生成图片：${imagePrompt}`,
+      timestamp: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    await saveMessageToDatabase(activeConversationId, 'user', `生成图片：${imagePrompt}`);
+
+    // 添加加载中消息
+    const loadingId = Date.now() + 1;
+    setMessages((prev) => [
+      ...prev,
+      { id: loadingId, role: 'assistant', content: '正在生成图片...', timestamp: new Date().toISOString(), isTemporary: true },
+    ]);
+
+    try {
+      const res = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
+        body: JSON.stringify({ prompt: imagePrompt }),
+      });
+
+      const data = await res.json();
+
+      setMessages((prev) => prev.filter((m) => m.id !== loadingId));
+
+      if (!res.ok) {
+        setMessages((prev) => [
+          ...prev,
+          { id: Date.now() + 2, role: 'assistant', content: data.error || '生图失败，请稍后重试', timestamp: new Date().toISOString() },
+        ]);
+        return;
+      }
+
+      const imageUrl = data.image?.url || (data.image?.b64Json ? `data:image/png;base64,${data.image.b64Json}` : null);
+      const aiMsg: Message = {
+        id: Date.now() + 2,
+        role: 'assistant',
+        content: imageUrl ? '' : '图片生成成功但未返回数据',
+        timestamp: new Date().toISOString(),
+        metadata: { imageUrl, imagePrompt, model: data.image?.model },
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+      await saveMessageToDatabase(activeConversationId, 'assistant', imageUrl ? `[图片] ${imagePrompt}` : '生图失败', { imageUrl } as any);
+      setTimeout(scrollToBottom, 300);
+    } catch {
+      setMessages((prev) => prev.filter((m) => m.id !== loadingId));
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now() + 2, role: 'assistant', content: '生图请求失败，请检查网络', timestamp: new Date().toISOString() },
+      ]);
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
   const handleStopGeneration = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -2279,6 +2356,26 @@ export default function ChatArea({
                       className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
                     >
                       插入代码
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={loading || isGeneratingImage || !input.trim()}
+                        onClick={() => handleGenerateImage()}
+                        className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400"
+                      >
+                        <ImageIcon className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
+                    >
+                      生图（消耗10积分）
                     </TooltipContent>
                   </Tooltip>
 
