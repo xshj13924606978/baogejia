@@ -2,6 +2,7 @@
 -- 商务信息相关表（支持现有 API）
 -- 创建 suppliers, customers, quote_terms 表
 -- 执行时间：2026-03-09
+-- 更新时间：2026-04-02 修复：表已存在时补充缺失列
 -- ============================================================================
 
 -- 1. 供应商表
@@ -21,6 +22,50 @@ CREATE TABLE IF NOT EXISTS suppliers (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- 补充 suppliers 表可能缺失的列（表已存在但缺少列时）
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'company_name') THEN
+    ALTER TABLE suppliers ADD COLUMN company_name VARCHAR(255);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'contact_person') THEN
+    ALTER TABLE suppliers ADD COLUMN contact_person VARCHAR(100);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'phone') THEN
+    ALTER TABLE suppliers ADD COLUMN phone VARCHAR(50);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'email') THEN
+    ALTER TABLE suppliers ADD COLUMN email VARCHAR(255);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'address') THEN
+    ALTER TABLE suppliers ADD COLUMN address TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'website') THEN
+    ALTER TABLE suppliers ADD COLUMN website VARCHAR(255);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'bank_name') THEN
+    ALTER TABLE suppliers ADD COLUMN bank_name VARCHAR(100);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'bank_account') THEN
+    ALTER TABLE suppliers ADD COLUMN bank_account VARCHAR(100);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'tax_id') THEN
+    ALTER TABLE suppliers ADD COLUMN tax_id VARCHAR(50);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'logo') THEN
+    ALTER TABLE suppliers ADD COLUMN logo TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'metadata') THEN
+    ALTER TABLE suppliers ADD COLUMN metadata JSONB DEFAULT '{}'::jsonb;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'created_at') THEN
+    ALTER TABLE suppliers ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'updated_at') THEN
+    ALTER TABLE suppliers ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+  END IF;
+END $$;
 
 -- 2. 客户表
 CREATE TABLE IF NOT EXISTS customers (
@@ -42,6 +87,35 @@ CREATE TABLE IF NOT EXISTS customers (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 补充 customers 表可能缺失的列
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'project_name') THEN
+    ALTER TABLE customers ADD COLUMN project_name VARCHAR(255);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'bank_name') THEN
+    ALTER TABLE customers ADD COLUMN bank_name VARCHAR(100);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'bank_account') THEN
+    ALTER TABLE customers ADD COLUMN bank_account VARCHAR(100);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'tax_number') THEN
+    ALTER TABLE customers ADD COLUMN tax_number VARCHAR(50);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'payment_terms') THEN
+    ALTER TABLE customers ADD COLUMN payment_terms TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'credit_limit') THEN
+    ALTER TABLE customers ADD COLUMN credit_limit DECIMAL(15,2);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'notes') THEN
+    ALTER TABLE customers ADD COLUMN notes TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'metadata') THEN
+    ALTER TABLE customers ADD COLUMN metadata JSONB DEFAULT '{}'::jsonb;
+  END IF;
+END $$;
+
 -- 3. 报价条款表
 CREATE TABLE IF NOT EXISTS quote_terms (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -60,6 +134,32 @@ CREATE TABLE IF NOT EXISTS quote_terms (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- 补充 quote_terms 表可能缺失的列
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'quote_terms' AND column_name = 'remarks') THEN
+    ALTER TABLE quote_terms ADD COLUMN remarks TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'quote_terms' AND column_name = 'tax_rate') THEN
+    ALTER TABLE quote_terms ADD COLUMN tax_rate DECIMAL(5,2) DEFAULT 13;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'quote_terms' AND column_name = 'shipping') THEN
+    ALTER TABLE quote_terms ADD COLUMN shipping DECIMAL(15,2) DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'quote_terms' AND column_name = 'installation') THEN
+    ALTER TABLE quote_terms ADD COLUMN installation DECIMAL(15,2) DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'quote_terms' AND column_name = 'other_fees') THEN
+    ALTER TABLE quote_terms ADD COLUMN other_fees DECIMAL(15,2) DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'quote_terms' AND column_name = 'is_default') THEN
+    ALTER TABLE quote_terms ADD COLUMN is_default BOOLEAN DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'quote_terms' AND column_name = 'metadata') THEN
+    ALTER TABLE quote_terms ADD COLUMN metadata JSONB DEFAULT '{}'::jsonb;
+  END IF;
+END $$;
 
 -- 创建索引
 CREATE INDEX IF NOT EXISTS idx_suppliers_company_name ON suppliers(company_name);

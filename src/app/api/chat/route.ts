@@ -2748,27 +2748,50 @@ async function generateQuoteData(products: Product[]) {
   Logger.info('[QuoteGen] 产品列表', products.map((p) => p.name).join(', '));
 
   // ✅ 自动获取商务信息（供应方、客户、商务条款）
-  let businessInfo: any = {
-    supplier: null,
-    customer: null,
-    terms: null,
-  };
+  // 通过已有的 Supabase API 获取，确保与前端保存的数据一致
+  let supplierData: any = null;
+  let customerData: any = null;
+  let termsData: any = null;
 
   try {
-    // 调用商务信息API
-    const businessUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000'}/api/business-info?type=all`;
-    const businessResponse = await fetch(businessUrl);
-    if (businessResponse.ok) {
-      const businessData = await businessResponse.json();
-      if (businessData.success && businessData.data) {
-        businessInfo = businessData.data;
-        Logger.info('[QuoteGen] 商务信息获取成功', {
-          hasSupplier: !!businessInfo.supplier,
-          hasCustomer: !!businessInfo.customer,
-          hasTerms: !!businessInfo.terms,
-        });
-      }
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000';
+
+    // 并行请求三个 API，获取最新的商务信息
+    const [supplierRes, customerRes, termsRes] = await Promise.all([
+      fetch(`${baseUrl}/api/suppliers`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${baseUrl}/api/customers`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${baseUrl}/api/terms`).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]);
+
+    // 供应方信息（suppliers API 返回 camelCase）
+    if (supplierRes?.supplier) {
+      supplierData = supplierRes.supplier;
     }
+
+    // 客户信息（customers API 返回 snake_case 数组，取最新一条）
+    if (customerRes?.customers?.length > 0) {
+      const c = customerRes.customers[0];
+      customerData = {
+        companyName: c.company_name,
+        projectName: c.project_name,
+        contactPerson: c.contact_person,
+        phone: c.phone,
+        email: c.email,
+        address: c.address,
+      };
+    }
+
+    // 商务条款（terms API 返回 camelCase 数组，取默认条款或第一条）
+    if (termsRes?.terms?.length > 0) {
+      const t = termsRes.terms.find((item: any) => item.isDefault) || termsRes.terms[0];
+      termsData = t;
+    }
+
+    Logger.info('[QuoteGen] 商务信息获取成功', {
+      hasSupplier: !!supplierData,
+      hasCustomer: !!customerData,
+      hasTerms: !!termsData,
+    });
   } catch (error) {
     Logger.warn('[QuoteGen] 获取商务信息失败，使用默认信息', error);
   }
@@ -2848,9 +2871,9 @@ async function generateQuoteData(products: Product[]) {
   console.log('[QuoteGen] 小计:', subtotal, '总计:', totalAmount);
 
   // ✅ 使用自动获取的商务信息，如果没有则使用默认值
-  const terms = businessInfo.terms || {};
-  const supplier = businessInfo.supplier || {};
-  const customer = businessInfo.customer || {};
+  const supplier = supplierData || {};
+  const customer = customerData || {};
+  const terms = termsData || {};
 
   return {
     quoteNumber: `Q-${Date.now()}`,
@@ -2867,7 +2890,7 @@ async function generateQuoteData(products: Product[]) {
       validity: terms.validityPeriod || '15天',
       remarks: terms.remarks || '',
     },
-    // ✅ 添加供应方信息
+    // ✅ 添加供应方信息（suppliers API 返回 taxNumber，需映射到 taxId）
     supplierInfo: {
       companyName: supplier.companyName || '环保设备有限公司',
       contactPerson: supplier.contactPerson || '张经理',
@@ -2877,9 +2900,9 @@ async function generateQuoteData(products: Product[]) {
       website: supplier.website || 'www.example.com',
       bankName: supplier.bankName || '中国银行',
       bankAccount: supplier.bankAccount || '1234567890123456',
-      taxId: supplier.taxId || '310115XXXXXXXXXXXX',
+      taxId: supplier.taxNumber || supplier.taxId || '310115XXXXXXXXXXXX',
     },
-    // ✅ 添加客户信息
+    // ✅ 添加客户信息（已在上游转换为 camelCase）
     customerInfo: {
       companyName: customer.companyName || 'XX工程项目部',
       projectName: customer.projectName || '污水处理设备采购项目',

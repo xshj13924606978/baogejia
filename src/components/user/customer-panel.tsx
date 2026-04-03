@@ -133,12 +133,12 @@ export default function CustomerPanel() {
   // 客户选择后的回调
   const handleCustomerSelected = (customer: any) => {
     setFormData({
-      name: customer.companyName,
-      projectName: customer.projectName,
-      contactPerson: customer.contactPerson,
-      phone: customer.phone,
-      email: customer.email,
-      address: customer.address,
+      name: customer.companyName || '',
+      projectName: customer.projectName || '',
+      contactPerson: customer.contactPerson || '',
+      phone: customer.phone || '',
+      email: customer.email || '',
+      address: customer.address || '',
       bankName: customer.bankName || '',
       bankAccount: customer.bankAccount || '',
       taxNumber: customer.taxNumber || '',
