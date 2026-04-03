@@ -1183,7 +1183,23 @@ export default function ChatArea({
             try {
               const data = JSON.parse(line.slice(6));
 
-              if (data.type === 'content') {
+              if (data.type === 'searching') {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === tempId
+                      ? { ...msg, content: data.message || '正在搜索市场信息...' }
+                      : msg
+                  )
+                );
+              } else if (data.type === 'search_done') {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === tempId
+                      ? { ...msg, content: '' }
+                      : msg
+                  )
+                );
+              } else if (data.type === 'content') {
                 fullContent += data.content;
                 setMessages((prev) =>
                   prev.map((msg) => (msg.id === tempId ? { ...msg, content: fullContent } : msg))

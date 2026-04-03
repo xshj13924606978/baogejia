@@ -5,6 +5,7 @@ import { smartChatProcessor } from '@/lib/smart-chat-processor';
 import { createClient } from '@supabase/supabase-js';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { pointsService } from '@/lib/points-service';
+import { searchWithPrompt } from '@/lib/web-search-client';
 
 // 从数据库加载对话历史
 async function loadConversationHistory(conversationId: string) {
@@ -168,6 +169,7 @@ export async function POST(request: NextRequest) {
     let databaseInfo: any = null;
     let priceMatchedProducts: any[] | undefined;
     let priceBrandCompareData: any[] | undefined;
+    let needsWebSearch = false;
     try {
       const priceQuery = await (smartChatProcessor as any).detectPriceQuery(message);
       if (priceQuery.isPriceQuery && priceQuery.productName) {
@@ -202,6 +204,11 @@ export async function POST(request: NextRequest) {
       console.error('[Chat Stream API] 价格查询失败:', error);
     }
 
+    // 4.5 标记联网搜索需求（所有非琐碎咨询）
+    const trivialPattern = /^(你好|hello|hi|hey|谢谢|thanks|再见|bye|ok|好的|嗯|嗯嗯|是|不是|对|错|收到|明白)$/i;
+    const isTrivial = trivialPattern.test(message.trim()) || message.trim().length < 4;
+    needsWebSearch = !isTrivial;
+
     // 5. 定义智能处理器
     const smartProcessor = smartChatProcessor;
 
@@ -225,6 +232,37 @@ export async function POST(request: NextRequest) {
           // 发送开始标记
           const startEvent = `data: ${JSON.stringify({ type: 'start' })}\n\n`;
           controller.enqueue(encoder.encode(startEvent));
+
+          // === 联网搜索阶段 ===
+          let webSearchUsed = false;
+          if (needsWebSearch) {
+            const searchingEvent = `data: ${JSON.stringify({
+              type: 'searching',
+              message: '正在联网搜索相关信息...'
+            })}\n\n`;
+            controller.enqueue(encoder.encode(searchingEvent));
+
+            try {
+              const searchPrompt = `搜索与以下内容相关的最新信息，包括市场价格、产品参数、品牌供应商等：${message}`;
+              const searchResult = await searchWithPrompt(searchPrompt);
+              if (searchResult && searchResult.content) {
+                webSearchUsed = true;
+                enhancedMessage += `\n\n【联网搜索结果（参考信息）】\n${searchResult.content}\n\n注意：以上信息来自联网搜索，仅供参考。`;
+                console.log('[Chat Stream API] 联网搜索成功，已添加到上下文');
+              }
+            } catch (searchError) {
+              console.error('[Chat Stream API] 联网搜索失败:', searchError);
+            }
+
+            if (webSearchUsed) {
+              const searchDoneEvent = `data: ${JSON.stringify({
+                type: 'search_done',
+                message: '搜索完成'
+              })}\n\n`;
+              controller.enqueue(encoder.encode(searchDoneEvent));
+            }
+          }
+          // === 联网搜索阶段结束 ===
 
           let fullContent = '';
 
@@ -316,7 +354,8 @@ export async function POST(request: NextRequest) {
               inputType: processedInput.type,
               confidence: parsedResponse.confidence || 0.9,
               entities: {
-                brandCompare: priceBrandCompareData,
+                webSearchUsed,
+              brandCompare: priceBrandCompareData,
                 matchedProducts: priceMatchedProducts?.map((p: any) => ({
                   brand: p.brand,
                   supplier: p.supplier,
