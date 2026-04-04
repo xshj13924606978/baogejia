@@ -244,7 +244,12 @@ export async function POST(request: NextRequest) {
 
             try {
               const searchPrompt = `搜索与以下内容相关的最新信息，包括市场价格、产品参数、品牌供应商等：${message}`;
-              const searchResult = await searchWithPrompt(searchPrompt);
+              const searchResult = await Promise.race([
+                searchWithPrompt(searchPrompt),
+                new Promise<null>((_, reject) =>
+                  setTimeout(() => reject(new Error('搜索超时')), 8000)
+                ),
+              ]);
               if (searchResult && searchResult.content) {
                 webSearchUsed = true;
                 enhancedMessage += `\n\n【联网搜索结果（参考信息）】\n${searchResult.content}\n\n注意：以上信息来自联网搜索，仅供参考。`;
