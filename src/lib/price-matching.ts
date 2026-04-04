@@ -1197,9 +1197,45 @@ export class PriceMatcher {
       matchDetails?: any;
     }> = [];
 
-    const cleanedName = this.cleanProductName(product.name);
-    const normalizedModel = this.normalizeModel(product.model);
+    let cleanedName = this.cleanProductName(product.name);
+    let normalizedModel = this.normalizeModel(product.model);
+    let paramDesc = product.parameter_description || '';
     const supabase = getSupabaseClient();
+
+    // ========== 参数识别：如果 model 是参数值（非型号），重定向到参数搜索 ==========
+    // 典型参数格式：1.1 m³/min, 0.8 MPa, 5.5KW, 220V 等
+    const parameterModelPattern = /\d+(?:\.\d+)?\s*(m[³3]\s*\/\s*min|MPa|Mpa|mpa|KW|kW|kw|伏|V|bar|巴|Hz)/i;
+    let isParamQuery = false; // 标记是否为参数型查询
+    let originalParamModel: string | undefined; // 保存原始参数值
+    let paramTypeName = ''; // 参数类型名（排气量/工作压力/功率等）
+
+    if (normalizedModel && parameterModelPattern.test(normalizedModel)) {
+      console.log('[PriceMatcher] 检测到参数型 model（非型号）:', normalizedModel, '→ 转入参数搜索');
+      isParamQuery = true;
+
+      // 将 model 内容并入 parameter_description，model 置空
+      product.parameter_description = paramDesc ? `${paramDesc}，${normalizedModel}` : normalizedModel;
+      product.model = undefined;
+      originalParamModel = normalizedModel;
+      normalizedModel = undefined;
+      paramDesc = product.parameter_description;
+
+      // 根据单位判断参数类型
+      const paramTypeMap: [RegExp, string][] = [
+        [/m[³3]\s*\/\s*min/i, '排气量'],
+        [/MPa|Mpa|mpa/i, '工作压力'],
+        [/KW|kW|kw/i, '功率'],
+        [/伏|V(?!$)/i, '电压'],
+      ];
+      for (const [pattern, name] of paramTypeMap) {
+        if (pattern.test(originalParamModel || '')) {
+          paramTypeName = name;
+          break;
+        }
+      }
+
+      console.log('[PriceMatcher] 参数搜索模式: name=', cleanedName, ', type=', paramTypeName, ', value=', originalParamModel);
+    }
 
     // 辅助函数：去重添加到结果列表
     const addMatches = (
@@ -1211,7 +1247,16 @@ export class PriceMatcher {
       if (!products || products.length === 0) return;
 
       products.forEach(dbProduct => {
-        // 检查是否已经存在（通过id去重）
+        // 参数型查询时，低级别匹配必须限制在同一产品名下
+        // 防止 "空压机排气量1.1" 回退到 "化粪池" 等无关产品
+        if (isParamQuery && matchLevel >= 2 && cleanedName) {
+          const dbName = (dbProduct.name || '').toLowerCase();
+          const searchName = cleanedName.toLowerCase();
+          if (!dbName.includes(searchName) && !searchName.includes(dbName)) {
+            return;
+          }
+        }
+
         const exists = allMatches.some(m => m.product.id === dbProduct.id);
         if (!exists) {
           allMatches.push({
@@ -1223,6 +1268,43 @@ export class PriceMatcher {
         }
       });
     };
+
+    // ========== 级别0.5：参数型查询的专属搜索路径 ==========
+    // 当用户以参数查询产品（如 "排气量1.1 m³/min的空压机"），
+    // 在产品名下按参数值搜索最接近的产品
+    if (isParamQuery && originalParamModel && cleanedName && paramTypeName) {
+      const numMatch = originalParamModel.match(/(\d+(?:\.\d+)?)/);
+      const targetNum = numMatch ? parseFloat(numMatch[1]) : NaN;
+
+      if (!isNaN(targetNum)) {
+        console.log('[PriceMatcher] 参数搜索: type=', paramTypeName, ', value=', targetNum);
+        const paramProducts = await supabase
+          .from('products')
+          .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
+          .ilike('name', `%${cleanedName}%`)
+          .ilike('parameter_description', `%${paramTypeName}%`)
+          .limit(50);
+
+        if (paramProducts.data && paramProducts.data.length > 0) {
+          const escapedParamType = paramTypeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const filtered = paramProducts.data.filter((p: any) => {
+            const paramText = p.parameter_description || '';
+            const paramValueMatch = paramText.match(
+              new RegExp(`${escapedParamType}\\s*[：:：]\\s*(\\d+(?:\\.\\d+)?)`, 'i')
+            );
+            if (!paramValueMatch) return false;
+            const productValue = parseFloat(paramValueMatch[1]);
+            if (isNaN(productValue)) return false;
+            const ratio = productValue / targetNum;
+            return ratio >= 0.8 && ratio <= 1.2; // ±20% 容差
+          });
+          if (filtered.length > 0) {
+            addMatches(filtered, 90, 1, `参数匹配（${paramTypeName}≈${targetNum}）`);
+            console.log(`[PriceMatcher] 参数搜索找到 ${filtered.length} 个匹配产品`);
+          }
+        }
+      }
+    }
 
     // ========== 级别1：名称和型号都精确匹配 ==========
     if (normalizedModel && cleanedName) {
