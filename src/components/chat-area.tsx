@@ -1737,17 +1737,31 @@ export default function ChatArea({
             const taxRate = 13;
             const taxAmount = item.price * (taxRate / 100);
 
+            // 优先使用 prop supplierInfo，其次从 localStorage 读取
+            let savedSupplierInfo = supplierInfo;
+            if (!savedSupplierInfo || !savedSupplierInfo.companyName) {
+              try {
+                const stored = localStorage.getItem('supplierInfo');
+                if (stored) {
+                  const parsed = JSON.parse(stored);
+                  if (parsed && parsed.companyName) {
+                    savedSupplierInfo = parsed;
+                  }
+                }
+              } catch {}
+            }
+
             newQuoteData = {
               quoteNumber: `QT${Date.now()}`,
               supplierInfo: {
-                companyName: '',
-                contactPerson: '',
-                phone: '',
-                email: '',
-                address: '',
-                bankName: '',
-                bankAccount: '',
-                taxNumber: '',
+                companyName: savedSupplierInfo?.companyName || '',
+                contactPerson: savedSupplierInfo?.contactPerson || '',
+                phone: savedSupplierInfo?.phone || '',
+                email: savedSupplierInfo?.email || '',
+                address: savedSupplierInfo?.address || '',
+                bankName: savedSupplierInfo?.bankName || '',
+                bankAccount: savedSupplierInfo?.bankAccount || '',
+                taxNumber: savedSupplierInfo?.taxNumber || '',
               },
               customerInfo: {
                 name: '',

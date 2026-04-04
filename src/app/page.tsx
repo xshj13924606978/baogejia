@@ -21,6 +21,20 @@ export default function Home() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [currentConversationTitle, setCurrentConversationTitle] = useState<string>('新对话');
+  const [supplierInfo, setSupplierInfo] = useState<any>(null);
+
+  // 从 localStorage 加载供应商信息
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('supplierInfo');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.companyName) {
+          setSupplierInfo(parsed);
+        }
+      }
+    } catch {}
+  }, []);
 
   // 监听对话标题变化
   useEffect(() => {
@@ -226,6 +240,7 @@ export default function Home() {
                       onOpenRightPanel={() => {}}
                       onNewConversation={handleNewConversation}
                       onTitleChange={setCurrentConversationTitle}
+                      supplierInfo={supplierInfo}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full">

@@ -1372,26 +1372,72 @@ export class PriceMatcher {
 
     // ========== 级别3：名称包含 + 型号包含（模糊匹配）==========
     if (normalizedModel && cleanedName) {
-      const fuzzyMatches = await supabase
-        .from('products')
-        .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
-        .ilike('name', `%${cleanedName}%`)
-        .ilike('model', `%${normalizedModel}%`)
-        .limit(20);
+      // 当型号是纯数字时，使用精确匹配+前缀匹配避免子字符串误匹配
+      // 例如：model="5" 不应匹配 model="15"、"50"、"500"
+      const isPureNumber = /^\d+(\.\d+)?$/.test(normalizedModel);
 
-      addMatches(fuzzyMatches.data, 75, 3, '名称+型号模糊匹配');
+      if (isPureNumber) {
+        // 纯数字型号：model 精确等于该数字，或以该数字开头后跟非数字字符
+        console.log(`[PriceMatching] 级别3使用数字边界匹配: model="${normalizedModel}"`);
 
-      // 方式2：名称+型号+参数描述模糊匹配
-      if (product.parameter_description) {
-        const fuzzySpecMatches = await supabase
+        // 方式1: model 精确等于该数字
+        const exactMatches = await supabase
+          .from('products')
+          .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
+          .ilike('name', `%${cleanedName}%`)
+          .eq('model', normalizedModel)
+          .limit(20);
+
+        addMatches(exactMatches.data, 75, 3, '名称+型号模糊匹配（数字精确）');
+
+        // 方式2: model 以该数字开头后跟非数字（如 "5"、"5A"、"5L" 但不匹配 "15"）
+        // 使用 ilike 前缀匹配排除纯数字的情况
+        const prefixMatches = await supabase
+          .from('products')
+          .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
+          .ilike('name', `%${cleanedName}%`)
+          .ilike('model', `${normalizedModel}%`)
+          .not('model', 'eq', normalizedModel)
+          .neq('model', normalizedModel)
+          .limit(20);
+
+        addMatches(prefixMatches.data, 73, 3, '名称+型号前缀匹配（数字边界）');
+      } else {
+        // 非纯数字型号：保留原有 ilike 子字符串匹配（如 "HFC-13"、"PW-100" 等）
+        const fuzzyMatches = await supabase
           .from('products')
           .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
           .ilike('name', `%${cleanedName}%`)
           .ilike('model', `%${normalizedModel}%`)
-          .ilike('parameter_description', `%${product.parameter_description}%`)
           .limit(20);
 
-        addMatches(fuzzySpecMatches.data, 77, 3, '名称+型号+参数模糊匹配');
+        addMatches(fuzzyMatches.data, 75, 3, '名称+型号模糊匹配');
+      }
+
+      // 方式2：名称+型号+参数描述模糊匹配
+      if (product.parameter_description) {
+        if (isPureNumber) {
+          // 精确匹配
+          const fuzzySpecMatches = await supabase
+            .from('products')
+            .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
+            .ilike('name', `%${cleanedName}%`)
+            .eq('model', normalizedModel)
+            .ilike('parameter_description', `%${product.parameter_description}%`)
+            .limit(20);
+
+          addMatches(fuzzySpecMatches.data, 77, 3, '名称+型号+参数模糊匹配（数字边界）');
+        } else {
+          const fuzzySpecMatches = await supabase
+            .from('products')
+            .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
+            .ilike('name', `%${cleanedName}%`)
+            .ilike('model', `%${normalizedModel}%`)
+            .ilike('parameter_description', `%${product.parameter_description}%`)
+            .limit(20);
+
+          addMatches(fuzzySpecMatches.data, 77, 3, '名称+型号+参数模糊匹配');
+        }
       }
     }
 
