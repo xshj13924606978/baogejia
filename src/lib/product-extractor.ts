@@ -124,16 +124,35 @@ export class ProductExtractor {
         return null;
       }
 
-      // 标准化型号 — 只剥离长度/重量等无关单位，保留容量单位（是产品型号的组成部分）
-      // 数据库中 model 字段存储的是 "5m³"、"25m³" 等带单位的值，需要保留才能精确匹配
+      // 标准化型号 — 将容量单位统一为数据库中的 "m³" 格式
+      // 数据库中 model 字段存储的是 "5m³"、"25m³" 等值
       let model = result.model;
       if (model) {
-        const irrelevantUnitPattern = /(毫米|mm|厘米|cm|米|m(?!³|3)|吨|kg|g|升|L(?!M)|ML|万|亿|瓦|W|伏|V|安|A|Hz)$/i;
-        if (irrelevantUnitPattern.test(model)) {
-          const numberMatch = model.match(/(\d+(\.\d+)?)/);
-          if (numberMatch) {
-            model = numberMatch[1];
-            console.log('[ProductExtractor] LLM 提取的型号已标准化:', result.model, '->', model);
+        const volumeNormMap: [RegExp, string][] = [
+          [/(\d+(?:\.\d+)?)\s*立方米/i, '$1m³'],
+          [/(\d+(?:\.\d+)?)\s*立方/i, '$1m³'],
+          [/(\d+(?:\.\d+)?)\s*方/i, '$1m³'],
+          [/(\d+(?:\.\d+)?)\s*m3\b/i, '$1m³'],
+        ];
+        let volumeNormalized = false;
+        for (const [pattern, replacement] of volumeNormMap) {
+          if (pattern.test(model)) {
+            model = model.replace(pattern, replacement);
+            volumeNormalized = true;
+            console.log('[ProductExtractor] LLM 提取的型号容量单位标准化:', result.model, '->', model);
+            break;
+          }
+        }
+
+        // 非容量单位：剥离无关单位（长度、重量等）
+        if (!volumeNormalized) {
+          const irrelevantUnitPattern = /(毫米|mm|厘米|cm|米|m(?!³|3)|吨|kg|g|升|L(?!M)|ML|万|亿|瓦|W|伏|V|安|A|Hz)$/i;
+          if (irrelevantUnitPattern.test(model)) {
+            const numberMatch = model.match(/(\d+(\.\d+)?)/);
+            if (numberMatch) {
+              model = numberMatch[1];
+              console.log('[ProductExtractor] LLM 提取的型号已标准化:', result.model, '->', model);
+            }
           }
         }
       }
@@ -253,12 +272,29 @@ export class ProductExtractor {
             console.log('[ProductExtractor] 规则提取 - 中文数字转换:', model);
           }
 
-          // 只剥离长度/重量等无关单位，保留容量单位（m³、立方等是产品型号的组成部分）
-          const irrelevantUnitPattern = /(毫米|mm|厘米|cm|米|m(?!³|3)|吨|kg|g|升|L(?!M)|ML|万|亿|瓦|W|伏|V|安|A|Hz)$/i;
-          if (irrelevantUnitPattern.test(model)) {
-            const numberMatch = model.match(/(\d+(\.\d+)?)/);
-            if (numberMatch) {
-              model = numberMatch[1];
+          // 容量单位标准化：将各种容量单位统一为 "m³"
+          const volumeNormRules: [RegExp, string][] = [
+            [/(\d+(?:\.\d+)?)\s*立方米/i, '$1m³'],
+            [/(\d+(?:\.\d+)?)\s*立方/i, '$1m³'],
+            [/(\d+(?:\.\d+)?)\s*方/i, '$1m³'],
+            [/(\d+(?:\.\d+)?)\s*m3\b/i, '$1m³'],
+          ];
+          let volNormed = false;
+          for (const [pat, repl] of volumeNormRules) {
+            if (pat.test(model)) {
+              model = model.replace(pat, repl);
+              volNormed = true;
+              break;
+            }
+          }
+          // 非容量单位：剥离无关单位
+          if (!volNormed) {
+            const irrelevantUnitPattern = /(毫米|mm|厘米|cm|米|m(?!³|3)|吨|kg|g|升|L(?!M)|ML|万|亿|瓦|W|伏|V|安|A|Hz)$/i;
+            if (irrelevantUnitPattern.test(model)) {
+              const numberMatch = model.match(/(\d+(\.\d+)?)/);
+              if (numberMatch) {
+                model = numberMatch[1];
+              }
             }
           }
           console.log('[ProductExtractor] 规则提取 - 最终型号:', model);

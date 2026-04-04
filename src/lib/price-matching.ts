@@ -1135,22 +1135,32 @@ export class PriceMatcher {
       normalized = `${num}${unit}${rate}`;
       console.log('[PriceMatcher] normalizeModel 产量型号标准化:', model, '->', normalized);
     } else {
-      // 容量单位（立方、m³等）是产品型号的组成部分，保留它们以便精确匹配数据库
-      // 只移除无关单位（长度、重量等）
-      const irrelevantUnitPattern = /(毫米|mm|厘米|cm|米|m(?!³|3)|吨|升|L(?!M)|ML|kg|g|万|亿|瓦|W|伏|V|安|A|Hz)$/i;
-      if (irrelevantUnitPattern.test(normalized)) {
-        const numberMatch = normalized.match(/(\d+(\.\d+)?)/);
-        if (numberMatch) {
-          normalized = numberMatch[1];
+      // 容量单位标准化：将各种容量单位统一为数据库中的 "m³" 格式
+      // 数据库中 model 字段统一使用 "m³"（如 "5m³"、"25m³"、"100m³"）
+      const volumeNormMap: [RegExp, string][] = [
+        [/(\d+(?:\.\d+)?)\s*立方米/i, '$1m³'],
+        [/(\d+(?:\.\d+)?)\s*立方/i, '$1m³'],
+        [/(\d+(?:\.\d+)?)\s*方/i, '$1m³'],
+        [/(\d+(?:\.\d+)?)\s*m3\b/i, '$1m³'],
+      ];
+      let volumeNormalized = false;
+      for (const [pattern, replacement] of volumeNormMap) {
+        if (pattern.test(normalized)) {
+          normalized = normalized.replace(pattern, replacement);
+          volumeNormalized = true;
+          console.log('[PriceMatcher] normalizeModel 容量单位标准化:', model, '->', normalized);
+          break;
         }
       }
 
-      // 移除长度单位，只保留数字和特殊字符（排除 m³ 中的 m）
-      const lengthPattern = /(mm|厘米|cm|m(?!³|3)|米)$/i;
-      if (lengthPattern.test(normalized)) {
-        const numberMatch = normalized.match(/(\d+(\.\d+)?)/);
-        if (numberMatch) {
-          normalized = numberMatch[1];
+      // 非容量单位：移除无关单位（长度、重量等）
+      if (!volumeNormalized) {
+        const irrelevantUnitPattern = /(毫米|mm|厘米|cm|米|m(?!³|3)|吨|升|L(?!M)|ML|kg|g|万|亿|瓦|W|伏|V|安|A|Hz)$/i;
+        if (irrelevantUnitPattern.test(normalized)) {
+          const numberMatch = normalized.match(/(\d+(\.\d+)?)/);
+          if (numberMatch) {
+            normalized = numberMatch[1];
+          }
         }
       }
     }
