@@ -165,77 +165,22 @@ export async function POST(request: NextRequest) {
       console.log('[Chat Stream API] 对话历史:', { conversationId, historyCount: history.length });
     }
 
-    // 3.5. 意图理解 + 语义搜索（新逻辑，优先于旧逻辑）
-    let intentHit = false;
+    // 3.5. 意图理解 + 语义搜索（仅用于增强上下文，不接管对比卡片）
     let enhancedMessage = message;
     let databaseInfo: any = null;
     let priceMatchedProducts: any[] | undefined;
     let priceBrandCompareData: any[] | undefined;
     try {
       const intentPipelineResult = await processWithIntent(message);
-      if (intentPipelineResult.source === 'intent' && intentPipelineResult.products.length >= 2) {
-        intentHit = true;
-        const topProduct = intentPipelineResult.products[0];
-        databaseInfo = {
-          productName: topProduct.name,
-          model: topProduct.model,
-          price: topProduct.price,
-          brand: topProduct.brand,
-          parameterDescription: topProduct.parameterDescription,
-          costPrice: topProduct.costPrice,
-          minPrice: topProduct.minPrice,
-        };
-        priceMatchedProducts = intentPipelineResult.products.map(p => ({
-          price: p.price,
-          productName: p.name,
-          model: p.model,
-          confidence: intentPipelineResult.confidence,
-          brand: p.brand,
-          parameterDescription: p.parameterDescription,
-          minPrice: p.minPrice,
-          costPrice: p.costPrice,
-          matchLevel: 1,
-          matchedBy: intentPipelineResult.searchStrategy || '意图匹配',
-          isRecommended: false,
-          parameters: {
-            minPrice: p.minPrice || undefined,
-            costPrice: p.costPrice || undefined,
-          },
-        }));
-        if (priceMatchedProducts.length > 0) {
-          priceMatchedProducts[0].isRecommended = true;
-        }
+      if (intentPipelineResult.source === 'intent' && intentPipelineResult.products.length > 0) {
         enhancedMessage += formatProductsAsContext(intentPipelineResult, message);
-        console.log('[Chat Stream API] 意图理解层命中，找到', intentPipelineResult.products.length, '个产品');
-
-        // 生成 brandCompareData（与前端 BrandCompareCard 格式对齐）
-        if (intentPipelineResult.products.length >= 2) {
-          priceBrandCompareData = intentPipelineResult.products.map((p, idx) => ({
-            brand: p.brand || '未知品牌',
-            productName: p.name,
-            supplier: undefined,
-            contactPhone: undefined,
-            model: p.model || '-',
-            price: p.price,
-            minPrice: p.minPrice || undefined,
-            guidePrice: undefined,
-            confidence: intentPipelineResult.confidence,
-            rating: 0,
-            quoteCount: 0,
-            tags: [],
-            isRecommended: idx === 0,
-            source: 'database',
-            parameterDescription: p.parameterDescription,
-          }));
-        }
+        console.log('[Chat Stream API] 意图理解层命中，找到', intentPipelineResult.products.length, '个产品，已增强上下文');
       }
     } catch (error) {
-      console.error('[Chat Stream API] 意图理解层失败，降级到旧逻辑:', error);
+      console.error('[Chat Stream API] 意图理解层失败，降级:', error);
     }
 
-    // 4. 价格查询预处理（降级方案：意图层未命中时使用旧逻辑）
-    // 变量已在 3.5 中声明（databaseInfo, priceMatchedProducts）
-    if (!intentHit) {
+    // 4. 价格查询预处理（对比卡片数据源）
     try {
       const priceQuery = await (smartChatProcessor as any).detectPriceQuery(message);
       if (priceQuery.isPriceQuery && priceQuery.productName) {
@@ -269,7 +214,6 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('[Chat Stream API] 价格查询失败:', error);
     }
-    } // end 降级到旧逻辑
 
     // 4.5 标记联网搜索需求（所有非琐碎咨询）
     const trivialPattern = /^(你好|hello|hi|hey|谢谢|thanks|再见|bye|ok|好的|嗯|嗯嗯|是|不是|对|错|收到|明白)$/i;
