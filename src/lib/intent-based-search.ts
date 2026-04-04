@@ -260,10 +260,10 @@ export class IntentBasedSearch {
         }
 
         if (extractedValue !== null) {
-          // 容差 ±25%（比之前的 ±20% 更宽，覆盖更多相近产品）
+          // 容差 ±10%（精确匹配用户指定参数，避免混入差异过大的产品）
           const ratio = extractedValue / numValue;
-          if (ratio < 0.75 || ratio > 1.25) {
-            console.log(`[IntentBasedSearch] 过滤掉 ${product.name} ${product.model}: ${specLabel}=${extractedValue} 超出范围 [${numValue * 0.75}, ${numValue * 1.25}]`);
+          if (ratio < 0.9 || ratio > 1.1) {
+            console.log(`[IntentBasedSearch] 过滤掉 ${product.name} ${product.model}: ${specLabel}=${extractedValue} 超出范围 [${numValue * 0.9}, ${numValue * 1.1}]`);
             return false;
           }
         }
