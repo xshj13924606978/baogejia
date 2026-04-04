@@ -183,6 +183,7 @@ export async function POST(request: NextRequest) {
     // 4. 价格查询预处理（对比卡片数据源）
     try {
       const priceQuery = await (smartChatProcessor as any).detectPriceQuery(message);
+      console.log('[Chat Stream API] detectPriceQuery结果:', JSON.stringify({ isPriceQuery: priceQuery.isPriceQuery, productName: priceQuery.productName, model: priceQuery.model }));
       if (priceQuery.isPriceQuery && priceQuery.productName) {
         console.log('[Chat Stream API] 检测到价格查询:', priceQuery);
         const priceResult = await (smartChatProcessor as any).handlePriceQuery(
