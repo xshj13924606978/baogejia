@@ -36,11 +36,11 @@ export async function generateImage(
     model,
     prompt: options.prompt,
     n: 1,
-    size: options.size || '1024x1024',
+    size: (options.size || '1024x1024') as any,
     response_format: 'b64_json',
   });
 
-  const imageData = response.data[0];
+  const imageData = response.data?.[0];
   if (!imageData) {
     throw new Error('未生成图片数据');
   }

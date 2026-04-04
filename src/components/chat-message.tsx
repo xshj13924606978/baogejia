@@ -108,6 +108,8 @@ interface Message {
     inputType?: string;
     confidence?: number;
     entities?: any;
+    imageUrl?: string;
+    imagePrompt?: string;
   };
 }
 

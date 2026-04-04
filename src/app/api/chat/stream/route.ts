@@ -5,7 +5,7 @@ import { smartChatProcessor } from '@/lib/smart-chat-processor';
 import { createClient } from '@supabase/supabase-js';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { pointsService } from '@/lib/points-service';
-import { searchWithPrompt } from '@/lib/web-search-client';
+import { searchWeb, formatSearchResult } from '@/lib/web-search';
 
 // 从数据库加载对话历史
 async function loadConversationHistory(conversationId: string) {
@@ -243,16 +243,16 @@ export async function POST(request: NextRequest) {
             controller.enqueue(encoder.encode(searchingEvent));
 
             try {
-              const searchPrompt = `搜索与以下内容相关的最新信息，包括市场价格、产品参数、品牌供应商等：${message}`;
               const searchResult = await Promise.race([
-                searchWithPrompt(searchPrompt),
+                searchWeb(message),
                 new Promise<null>((_, reject) =>
-                  setTimeout(() => reject(new Error('搜索超时')), 8000)
+                  setTimeout(() => reject(new Error('搜索超时')), 5000)
                 ),
               ]);
-              if (searchResult && searchResult.content) {
+              if (searchResult && searchResult.items.length > 0) {
                 webSearchUsed = true;
-                enhancedMessage += `\n\n【联网搜索结果（参考信息）】\n${searchResult.content}\n\n注意：以上信息来自联网搜索，仅供参考。`;
+                const formatted = formatSearchResult(searchResult);
+                enhancedMessage += `\n\n【联网搜索结果（参考信息）】\n${formatted}\n\n注意：以上信息来自联网搜索，仅供参考。`;
                 console.log('[Chat Stream API] 联网搜索成功，已添加到上下文');
               }
             } catch (searchError) {
