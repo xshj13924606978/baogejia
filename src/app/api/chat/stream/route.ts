@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     let priceBrandCompareData: any[] | undefined;
     try {
       const intentPipelineResult = await processWithIntent(message);
-      if (intentPipelineResult.source === 'intent' && intentPipelineResult.products.length > 0) {
+      if (intentPipelineResult.source === 'intent' && intentPipelineResult.products.length >= 2) {
         intentHit = true;
         const topProduct = intentPipelineResult.products[0];
         databaseInfo = {
@@ -271,7 +271,10 @@ export async function POST(request: NextRequest) {
     }
     } // end 降级到旧逻辑
 
-    let needsWebSearch = false;
+    // 4.5 标记联网搜索需求（所有非琐碎咨询）
+    const trivialPattern = /^(你好|hello|hi|hey|谢谢|thanks|再见|bye|ok|好的|嗯|嗯嗯|是|不是|对|错|收到|明白)$/i;
+    const isTrivial = trivialPattern.test(message.trim()) || message.trim().length < 4;
+    let needsWebSearch = !isTrivial;
 
     // 5. 定义智能处理器
     const smartProcessor = smartChatProcessor;
