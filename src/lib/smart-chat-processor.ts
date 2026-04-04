@@ -697,6 +697,15 @@ export class SmartChatProcessor {
     // 3. 使用 LLM 智能理解并生成响应
     const response = await this.generateSmartResponse(enhancedInput, context, processedInput);
 
+    // 3.5 价格校验后处理 — 确保回复中的价格与数据库一致
+    if (priceContextInfo) {
+      const correctedContent = this.correctPriceHallucination(response.content, priceContextInfo);
+      if (correctedContent !== response.content) {
+        console.log('[SmartChatProcessor] 价格校验：检测到AI幻觉，已自动修正回复中的价格');
+        response.content = correctedContent;
+      }
+    }
+
     // 4. 更新对话历史
     this.updateContext(context, userInput, response.content);
 
@@ -776,7 +785,7 @@ export class SmartChatProcessor {
 
       const aiResponse = await callDeepSeekChat({
         messages: messages,
-        temperature: 0.7,
+        temperature: 0.3,
         maxTokens: 8192,
       });
 
@@ -860,6 +869,16 @@ export class SmartChatProcessor {
   方案包含：X项预处理设备、Y项生化设备、Z项控制设备
   投资估算：XX万元
   运行成本：X.X元/吨"
+
+### 🚫 绝对禁止规则（最高优先级，不可违反！）
+
+当用户消息中包含【数据库产品信息】标签时，你必须严格遵守以下规则：
+1. 标签内的价格、品牌、型号、参数等数据是唯一真实数据来源，必须原样使用
+2. 绝对禁止修改、替换或编造标签内的任何数字（价格、型号、参数等）
+3. 如果你在回复中展示价格表格，价格数字必须与【数据库产品信息】中的完全一致
+4. 如果你不确定某个字段（标签中未提供），标注"暂无数据"，绝不能编造数字
+5. 如果标签中的价格为 1745.00，你回复中不能写成 3500 或其他任何数字
+6. 违反以上任何一条都是严重错误，会导致误导用户
 
 ### 3. 产品价格查询场景（重要！）
 - 识别：用户询问具体产品的价格，如"XX产品多少钱？"、"普耐尔氩弧焊枪10M多少？"
@@ -1178,6 +1197,98 @@ export class SmartChatProcessor {
     }
 
     return prompt;
+  }
+
+  /**
+   * 价格校验 — 检测并修正 AI 回复中的价格幻觉
+   * 当 AI 回复中的价格与数据库提供的价格不一致时，自动替换为正确价格
+   */
+  private correctPriceHallucination(aiContent: string, priceContext: string): string {
+    let corrected = aiContent;
+
+    // 从数据库上下文中提取所有价格字段
+    const priceFields: { field: string; value: string; numValue: number }[] = [];
+
+    // 匹配 "单价：1745.00 元" / "单价：3,500 元"
+    const unitPriceMatch = priceContext.match(/单价：([\d,.]+)\s*元/);
+    if (unitPriceMatch) {
+      const raw = unitPriceMatch[1].replace(/,/g, '');
+      const num = parseFloat(raw);
+      if (!isNaN(num) && num > 0) {
+        priceFields.push({ field: '单价', value: unitPriceMatch[1], numValue: num });
+      }
+    }
+
+    // 匹配 "成本：960.00 元"
+    const costPriceMatch = priceContext.match(/成本：([\d,.]+)\s*元/);
+    if (costPriceMatch) {
+      const raw = costPriceMatch[1].replace(/,/g, '');
+      const num = parseFloat(raw);
+      if (!isNaN(num) && num > 0) {
+        priceFields.push({ field: '成本', value: costPriceMatch[1], numValue: num });
+      }
+    }
+
+    // 匹配 "最低售价：1600.00 元"
+    const minPriceMatch = priceContext.match(/最低售价：([\d,.]+)\s*元/);
+    if (minPriceMatch) {
+      const raw = minPriceMatch[1].replace(/,/g, '');
+      const num = parseFloat(raw);
+      if (!isNaN(num) && num > 0) {
+        priceFields.push({ field: '最低售价', value: minPriceMatch[1], numValue: num });
+      }
+    }
+
+    if (priceFields.length === 0) return aiContent;
+
+    // 从 AI 回复中查找所有价格数字（表格中 | ¥数字 | 格式）
+    // 匹配 Markdown 表格中的价格：| ¥1,600 | 或 | ¥1,600.00 |
+    const tablePricePattern = /\|\s*¥([\d,.]+)\s*\|/g;
+    let match;
+    while ((match = tablePricePattern.exec(aiContent)) !== null) {
+      const rawPrice = match[1].replace(/,/g, '');
+      const aiPrice = parseFloat(rawPrice);
+      if (isNaN(aiPrice) || aiPrice <= 0) continue;
+
+      // 检查 AI 价格是否与数据库中的任何一个价格匹配
+      const isMatch = priceFields.some(pf => Math.abs(pf.numValue - aiPrice) < 1);
+      if (!isMatch) {
+        // AI 幻觉：用数据库单价替换
+        const dbPrice = priceFields[0]; // 优先用单价
+        const formattedPrice = dbPrice.numValue.toLocaleString('zh-CN', {
+          minimumFractionDigits: dbPrice.value.includes('.') ? dbPrice.value.split('.')[1].length : 0,
+          maximumFractionDigits: 2,
+        });
+        const oldText = match[0];
+        const newText = `| ¥${formattedPrice} |`;
+        corrected = corrected.replace(oldText, newText);
+        console.log(`[SmartChatProcessor] 价格修正: ${match[1]} -> ${formattedPrice} (数据库${dbPrice.field}: ${dbPrice.value})`);
+      }
+    }
+
+    // 也检查 "单价（元）" 表头对应的列值
+    // 匹配类似 "| 3,500.00 | 产品库 |" 的表格价格单元格（含逗号分隔符）
+    const plainPricePattern = /\|\s*([\d]{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*\|/g;
+    while ((match = plainPricePattern.exec(corrected)) !== null) {
+      const rawPrice = match[1].replace(/,/g, '');
+      const aiPrice = parseFloat(rawPrice);
+      if (isNaN(aiPrice) || aiPrice <= 0) continue;
+
+      const isMatch = priceFields.some(pf => Math.abs(pf.numValue - aiPrice) < 1);
+      if (!isMatch) {
+        const dbPrice = priceFields[0];
+        const formattedPrice = dbPrice.numValue.toLocaleString('zh-CN', {
+          minimumFractionDigits: dbPrice.value.includes('.') ? dbPrice.value.split('.')[1].length : 0,
+          maximumFractionDigits: 2,
+        });
+        const oldText = match[0];
+        const newText = `| ${formattedPrice} |`;
+        corrected = corrected.replace(oldText, newText);
+        console.log(`[SmartChatProcessor] 价格修正: ${match[1]} -> ${formattedPrice} (数据库${dbPrice.field}: ${dbPrice.value})`);
+      }
+    }
+
+    return corrected;
   }
 
   /**
