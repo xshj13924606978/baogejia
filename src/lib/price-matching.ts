@@ -1135,17 +1135,18 @@ export class PriceMatcher {
       normalized = `${num}${unit}${rate}`;
       console.log('[PriceMatcher] normalizeModel 产量型号标准化:', model, '->', normalized);
     } else {
-      // 移除容量单位，只保留数字和特殊字符
-      const unitPattern = /(立方|立方米|m³|m3|方|吨|升|L|ML)/i;
-      if (unitPattern.test(normalized)) {
+      // 容量单位（立方、m³等）是产品型号的组成部分，保留它们以便精确匹配数据库
+      // 只移除无关单位（长度、重量等）
+      const irrelevantUnitPattern = /(毫米|mm|厘米|cm|米|m(?!³|3)|吨|升|L(?!M)|ML|kg|g|万|亿|瓦|W|伏|V|安|A|Hz)$/i;
+      if (irrelevantUnitPattern.test(normalized)) {
         const numberMatch = normalized.match(/(\d+(\.\d+)?)/);
         if (numberMatch) {
           normalized = numberMatch[1];
         }
       }
 
-      // 移除长度单位，只保留数字和特殊字符
-      const lengthPattern = /(mm|厘米|cm|m|米)/i;
+      // 移除长度单位，只保留数字和特殊字符（排除 m³ 中的 m）
+      const lengthPattern = /(mm|厘米|cm|m(?!³|3)|米)$/i;
       if (lengthPattern.test(normalized)) {
         const numberMatch = normalized.match(/(\d+(\.\d+)?)/);
         if (numberMatch) {

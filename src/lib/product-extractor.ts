@@ -51,8 +51,8 @@ export class ProductExtractor {
    - 支持数字（100、10M、5.5）
    - 支持字母数字组合（HFC-13、PW-100、KQ-150）
    - 支持带单位（100立方、50吨、10M³、5L、两立方）
-   - 提取时保留核心标识，如"100立方"提取为"100"
-   - 中文数字转换：两立方 -> 2，二立方 -> 2，三立方 -> 3
+   - 保留容量单位作为型号的一部分：如"100立方"提取为"100立方"，"5m³"提取为"5m³"
+   - 中文数字转换：两立方 -> 2立方，二立方 -> 2立方，三立方 -> 3立方
 
 3. 参数描述：提取详细的技术规格和参数信息（重要！）
    - 如果输入中包含详细的规格说明、尺寸、材质、性能参数等，必须提取到 parameter_description
@@ -68,19 +68,19 @@ export class ProductExtractor {
 5. 置信度：根据输入的清晰度给出0-100的分数
 
 支持的输入模式示例：
-- "2立方的化粪池多少钱" -> productName="化粪池", model="2", parameter_description=""
-- "化粪池2立方价格" -> productName="化粪池", model="2", parameter_description=""
-- "两立方化粪池" -> productName="化粪池", model="2", parameter_description=""
-- "2m³化粪池" -> productName="化粪池", model="2", parameter_description=""
-- "2方化粪池设备" -> productName="化粪池", model="2", parameter_description=""
-- "HFC化粪池2立方" -> productName="化粪池", model="2", brand="HFC", parameter_description=""
-- "化粪池 60m³ 进出水管口径：DN160pvc，规格尺寸：Φ4800×3000mm" -> productName="化粪池", model="60", parameter_description="进出水管口径：DN160pvc，规格尺寸：Φ4800×3000mm"
+- "2立方的化粪池多少钱" -> productName="化粪池", model="2立方", parameter_description=""
+- "化粪池2立方价格" -> productName="化粪池", model="2立方", parameter_description=""
+- "两立方化粪池" -> productName="化粪池", model="2立方", parameter_description=""
+- "2m³化粪池" -> productName="化粪池", model="2m³", parameter_description=""
+- "2方化粪池设备" -> productName="化粪池", model="2方", parameter_description=""
+- "HFC化粪池2立方" -> productName="化粪池", model="2立方", brand="HFC", parameter_description=""
+- "化粪池 60m³ 进出水管口径：DN160pvc，规格尺寸：Φ4800×3000mm" -> productName="化粪池", model="60m³", parameter_description="进出水管口径：DN160pvc，规格尺寸：Φ4800×3000mm"
 - "药剂搅拌系统 11kW 不锈钢材质" -> productName="药剂搅拌系统", model="11kW", parameter_description="不锈钢材质"
 
 输出格式（JSON）：
 {
   "productName": "产品名称",
-  "model": "型号（可选，统一转换为阿拉伯数字）",
+  "model": "型号（可选，保留容量单位如立方、m³、m3等）",
   "parameter_description": "参数描述（可选，如果输入中有详细规格则必须提取）",
   "brand": "品牌（可选）",
   "confidence": 95,
@@ -90,6 +90,7 @@ export class ProductExtractor {
 重要提醒：
 - 如果无法提取出产品名称，返回 null
 - 型号必须是阿拉伯数字或字母数字组合，中文数字需要转换
+- 容量单位（立方、立方米、m³、m3、方）是型号的组成部分，必须保留
 - 如果输入中包含详细的规格、尺寸、材质等信息，必须提取到 parameter_description 字段
 - 不要过度提取，保持信息准确`;
 
@@ -123,11 +124,12 @@ export class ProductExtractor {
         return null;
       }
 
-      // 标准化型号（移除单位，只保留数字或字母数字组合）
+      // 标准化型号 — 只剥离长度/重量等无关单位，保留容量单位（是产品型号的组成部分）
+      // 数据库中 model 字段存储的是 "5m³"、"25m³" 等带单位的值，需要保留才能精确匹配
       let model = result.model;
       if (model) {
-        const unitPattern = /(立方|立方米|m³|m3|吨|升|L|ML|毫米|mm|厘米|cm|米|m)/i;
-        if (unitPattern.test(model)) {
+        const irrelevantUnitPattern = /(毫米|mm|厘米|cm|米|m(?!³|3)|吨|kg|g|升|L(?!M)|ML|万|亿|瓦|W|伏|V|安|A|Hz)$/i;
+        if (irrelevantUnitPattern.test(model)) {
           const numberMatch = model.match(/(\d+(\.\d+)?)/);
           if (numberMatch) {
             model = numberMatch[1];
@@ -251,9 +253,9 @@ export class ProductExtractor {
             console.log('[ProductExtractor] 规则提取 - 中文数字转换:', model);
           }
 
-          // 如果是带单位的型号，只保留数字部分
-          const unitPattern = /(立方|立方米|m³|m3|吨|升|L|ML|毫米|mm|厘米|cm|米|m|万|亿)/i;
-          if (unitPattern.test(model)) {
+          // 只剥离长度/重量等无关单位，保留容量单位（m³、立方等是产品型号的组成部分）
+          const irrelevantUnitPattern = /(毫米|mm|厘米|cm|米|m(?!³|3)|吨|kg|g|升|L(?!M)|ML|万|亿|瓦|W|伏|V|安|A|Hz)$/i;
+          if (irrelevantUnitPattern.test(model)) {
             const numberMatch = model.match(/(\d+(\.\d+)?)/);
             if (numberMatch) {
               model = numberMatch[1];
