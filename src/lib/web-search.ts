@@ -1,6 +1,7 @@
-// 联网搜索模块 — DuckDuckGo Instant Answer API
-// 无需 API Key，返回结构化数据（标题 + 摘要 + 链接）
+// 联网搜索模块 — 通过 LaoZhang.ai 中转调用 grok-4（支持联网搜索）
 // 失败时静默降级，不影响正常对话
+
+import OpenAI from 'openai';
 
 // ========== 类型定义 ==========
 export interface SearchItem {
@@ -13,6 +14,15 @@ export interface WebSearchResult {
   items: SearchItem[];
   abstract?: string;
 }
+
+// ========== LaoZhang.ai 客户端 ==========
+const searchClient = new OpenAI({
+  apiKey: process.env.LAOZHANG_API_KEY,
+  baseURL: process.env.LAOZHANG_BASE_URL || 'https://api.laozhang.ai/v1',
+  dangerouslyAllowBrowser: false,
+});
+
+const SEARCH_MODEL = process.env.WEB_SEARCH_MODEL || 'grok-4';
 
 // ========== 内存缓存 ==========
 const cache = new Map<string, { data: WebSearchResult; ts: number }>();
@@ -37,28 +47,10 @@ function setCache(q: string, data: WebSearchResult) {
   cache.set(cacheKey(q), { data, ts: Date.now() });
 }
 
-// ========== DuckDuckGo 即时答案 API ==========
-
-interface DDGResponse {
-  Abstract?: string;
-  AbstractSource?: string;
-  AbstractURL?: string;
-  Heading?: string;
-  RelatedTopics?: Array<{
-    Text?: string;
-    FirstURL?: string;
-    Icon?: { URL?: string };
-    Result?: string;
-  } | null>;
-  Results?: Array<{
-    Text?: string;
-    FirstURL?: string;
-  }>;
-  Type?: string;
-}
+// ========== 搜索功能 ==========
 
 /**
- * 联网搜索 — 使用 DuckDuckGo 即时答案 API
+ * 联网搜索 — 使用 grok-4 + enable_search
  * @param query 搜索关键词
  * @returns 搜索结果，失败返回 null
  */
@@ -71,77 +63,72 @@ export async function searchWeb(query: string): Promise<WebSearchResult | null> 
       return cached;
     }
 
-    console.log(`[WebSearch] DuckDuckGo 搜索: ${query.substring(0, 60)}...`);
+    console.log(`[WebSearch] grok-4 搜索: ${query.substring(0, 60)}...`);
 
-    // 2. 调用 DuckDuckGo API
-    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
-    const res = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(5000),
-    });
+    // 2. 调用 LaoZhang.ai (grok-4 + 联网搜索)
+    const response = await searchClient.chat.completions.create({
+      model: SEARCH_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: '你是一个专业的搜索助手。请根据用户的查询进行联网搜索，返回最新的、准确的信息。回答要简洁、结构化。如果无法获取实时数据，请基于你的知识给出合理参考，并注明信息可能不是最新的。',
+        },
+        {
+          role: 'user',
+          content: `搜索与以下内容相关的最新信息，包括市场价格、产品参数、品牌供应商等：${query}`,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 2048,
+      // 通过 extra_body 启用联网搜索
+    } as any, { enable_search: true } as any);
 
-    if (!res.ok) {
-      console.error(`[WebSearch] DuckDuckGo HTTP ${res.status}`);
+    const content = response.choices[0]?.message?.content || '';
+
+    if (!content.trim()) {
+      console.log('[WebSearch] grok-4 返回空内容');
       return null;
     }
 
-    const data: DDGResponse = await res.json();
-
-    // 3. 解析结果
+    // 3. 将文本结果包装为结构化格式
+    const lines = content.split('\n').filter((l) => l.trim());
     const items: SearchItem[] = [];
 
-    // Abstract（维基百科摘要）
-    let abstract = '';
-    if (data.Abstract) {
-      abstract = data.Abstract;
-      if (data.AbstractURL) {
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.length < 5) continue;
+
+      // 尝试提取编号标题格式：1. xxx / 1、xxx
+      const numberedMatch = trimmed.match(/^\d+[.、)\s]+(.+)/);
+      if (numberedMatch) {
         items.push({
-          title: data.Heading || data.AbstractSource || '相关介绍',
-          snippet: data.Abstract,
-          url: data.AbstractURL,
+          title: numberedMatch[1].substring(0, 60),
+          snippet: trimmed,
+          url: '',
         });
+      } else if (items.length === 0) {
+        // 第一段非编号内容作为概述
+        continue;
       }
     }
 
-    // RelatedTopics
-    if (data.RelatedTopics) {
-      for (const topic of data.RelatedTopics) {
-        if (!topic) continue;
-        // 嵌套格式：{ Text, FirstURL } 或 { Result, Topics: [...] }
-        const text = topic.Text || topic.Result || '';
-        const link = topic.FirstURL || '';
-        if (text && link && items.length < 8) {
-          items.push({
-            title: text.split(' - ')[0]?.trim() || text.substring(0, 50),
-            snippet: text,
-            url: link,
-          });
-        }
-      }
-    }
-
-    // Results（直接答案）
-    if (data.Results) {
-      for (const r of data.Results) {
-        if (r.Text && r.FirstURL && items.length < 8) {
-          items.push({
-            title: r.Text.substring(0, 60),
-            snippet: r.Text,
-            url: r.FirstURL,
-          });
-        }
-      }
-    }
-
+    // 如果没有解析出结构化条目，整体作为一条结果
     if (items.length === 0) {
-      console.log('[WebSearch] DuckDuckGo 无结果');
-      return null;
+      items.push({
+        title: content.substring(0, 60),
+        snippet: content,
+        url: '',
+      });
     }
 
-    const result: WebSearchResult = { items, abstract };
-    setCache(query, result);
+    const result: WebSearchResult = {
+      items: items.slice(0, 8),
+      abstract: lines[0] || '',
+    };
 
-    console.log(`[WebSearch] 返回 ${items.length} 条结果, ${abstract ? abstract.length + ' 字摘要' : '无摘要'}`);
+    setCache(query, result);
+    console.log(`[WebSearch] 返回 ${result.items.length} 条结果, ${content.length} 字`);
+
     return result;
   } catch (error: any) {
     console.error('[WebSearch] 搜索失败:', error?.message || error);

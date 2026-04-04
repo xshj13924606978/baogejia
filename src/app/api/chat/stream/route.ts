@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
               const searchResult = await Promise.race([
                 searchWeb(message),
                 new Promise<null>((_, reject) =>
-                  setTimeout(() => reject(new Error('搜索超时')), 5000)
+                  setTimeout(() => reject(new Error('搜索超时')), 25000)
                 ),
               ]);
               if (searchResult && searchResult.items.length > 0) {
