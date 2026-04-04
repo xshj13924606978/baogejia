@@ -1239,15 +1239,15 @@ export class PriceMatcher {
         addMatches(exactMatchesNum.data, 95, 1, '精确匹配（名称+型号-数字）');
       }
 
-      // 方式3：型号包含匹配（使用 % 通配符）
+      // 方式3：型号前缀匹配（避免子字符串误匹配，如 100g/h 匹配 1000g/h）
       const exactMatchesFuzzy = await supabase
         .from('products')
         .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
         .ilike('name', `%${cleanedName}%`)
-        .ilike('model', `%${normalizedModel}%`)
+        .ilike('model', `${normalizedModel}%`)
         .limit(20);
       
-      addMatches(exactMatchesFuzzy.data, 90, 1, '名称+型号包含匹配');
+      addMatches(exactMatchesFuzzy.data, 90, 1, '名称+型号前缀匹配');
 
       // 方式4：名称+型号+参数描述匹配
       if (product.parameter_description) {
@@ -1255,7 +1255,7 @@ export class PriceMatcher {
           .from('products')
           .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
           .ilike('name', `%${cleanedName}%`)
-          .ilike('model', `%${normalizedModel}%`)
+          .ilike('model', `${normalizedModel}%`)
           .ilike('parameter_description', `%${product.parameter_description}%`)
           .limit(20);
 
@@ -1296,12 +1296,12 @@ export class PriceMatcher {
         for (const pattern of searchPatterns) {
           if (!pattern || pattern.length < 2) continue;
 
-          // 在 model 字段中搜索
+          // 在 model 字段中搜索（前缀匹配，避免 100g/h 匹配 1000g/h）
           const modelRateMatches = await supabase
             .from('products')
             .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
             .ilike('name', `%${cleanedName}%`)
-            .ilike('model', `%${pattern}%`)
+            .eq('model', pattern)
             .limit(20);
 
           addMatches(modelRateMatches.data, 92, 1.7, `产量型号匹配（${pattern}）`);
@@ -1317,14 +1317,14 @@ export class PriceMatcher {
           addMatches(specRateMatches.data, 89, 1.7, `产量参数匹配（${pattern}）`);
         }
 
-        // 如果型号是纯数字（如 "50"），也尝试数字在 model 中匹配
+        // 如果型号是纯数字（如 "50"），尝试精确匹配 model 等于该数字的记录
         const pureNum = parseFloat(rateValue);
         if (!isNaN(pureNum)) {
           const numModelMatches = await supabase
             .from('products')
             .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
             .ilike('name', `%${cleanedName}%`)
-            .ilike('model', `%${rateValue}%`)
+            .eq('model', String(pureNum))
             .limit(20);
 
           addMatches(numModelMatches.data, 85, 2, `产量数字型号匹配（${rateValue}）`);
@@ -1404,15 +1404,15 @@ export class PriceMatcher {
 
         addMatches(prefixMatches.data, 73, 3, '名称+型号前缀匹配（数字边界）');
       } else {
-        // 非纯数字型号：保留原有 ilike 子字符串匹配（如 "HFC-13"、"PW-100" 等）
+        // 非纯数字型号：前缀匹配（避免子字符串误匹配）
         const fuzzyMatches = await supabase
           .from('products')
           .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
           .ilike('name', `%${cleanedName}%`)
-          .ilike('model', `%${normalizedModel}%`)
+          .ilike('model', `${normalizedModel}%`)
           .limit(20);
 
-        addMatches(fuzzyMatches.data, 75, 3, '名称+型号模糊匹配');
+        addMatches(fuzzyMatches.data, 75, 3, '名称+型号前缀匹配');
       }
 
       // 方式2：名称+型号+参数描述模糊匹配
@@ -1433,11 +1433,11 @@ export class PriceMatcher {
             .from('products')
             .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
             .ilike('name', `%${cleanedName}%`)
-            .ilike('model', `%${normalizedModel}%`)
+            .ilike('model', `${normalizedModel}%`)
             .ilike('parameter_description', `%${product.parameter_description}%`)
             .limit(20);
 
-          addMatches(fuzzySpecMatches.data, 77, 3, '名称+型号+参数模糊匹配');
+          addMatches(fuzzySpecMatches.data, 77, 3, '名称+型号+参数前缀匹配');
         }
       }
     }
@@ -1475,10 +1475,10 @@ export class PriceMatcher {
       const modelOnlyMatches = await supabase
         .from('products')
         .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
-        .ilike('model', `%${normalizedModel}%`)
+        .ilike('model', `${normalizedModel}%`)
         .limit(20);
       
-      addMatches(modelOnlyMatches.data, 40, 5, '仅型号匹配');
+      addMatches(modelOnlyMatches.data, 40, 5, '仅型号前缀匹配');
     }
 
     // ========== 级别6：仅参数描述匹配 ==========
@@ -1857,12 +1857,12 @@ export class PriceMatcher {
           }
         }
 
-        // 方式3：型号包含匹配（字符串）
+        // 方式3：型号前缀匹配（避免子字符串误匹配）
         const exactMatchFuzzyQuery = supabase
           .from('products')
           .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
           .ilike('name', cleanedName)
-          .ilike('model', `%${normalizedModel}%`)
+          .ilike('model', `${normalizedModel}%`)
           .limit(10);
         
         const { data: exactMatchesFuzzy } = await exactMatchFuzzyQuery;
@@ -1882,7 +1882,7 @@ export class PriceMatcher {
             .from('products')
             .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
             .ilike('name', cleanedName)
-            .ilike('model', `%${normalizedModel}%`)
+            .ilike('model', `${normalizedModel}%`)
             .ilike('parameter_description', `%${product.parameter_description}%`)
             .limit(10);
 
@@ -1995,7 +1995,7 @@ export class PriceMatcher {
           .from('products')
           .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
           .ilike('name', `%${cleanedName}%`)
-          .ilike('model', `%${normalizedModel}%`)
+          .ilike('model', `${normalizedModel}%`)
           .limit(10);
 
         const { data: fuzzyMatches } = await fuzzyMatchQuery;
@@ -2015,7 +2015,7 @@ export class PriceMatcher {
             .from('products')
             .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
             .ilike('name', `%${cleanedName}%`)
-            .ilike('model', `%${normalizedModel}%`)
+            .ilike('model', `${normalizedModel}%`)
             .ilike('parameter_description', `%${product.parameter_description}%`)
             .limit(10);
 
@@ -2101,7 +2101,7 @@ export class PriceMatcher {
         const modelOnlyQuery = supabase
           .from('products')
           .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
-          .ilike('model', `%${normalizedModel}%`)
+          .ilike('model', `${normalizedModel}%`)
           .limit(10);
         
         const { data: modelOnlyMatches } = await modelOnlyQuery;
