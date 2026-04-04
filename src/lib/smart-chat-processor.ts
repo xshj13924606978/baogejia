@@ -652,6 +652,7 @@ export class SmartChatProcessor {
     // 2.5. 检测价格查询并预处理
     let priceContextInfo = '';
     let priceBrandCompareData: BrandCompareItem[] | undefined;
+    let priceData: PriceMatchResult | undefined; // 保存数据库匹配结果，用于 bypass AI
     if (!processedInput || processedInput.type === 'text') {
       const priceQuery = await this.detectPriceQuery(userInput);
       if (priceQuery.isPriceQuery && priceQuery.productName) {
@@ -662,6 +663,7 @@ export class SmartChatProcessor {
           priceQuery.extraction?.parameter_description,
           userInput
         );
+        priceData = priceResult.priceData;
         if (priceResult.contextInfo) {
           priceContextInfo = priceResult.contextInfo;
           enhancedInput += priceContextInfo;
@@ -695,14 +697,36 @@ export class SmartChatProcessor {
     }
 
     // 3. 使用 LLM 智能理解并生成响应
-    const response = await this.generateSmartResponse(enhancedInput, context, processedInput);
+    // 当有数据库精确匹配时，产品数据部分由代码构建（bypass AI 消除幻觉），
+    // AI 只负责生成建议和后续问题
+    let response: SmartResponse;
+    if (priceData && priceData.source === 'database') {
+      // 3a. 代码构建精确的产品数据响应
+      const dataResponse = this.buildDatabaseResponse(priceData);
 
-    // 3.5 价格校验后处理 — 确保回复中的价格与数据库一致
-    if (priceContextInfo) {
-      const correctedContent = this.correctPriceHallucination(response.content, priceContextInfo);
-      if (correctedContent !== response.content) {
-        console.log('[SmartChatProcessor] 价格校验：检测到AI幻觉，已自动修正回复中的价格');
-        response.content = correctedContent;
+      // 3b. AI 只生成建议和后续问题
+      const suggestionInput = `用户刚刚查询了${priceData.productName || ''}${priceData.model ? '（型号：' + priceData.model + '）' : ''}的价格，数据库已返回精确结果。
+请根据这个产品，用简洁的语言生成2-3条后续建议，每条建议用"- "开头，不要超过20字。
+只输出建议列表，不要输出产品信息、价格或其他内容。`;
+      const aiSuggestion = await this.generateSmartResponse(suggestionInput, context, processedInput);
+
+      // 3c. 合并精确数据 + AI 建议
+      response = {
+        content: dataResponse + '\n\n' + (aiSuggestion.content || ''),
+        metadata: aiSuggestion.metadata,
+      };
+      console.log('[SmartChatProcessor] 数据库精确模式：产品数据由代码构建，AI 仅生成建议');
+    } else {
+      // 无数据库匹配，走正常 AI 生成流程
+      response = await this.generateSmartResponse(enhancedInput, context, processedInput);
+
+      // 价格校验后处理
+      if (priceContextInfo) {
+        const correctedContent = this.correctPriceHallucination(response.content, priceContextInfo);
+        if (correctedContent !== response.content) {
+          console.log('[SmartChatProcessor] 价格校验：检测到AI幻觉，已自动修正回复中的价格');
+          response.content = correctedContent;
+        }
       }
     }
 
@@ -1197,6 +1221,67 @@ export class SmartChatProcessor {
     }
 
     return prompt;
+  }
+
+  /**
+   * 直接从数据库匹配结果构建精确的产品数据响应（bypass AI，消除幻觉）
+   */
+  private buildDatabaseResponse(priceData: PriceMatchResult): string {
+    let response = '';
+
+    const productName = priceData.productName || '未知产品';
+    const model = priceData.model || '-';
+    const brand = priceData.brand || '-';
+    const price = priceData.price.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const source = priceData.source === 'database' ? '产品库' : this.getPriceSourceText(priceData.source);
+    const confidence = priceData.confidence;
+
+    response += `根据产品库查询，${productName}的信息如下：\n\n`;
+
+    // 构建精确数据表格
+    response += `| 产品名称 | 规格型号 | 单价（元） | 价格来源 | 备注 |\n`;
+    response += `| --- | --- | --- | --- | --- |\n`;
+    response += `| ${productName} | ${model} | ${price} | ${source} | 置信度 ${confidence}%`;
+
+    // 品牌信息
+    if (priceData.brand) {
+      response += `，品牌：${priceData.brand}`;
+    }
+    response += ` |\n`;
+
+    response += `\n`;
+    response += `> 此价格来自产品知识库数据库。`;
+
+    // 成本价
+    if (priceData.costPrice) {
+      const costFormatted = priceData.costPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      response += `成本价：¥${costFormatted}。`;
+    }
+
+    // 最低售价
+    if (priceData.minPrice) {
+      const minFormatted = priceData.minPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      response += `最低售价：¥${minFormatted}。`;
+    }
+
+    response += `\n`;
+
+    // 参数描述
+    if (priceData.parameterDescription) {
+      response += `\n**产品参数**：\n`;
+      response += `${priceData.parameterDescription}\n`;
+    }
+
+    // 厂家信息
+    if (priceData.supplier) {
+      response += `\n**供应商**：${priceData.supplier}`;
+      if (priceData.contactPhone) {
+        response += ` | 联系电话：${priceData.contactPhone}`;
+      }
+      response += `\n`;
+    }
+
+    return response;
   }
 
   /**
