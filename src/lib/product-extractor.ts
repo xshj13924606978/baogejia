@@ -173,6 +173,47 @@ export class ProductExtractor {
   }
 
   /**
+   * 中文数字转阿拉伯数字（支持组合：十五→15，二十→20，一百五十→150）
+   */
+  private static convertChineseNumber(str: string): string {
+    const digitMap: Record<string, number> = {
+      '一': 1, '二': 2, '两': 2, '三': 3, '四': 4,
+      '五': 5, '六': 6, '七': 7, '八': 8, '九': 9,
+    };
+    const unitMap: Record<string, number> = {
+      '十': 10, '百': 100, '千': 1000, '万': 10000, '亿': 100000000,
+    };
+
+    if (unitMap[str] !== undefined && digitMap[str[0]] === undefined) {
+      return String(unitMap[str]);
+    }
+
+    let result = 0;
+    let current = 0;
+    let section = 0;
+
+    for (const char of str) {
+      if (digitMap[char] !== undefined) {
+        current = digitMap[char];
+      } else if (unitMap[char] !== undefined) {
+        const unit = unitMap[char];
+        if (unit >= 10000) {
+          section = (section + (current || 1)) * unit;
+          result += section;
+          section = 0;
+          current = 0;
+        } else {
+          section += (current || 1) * unit;
+          current = 0;
+        }
+      }
+    }
+
+    result += section + current;
+    return String(result || 0);
+  }
+
+  /**
    * 使用规则引擎提取（LLM 失败时的回退方案）
    * 基于正则表达式和关键词匹配
    */
@@ -223,13 +264,15 @@ export class ProductExtractor {
 
       // 3. 提取型号（多种模式，按优先级）
       const patterns = [
-        // 模式1: 中文数字 + 容量单位（两立方、二立方、三立方等）
-        /([一二三四五六七八九十百千万亿]+)\s*(立方|立方米|m³|m3|方)\b/gi,
-        // 模式2: 数字 + 容量单位（100立方、50吨、10升）
-        /(\d+(\.\d+)?)\s*(立方|立方米|m³|m3|吨|升|升|L|ML|万|亿)\b/gi,
+        // 模式1: 中文数字 + 容量单位（两立方、二十方、一百五十方等）
+        // 注意：两=2 是特殊映射，需要单独处理
+        /([一二两三四五六七八九十百千万亿]+)\s*(立方米|立方|m³|m3|方)/gi,
+        // 模式2: 数字 + 单位（100立方米、5方、50吨、100g/h、2kg/h、500mg/L 等）
+        // 注意：立方米必须在立方之前（更长匹配优先）
+        /(\d+(\.\d+)?)\s*(立方米|立方|m³|m3|方|吨|升|L|ML|万|亿|[gGkKtT][gGkKmMlL]?\s*(\/\s*[hHmMdDmin分钟秒秒天])?|[mM][gGlL]\s*(\/\s*[hHmMdDmin分钟秒秒天])?)/gi,
         // 模式3: 字母数字组合（HFC-13、PW-100、10M、5.5K）
-        /([A-Za-z]*[-_]?\d+(\.\d+)?[A-Za-z]*|\d+(\.\d+)?[A-Za-z]+)/gi,
-        // 模式4: 纯数字（100、50、10）
+        /([A-Za-z]+[-_]\d+(\.\d+)?[A-Za-z]*|[A-Za-z]*[-_]?\d+(\.\d+)?[A-Za-z]+)/gi,
+        // 模式4: 纯数字（100、50、10）— 仅作为最后兜底
         /(\d+(\.\d+)?)/g,
       ];
 
@@ -240,35 +283,17 @@ export class ProductExtractor {
         pattern.lastIndex = 0; // 重置正则表达式
         modelMatch = pattern.exec(cleaned);
         if (modelMatch && modelMatch.length > 0) {
-          // 提取第一个匹配的型号
-          model = modelMatch[1].trim();
+          // 提取整个匹配（包含单位），而不是仅数字部分
+          // 例如 "5方" 取 "5方"，"100g/h" 取 "100g/h"，"HFC-13" 取 "HFC-13"
+          model = modelMatch[0].trim();
           console.log('[ProductExtractor] 规则提取 - 原始型号:', model);
 
-          // 如果是中文数字，转换为阿拉伯数字
-          const chineseNumbers: Record<string, string> = {
-            一: '1',
-            二: '2',
-            三: '3',
-            四: '4',
-            五: '5',
-            六: '6',
-            七: '7',
-            八: '8',
-            九: '9',
-            十: '10',
-            百: '100',
-            千: '1000',
-            万: '10000',
-            亿: '100000000',
-          };
-
-          if (/^[一二三四五六七八九十百千万亿]+$/.test(model)) {
-            let converted = '';
-            for (let i = 0; i < model.length; i++) {
-              const char = model[i];
-              converted += chineseNumbers[char] || char;
-            }
-            model = converted;
+          // 如果包含中文数字，转换为阿拉伯数字（如 "十方" → "10方"、"十五方" → "15方"）
+          const chineseNumPattern = /[一二两三四五六七八九十百千万亿]+/;
+          const chineseNumMatch = model.match(chineseNumPattern);
+          if (chineseNumMatch) {
+            const converted = this.convertChineseNumber(chineseNumMatch[0]);
+            model = model.replace(chineseNumMatch[0], converted);
             console.log('[ProductExtractor] 规则提取 - 中文数字转换:', model);
           }
 
@@ -367,7 +392,7 @@ export class ProductExtractor {
   private static normalizeInput(input: string): string {
     return (
       input
-        .toLowerCase()
+        // 不转小写！保留原始大小写（HFC-13、DN50 等需要大小写）
         // 替换标点符号，但保留数字中的小数点
         .replace(/[？?！!，,。;;、\s]+/g, ' ')
         .replace(/\s+/g, ' ')
@@ -381,11 +406,12 @@ export class ProductExtractor {
   private static cleanProductName(name: string): string {
     return (
       name
-        .replace(/[型号|规格|品牌|系列|款式|款式|种类|类型]/g, '')
-        // 移除容量单位
-        .replace(/\d+(\.\d+)?\s*(立方|立方米|m³|m3)\b/gi, '')
-        // 移除长度单位（如果在型号被移除后还残留）
-        .replace(/\d+(\.\d+)?\s*(mm|mm|cm|厘米|m|米)\b/gi, '')
+        // 移除常见修饰词（精确词组替换，避免误删单字）
+        .replace(/型号|规格|品牌|系列|款式|种类|类型/g, '')
+        // 移除残留的容量单位
+        .replace(/\d+(\.\d+)?\s*(立方米|立方|m³|m3|方)\b/gi, '')
+        // 移除残留的长度单位
+        .replace(/\d+(\.\d+)?\s*(mm|cm|厘米|米)\b/gi, '')
         .replace(/[，,。.;;、]/g, '')
         .replace(/\s+/g, ' ')
         .trim()
