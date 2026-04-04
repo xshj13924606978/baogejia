@@ -19,6 +19,7 @@ import { fileUploadProcessor } from './upload-processor';
 import { ProductExtractor, ExtractedProduct } from './product-extractor';
 import { unifiedMatcher, UnifiedMatchResult } from './unified-matcher';
 import { productQueryParser } from './product-query-parser';
+import { processWithIntent, formatProductsAsContext, PipelineResult } from './intent-pipeline';
 
 /**
  * 判断产品参数是否满足用户需求
@@ -649,11 +650,62 @@ export class SmartChatProcessor {
       enhancedInput = this.enrichInputWithFileInfo(userInput, processedInput);
     }
 
-    // 2.5. 检测价格查询并预处理
+    // 2.4. 意图理解 + 语义搜索（新逻辑，优先于旧逻辑）
+    let intentResult: PipelineResult | null = null;
+    if (!processedInput || processedInput.type === 'text') {
+      intentResult = await processWithIntent(userInput);
+    }
+
+    // 2.5. 检测价格查询并预处理（旧逻辑，作为降级方案）
     let priceContextInfo = '';
     let priceBrandCompareData: BrandCompareItem[] | undefined;
-    let priceData: PriceMatchResult | undefined; // 保存数据库匹配结果，用于 bypass AI
-    if (!processedInput || processedInput.type === 'text') {
+    let priceData: PriceMatchResult | undefined;
+
+    if (intentResult && intentResult.source === 'intent' && intentResult.products.length > 0) {
+      // 新逻辑命中 → 将搜索结果转换为 priceData 格式，复用 buildDatabaseResponse
+      const topProduct = intentResult.products[0];
+      priceData = {
+        price: topProduct.price,
+        source: 'database',
+        confidence: Math.round(intentResult.confidence * 100),
+        confidenceLevel: intentResult.confidence >= 0.9 ? '极高' : intentResult.confidence >= 0.7 ? '高' : '中',
+        productName: topProduct.name,
+        model: topProduct.model,
+        brand: topProduct.brand,
+        parameterDescription: topProduct.parameterDescription,
+        costPrice: topProduct.costPrice || undefined,
+        minPrice: topProduct.minPrice || undefined,
+        matchedBy: intentResult.searchStrategy || '意图匹配',
+        matchedProducts: intentResult.products.map(p => ({
+          price: p.price,
+          productName: p.name,
+          model: p.model,
+          confidence: intentResult.confidence,
+          brand: p.brand,
+          parameterDescription: p.parameterDescription,
+          minPrice: p.minPrice,
+          costPrice: p.costPrice,
+          matchLevel: 1,
+          matchedBy: intentResult.searchStrategy || '意图匹配',
+          isRecommended: false,
+          parameters: {},
+        })),
+      };
+      // 标记第一个为推荐
+      if (priceData.matchedProducts && priceData.matchedProducts.length > 0) {
+        priceData.matchedProducts[0].isRecommended = true;
+      }
+
+      // 生成上下文信息（复用现有格式）
+      priceContextInfo = formatProductsAsContext(intentResult, userInput);
+      enhancedInput += priceContextInfo;
+      console.log('[SmartChatProcessor] 意图理解层命中，找到', intentResult.products.length, '个产品');
+    } else {
+      // 降级到旧逻辑
+      if (intentResult && intentResult.source === 'none') {
+        console.log('[SmartChatProcessor] 意图理解层未命中，降级到旧逻辑');
+      }
+      if (!processedInput || processedInput.type === 'text') {
       const priceQuery = await this.detectPriceQuery(userInput);
       if (priceQuery.isPriceQuery && priceQuery.productName) {
         console.log('[SmartChatProcessor] 检测到价格查询:', priceQuery);
@@ -676,6 +728,7 @@ export class SmartChatProcessor {
         }
       }
     }
+    } // end 降级到旧逻辑
 
     // 2.6. 智能产品匹配（新增功能）
     // 如果原有价格查询没有结果或置信度较低，尝试使用智能匹配系统

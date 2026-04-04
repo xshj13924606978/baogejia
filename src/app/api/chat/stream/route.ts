@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { pointsService } from '@/lib/points-service';
 import { searchWeb, formatSearchResult } from '@/lib/web-search';
+import { processWithIntent, formatProductsAsContext } from '@/lib/intent-pipeline';
 
 // 从数据库加载对话历史
 async function loadConversationHistory(conversationId: string) {
@@ -164,12 +165,53 @@ export async function POST(request: NextRequest) {
       console.log('[Chat Stream API] 对话历史:', { conversationId, historyCount: history.length });
     }
 
-    // 4. 价格查询预处理（优先查询数据库）
+    // 3.5. 意图理解 + 语义搜索（新逻辑，优先于旧逻辑）
+    let intentHit = false;
     let enhancedMessage = message;
     let databaseInfo: any = null;
     let priceMatchedProducts: any[] | undefined;
     let priceBrandCompareData: any[] | undefined;
-    let needsWebSearch = false;
+    try {
+      const intentPipelineResult = await processWithIntent(message);
+      if (intentPipelineResult.source === 'intent' && intentPipelineResult.products.length > 0) {
+        intentHit = true;
+        const topProduct = intentPipelineResult.products[0];
+        databaseInfo = {
+          productName: topProduct.name,
+          model: topProduct.model,
+          price: topProduct.price,
+          brand: topProduct.brand,
+          parameterDescription: topProduct.parameterDescription,
+          costPrice: topProduct.costPrice,
+          minPrice: topProduct.minPrice,
+        };
+        priceMatchedProducts = intentPipelineResult.products.map(p => ({
+          price: p.price,
+          productName: p.name,
+          model: p.model,
+          confidence: intentPipelineResult.confidence,
+          brand: p.brand,
+          parameterDescription: p.parameterDescription,
+          minPrice: p.minPrice,
+          costPrice: p.costPrice,
+          matchLevel: 1,
+          matchedBy: intentPipelineResult.searchStrategy || '意图匹配',
+          isRecommended: false,
+          parameters: {},
+        }));
+        if (priceMatchedProducts.length > 0) {
+          priceMatchedProducts[0].isRecommended = true;
+        }
+        enhancedMessage += formatProductsAsContext(intentPipelineResult, message);
+        console.log('[Chat Stream API] 意图理解层命中，找到', intentPipelineResult.products.length, '个产品');
+      }
+    } catch (error) {
+      console.error('[Chat Stream API] 意图理解层失败，降级到旧逻辑:', error);
+    }
+
+    // 4. 价格查询预处理（降级方案：意图层未命中时使用旧逻辑）
+    // 变量已在 3.5 中声明（databaseInfo, priceMatchedProducts）
+    if (!intentHit) {
     try {
       const priceQuery = await (smartChatProcessor as any).detectPriceQuery(message);
       if (priceQuery.isPriceQuery && priceQuery.productName) {
@@ -203,11 +245,9 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('[Chat Stream API] 价格查询失败:', error);
     }
+    } // end 降级到旧逻辑
 
-    // 4.5 标记联网搜索需求（所有非琐碎咨询）
-    const trivialPattern = /^(你好|hello|hi|hey|谢谢|thanks|再见|bye|ok|好的|嗯|嗯嗯|是|不是|对|错|收到|明白)$/i;
-    const isTrivial = trivialPattern.test(message.trim()) || message.trim().length < 4;
-    needsWebSearch = !isTrivial;
+    let needsWebSearch = false;
 
     // 5. 定义智能处理器
     const smartProcessor = smartChatProcessor;
