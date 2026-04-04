@@ -197,13 +197,37 @@ export async function POST(request: NextRequest) {
           matchLevel: 1,
           matchedBy: intentPipelineResult.searchStrategy || '意图匹配',
           isRecommended: false,
-          parameters: {},
+          parameters: {
+            minPrice: p.minPrice || undefined,
+            costPrice: p.costPrice || undefined,
+          },
         }));
         if (priceMatchedProducts.length > 0) {
           priceMatchedProducts[0].isRecommended = true;
         }
         enhancedMessage += formatProductsAsContext(intentPipelineResult, message);
         console.log('[Chat Stream API] 意图理解层命中，找到', intentPipelineResult.products.length, '个产品');
+
+        // 生成 brandCompareData（与前端 BrandCompareCard 格式对齐）
+        if (intentPipelineResult.products.length >= 2) {
+          priceBrandCompareData = intentPipelineResult.products.map((p, idx) => ({
+            brand: p.brand || '未知品牌',
+            productName: p.name,
+            supplier: undefined,
+            contactPhone: undefined,
+            model: p.model || '-',
+            price: p.price,
+            minPrice: p.minPrice || undefined,
+            guidePrice: undefined,
+            confidence: intentPipelineResult.confidence,
+            rating: 0,
+            quoteCount: 0,
+            tags: [],
+            isRecommended: idx === 0,
+            source: 'database',
+            parameterDescription: p.parameterDescription,
+          }));
+        }
       }
     } catch (error) {
       console.error('[Chat Stream API] 意图理解层失败，降级到旧逻辑:', error);
