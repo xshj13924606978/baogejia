@@ -446,7 +446,7 @@ export async function POST(request: NextRequest) {
           })}\n\n`;
           controller.enqueue(encoder.encode(endEvent));
 
-          console.log('[Chat Stream API] 流式生成完成');
+          console.log('[Chat Stream API] 流式生成完成, metadata.brandCompare数量:', priceBrandCompareData?.length || 0, ', matchedProducts数量:', priceMatchedProducts?.length || 0);
         } catch (error) {
           console.error('[Chat Stream API] 流式生成错误:', error);
 

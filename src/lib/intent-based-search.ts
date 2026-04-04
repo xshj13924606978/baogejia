@@ -174,7 +174,7 @@ export class IntentBasedSearch {
       }
     }
 
-    query = query.limit(10);
+    query = query.limit(20);
 
     const { data: products, error } = await query;
 
@@ -206,13 +206,17 @@ export class IntentBasedSearch {
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
-    }).slice(0, 5);
+    }).slice(0, 10);
 
     const confidence = unique.length > 0
       ? (productType && brand ? 0.95 : productType ? 0.85 : 0.7)
       : 0;
 
     console.log(`[IntentBasedSearch] 找到 ${unique.length} 个产品, 策略: ${strategies.join('+')}`);
+    // 打印每个产品的关键参数，便于排查数据正确性
+    unique.forEach((p, i) => {
+      console.log(`[IntentBasedSearch]   #${i + 1} ${p.name} | ${p.model} | 价格=${p.price} | 最低价=${p.minPrice} | 参数=${p.parameterDescription?.substring(0, 80)}`);
+    });
     return {
       products: unique,
       searchStrategy: strategies.join('+'),
@@ -235,6 +239,7 @@ export class IntentBasedSearch {
 
         // 从 parameter_description 中提取对应参数值
         let extractedValue: number | null = null;
+        let specLabel = '';
         if (key === 'volume') {
           // 容量产品，检查 model 字段
           const modelNum = parseFloat((product.model || '').replace(/[^0-9.]/g, ''));
@@ -245,6 +250,7 @@ export class IntentBasedSearch {
           continue;
         } else {
           const label = SPEC_FIELD_MAP[key];
+          specLabel = label || key;
           if (label) {
             const match = paramText.match(
               new RegExp(`${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[：:：]\\s*(\\d+(?:\\.\\d+)?)`, 'i')
@@ -254,8 +260,12 @@ export class IntentBasedSearch {
         }
 
         if (extractedValue !== null) {
+          // 容差 ±25%（比之前的 ±20% 更宽，覆盖更多相近产品）
           const ratio = extractedValue / numValue;
-          if (ratio < 0.8 || ratio > 1.2) return false;
+          if (ratio < 0.75 || ratio > 1.25) {
+            console.log(`[IntentBasedSearch] 过滤掉 ${product.name} ${product.model}: ${specLabel}=${extractedValue} 超出范围 [${numValue * 0.75}, ${numValue * 1.25}]`);
+            return false;
+          }
         }
       }
 
