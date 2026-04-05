@@ -176,24 +176,15 @@ function ProductCard({
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start gap-2">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 flex-wrap">
               <h3 className="font-semibold text-sm truncate">{item.brand}</h3>
-              {isRecommended && (
-                <Badge variant="default" className="text-xs shrink-0">推荐</Badge>
-              )}
-              {item.isFallback && (
-                <Badge variant="outline" className="text-xs shrink-0 text-amber-600 border-amber-300">相近产品</Badge>
-              )}
-              {item.matchType === 'exact' && !item.isFallback && (
-                <Badge variant="outline" className="text-xs shrink-0 text-green-600 border-green-300">精确匹配</Badge>
-              )}
-              {item.matchType === 'close' && !item.isFallback && (
-                <Badge variant="outline" className="text-xs shrink-0 text-blue-600 border-blue-300">相近匹配</Badge>
-              )}
               {isCheapest && hasPriceDiff && (
                 <Badge variant="secondary" className="text-xs shrink-0 text-orange-600">
                   <TrendingDown className="h-2.5 w-2.5 mr-0.5" />性价比推荐
                 </Badge>
+              )}
+              {item.isFallback && (
+                <Badge variant="outline" className="text-xs shrink-0 text-amber-600 border-amber-300">相近产品</Badge>
               )}
             </div>
             {item.productName && item.productName !== item.brand && (

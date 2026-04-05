@@ -220,44 +220,49 @@ export async function POST(request: NextRequest) {
       console.error('[Chat Stream API] 价格查询失败:', error);
     }
 
-    // 4.5 用意图管道结果过滤卡片数据（解决两套管道独立导致卡片未过滤的根因）
-    if (intentProducts.length > 0 && priceBrandCompareData && priceBrandCompareData.length > 0) {
-      // 用 parameterDescription 作为精确标识（同型号不同配置的参数不同）
-      const exactParams = new Set(
-        intentProducts
-          .filter((p: any) => p.matchType === 'exact')
-          .map((p: any) => p.parameterDescription)
-      );
-      const closeParams = new Set(
-        intentProducts
-          .filter((p: any) => p.matchType === 'close')
-          .map((p: any) => p.parameterDescription)
-      );
+    // 4.5 意图管道结果直接构建卡片数据（彻底解决旧管道查询不全的根因）
+    // 当意图管道有结果时，直接用其产品列表生成卡片，绕过旧管道的查询限制
+    if (intentProducts.length > 0) {
+      const exactProducts = intentProducts.filter((p: any) => p.matchType === 'exact');
+      const closeProducts = intentProducts.filter((p: any) => p.matchType === 'close');
 
-      const beforeCount = priceBrandCompareData.length;
-      priceBrandCompareData = priceBrandCompareData.filter((item: any) => {
-        const param = item.parameterDescription || '';
-        if (exactParams.has(param)) {
-          item.matchType = 'exact';
-          return true;
-        }
-        if (closeParams.has(param)) {
-          item.matchType = 'close';
-          item.isFallback = true;
-          return true;
-        }
-        return false; // 不在意图管道结果中的产品被过滤掉
-      });
+      // 从意图管道产品直接构建卡片数据
+      priceBrandCompareData = intentProducts.map((p: any, i: number) => ({
+        brand: p.brand || '',
+        productName: p.name || '',
+        model: p.model || '',
+        price: p.minPrice > 0 ? p.minPrice : p.price,
+        minPrice: p.minPrice || undefined,
+        costPrice: p.costPrice || undefined,
+        confidence: p.matchType === 'exact' ? 0.95 : 0.70,
+        rating: 5,
+        quoteCount: 1,
+        tags: [],
+        isRecommended: i === 0,
+        source: 'database',
+        parameterDescription: p.parameterDescription || '',
+        matchType: p.matchType || 'exact',
+        isFallback: p.matchType === 'close',
+        matchDetails: p.matchDetails || undefined,
+      }));
 
-      // 同步过滤 priceMatchedProducts
-      if (priceMatchedProducts && priceMatchedProducts.length > 0) {
-        const allowedParams = new Set([...exactParams, ...closeParams]);
-        priceMatchedProducts = priceMatchedProducts.filter((p: any) => {
-          return allowedParams.has(p.parameterDescription || '');
-        });
-      }
+      // 同步构建 matchedProducts
+      priceMatchedProducts = intentProducts.map((p: any) => ({
+        brand: p.brand || '',
+        model: p.model || '',
+        price: p.price,
+        minPrice: p.minPrice,
+        costPrice: p.costPrice,
+        confidence: p.matchType === 'exact' ? 0.95 : 0.70,
+        isRecommended: false,
+        source: 'database',
+        matchLevel: p.matchType === 'exact' ? 'exact' : 'approximate',
+        matchedBy: 'intent',
+        matchType: p.matchType || 'exact',
+        parameters: p.parameterDescription || '',
+      }));
 
-      console.log(`[Chat Stream API] 意图过滤卡片: ${beforeCount} → ${priceBrandCompareData.length} 款 (精确${exactParams.size}, 相近${closeParams.size})`);
+      console.log(`[Chat Stream API] 意图管道直接构建卡片: 精确${exactProducts.length}款, 相近${closeProducts.length}款, 共${priceBrandCompareData.length}款`);
     }
 
     // 4.6 标记联网搜索需求（所有非琐碎咨询）
