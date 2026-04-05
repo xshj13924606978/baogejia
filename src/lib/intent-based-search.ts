@@ -239,7 +239,7 @@ export class IntentBasedSearch {
       }
     }
 
-    query = query.limit(20);
+    query = query.limit(50);
 
     const { data: products, error } = await query;
 

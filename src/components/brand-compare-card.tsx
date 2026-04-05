@@ -159,6 +159,11 @@ function ProductCard({
   const otherParams = params.filter(p => p.key && !diffKeys.has(p.key));
   const labelParams = params.filter(p => !p.key && p.value);
 
+  // 提取核心差异标签（同品牌同型号时最关键的区分维度）
+  const highlightKeys = new Set(['工作压力', '电压']);
+  const highlightParams = params.filter(p => p.key && highlightKeys.has(p.key));
+  const otherDiffParams = diffParams.filter(p => !highlightKeys.has(p.key));
+
   // 利润率计算
   const margin = (item.costPrice && item.price > 0)
     ? ((item.price - item.costPrice) / item.price * 100).toFixed(1)
@@ -193,6 +198,16 @@ function ProductCard({
             {item.model && item.model !== '-' && (
               <p className="text-xs text-muted-foreground mt-0.5 truncate" title={item.model}>{item.model}</p>
             )}
+            {/* 核心差异标签：工作压力 + 电压（同品牌同型号时的关键区分） */}
+            {highlightParams.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {highlightParams.map((p, i) => (
+                  <span key={i} className="inline-flex items-center text-xs font-semibold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                    {p.key} {p.value}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="text-right shrink-0 ml-2 min-w-[70px]">
             <div className={`text-sm font-bold ${hasPriceDiff ? 'text-red-600' : 'text-foreground'}`}>
@@ -216,10 +231,10 @@ function ProductCard({
           </div>
         )}
 
-        {/* 差异化参数 - 网格布局 */}
-        {diffParams.length > 0 && (
+        {/* 其他差异参数 - 网格布局（排除已高亮的核心差异） */}
+        {otherDiffParams.length > 0 && (
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 mt-2 text-xs">
-            {diffParams.map((p, i) => (
+            {otherDiffParams.map((p, i) => (
               <span key={i} className="truncate">
                 <span className="text-muted-foreground">{p.key}:</span>{' '}
                 <span className="font-medium">{p.value}</span>
