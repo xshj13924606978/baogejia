@@ -269,14 +269,14 @@ export class IntentBasedSearch {
       });
     }
 
-    // 8. 去重 + 限制数量
+    // 8. 去重（按 name+model+参数 去重，保留同型号不同配置的产品）+ 限制数量
     const seen = new Set<string>();
     const unique = results.filter(p => {
-      const key = `${p.name}|${p.model}`;
+      const key = `${p.name}|${p.model}|${p.parameterDescription}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
-    }).slice(0, 10);
+    }).slice(0, 15);
 
     const confidence = unique.length > 0
       ? (productType && brand ? 0.95 : productType ? 0.85 : 0.7)

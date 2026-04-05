@@ -222,26 +222,26 @@ export async function POST(request: NextRequest) {
 
     // 4.5 用意图管道结果过滤卡片数据（解决两套管道独立导致卡片未过滤的根因）
     if (intentProducts.length > 0 && priceBrandCompareData && priceBrandCompareData.length > 0) {
-      // 构建意图管道中精确匹配产品的标识集合（name+model组合）
-      const exactKeys = new Set(
+      // 用 parameterDescription 作为精确标识（同型号不同配置的参数不同）
+      const exactParams = new Set(
         intentProducts
           .filter((p: any) => p.matchType === 'exact')
-          .map((p: any) => `${p.name}|${p.model}`)
+          .map((p: any) => p.parameterDescription)
       );
-      const closeKeys = new Set(
+      const closeParams = new Set(
         intentProducts
           .filter((p: any) => p.matchType === 'close')
-          .map((p: any) => `${p.name}|${p.model}`)
+          .map((p: any) => p.parameterDescription)
       );
 
       const beforeCount = priceBrandCompareData.length;
       priceBrandCompareData = priceBrandCompareData.filter((item: any) => {
-        const key = `${item.productName || item.brand || ''}|${item.model}`;
-        if (exactKeys.has(key)) {
+        const param = item.parameterDescription || '';
+        if (exactParams.has(param)) {
           item.matchType = 'exact';
           return true;
         }
-        if (closeKeys.has(key)) {
+        if (closeParams.has(param)) {
           item.matchType = 'close';
           item.isFallback = true;
           return true;
@@ -251,15 +251,13 @@ export async function POST(request: NextRequest) {
 
       // 同步过滤 priceMatchedProducts
       if (priceMatchedProducts && priceMatchedProducts.length > 0) {
-        const allowedKeys = new Set([
-          ...exactKeys, ...closeKeys
-        ]);
+        const allowedParams = new Set([...exactParams, ...closeParams]);
         priceMatchedProducts = priceMatchedProducts.filter((p: any) => {
-          return allowedKeys.has(`${p.name || ''}|${p.model}`);
+          return allowedParams.has(p.parameterDescription || '');
         });
       }
 
-      console.log(`[Chat Stream API] 意图过滤卡片: ${beforeCount} → ${priceBrandCompareData.length} 款 (精确${exactKeys.size}, 相近${closeKeys.size})`);
+      console.log(`[Chat Stream API] 意图过滤卡片: ${beforeCount} → ${priceBrandCompareData.length} 款 (精确${exactParams.size}, 相近${closeParams.size})`);
     }
 
     // 4.6 标记联网搜索需求（所有非琐碎咨询）
