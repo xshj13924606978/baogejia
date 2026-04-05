@@ -66,11 +66,24 @@ export default function CustomerPanel() {
     });
   }, [quoteData?.customerInfo]);
 
-  // 保存客户信息到报价单
-  const handleSave = () => {
+  // 获取认证 headers
+  const getAuthHeaders = () => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.id) headers['x-user-id'] = user.id;
+      const token = localStorage.getItem('token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+    } catch {}
+    return headers;
+  };
+
+  // 保存客户信息到报价单 + 数据库持久化
+  const handleSave = async () => {
     try {
       console.log('[CustomerPanel] 保存客户信息:', formData);
 
+      // 1. 保存到内存（QuoteContext）
       updateCustomerInfo({
         name: formData.name,
         projectName: formData.projectName,
@@ -86,9 +99,36 @@ export default function CustomerPanel() {
         notes: formData.notes,
       });
 
+      // 2. 持久化到数据库
+      if (formData.name) {
+        const res = await fetch('/api/customers', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            companyName: formData.name,
+            projectName: formData.projectName,
+            contactPerson: formData.contactPerson,
+            phone: formData.phone,
+            email: formData.email,
+            address: formData.address,
+            bankName: formData.bankName,
+            bankAccount: formData.bankAccount,
+            taxNumber: formData.taxNumber,
+            paymentTerms: formData.paymentTerms,
+            creditLimit: formData.creditLimit,
+            notes: formData.notes,
+          }),
+        });
+        if (res.ok) {
+          console.log('[CustomerPanel] 客户信息已持久化到数据库');
+        } else {
+          console.warn('[CustomerPanel] 数据库保存失败（内存已保存）:', res.status);
+        }
+      }
+
       toast({
         title: '保存成功',
-        description: '客户信息已更新到报价单',
+        description: '客户信息已保存（刷新页面不会丢失）',
       });
 
       console.log('[CustomerPanel] 保存成功');

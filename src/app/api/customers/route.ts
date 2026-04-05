@@ -17,7 +17,7 @@ async function getUserId(request: NextRequest): Promise<string | null> {
   }
 }
 
-// GET - 获取客户列表（按用户隔离）
+// GET - 获取客户列表（按用户隔离，兼容旧数据）
 export async function GET(request: NextRequest) {
   try {
     const userId = await getUserId(request);
@@ -25,25 +25,56 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
 
     const supabase = getSupabaseClient();
-    let query = supabase.from('customers').select('*').order('created_at', { ascending: false });
 
-    // 按用户隔离（通过 metadata.user_id）
     if (userId) {
-      query = query.eq('metadata->>user_id', userId);
+      // 有用户ID：查询该用户的数据 + 无user_id的旧数据（兼容过渡）
+      const [userResult, legacyResult] = await Promise.all([
+        supabase
+          .from('customers')
+          .select('*')
+          .eq('metadata->>user_id', userId)
+          .order('updated_at', { ascending: false }),
+        supabase
+          .from('customers')
+          .select('*')
+          .is('metadata->>user_id', null)
+          .order('updated_at', { ascending: false }),
+      ]);
+
+      // 合并并去重（按id）
+      const allCustomers = [...(userResult.data || []), ...(legacyResult.data || [])];
+      const seen = new Set<number>();
+      const customers = allCustomers.filter((c: any) => {
+        if (seen.has(c.id)) return false;
+        seen.add(c.id);
+        return true;
+      });
+
+      // 搜索过滤
+      let result = customers;
+      if (search) {
+        const s = search.toLowerCase();
+        result = customers.filter((c: any) =>
+          (c.company_name || '').toLowerCase().includes(s) ||
+          (c.project_name || '').toLowerCase().includes(s) ||
+          (c.contact_person || '').toLowerCase().includes(s) ||
+          (c.phone || '').toLowerCase().includes(s)
+        );
+      }
+
+      return NextResponse.json({ customers: result || [] });
+    } else {
+      // 无用户ID：返回所有客户（管理场景）
+      let query = supabase.from('customers').select('*').order('created_at', { ascending: false });
+      if (search) {
+        query = query.or(
+          `company_name.ilike.%${search}%,project_name.ilike.%${search}%,contact_person.ilike.%${search}%,phone.ilike.%${search}%`
+        );
+      }
+      const { data: customers, error } = await query;
+      if (error) throw error;
+      return NextResponse.json({ customers: customers || [] });
     }
-
-    // 搜索功能
-    if (search) {
-      query = query.or(
-        `company_name.ilike.%${search}%,project_name.ilike.%${search}%,contact_person.ilike.%${search}%,phone.ilike.%${search}%`
-      );
-    }
-
-    const { data: customers, error } = await query;
-
-    if (error) throw error;
-
-    return NextResponse.json({ customers: customers || [] });
   } catch (error: any) {
     console.error('获取客户列表失败:', error);
     return NextResponse.json({ error: error.message || '获取客户列表失败' }, { status: 500 });
