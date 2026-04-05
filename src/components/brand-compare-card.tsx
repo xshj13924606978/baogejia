@@ -166,7 +166,7 @@ function ProductCard({
 
   return (
     <Card
-      className={`transition-shadow hover:shadow-md cursor-pointer overflow-hidden w-full ${
+      className={`transition-shadow hover:shadow-md cursor-pointer w-full ${
         isRecommended
           ? 'border-blue-500 ring-1 ring-blue-200 bg-blue-50/20'
           : ''
@@ -174,13 +174,13 @@ function ProductCard({
       onClick={() => setExpanded(!expanded)}
     >
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-start gap-2">
-          <div className="min-w-0 flex-1">
+        <div className="flex justify-between items-start gap-1">
+          <div className="min-w-0 flex-1 overflow-hidden">
             <div className="flex items-center gap-1 flex-wrap">
               <h3 className="font-semibold text-sm truncate">{item.brand}</h3>
               {isCheapest && hasPriceDiff && (
                 <Badge variant="secondary" className="text-xs shrink-0 text-orange-600">
-                  <TrendingDown className="h-2.5 w-2.5 mr-0.5" />性价比推荐
+                  <TrendingDown className="h-2.5 w-2.5 mr-0.5" />性价比
                 </Badge>
               )}
               {item.isFallback && (
@@ -191,15 +191,15 @@ function ProductCard({
               <p className="text-xs text-muted-foreground mt-0.5 truncate" title={item.productName}>{item.productName}</p>
             )}
             {item.model && item.model !== '-' && (
-              <p className="text-xs text-muted-foreground mt-0.5 truncate" title={item.model}>型号: {item.model.length > 20 ? item.model.slice(0, 18) + '...' : item.model}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate" title={item.model}>{item.model}</p>
             )}
           </div>
-          <div className="text-right shrink-0">
-            <div className={`text-base font-bold whitespace-nowrap ${hasPriceDiff ? 'text-red-600' : 'text-foreground'}`}>
+          <div className="text-right shrink-0 ml-2 min-w-[70px]">
+            <div className={`text-sm font-bold ${hasPriceDiff ? 'text-red-600' : 'text-foreground'}`}>
               ¥{item.price.toLocaleString()}
             </div>
             {canViewMinPrice && item.minPrice != null && item.minPrice > 0 && (
-              <div className="text-xs text-orange-600">
+              <div className="text-[10px] text-orange-600">
                 底价 ¥{item.minPrice.toLocaleString()}
               </div>
             )}

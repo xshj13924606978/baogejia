@@ -2590,11 +2590,11 @@ export default function ChatMessage({
             </div>
           )}
 
-          {/* 产品对比卡片（支持多品牌或多款同品牌产品对比） */}
+          {/* 产品对比卡片（不受 prose 容器宽度限制） */}
           {message.metadata?.entities?.brandCompare &&
             Array.isArray(message.metadata.entities.brandCompare) &&
             message.metadata.entities.brandCompare.length >= 2 && (
-              <div className="mt-4">
+              <div className="mt-4 not-prose">
                 <BrandCompareCard
                   items={message.metadata.entities.brandCompare}
                   onBrandSelect={(item) => onBrandSelect?.(message.id, item)}
