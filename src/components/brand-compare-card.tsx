@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { ChevronDown, ChevronUp, Factory, Tag, Shield, Eye, EyeOff, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Factory, Tag, Shield, Eye, EyeOff, Check, Award, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 
@@ -29,6 +29,8 @@ export interface BrandCompareItem {
   paramDiffs?: string[];
   /** 是否为回退模式（无严格匹配时展示的相近产品） */
   isFallback?: boolean;
+  /** 匹配类型：精确匹配 or 相近匹配 */
+  matchType?: 'exact' | 'close';
 }
 
 interface BrandCompareCardProps {
@@ -103,16 +105,22 @@ export function BrandCompareCard({ items, onBrandSelect }: BrandCompareCardProps
         <span className="text-xs">（共 {items.length} 款产品，点击卡片查看详情）</span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {items.map((item, index) => (
-          <ProductCard
-            key={`${item.brand}-${item.model}-${index}`}
-            item={item}
-            diffKeys={findDifferentiatingKeys(items)}
-            hasPriceDiff={new Set(items.map(i => i.price).filter(p => p > 0)).size > 1}
-            isRecommended={index === 0}
-            onSelect={() => onBrandSelect?.(item)}
-          />
-        ))}
+        {items.map((item, index) => {
+          // 判断是否为性价比推荐（价格最低）
+          const prices = items.map(i => i.price).filter(p => p > 0);
+          const isCheapest = prices.length > 1 && item.price === Math.min(...prices);
+          return (
+            <ProductCard
+              key={`${item.brand}-${item.model}-${index}`}
+              item={item}
+              diffKeys={findDifferentiatingKeys(items)}
+              hasPriceDiff={new Set(prices).size > 1}
+              isRecommended={index === 0}
+              isCheapest={isCheapest}
+              onSelect={() => onBrandSelect?.(item)}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -124,12 +132,14 @@ function ProductCard({
   diffKeys,
   hasPriceDiff,
   isRecommended,
+  isCheapest = false,
   onSelect,
 }: {
   item: BrandCompareItem;
   diffKeys: Set<string>;
   hasPriceDiff: boolean;
   isRecommended: boolean;
+  isCheapest?: boolean;
   onSelect: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -170,6 +180,20 @@ function ProductCard({
               <h3 className="font-semibold text-sm truncate">{item.brand}</h3>
               {isRecommended && (
                 <Badge variant="default" className="text-xs shrink-0">推荐</Badge>
+              )}
+              {item.isFallback && (
+                <Badge variant="outline" className="text-xs shrink-0 text-amber-600 border-amber-300">相近产品</Badge>
+              )}
+              {item.matchType === 'exact' && !item.isFallback && (
+                <Badge variant="outline" className="text-xs shrink-0 text-green-600 border-green-300">精确匹配</Badge>
+              )}
+              {item.matchType === 'close' && !item.isFallback && (
+                <Badge variant="outline" className="text-xs shrink-0 text-blue-600 border-blue-300">相近匹配</Badge>
+              )}
+              {isCheapest && hasPriceDiff && (
+                <Badge variant="secondary" className="text-xs shrink-0 text-orange-600">
+                  <TrendingDown className="h-2.5 w-2.5 mr-0.5" />性价比推荐
+                </Badge>
               )}
             </div>
             {item.productName && item.productName !== item.brand && (

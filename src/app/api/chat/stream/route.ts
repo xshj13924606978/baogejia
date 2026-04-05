@@ -170,8 +170,10 @@ export async function POST(request: NextRequest) {
     let databaseInfo: any = null;
     let priceMatchedProducts: any[] | undefined;
     let priceBrandCompareData: any[] | undefined;
+    let extractedProductType = '';
     try {
       const intentPipelineResult = await processWithIntent(message);
+      extractedProductType = intentPipelineResult?.intent?.entities?.productType || '';
       if (intentPipelineResult.source === 'intent' && intentPipelineResult.products.length > 0) {
         enhancedMessage += formatProductsAsContext(intentPipelineResult, message);
         console.log('[Chat Stream API] 意图理解层命中，找到', intentPipelineResult.products.length, '个产品，已增强上下文');
@@ -372,7 +374,8 @@ export async function POST(request: NextRequest) {
               confidence: parsedResponse.confidence || 0.9,
               entities: {
                 webSearchUsed,
-              brandCompare: priceBrandCompareData,
+                productType: extractedProductType,
+                brandCompare: priceBrandCompareData,
                 matchedProducts: priceMatchedProducts?.map((p: any) => ({
                   brand: p.brand,
                   supplier: p.supplier,
@@ -387,6 +390,7 @@ export async function POST(request: NextRequest) {
                   tags: p.tags || [],
                   matchLevel: p.matchLevel,
                   matchedBy: p.matchedBy,
+                  matchType: p.matchType || null,
                   parameters: p.parameters,
                 })),
               },

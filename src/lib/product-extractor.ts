@@ -440,3 +440,26 @@ export class ProductExtractor {
     return true;
   }
 }
+
+/**
+ * 通用参数回退提取函数（当 LLM 提取失败时使用正则回退）
+ * 从任意产品的 parameter_description 中提取参数键值对
+ * 返回 Record<string, string>，如 {"排气量": "0.8m³/min", "功率": "5.5KW"}
+ */
+export function fallbackExtractParams(text: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!text) return result;
+
+  // 通用键值对提取
+  const kvRegex = /([^，,、\n]+?)\s*[：:：]\s*([^，,、\n]+)/g;
+  let match;
+  while ((match = kvRegex.exec(text)) !== null) {
+    const key = match[1].trim();
+    const value = match[2].trim();
+    if (key && value && key.length < 20 && value.length < 30) {
+      result[key] = value;
+    }
+  }
+
+  return result;
+}
