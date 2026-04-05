@@ -165,17 +165,19 @@ export async function POST(request: NextRequest) {
       console.log('[Chat Stream API] 对话历史:', { conversationId, historyCount: history.length });
     }
 
-    // 3.5. 意图理解 + 语义搜索（仅用于增强上下文，不接管对比卡片）
+    // 3.5. 意图理解 + 语义搜索（增强上下文 + 过滤卡片数据）
     let enhancedMessage = message;
     let databaseInfo: any = null;
     let priceMatchedProducts: any[] | undefined;
     let priceBrandCompareData: any[] | undefined;
     let extractedProductType = '';
+    let intentProducts: any[] = []; // 保存意图管道结果用于过滤卡片
     try {
       const intentPipelineResult = await processWithIntent(message);
       extractedProductType = intentPipelineResult?.intent?.entities?.productType || '';
       if (intentPipelineResult.source === 'intent' && intentPipelineResult.products.length > 0) {
         enhancedMessage += formatProductsAsContext(intentPipelineResult, message);
+        intentProducts = intentPipelineResult.products;
         console.log('[Chat Stream API] 意图理解层命中，找到', intentPipelineResult.products.length, '个产品，已增强上下文');
       }
     } catch (error) {
@@ -218,7 +220,49 @@ export async function POST(request: NextRequest) {
       console.error('[Chat Stream API] 价格查询失败:', error);
     }
 
-    // 4.5 标记联网搜索需求（所有非琐碎咨询）
+    // 4.5 用意图管道结果过滤卡片数据（解决两套管道独立导致卡片未过滤的根因）
+    if (intentProducts.length > 0 && priceBrandCompareData && priceBrandCompareData.length > 0) {
+      // 构建意图管道中精确匹配产品的标识集合（name+model组合）
+      const exactKeys = new Set(
+        intentProducts
+          .filter((p: any) => p.matchType === 'exact')
+          .map((p: any) => `${p.name}|${p.model}`)
+      );
+      const closeKeys = new Set(
+        intentProducts
+          .filter((p: any) => p.matchType === 'close')
+          .map((p: any) => `${p.name}|${p.model}`)
+      );
+
+      const beforeCount = priceBrandCompareData.length;
+      priceBrandCompareData = priceBrandCompareData.filter((item: any) => {
+        const key = `${item.productName || item.brand || ''}|${item.model}`;
+        if (exactKeys.has(key)) {
+          item.matchType = 'exact';
+          return true;
+        }
+        if (closeKeys.has(key)) {
+          item.matchType = 'close';
+          item.isFallback = true;
+          return true;
+        }
+        return false; // 不在意图管道结果中的产品被过滤掉
+      });
+
+      // 同步过滤 priceMatchedProducts
+      if (priceMatchedProducts && priceMatchedProducts.length > 0) {
+        const allowedKeys = new Set([
+          ...exactKeys, ...closeKeys
+        ]);
+        priceMatchedProducts = priceMatchedProducts.filter((p: any) => {
+          return allowedKeys.has(`${p.name || ''}|${p.model}`);
+        });
+      }
+
+      console.log(`[Chat Stream API] 意图过滤卡片: ${beforeCount} → ${priceBrandCompareData.length} 款 (精确${exactKeys.size}, 相近${closeKeys.size})`);
+    }
+
+    // 4.6 标记联网搜索需求（所有非琐碎咨询）
     const trivialPattern = /^(你好|hello|hi|hey|谢谢|thanks|再见|bye|ok|好的|嗯|嗯嗯|是|不是|对|错|收到|明白)$/i;
     const isTrivial = trivialPattern.test(message.trim()) || message.trim().length < 4;
     let needsWebSearch = !isTrivial;

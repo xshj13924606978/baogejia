@@ -104,7 +104,7 @@ export function BrandCompareCard({ items, onBrandSelect }: BrandCompareCardProps
         </span>
         <span className="text-xs">（共 {items.length} 款产品，点击卡片查看详情）</span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-4xl">
         {items.map((item, index) => {
           // 判断是否为性价比推荐（价格最低）
           const prices = items.map(i => i.price).filter(p => p > 0);
@@ -166,7 +166,7 @@ function ProductCard({
 
   return (
     <Card
-      className={`transition-shadow hover:shadow-md cursor-pointer max-w-[280px] overflow-hidden ${
+      className={`transition-shadow hover:shadow-md cursor-pointer overflow-hidden w-full ${
         isRecommended
           ? 'border-blue-500 ring-1 ring-blue-200 bg-blue-50/20'
           : ''
