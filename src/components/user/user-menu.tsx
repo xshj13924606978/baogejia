@@ -435,15 +435,29 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     }
   };
 
-  // 保存供应商信息
-  const handleSaveSupplier = () => {
-    setEditingSupplier(false);
-    setShowSupplierDialog(false);
-    toast({
-      title: '保存成功',
-      description: '供应商信息已更新',
-      duration: 2000,
-    });
+  // 保存供应商信息（持久化到数据库）
+  const handleSaveSupplier = async () => {
+    try {
+      const userId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}').id : null;
+      const res = await fetch('/api/user/business-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userId ? { 'x-user-id': userId } : {}),
+        },
+        body: JSON.stringify(supplierForm),
+      });
+      const result = await res.json();
+      if (!result.success) {
+        toast({ title: '保存失败', description: result.error || '未知错误', variant: 'destructive', duration: 3000 });
+        return;
+      }
+      setEditingSupplier(false);
+      setShowSupplierDialog(false);
+      toast({ title: '保存成功', description: '商务信息已保存，刷新页面后仍会保留', duration: 2000 });
+    } catch {
+      toast({ title: '保存失败', description: '网络错误', variant: 'destructive', duration: 3000 });
+    }
   };
 
   // 保存客户信息
@@ -729,6 +743,32 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
   // 动态菜单配置（必须在条件返回之前调用，遵守 Hooks 规则）
   const { data: menuConfig, loading: menuLoading } = useUserMenuConfig();
+
+  // 加载商务信息（从数据库持久化）
+  useEffect(() => {
+    const userId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}').id : null;
+    if (!userId) return;
+
+    fetch('/api/user/business-profile', {
+      headers: { 'x-user-id': userId, 'Content-Type': 'application/json' },
+    })
+      .then(res => res.json())
+      .then(result => {
+        if (result.success && result.data) {
+          setSupplierForm({
+            companyName: result.data.companyName || '',
+            contactPerson: result.data.contactPerson || '',
+            phone: result.data.phone || '',
+            email: result.data.email || '',
+            address: result.data.companyAddress || '',
+            bankName: result.data.bankName || '',
+            bankAccount: result.data.bankAccount || '',
+            taxNumber: result.data.taxNumber || '',
+          });
+        }
+      })
+      .catch(err => console.error('[UserMenu] 加载商务信息失败:', err));
+  }, []);
 
   if (loading) {
     return (

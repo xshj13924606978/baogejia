@@ -88,6 +88,18 @@ export default function CustomerListPanel({
   const [templates, setTemplates] = useState<CustomerTemplate[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 获取认证 headers（带 x-user-id）
+  const getAuthHeaders = () => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.id) headers['x-user-id'] = user.id;
+      const token = localStorage.getItem('token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+    } catch {}
+    return headers;
+  };
+
   // 从localStorage加载模板
   useEffect(() => {
     const savedTemplates = localStorage.getItem('customerTemplates');
@@ -109,7 +121,7 @@ export default function CustomerListPanel({
       const url = searchTerm
         ? `/api/customers?search=${encodeURIComponent(searchTerm)}`
         : '/api/customers';
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: getAuthHeaders() });
       if (response.ok) {
         const data = await response.json();
         setCustomers(data.customers || []);
@@ -132,9 +144,7 @@ export default function CustomerListPanel({
 
       const response = await fetch('/api/customers', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(customerData),
       });
 
@@ -181,6 +191,7 @@ export default function CustomerListPanel({
     try {
       const response = await fetch(`/api/customers?id=${customerToDelete.id}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
       });
 
       if (response.ok) {
@@ -294,7 +305,7 @@ export default function CustomerListPanel({
           if (values.length >= 3) {
             return fetch('/api/customers', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: getAuthHeaders(),
               body: JSON.stringify({
                 companyName: values[0] || '',
                 projectName: values[1] || '',

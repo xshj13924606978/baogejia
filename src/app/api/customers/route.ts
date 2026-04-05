@@ -1,15 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/lib/supabase';
 
-// GET - 获取客户列表
+/**
+ * 获取当前请求的用户 ID（兼容多种认证方式，优先 x-user-id header）
+ */
+async function getUserId(request: NextRequest): Promise<string | null> {
+  const xUserId = request.headers.get('x-user-id');
+  if (xUserId) return xUserId;
+
+  try {
+    const { getCurrentUser } = await import('@/lib/auth-utils');
+    const user = await getCurrentUser(request);
+    return user?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+// GET - 获取客户列表（按用户隔离）
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getUserId(request);
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search');
 
     const supabase = getSupabaseClient();
-
     let query = supabase.from('customers').select('*').order('created_at', { ascending: false });
+
+    // 按用户隔离（通过 metadata.user_id）
+    if (userId) {
+      query = query.eq('metadata->>user_id', userId);
+    }
 
     // 搜索功能
     if (search) {
@@ -29,51 +50,32 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - 添加新客户
+// POST - 添加新客户（带用户隔离）
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getUserId(request);
     const body = await request.json();
 
     const supabase = getSupabaseClient();
 
-    // 只插入有值的字段
     const insertData: any = {
       company_name: body.companyName,
+      metadata: { user_id: userId, ...body.metadata },
     };
 
-    // 可选字段，只有有值时才添加
-    if (body.projectName !== undefined && body.projectName !== '') {
-      insertData.project_name = body.projectName;
-    }
-    if (body.contactPerson !== undefined && body.contactPerson !== '') {
-      insertData.contact_person = body.contactPerson;
-    }
-    if (body.phone !== undefined && body.phone !== '') {
-      insertData.phone = body.phone;
-    }
-    if (body.email !== undefined && body.email !== '') {
-      insertData.email = body.email;
-    }
-    if (body.address !== undefined && body.address !== '') {
-      insertData.address = body.address;
-    }
-    if (body.bankName !== undefined && body.bankName !== '') {
-      insertData.bank_name = body.bankName;
-    }
-    if (body.bankAccount !== undefined && body.bankAccount !== '') {
-      insertData.bank_account = body.bankAccount;
-    }
-    if (body.taxNumber !== undefined && body.taxNumber !== '') {
-      insertData.tax_number = body.taxNumber;
-    }
-    if (body.creditLimit !== undefined && body.creditLimit !== null && body.creditLimit !== 0) {
-      insertData.credit_limit = body.creditLimit;
-    }
-    if (body.paymentTerms !== undefined && body.paymentTerms !== '') {
-      insertData.payment_terms = body.paymentTerms;
-    }
-    if (body.notes !== undefined && body.notes !== '') {
-      insertData.notes = body.notes;
+    // 可选字段
+    const fieldMap: Record<string, string> = {
+      projectName: 'project_name', contactPerson: 'contact_person',
+      phone: 'phone', email: 'email', address: 'address',
+      bankName: 'bank_name', bankAccount: 'bank_account',
+      taxNumber: 'tax_number', notes: 'notes',
+      paymentTerms: 'payment_terms', creditLimit: 'credit_limit',
+    };
+    for (const [bodyKey, dbKey] of Object.entries(fieldMap)) {
+      const val = (body as any)[bodyKey];
+      if (val !== undefined && val !== '') {
+        insertData[dbKey] = val;
+      }
     }
 
     const { data: customer, error } = await supabase
@@ -91,9 +93,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE - 删除客户
+// DELETE - 删除客户（验证用户权限）
 export async function DELETE(request: NextRequest) {
   try {
+    const userId = await getUserId(request);
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id');
 
@@ -102,8 +105,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabase = getSupabaseClient();
+    let query = supabase.from('customers').delete().eq('id', id);
 
-    const { error } = await supabase.from('customers').delete().eq('id', id);
+    // 用户隔离
+    if (userId) {
+      query = query.eq('metadata->>user_id', userId);
+    }
+
+    const { error } = await query;
 
     if (error) throw error;
 
@@ -114,9 +123,10 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// PUT - 更新客户
+// PUT - 更新客户（验证用户权限）
 export async function PUT(request: NextRequest) {
   try {
+    const userId = await getUserId(request);
     const body = await request.json();
     const { id, ...updateData } = body;
 
@@ -126,54 +136,28 @@ export async function PUT(request: NextRequest) {
 
     const supabase = getSupabaseClient();
 
-    // 只更新有值的字段
-    const updateObj: any = {
-      updated_at: new Date().toISOString(),
+    const updateObj: any = { updated_at: new Date().toISOString() };
+
+    const fieldMap: Record<string, string> = {
+      companyName: 'company_name', projectName: 'project_name',
+      contactPerson: 'contact_person', phone: 'phone', email: 'email',
+      address: 'address', bankName: 'bank_name', bankAccount: 'bank_account',
+      taxNumber: 'tax_number', notes: 'notes',
+      paymentTerms: 'payment_terms', creditLimit: 'credit_limit',
     };
-
-    if (updateData.companyName !== undefined && updateData.companyName !== '') {
-      updateObj.company_name = updateData.companyName;
-    }
-    if (updateData.projectName !== undefined && updateData.projectName !== '') {
-      updateObj.project_name = updateData.projectName;
-    }
-    if (updateData.contactPerson !== undefined && updateData.contactPerson !== '') {
-      updateObj.contact_person = updateData.contactPerson;
-    }
-    if (updateData.phone !== undefined && updateData.phone !== '') {
-      updateObj.phone = updateData.phone;
-    }
-    if (updateData.email !== undefined && updateData.email !== '') {
-      updateObj.email = updateData.email;
-    }
-    if (updateData.address !== undefined && updateData.address !== '') {
-      updateObj.address = updateData.address;
-    }
-    if (updateData.bankName !== undefined && updateData.bankName !== '') {
-      updateObj.bank_name = updateData.bankName;
-    }
-    if (updateData.bankAccount !== undefined && updateData.bankAccount !== '') {
-      updateObj.bank_account = updateData.bankAccount;
-    }
-    if (updateData.taxNumber !== undefined && updateData.taxNumber !== '') {
-      updateObj.tax_number = updateData.taxNumber;
-    }
-    if (updateData.creditLimit !== undefined && updateData.creditLimit !== null) {
-      updateObj.credit_limit = updateData.creditLimit;
-    }
-    if (updateData.paymentTerms !== undefined && updateData.paymentTerms !== '') {
-      updateObj.payment_terms = updateData.paymentTerms;
-    }
-    if (updateData.notes !== undefined && updateData.notes !== '') {
-      updateObj.notes = updateData.notes;
+    for (const [bodyKey, dbKey] of Object.entries(fieldMap)) {
+      const val = (updateData as any)[bodyKey];
+      if (val !== undefined && val !== '') {
+        updateObj[dbKey] = val;
+      }
     }
 
-    const { data: customer, error } = await supabase
-      .from('customers')
-      .update(updateObj)
-      .eq('id', id)
-      .select()
-      .single();
+    let query = supabase.from('customers').update(updateObj).eq('id', id);
+    if (userId) {
+      query = query.eq('metadata->>user_id', userId);
+    }
+
+    const { data: customer, error } = await query.select().single();
 
     if (error) throw error;
 

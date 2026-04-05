@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Upload, Paperclip, Sparkles, Square, Loader2, Plus, Code, ArrowUp, ChevronDown, Layers, ArrowDownToLine, MessageSquare, Zap, FileText, Sparkle, Info, Brain, FileSpreadsheet, FileText as _FileTextIcon, Image as _ImageIcon, ImageIcon } from 'lucide-react';
+import { Upload, Paperclip, Sparkles, Square, Loader2, Plus, Code, ArrowUp, ChevronDown, Layers, ArrowDownToLine, MessageSquare, Zap, FileText, Sparkle, Info, Brain, FileSpreadsheet, FileText as _FileTextIcon, Image as _ImageIcon, ImageIcon, Users } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import ChatMessage from '@/components/chat-message';
 import { BrandCompareItem } from '@/components/brand-compare-card';
@@ -254,6 +254,10 @@ export default function ChatArea({
   const parsedFilesMapRef = useRef(parsedFilesMap);
   const [showKnowledgeCenter, setShowKnowledgeCenter] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>('deepseek');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
+    () => typeof window !== 'undefined' ? localStorage.getItem('selectedCustomerId') || '' : ''
+  );
+  const [customerList, setCustomerList] = useState<Array<{id: string; company_name: string}>>([]);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [activeModule, setActiveModule] = useState<string | null>(null);
 
@@ -370,6 +374,25 @@ export default function ChatArea({
       window.removeEventListener('new-conversation', handleNewConversation);
     };
   }, [resetSwitch, onTitleChange, scrollToBottom]);
+
+  // 加载客户列表
+  useEffect(() => {
+    const loadCustomers = async () => {
+      try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        try {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          if (user.id) headers['x-user-id'] = user.id;
+        } catch {}
+        const res = await fetch('/api/customers', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setCustomerList((data.customers || []).map((c: any) => ({ id: c.id, company_name: c.company_name })));
+        }
+      } catch {}
+    };
+    loadCustomers();
+  }, []);
 
   useEffect(() => {
     const handleSelectConversation = (event: Event) => {
@@ -1155,6 +1178,7 @@ export default function ChatArea({
           message,
           conversationId,
           model: selectedModel,
+          ...(selectedCustomerId && selectedCustomerId !== 'none' ? { customerId: selectedCustomerId } : {}),
         }),
         signal: abortControllerRef.current?.signal,
       });
@@ -2475,6 +2499,35 @@ export default function ChatArea({
                       生成模式
                     </TooltipContent>
                   </Tooltip>
+
+                  {/* 客户选择器 */}
+                  {customerList.length > 0 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Select value={selectedCustomerId} onValueChange={(val) => {
+                          setSelectedCustomerId(val);
+                          localStorage.setItem('selectedCustomerId', val);
+                        }}>
+                          <SelectTrigger className="h-9 w-auto min-w-[90px] max-w-[140px] rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs">
+                            <Users className="h-3.5 w-3.5 mr-1 text-emerald-500" />
+                            <SelectValue placeholder="选择客户" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">无客户</SelectItem>
+                            {customerList.map(c => (
+                              <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
+                      >
+                        当前客户（报价单将引用此客户信息）
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">

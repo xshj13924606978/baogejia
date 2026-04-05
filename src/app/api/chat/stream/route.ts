@@ -7,6 +7,7 @@ import { getCurrentUser } from '@/lib/auth-utils';
 import { pointsService } from '@/lib/points-service';
 import { searchWeb, formatSearchResult } from '@/lib/web-search';
 import { processWithIntent, formatProductsAsContext } from '@/lib/intent-pipeline';
+import { buildSupplierContext, buildCustomerContext } from '@/lib/inject-business-info';
 
 // 从数据库加载对话历史
 async function loadConversationHistory(conversationId: string) {
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     // 1. 解析请求
     const body = await request.json();
-    const { message, conversationId, model } = body;
+    const { message, conversationId, model, customerId } = body;
 
     console.log('[Chat Stream API] 请求参数:', {
       hasMessage: !!message,
@@ -274,7 +275,67 @@ export async function POST(request: NextRequest) {
     const smartProcessor = smartChatProcessor;
 
     // 6. 构建系统提示词和消息
-    const systemPrompt = (smartChatProcessor as any).buildSystemPrompt(processedInput);
+    let systemPrompt = (smartChatProcessor as any).buildSystemPrompt(processedInput);
+
+    // 6.1 注入商务信息（供应方）和客户信息（采购方）到 system prompt
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      // 获取商务信息（供应方）
+      if (userId) {
+        const { data: supplier } = await supabase
+          .from('suppliers')
+          .select('company_name,contact_person,phone,email,address,tax_number,bank_name,bank_account')
+          .eq('metadata->>user_id', userId)
+          .single();
+
+        if (supplier) {
+          const supplierCtx = buildSupplierContext({
+            companyName: supplier.company_name,
+            contactPerson: supplier.contact_person,
+            phone: supplier.phone,
+            email: supplier.email,
+            companyAddress: supplier.address,
+            taxNumber: supplier.tax_number,
+            bankName: supplier.bank_name,
+            bankAccount: supplier.bank_account,
+          });
+          if (supplierCtx) {
+            systemPrompt += '\n' + supplierCtx;
+            console.log('[Chat Stream API] 已注入供应方商务信息');
+          }
+        }
+      }
+
+      // 获取客户信息（采购方）
+      if (customerId) {
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('company_name,contact_person,phone,email,address,project_name')
+          .eq('id', customerId)
+          .single();
+
+        if (customer) {
+          const customerCtx = buildCustomerContext({
+            companyName: customer.company_name,
+            contactPerson: customer.contact_person,
+            phone: customer.phone,
+            email: customer.email,
+            address: customer.address,
+            projectName: customer.project_name,
+          });
+          if (customerCtx) {
+            systemPrompt += '\n' + customerCtx;
+            console.log('[Chat Stream API] 已注入客户信息:', customer.company_name);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Chat Stream API] 注入商务/客户信息失败（非致命）:', err);
+    }
 
     const messages = [
       { role: 'system' as const, content: systemPrompt },
