@@ -44,7 +44,7 @@ const ATTRIBUTE_FILTERS: Record<string, {
   '稳定': { ilikeField: 'parameter_description', ilikePattern: '%工频%' },
 };
 
-// 参数字段 → parameter_description 中的中文标签
+// specs key → parameter_description 中的中文标签（通用映射，支持所有产品品类）
 const SPEC_FIELD_MAP: Record<string, string> = {
   flowRate: '排气量',
   pressure: '工作压力',
@@ -52,9 +52,70 @@ const SPEC_FIELD_MAP: Record<string, string> = {
   voltage: '电压',
   controlType: '',
   volume: '',
+  flow: '流量',
+  head: '扬程',
+  airVolume: '风量',
+  windPressure: '风压',
+  speed: '转速',
+  current: '电流',
+  frequency: '频率',
+  noise: '噪音',
+  weight: '重量',
+  temperature: '温度',
+  capacity: '容量',
 };
 
-// ═══════════════════════ 工具函数 ═══════════════════════
+// ═══════════════════════ 通用工具函数 ═══════════════════════
+
+// 从环境变量读取容差（百分比），默认精确5%/相近20%
+const EXACT_TOLERANCE = (parseFloat(process.env.NUMERIC_MATCH_TOLERANCE_EXACT || '5')) / 100;
+const CLOSE_TOLERANCE = (parseFloat(process.env.NUMERIC_MATCH_TOLERANCE_CLOSE || '20')) / 100;
+
+/**
+ * 通用数值匹配：精确(<5%) / 相近(5-20%) / 不匹配(>20%)
+ */
+export function matchNumericParam(
+  userValue: number,
+  productValue: number
+): { matched: boolean; type: 'exact' | 'close' | 'none' } {
+  if (userValue <= 0) return { matched: false, type: 'none' };
+  const diff = Math.abs(userValue - productValue) / userValue;
+  if (diff < EXACT_TOLERANCE) return { matched: true, type: 'exact' };
+  if (diff < CLOSE_TOLERANCE) return { matched: true, type: 'close' };
+  return { matched: false, type: 'none' };
+}
+
+/**
+ * 从 parameter_description 中通用提取指定参数名的数值
+ * 支持「排气量：0.8」「工作压力:0.8 MPa」等多种分隔符格式
+ */
+export function extractNumericFromText(text: string, paramLabel: string): number | null {
+  if (!text || !paramLabel) return null;
+  const escaped = paramLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(
+    `${escaped}\\s*[：:：]\\s*(\\d+(?:\\.\\d+)?)`,
+    'i'
+  );
+  const match = text.match(pattern);
+  return match ? parseFloat(match[1]) : null;
+}
+
+/**
+ * 从 parameter_description 中提取所有「键：值」参数对
+ * 返回 Map<string, string>，如 {"功率" => "5.5KW", "工作压力" => "0.8MPa"}
+ */
+export function extractAllParamsFromText(text: string): Map<string, string> {
+  const params = new Map<string, string>();
+  if (!text) return params;
+  const kvRegex = /([^，,、\n]+?)\s*[：:：]\s*([^，,、\n]+)/g;
+  let match;
+  while ((match = kvRegex.exec(text)) !== null) {
+    const key = match[1].trim();
+    const value = match[2].trim();
+    if (key && value) params.set(key, value);
+  }
+  return params;
+}
 
 function extractPrice(price: any): number {
   if (price == null || price === '') return 0;
@@ -119,7 +180,7 @@ export class IntentBasedSearch {
       strategies.push(`品牌=${brand}`);
     }
 
-    // 3. 参数过滤（从 parameter_description 中匹配）
+    // 3. 参数过滤（从 parameter_description 中通用匹配）
     if (specs) {
       for (const [key, value] of Object.entries(specs)) {
         if (!value) continue;
@@ -133,12 +194,14 @@ export class IntentBasedSearch {
         } else if (key === 'controlType') {
           query = query.ilike('parameter_description', `%${value}%`);
           strategies.push(`控制方式=${value}`);
-        } else if (SPEC_FIELD_MAP[key]) {
+        } else {
+          // 通用逻辑：通过 SPEC_FIELD_MAP 查找中文标签，无映射时用 key 本身
           const label = SPEC_FIELD_MAP[key];
           const numValue = String(value).replace(/[^0-9.]/g, '');
-          if (label && numValue) {
-            query = query.ilike('parameter_description', `%${label}%`);
-            strategies.push(`${label}≈${value}`);
+          if (numValue) {
+            const searchLabel = label || key;
+            query = query.ilike('parameter_description', `%${searchLabel}%`);
+            strategies.push(`${searchLabel}≈${value}`);
           }
         }
       }
@@ -185,9 +248,14 @@ export class IntentBasedSearch {
 
     let results = (products || []).map(toIntentProduct);
 
-    // 6. 参数精确过滤（从 parameter_description 提取数值，±20% 容差）
+    // 6. 参数精确过滤（通用匹配：精确<5%/相近5-20%，超出20%不返回）
     if (specs && results.length > 0) {
-      results = this.filterBySpecs(results, specs);
+      const useGeneric = process.env.ENABLE_GENERIC_MATCHING !== 'false';
+      if (useGeneric) {
+        results = this.filterBySpecsGeneric(results, specs);
+      } else {
+        results = this.filterBySpecsLegacy(results, specs);
+      }
     }
 
     // 7. 排序
@@ -226,9 +294,10 @@ export class IntentBasedSearch {
   }
 
   /**
-   * 按 specs 参数值精确过滤（±20% 容差）
+   * 通用参数过滤（新逻辑）：从 parameter_description 动态提取参数值
+   * 精确匹配(<5%)直接保留，相近匹配(5-20%)保留并标记，超出20%不返回
    */
-  private filterBySpecs(products: IntentProduct[], specs: Record<string, string>): IntentProduct[] {
+  private filterBySpecsGeneric(products: IntentProduct[], specs: Record<string, string>): IntentProduct[] {
     return products.filter(product => {
       const paramText = product.parameterDescription;
 
@@ -237,33 +306,75 @@ export class IntentBasedSearch {
         const numValue = parseFloat(String(value).replace(/[^0-9.]/g, ''));
         if (isNaN(numValue) || numValue <= 0) continue;
 
-        // 从 parameter_description 中提取对应参数值
+        let extractedValue: number | null = null;
+        let specLabel = '';
+
+        if (key === 'volume') {
+          const modelNum = parseFloat((product.model || '').replace(/[^0-9.]/g, ''));
+          if (!isNaN(modelNum) && modelNum > 0) extractedValue = modelNum;
+          specLabel = '容量';
+        } else if (key === 'controlType') {
+          if (!paramText.includes(value)) return false;
+          continue;
+        } else {
+          // 通用逻辑：优先通过 SPEC_FIELD_MAP 查找中文标签，无映射时直接用 key
+          const label = SPEC_FIELD_MAP[key];
+          specLabel = label || key;
+          if (label) {
+            extractedValue = extractNumericFromText(paramText, label);
+          }
+          if (extractedValue === null) {
+            extractedValue = extractNumericFromText(paramText, key);
+            if (extractedValue !== null) specLabel = key;
+          }
+        }
+
+        if (extractedValue !== null) {
+          const result = matchNumericParam(numValue, extractedValue);
+          console.log(`[IntentBasedSearch] 数值匹配: ${specLabel} 需求=${numValue} 实际=${extractedValue} 类型=${result.type} 容差=精确${EXACT_TOLERANCE * 100}%/相近${CLOSE_TOLERANCE * 100}%`);
+          if (!result.matched) {
+            console.log(`[IntentBasedSearch] 过滤掉 ${product.name} ${product.model}: ${specLabel}=${extractedValue} 超出${CLOSE_TOLERANCE * 100}%容差 (需求=${numValue})`);
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }
+
+  /**
+   * 旧参数过滤逻辑（降级方案）
+   */
+  private filterBySpecsLegacy(products: IntentProduct[], specs: Record<string, string>): IntentProduct[] {
+    return products.filter(product => {
+      const paramText = product.parameterDescription;
+
+      for (const [key, value] of Object.entries(specs)) {
+        if (!value) continue;
+        const numValue = parseFloat(String(value).replace(/[^0-9.]/g, ''));
+        if (isNaN(numValue) || numValue <= 0) continue;
+
         let extractedValue: number | null = null;
         let specLabel = '';
         if (key === 'volume') {
-          // 容量产品，检查 model 字段
           const modelNum = parseFloat((product.model || '').replace(/[^0-9.]/g, ''));
           if (!isNaN(modelNum) && modelNum > 0) extractedValue = modelNum;
         } else if (key === 'controlType') {
-          // 控制方式精确匹配
           if (!paramText.includes(value)) return false;
           continue;
         } else {
           const label = SPEC_FIELD_MAP[key];
           specLabel = label || key;
           if (label) {
-            const match = paramText.match(
-              new RegExp(`${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[：:：]\\s*(\\d+(?:\\.\\d+)?)`, 'i')
-            );
-            if (match) extractedValue = parseFloat(match[1]);
+            extractedValue = extractNumericFromText(paramText, label);
           }
         }
 
         if (extractedValue !== null) {
-          // 容差 ±10%（精确匹配用户指定参数，避免混入差异过大的产品）
           const ratio = extractedValue / numValue;
           if (ratio < 0.9 || ratio > 1.1) {
-            console.log(`[IntentBasedSearch] 过滤掉 ${product.name} ${product.model}: ${specLabel}=${extractedValue} 超出范围 [${numValue * 0.9}, ${numValue * 1.1}]`);
+            console.log(`[IntentBasedSearch] [旧逻辑] 过滤掉 ${product.name} ${product.model}: ${specLabel}=${extractedValue} 超出±10%容差`);
             return false;
           }
         }

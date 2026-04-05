@@ -491,6 +491,19 @@ export class ProductMatcher {
   }
 
   /**
+   * 根据 matchType 计算 confidence（供调用方使用）
+   */
+  static calculateConfidence(matchLevel: 'exact' | 'approximate' | 'other', matchType?: 'exact' | 'close'): number {
+    // 如果有 matchType 信息，使用精确的置信度
+    if (matchType === 'exact') return 0.95;
+    if (matchType === 'close') return 0.70;
+    // 否则基于 matchLevel
+    if (matchLevel === 'exact') return 0.95;
+    if (matchLevel === 'approximate') return 0.70;
+    return 0.50;
+  }
+
+  /**
    * 获取最佳匹配
    */
   public getBestMatch(results: MatchResult[]): MatchResult | null {

@@ -7,6 +7,7 @@
 
 import { intentUnderstanding } from './intent-understanding';
 import { intentBasedSearch } from './intent-based-search';
+import { extractAllParams, getKeyParameters } from './product-comparison';
 import type { Intent, IntentResult, IntentProduct } from './intent-understanding';
 
 // ═══════════════════════ 接口 ═══════════════════════
@@ -17,6 +18,14 @@ export interface PipelineResult {
   confidence: number;
   intent?: Intent;
   searchStrategy?: string;
+}
+
+/** 按关键参数分组后的产品组 */
+export interface ProductGroup {
+  key: string;
+  representative: IntentProduct;
+  count: number;
+  products: IntentProduct[];
 }
 
 // ═══════════════════════ 管道 ═══════════════════════
@@ -73,16 +82,54 @@ export async function processWithIntent(userInput: string): Promise<PipelineResu
   }
 }
 
+// ═══════════════════════ 分组函数 ═══════════════════════
+
+/**
+ * 按关键参数分组（通用：自动识别参数维度）
+ * 用于将大量匹配产品按关键差异分组展示
+ */
+export function groupByKeyParams(products: IntentProduct[], keyParams?: string[]): ProductGroup[] {
+  if (products.length === 0) return [];
+
+  const productType = products[0]?.name || '';
+  const params = keyParams || getKeyParameters(productType, products);
+  // 取前2个参数作为分组键（避免过度细分）
+  const groupKeys = params.slice(0, 2);
+
+  if (groupKeys.length === 0) {
+    return [{ key: 'all', representative: products[0], count: products.length, products }];
+  }
+
+  const groups = new Map<string, IntentProduct[]>();
+
+  for (const product of products) {
+    const allParams = extractAllParams(product.parameterDescription);
+    const groupKey = groupKeys.map(p => `${p}:${allParams.get(p) || '-'}`).join('|');
+    if (!groups.has(groupKey)) {
+      groups.set(groupKey, []);
+    }
+    groups.get(groupKey)!.push(product);
+  }
+
+  const maxPerGroup = parseInt(process.env.MAX_PRODUCTS_PER_GROUP || '3', 10);
+  return Array.from(groups.entries()).map(([key, prods]) => ({
+    key,
+    representative: prods[0],
+    count: prods.length,
+    products: prods.slice(0, maxPerGroup),
+  }));
+}
+
 /**
  * 将搜索结果格式化为 Markdown 上下文（注入到 AI 消息中）
+ * 通用版：自动从 parameter_description 提取参数列
  */
 export function formatProductsAsContext(result: PipelineResult, originalQuery: string): string {
   if (result.products.length === 0) return '';
 
-  const intent = result.intent;
   const products = result.products;
 
-  // 单个产品 — 简洁卡片
+  // 单个产品 — 简洁卡片（通用参数展示）
   if (products.length === 1) {
     const p = products[0];
     let ctx = `\n\n【数据库产品信息】\n`;
@@ -98,30 +145,39 @@ export function formatProductsAsContext(result: PipelineResult, originalQuery: s
     return ctx;
   }
 
-  // 多个产品 — 对比表格
+  // 多个产品 — 动态参数对比表格
   let ctx = `\n\n【数据库产品信息】\n`;
   ctx += `根据您的需求"${originalQuery}"，找到 ${products.length} 款产品：\n\n`;
 
-  // 构建表格（差异点标注）
-  ctx += `| 序号 | 产品名称 | 型号 | 单价（元） | 最低售价（元） | 品牌 |\n`;
-  ctx += `|:---:|:---|:---|:---:|:---:|:---|\n`;
+  // 自动检测参数维度
+  const productType = result.intent?.entities?.productType || products[0]?.name || '';
+  const keyParams = getKeyParameters(productType, products);
+  // 取前4个参数维度展示（避免表格过宽）
+  const displayParams = keyParams.slice(0, 4);
 
-  // 价格范围用于标注最便宜和最贵
+  // 构建动态表头
+  ctx += `| 序号 | 产品名称 | 型号 | ${displayParams.join(' | ')} | 价格（元） |\n`;
+  ctx += `|:---:|:---|:---|${displayParams.map(() => ':---').join('|')}|:---:|\n`;
+
+  // 价格范围用于标注最便宜
   const prices = products.map(p => p.minPrice || p.price).filter(v => v > 0);
   const minP = Math.min(...prices);
-  const maxP = Math.max(...prices);
 
   products.forEach((p, i) => {
-    const price = p.price.toLocaleString('zh-CN', { minimumFractionDigits: 2 });
-    const minPrice = p.minPrice > 0
-      ? p.minPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2 })
-      : '-';
+    const paramValues = displayParams.map(paramKey => {
+      const params = extractAllParams(p.parameterDescription);
+      return params.get(paramKey) || '-';
+    });
+
     let tag = '';
     const pMin = p.minPrice || p.price;
-    if (pMin === minP && prices.length > 1) tag = ' ⭐最低价';
-    if (pMin === maxP && prices.length > 1) tag = '';
+    if (pMin === minP && prices.length > 1) tag = ' ⭐';
 
-    ctx += `| ${i + 1}${tag ? ' ⭐' : ''} | ${p.name} | ${p.model || '-'} | ¥${price} | ¥${minPrice} | ${p.brand || '-'} |\n`;
+    const priceStr = p.minPrice > 0
+      ? `¥${p.minPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
+      : `¥${p.price.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`;
+
+    ctx += `| ${i + 1}${tag} | ${p.name} | ${p.model || '-'} | ${paramValues.join(' | ')} | ${priceStr} |\n`;
   });
 
   // 推荐产品参数详情

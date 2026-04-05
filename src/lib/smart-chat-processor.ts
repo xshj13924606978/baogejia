@@ -25,16 +25,39 @@ import { processWithIntent, formatProductsAsContext, PipelineResult } from './in
  * 判断产品参数是否满足用户需求
  * 返回 true 表示满足（在容差范围内）
  */
+// 通用参数标签映射（支持所有产品品类）
+const PARAM_LABELS: Record<string, string> = {
+  flowRate: '排气量', pressure: '工作压力', power: '功率',
+  voltage: '电压', controlType: '控制方式', tankType: '储气罐',
+  flow: '流量', head: '扬程', airVolume: '风量', windPressure: '风压',
+  speed: '转速', current: '电流', frequency: '频率', noise: '噪音',
+  weight: '重量', temperature: '温度', capacity: '容量',
+};
+
+// 通用参数单位映射
+const PARAM_UNITS: Record<string, string> = {
+  flowRate: 'm³/min', pressure: 'MPa', power: 'KW',
+  flow: 'm³/h', head: 'm', airVolume: 'm³/min', windPressure: 'Pa',
+  speed: 'rpm', current: 'A', frequency: 'Hz', noise: 'dB',
+  weight: 'kg', temperature: '℃', capacity: 'L',
+};
+
+// 已知为文本型（非数值型）的参数 key
+const TEXT_PARAMS = new Set(['voltage', 'controlType', 'tankType']);
+
 function isParamMatch(userValue: any, productValue: any, paramKey: string): boolean {
   if (userValue == null || productValue == null) return true; // 用户未指定则不约束
-  if (paramKey === 'voltage' || paramKey === 'controlType' || paramKey === 'tankType') {
+  // 文本型参数：精确匹配
+  if (TEXT_PARAMS.has(paramKey)) {
     return String(userValue) === String(productValue);
   }
   const numUser = parseFloat(String(userValue));
   const numProduct = parseFloat(String(productValue));
   if (isNaN(numUser) || isNaN(numProduct)) return String(userValue) === String(productValue);
-  const tolerance = paramKey === 'power' ? 0.5 : 0.05;
-  return Math.abs(numProduct - numUser) < tolerance;
+  // 通用比例容差：±10%
+  if (numUser <= 0) return String(userValue) === String(productValue);
+  const ratio = Math.abs(numProduct - numUser) / numUser;
+  return ratio < 0.10;
 }
 
 /**
@@ -53,20 +76,13 @@ function meetsAllRequirements(userParams: Record<string, any>, productParams: Re
  */
 function getParamDiffs(userParams: Record<string, any>, productParams: Record<string, any>): string[] {
   const diffs: string[] = [];
-  const labels: Record<string, string> = {
-    flowRate: '排气量', pressure: '工作压力', power: '功率',
-    voltage: '电压', controlType: '控制方式', tankType: '储气罐',
-  };
-  const units: Record<string, string> = {
-    flowRate: 'm³/min', pressure: 'MPa', power: 'KW',
-  };
   for (const key of Object.keys(userParams)) {
     if (userParams[key] == null) continue;
     const productValue = productParams[key];
     if (productValue == null) continue;
     if (!isParamMatch(userParams[key], productValue, key)) {
-      const label = labels[key] || key;
-      const unit = units[key] || '';
+      const label = PARAM_LABELS[key] || key;
+      const unit = PARAM_UNITS[key] || '';
       diffs.push(`${label}: 需求${userParams[key]}${unit}, 实际${productValue}${unit}`);
     }
   }
@@ -385,32 +401,40 @@ export class SmartChatProcessor {
           // 展示所有满足需求的产品对比表格
           const displayProducts = relevantProducts.slice(0, 10);
 
-          // 构建Markdown表格
-          contextInfo += `| 序号 | 产品型号 | 排气量 | 工作压力 | 功率 | 电压 | 控制方式 | 储气罐 | 价格区间 |\n`;
-          contextInfo += `|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n`;
+          // 通用：动态检测参数维度
+          const displayParamKeys = ['flowRate', 'pressure', 'power', 'voltage', 'controlType', 'tankType',
+            'flow', 'head', 'airVolume', 'windPressure', 'speed', 'current', 'frequency', 'noise'];
+          // 只展示产品实际有的参数列
+          const activeParamKeys = displayParamKeys.filter(key => {
+            return displayProducts.some(p => {
+              const params = (p as any).parameters || {};
+              return params[key] != null && params[key] !== '';
+            });
+          }).slice(0, 6); // 最多展示6个参数列
+
+          // 构建Markdown表格（动态列）
+          const paramHeaders = activeParamKeys.map(k => PARAM_LABELS[k] || k);
+          contextInfo += `| 序号 | 产品型号 | ${paramHeaders.join(' | ')} | 价格区间 |\n`;
+          contextInfo += `|:---:|:---|${activeParamKeys.map(() => ':---').join('|')}|:---:|\n`;
 
           displayProducts.forEach((product, index) => {
             const params = (product as any).parameters || {};
             const isRecommended = index === 0 ? '⭐' : '';
 
-            // 差异标注：仅标注满足需求的产品中，与其他参数不同的点
             const formatParam = (key: string, value: any): string => {
-              if (value == null) return '-';
-              // 用户没有指定该参数，直接显示
+              if (value == null || value === '') return '-';
               if (userRequirementParams[key] == null) return `${value}`;
-              // 用户指定了该参数但产品不满足 → 仅在回退模式下标注
               if (!isParamMatch(userRequirementParams[key], value, key)) {
                 return isFallbackMode ? `${value} ⚠️` : `${value}`;
               }
-              // 满足需求，直接显示
               return `${value}`;
             };
 
-            // 格式化价格
             const priceMin = params.minPrice ? params.minPrice.toLocaleString() : (product.price?.toLocaleString() || '面议');
             const priceMax = params.costPrice ? params.costPrice.toLocaleString() : (product.price?.toLocaleString() || '面议');
+            const paramCells = activeParamKeys.map(k => formatParam(k, params[k])).join(' | ');
 
-            contextInfo += `| ${index + 1}${isRecommended} | ${product.model || '-'} | ${formatParam('flowRate', params.flowRate)} | ${formatParam('pressure', params.pressure)} | ${formatParam('power', params.power)} | ${params.voltage || '-'} | ${params.controlType || '-'} | ${params.tankType || '-'} | ¥${priceMin}-${priceMax} |\n`;
+            contextInfo += `| ${index + 1}${isRecommended} | ${product.model || '-'} | ${paramCells} | ¥${priceMin}-${priceMax} |\n`;
           });
 
           contextInfo += `\n`;
@@ -436,16 +460,28 @@ export class SmartChatProcessor {
             contextInfo += `*还有 ${relevantProducts.length - 10} 款产品未显示*\n\n`;
           }
 
-          // 标注当前推荐产品的参数详情
+          // 标注当前推荐产品的参数详情（通用版：展示产品实际参数）
           const recommended = relevantProducts[0];
           if (recommended) {
             const params = (recommended as any).parameters || {};
 
             contextInfo += `**⭐ 推荐产品详情：**\n`;
-            contextInfo += `- **品牌**：${recommended.brand || '杰瑞浩'}\n`;
+            contextInfo += `- **品牌**：${recommended.brand || '-'}\n`;
             contextInfo += `- **型号**：${recommended.model || '-'}\n`;
-            contextInfo += `- **核心参数**：排气量 ${params.flowRate || '-'} m³/min，工作压力 ${params.pressure || '-'} MPa，功率 ${params.power || '-'} KW，电压 ${params.voltage || '-'}\n`;
-            contextInfo += `- **产品特点**：${params.controlType || '工频'}机型，${params.tankType || '单储气罐'}，${params.controlType === '永磁变频' ? '节能效果好，适合长时间运行' : '经济实惠，适合间歇性使用'}\n`;
+            // 动态展示产品实际有的参数
+            const paramParts: string[] = [];
+            for (const key of activeParamKeys) {
+              if (params[key] != null && params[key] !== '') {
+                const label = PARAM_LABELS[key] || key;
+                paramParts.push(`${label} ${params[key]}`);
+              }
+            }
+            if (paramParts.length > 0) {
+              contextInfo += `- **核心参数**：${paramParts.join('，')}\n`;
+            }
+            if (recommended.parameterDescription) {
+              contextInfo += `- **产品特点**：${recommended.parameterDescription}\n`;
+            }
             contextInfo += `- **参考价格**：¥${params.minPrice?.toLocaleString() || recommended.price?.toLocaleString()} 元\n\n`;
           }
 
