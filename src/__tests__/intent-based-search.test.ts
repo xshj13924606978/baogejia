@@ -1,51 +1,71 @@
 /**
  * 通用数值匹配测试
+ * 容差：精确±3% / 相近±10% / 不匹配>±10%
  */
 import { matchNumericParam, extractNumericFromText, extractAllParamsFromText } from '@/lib/intent-based-search';
 
 describe('matchNumericParam', () => {
-  test('精确匹配：0.8 匹配 0.78-0.84（误差<5%）', () => {
-    const result1 = matchNumericParam(0.8, 0.78);
+  test('精确匹配：1.1 m³/min 精确范围 1.067-1.133（误差<3%）', () => {
+    const result1 = matchNumericParam(1.1, 1.08);
     expect(result1.matched).toBe(true);
     expect(result1.type).toBe('exact');
 
-    const result2 = matchNumericParam(0.8, 0.84);
+    const result2 = matchNumericParam(1.1, 1.1);
     expect(result2.matched).toBe(true);
     expect(result2.type).toBe('exact');
 
-    const result3 = matchNumericParam(0.8, 0.8);
+    const result3 = matchNumericParam(1.1, 1.13);
     expect(result3.matched).toBe(true);
     expect(result3.type).toBe('exact');
   });
 
-  test('相近匹配：0.8 匹配 0.68-0.76 或 0.84-0.96（误差5-20%）', () => {
-    const result1 = matchNumericParam(0.8, 0.72);
+  test('精确边界：1.1 * 0.97 = 1.067 → 刚好在精确边界外', () => {
+    const result = matchNumericParam(1.1, 1.067);
+    // |1.1 - 1.067| / 1.1 = 0.03 = 3%，不满足 < 3%
+    expect(result.type).toBe('close');
+  });
+
+  test('相近匹配：1.1 相近范围 0.99-1.21（误差3-10%）', () => {
+    const result1 = matchNumericParam(1.1, 1.0);
+    // |1.1 - 1.0| / 1.1 = 0.091 = 9.1% → close
     expect(result1.matched).toBe(true);
     expect(result1.type).toBe('close');
 
-    const result2 = matchNumericParam(0.8, 0.92);
+    const result2 = matchNumericParam(1.1, 1.05);
+    // |1.1 - 1.05| / 1.1 = 0.045 = 4.5% → close
     expect(result2.matched).toBe(true);
     expect(result2.type).toBe('close');
   });
 
-  test('不匹配：0.8 不匹配 0.6 或 1.0（误差>20%）', () => {
-    const result1 = matchNumericParam(0.8, 0.6);
-    expect(result1.matched).toBe(false);
-    expect(result1.type).toBe('none');
-
-    const result2 = matchNumericParam(0.8, 1.0);
-    expect(result2.matched).toBe(false);
-    expect(result2.type).toBe('none');
+  test('不匹配：1.1 不匹配 0.9（误差18%）', () => {
+    const result = matchNumericParam(1.1, 0.9);
+    // |1.1 - 0.9| / 1.1 = 0.182 = 18.2% → none
+    expect(result.matched).toBe(false);
+    expect(result.type).toBe('none');
   });
 
-  test('边界值：5% 正好是精确和相近的分界', () => {
-    // 0.8 * 0.05 = 0.04，所以 0.76 是精确边界
-    const exact = matchNumericParam(0.8, 0.76);
-    expect(exact.type).toBe('close'); // 0.76/0.8 = 0.95，diff = 0.05，不满足 <0.05
+  test('不匹配：1.1 不匹配 1.3（误差18%）', () => {
+    const result = matchNumericParam(1.1, 1.3);
+    // |1.1 - 1.3| / 1.1 = 0.182 = 18.2% → none
+    expect(result.matched).toBe(false);
+    expect(result.type).toBe('none');
+  });
 
-    // 0.8 * 0.20 = 0.16，所以 0.64 是相近边界
-    const close = matchNumericParam(0.8, 0.64);
-    expect(close.type).toBe('none'); // diff = 0.20，不满足 <0.20
+  test('相近边界：1.1 * 0.9 = 0.99 → 刚好在相近边界外', () => {
+    const result = matchNumericParam(1.1, 0.99);
+    // |1.1 - 0.99| / 1.1 = 0.10 = 10%，不满足 < 10%
+    expect(result.type).toBe('none');
+  });
+
+  test('errorPercent 正确计算', () => {
+    const result1 = matchNumericParam(1.1, 1.0);
+    expect(result1.errorPercent).toBe(9); // 9%
+
+    const result2 = matchNumericParam(1.1, 0.9);
+    expect(result2.errorPercent).toBe(18); // 18%
+
+    const result3 = matchNumericParam(1.1, 1.1);
+    expect(result3.errorPercent).toBe(0); // 0%
   });
 
   test('无效输入：userValue <= 0 返回 none', () => {
@@ -54,14 +74,33 @@ describe('matchNumericParam', () => {
     expect(result.type).toBe('none');
   });
 
-  test('功率匹配：5.5KW 匹配 5.2-5.8KW', () => {
-    const result = matchNumericParam(5.5, 5.3);
+  test('功率匹配：5.5KW 精确范围 5.335-5.665', () => {
+    const result = matchNumericParam(5.5, 5.5);
     expect(result.matched).toBe(true);
     expect(result.type).toBe('exact');
 
     const result2 = matchNumericParam(5.5, 5.0);
+    // |5.5 - 5.0| / 5.5 = 9.1% → close
     expect(result2.matched).toBe(true);
     expect(result2.type).toBe('close');
+
+    const result3 = matchNumericParam(5.5, 4.8);
+    // |5.5 - 4.8| / 5.5 = 12.7% → none
+    expect(result3.matched).toBe(false);
+    expect(result3.type).toBe('none');
+  });
+
+  test('0.8 m³/min 精确范围 0.776-0.824', () => {
+    const exact = matchNumericParam(0.8, 0.8);
+    expect(exact.type).toBe('exact');
+
+    const close = matchNumericParam(0.8, 0.75);
+    // |0.8 - 0.75| / 0.8 = 6.25% → close
+    expect(close.type).toBe('close');
+
+    const none = matchNumericParam(0.8, 0.7);
+    // |0.8 - 0.7| / 0.8 = 12.5% → none
+    expect(none.type).toBe('none');
   });
 });
 

@@ -121,13 +121,56 @@ export function groupByKeyParams(products: IntentProduct[], keyParams?: string[]
 }
 
 /**
+ * 将产品列表格式化为 Markdown 表格（辅助函数）
+ */
+function formatProductTable(products: IntentProduct[], productType: string, matchType: 'exact' | 'close'): string {
+  if (products.length === 0) return '';
+
+  const keyParams = getKeyParameters(productType, products);
+  const displayParams = keyParams.slice(0, 4);
+
+  // 构建动态表头
+  let ctx = `| 序号 | 产品名称 | 型号 | ${displayParams.join(' | ')} | 价格（元） |\n`;
+  ctx += `|:---:|:---|:---|${displayParams.map(() => ':---').join('|')}|:---:|\n`;
+
+  const prices = products.map(p => p.minPrice || p.price).filter(v => v > 0);
+  const minP = Math.min(...prices);
+
+  products.forEach((p, i) => {
+    const paramValues = displayParams.map(paramKey => {
+      const params = extractAllParams(p.parameterDescription);
+      return params.get(paramKey) || '-';
+    });
+
+    let tag = '';
+    const pMin = p.minPrice || p.price;
+    if (pMin === minP && prices.length > 1) tag = ' ⭐';
+
+    // 相近产品标注误差
+    if (matchType === 'close' && p.matchDetails) {
+      tag = ` ⚠️${p.matchDetails}`;
+    }
+
+    const priceStr = p.minPrice > 0
+      ? `¥${p.minPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
+      : `¥${p.price.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`;
+
+    ctx += `| ${i + 1}${tag} | ${p.name} | ${p.model || '-'} | ${paramValues.join(' | ')} | ${priceStr} |\n`;
+  });
+
+  ctx += '\n';
+  return ctx;
+}
+
+/**
  * 将搜索结果格式化为 Markdown 上下文（注入到 AI 消息中）
- * 通用版：自动从 parameter_description 提取参数列
+ * 通用版：自动从 parameter_description 提取参数列，按 matchType 分组展示
  */
 export function formatProductsAsContext(result: PipelineResult, originalQuery: string): string {
   if (result.products.length === 0) return '';
 
   const products = result.products;
+  const productType = result.intent?.entities?.productType || products[0]?.name || '';
 
   // 单个产品 — 简洁卡片（通用参数展示）
   if (products.length === 1) {
@@ -145,40 +188,30 @@ export function formatProductsAsContext(result: PipelineResult, originalQuery: s
     return ctx;
   }
 
-  // 多个产品 — 动态参数对比表格
+  // 多个产品 — 按 matchType 分组展示（精确在前，相近在后）
   let ctx = `\n\n【数据库产品信息】\n`;
-  ctx += `根据您的需求"${originalQuery}"，找到 ${products.length} 款产品：\n\n`;
 
-  // 自动检测参数维度
-  const productType = result.intent?.entities?.productType || products[0]?.name || '';
-  const keyParams = getKeyParameters(productType, products);
-  // 取前4个参数维度展示（避免表格过宽）
-  const displayParams = keyParams.slice(0, 4);
+  // 按 matchType 分组
+  const exactProducts = products.filter(p => p.matchType === 'exact');
+  const closeProducts = products.filter(p => p.matchType === 'close');
 
-  // 构建动态表头
-  ctx += `| 序号 | 产品名称 | 型号 | ${displayParams.join(' | ')} | 价格（元） |\n`;
-  ctx += `|:---:|:---|:---|${displayParams.map(() => ':---').join('|')}|:---:|\n`;
+  if (exactProducts.length > 0 && closeProducts.length > 0) {
+    // 有精确和相近两类产品，分组展示
+    ctx += `根据您的需求"${originalQuery}"，找到 ${products.length} 款产品：\n\n`;
 
-  // 价格范围用于标注最便宜
-  const prices = products.map(p => p.minPrice || p.price).filter(v => v > 0);
-  const minP = Math.min(...prices);
+    // 精确匹配区域
+    ctx += `**✅ 精确匹配**（${exactProducts.length} 款）\n\n`;
+    ctx += formatProductTable(exactProducts, productType, 'exact');
 
-  products.forEach((p, i) => {
-    const paramValues = displayParams.map(paramKey => {
-      const params = extractAllParams(p.parameterDescription);
-      return params.get(paramKey) || '-';
-    });
-
-    let tag = '';
-    const pMin = p.minPrice || p.price;
-    if (pMin === minP && prices.length > 1) tag = ' ⭐';
-
-    const priceStr = p.minPrice > 0
-      ? `¥${p.minPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
-      : `¥${p.price.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`;
-
-    ctx += `| ${i + 1}${tag} | ${p.name} | ${p.model || '-'} | ${paramValues.join(' | ')} | ${priceStr} |\n`;
-  });
+    // 相近匹配区域
+    ctx += `**⚠️ 相近产品**（${closeProducts.length} 款，参数存在偏差）\n\n`;
+    ctx += formatProductTable(closeProducts, productType, 'close');
+  } else {
+    // 全部精确或全部相近，统一表格
+    const matchLabel = exactProducts.length > 0 ? '精确匹配' : '相近匹配';
+    ctx += `根据您的需求"${originalQuery}"，${matchLabel}到 ${products.length} 款产品：\n\n`;
+    ctx += formatProductTable(products, productType, exactProducts.length > 0 ? 'exact' : 'close');
+  }
 
   // 推荐产品参数详情
   const recommended = products[0];
