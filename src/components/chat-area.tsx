@@ -388,9 +388,9 @@ export default function ChatArea({
     };
   }, [resetSwitch, onTitleChange, scrollToBottom]);
 
-  // 加载客户列表
+  // 加载客户列表 + 供应商信息
   useEffect(() => {
-    const loadCustomers = async () => {
+    const loadData = async () => {
       try {
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         try {
@@ -402,9 +402,29 @@ export default function ChatArea({
           const data = await res.json();
           setCustomerList((data.customers || []).map((c: any) => ({ id: c.id, company_name: c.company_name || c.companyName || '' })));
         }
+        // 加载供应商信息并保存到 localStorage 供 QuoteTable 使用
+        const bizRes = await fetch('/api/user/business-profile', { headers });
+        if (bizRes.ok) {
+          const bizResult = await bizRes.json();
+          const biz = bizResult.data;
+          if (biz && biz.companyName) {
+            const info = {
+              companyName: biz.companyName || '',
+              contactPerson: biz.contactPerson || '',
+              phone: biz.phone || '',
+              email: biz.email || '',
+              address: biz.companyAddress || '',
+              bankName: biz.bankName || '',
+              bankAccount: biz.bankAccount || '',
+              taxNumber: biz.taxNumber || '',
+            };
+            localStorage.setItem('supplierInfo', JSON.stringify(info));
+            window.dispatchEvent(new Event('supplier-info-updated'));
+          }
+        }
       } catch {}
     };
-    loadCustomers();
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -1788,6 +1808,19 @@ export default function ChatArea({
               } catch {}
             }
 
+              // 读取当前客户信息（优先 CustomerContext，其次 localStorage）
+              let customerName = currentCustomer?.companyName || '';
+              let customerContact = currentCustomer?.contactPerson || '';
+              let customerPhone = currentCustomer?.phone || '';
+              if (!customerName) {
+                try {
+                  const stored = JSON.parse(localStorage.getItem('currentCustomer') || '{}');
+                  customerName = stored.companyName || '';
+                  customerContact = stored.contactPerson || '';
+                  customerPhone = stored.phone || '';
+                } catch {}
+              }
+
             newQuoteData = {
               quoteNumber: `QT${Date.now()}`,
               supplierInfo: {
@@ -1801,8 +1834,10 @@ export default function ChatArea({
                 taxNumber: savedSupplierInfo?.taxNumber || '',
               },
               customerInfo: {
-                name: '',
+                name: customerName,
                 projectName: '',
+                contactPerson: customerContact,
+                phone: customerPhone,
               },
               products: [newProduct],
               subtotal: item.price,

@@ -307,6 +307,8 @@ export async function POST(request: NextRequest) {
             systemPrompt += '\n' + supplierCtx;
             console.log('[Chat Stream API] 已注入供应方商务信息');
           }
+        } else {
+          console.log('[Chat Stream API] 未找到供应方数据, userId:', userId);
         }
       }
 
@@ -332,6 +334,10 @@ export async function POST(request: NextRequest) {
             console.log('[Chat Stream API] 已注入客户信息:', customer.company_name);
           }
         }
+      } else {
+        // 没选客户时提醒 AI
+        systemPrompt += '\n【注意】当前未选择客户，生成报价单时请先询问客户的名称、联系人、电话等信息。';
+        console.log('[Chat Stream API] 未传入customerId，提示AI询问客户信息');
       }
     } catch (err) {
       console.error('[Chat Stream API] 注入商务/客户信息失败（非致命）:', err);

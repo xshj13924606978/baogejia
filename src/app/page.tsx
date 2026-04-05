@@ -25,15 +25,20 @@ export default function Home() {
 
   // 从 localStorage 加载供应商信息
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('supplierInfo');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed && parsed.companyName) {
-          setSupplierInfo(parsed);
+    const load = () => {
+      try {
+        const stored = localStorage.getItem('supplierInfo');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && parsed.companyName) {
+            setSupplierInfo(parsed);
+          }
         }
-      }
-    } catch {}
+      } catch {}
+    };
+    load();
+    window.addEventListener('supplier-info-updated', load);
+    return () => window.removeEventListener('supplier-info-updated', load);
   }, []);
 
   // 监听对话标题变化
