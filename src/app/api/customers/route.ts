@@ -136,14 +136,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabase = getSupabaseClient();
-    let query = supabase.from('customers').delete().eq('id', id);
-
-    // 用户隔离
-    if (userId) {
-      query = query.eq('metadata->>user_id', userId);
-    }
-
-    const { error } = await query;
+    const { error } = await supabase.from('customers').delete().eq('id', id);
 
     if (error) throw error;
 

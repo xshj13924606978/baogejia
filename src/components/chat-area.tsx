@@ -13,6 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronsUpDown, Search } from 'lucide-react';
 import { Upload, Paperclip, Sparkles, Square, Loader2, Plus, Code, ArrowUp, ChevronDown, Layers, ArrowDownToLine, MessageSquare, Zap, FileText, Sparkle, Info, Brain, FileSpreadsheet, FileText as _FileTextIcon, Image as _ImageIcon, ImageIcon, Users } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import ChatMessage from '@/components/chat-message';
@@ -25,6 +27,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 import { logOnce, logWithTimestamp, warnOnce } from '@/lib/logger';
 import { getClientAuthHeaders } from '@/lib/client-utils';
+import { useCustomer } from '@/contexts/CustomerContext';
 
 interface SupplierInfo {
   companyName: string;
@@ -257,7 +260,17 @@ export default function ChatArea({
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
     () => typeof window !== 'undefined' ? localStorage.getItem('selectedCustomerId') || '' : ''
   );
+  const { currentCustomer, setCurrentCustomer } = useCustomer();
   const [customerList, setCustomerList] = useState<Array<{id: string; company_name: string}>>([]);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerPopoverOpen, setCustomerPopoverOpen] = useState(false);
+
+  // CustomerContext 变化时同步 selectedCustomerId（客户管理页选择后自动同步）
+  useEffect(() => {
+    if (currentCustomer?.id) {
+      setSelectedCustomerId(currentCustomer.id);
+    }
+  }, [currentCustomer]);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [activeModule, setActiveModule] = useState<string | null>(null);
 
@@ -387,7 +400,7 @@ export default function ChatArea({
         const res = await fetch('/api/customers', { headers });
         if (res.ok) {
           const data = await res.json();
-          setCustomerList((data.customers || []).map((c: any) => ({ id: c.id, company_name: c.company_name })));
+          setCustomerList((data.customers || []).map((c: any) => ({ id: c.id, company_name: c.company_name || c.companyName || '' })));
         }
       } catch {}
     };
@@ -2401,45 +2414,6 @@ export default function ChatArea({
                     <TooltipTrigger asChild>
                       <Button
                         variant="ghost"
-                        size="icon"
-                        disabled={loading}
-                        className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                      >
-                        <Code className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="top"
-                      className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
-                    >
-                      插入代码
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        disabled={loading || isGeneratingImage || !input.trim()}
-                        onClick={() => handleGenerateImage()}
-                        className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400"
-                      >
-                        <ImageIcon className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="top"
-                      className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
-                    >
-                      生图（消耗10积分）
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
                         size="sm"
                         onClick={() => setShowKnowledgeCenter(true)}
                         className="h-9 px-3 rounded-full bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 gap-1.5"
@@ -2500,33 +2474,66 @@ export default function ChatArea({
                     </TooltipContent>
                   </Tooltip>
 
-                  {/* 客户选择器 */}
+                  {/* 客户选择器（带搜索） */}
                   {customerList.length > 0 && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Select value={selectedCustomerId} onValueChange={(val) => {
-                          setSelectedCustomerId(val);
-                          localStorage.setItem('selectedCustomerId', val);
-                        }}>
-                          <SelectTrigger className="h-9 w-auto min-w-[90px] max-w-[140px] rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs">
-                            <Users className="h-3.5 w-3.5 mr-1 text-emerald-500" />
-                            <SelectValue placeholder="选择客户" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">无客户</SelectItem>
-                            {customerList.map(c => (
-                              <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>
+                    <Popover open={customerPopoverOpen} onOpenChange={setCustomerPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="h-9 w-auto min-w-[90px] max-w-[160px] rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs justify-start gap-1"
+                        >
+                          <Users className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                            <span className="truncate">
+                            {currentCustomer?.companyName || '选择客户'}
+                          </span>
+                          <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[240px] p-0" align="start">
+                        <div className="p-2 border-b">
+                          <div className="flex items-center gap-2 px-2">
+                            <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <input
+                              placeholder="搜索客户..."
+                              className="flex-1 text-xs bg-transparent outline-none placeholder:text-muted-foreground"
+                              value={customerSearch}
+                              onChange={(e) => setCustomerSearch(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div className="max-h-[200px] overflow-y-auto p-1">
+                          <button
+                            className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2"
+                            onClick={() => {
+                              setSelectedCustomerId('');
+                              setCurrentCustomer(null);
+                              setCustomerPopoverOpen(false);
+                              setCustomerSearch('');
+                            }}
+                          >
+                            <span className="flex-1">无客户</span>
+                            {!selectedCustomerId && <Check className="h-3 w-3 text-emerald-500" />}
+                          </button>
+                          {customerList
+                            .filter(c => !customerSearch || c.company_name.toLowerCase().includes(customerSearch.toLowerCase()))
+                            .map(c => (
+                              <button
+                                key={c.id}
+                                className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2"
+                                onClick={() => {
+                                  setSelectedCustomerId(c.id);
+                                  setCurrentCustomer({ id: c.id, companyName: c.company_name });
+                                  setCustomerPopoverOpen(false);
+                                  setCustomerSearch('');
+                                }}
+                              >
+                                <span className="flex-1 truncate">{c.company_name}</span>
+                                {selectedCustomerId === c.id && <Check className="h-3 w-3 text-emerald-500 shrink-0" />}
+                              </button>
                             ))}
-                          </SelectContent>
-                        </Select>
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="top"
-                        className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
-                      >
-                        当前客户（报价单将引用此客户信息）
-                      </TooltipContent>
-                    </Tooltip>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   )}
                 </div>
 

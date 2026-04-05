@@ -9,6 +9,11 @@ const UserProvider = dynamic(
   { ssr: false }
 );
 
+const CustomerProvider = dynamic(
+  () => import('@/contexts/CustomerContext').then((mod) => mod.CustomerProvider),
+  { ssr: false }
+);
+
 // 开发环境用户切换器
 const DevUserSwitcher = process.env.NODE_ENV === 'development'
   ? dynamic(() => import('@/components/dev-user-switcher').then((mod) => mod.DevUserSwitcher), { ssr: false })
@@ -17,8 +22,10 @@ const DevUserSwitcher = process.env.NODE_ENV === 'development'
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider>
-      <SwitchProvider>{children}</SwitchProvider>
-      <DevUserSwitcher />
+      <CustomerProvider>
+        <SwitchProvider>{children}</SwitchProvider>
+        <DevUserSwitcher />
+      </CustomerProvider>
     </UserProvider>
   );
 }

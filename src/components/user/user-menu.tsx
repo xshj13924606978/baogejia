@@ -818,7 +818,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       if (url) window.open(url, '_blank');
       else handleHelp();
     } else if (actionType === 'dialog' && dialogKey) {
- if (dialogKey === 'payment') {
+      if (dialogKey === 'customer') {
+        // 客户管理跳转到独立页面
+        handleNavigation('/customers');
+        return;
+      }
+      if (dialogKey === 'payment') {
         setShowPaymentPanel(!showPaymentPanel);
       } else {
         const handler = dialogHandlers[dialogKey];

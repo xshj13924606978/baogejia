@@ -172,19 +172,34 @@ export default function CustomerPanel() {
 
   // 客户选择后的回调
   const handleCustomerSelected = (customer: any) => {
-    setFormData({
-      name: customer.companyName || '',
-      projectName: customer.projectName || '',
-      contactPerson: customer.contactPerson || '',
+    // 兼容数据库snake_case和前端camelCase两种字段名
+    const c = {
+      companyName: customer.companyName || customer.company_name || '',
+      projectName: customer.projectName || customer.project_name || '',
+      contactPerson: customer.contactPerson || customer.contact_person || '',
       phone: customer.phone || '',
       email: customer.email || '',
       address: customer.address || '',
-      bankName: customer.bankName || '',
-      bankAccount: customer.bankAccount || '',
-      taxNumber: customer.taxNumber || '',
-      paymentTerms: customer.paymentTerms || '',
-      creditLimit: customer.creditLimit || 0,
+      bankName: customer.bankName || customer.bank_name || '',
+      bankAccount: customer.bankAccount || customer.bank_account || '',
+      taxNumber: customer.taxNumber || customer.tax_number || '',
+      paymentTerms: customer.paymentTerms || customer.payment_terms || '',
+      creditLimit: customer.creditLimit || customer.credit_limit || 0,
       notes: customer.notes || '',
+    };
+    setFormData({
+      name: c.companyName,
+      projectName: c.projectName,
+      contactPerson: c.contactPerson,
+      phone: c.phone,
+      email: c.email,
+      address: c.address,
+      bankName: c.bankName,
+      bankAccount: c.bankAccount,
+      taxNumber: c.taxNumber,
+      paymentTerms: c.paymentTerms,
+      creditLimit: c.creditLimit,
+      notes: c.notes,
     });
 
     toast({

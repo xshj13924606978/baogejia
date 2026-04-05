@@ -37,6 +37,25 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 
+/** 数据库 snake_case → 前端 camelCase 转换 */
+function toCustomer(row: any): Customer {
+  return {
+    id: String(row.id),
+    companyName: row.company_name || row.companyName || '',
+    projectName: row.project_name || row.projectName || '',
+    contactPerson: row.contact_person || row.contactPerson || '',
+    phone: row.phone || '',
+    email: row.email || '',
+    address: row.address || '',
+    bankName: row.bank_name || row.bankName || '',
+    bankAccount: row.bank_account || row.bankAccount || '',
+    taxNumber: row.tax_number || row.taxNumber || '',
+    creditLimit: row.credit_limit ?? row.creditLimit ?? 0,
+    paymentTerms: row.payment_terms || row.paymentTerms || '',
+    notes: row.notes || '',
+  };
+}
+
 interface Customer {
   id: string;
   companyName: string;
@@ -75,13 +94,19 @@ export default function CustomerListPanel({
   onSelect?: (customer: Customer) => void;
   onClose?: () => void;
 }) {
-  const { quoteData, updateCustomerInfo } = useQuote();
+  let updateCustomerInfo: Function = () => {};
+  try {
+    const quote = useQuote();
+    if (quote?.updateCustomerInfo) updateCustomerInfo = quote.updateCustomerInfo;
+  } catch {}
   const { toast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
@@ -124,7 +149,7 @@ export default function CustomerListPanel({
       const response = await fetch(url, { headers: getAuthHeaders() });
       if (response.ok) {
         const data = await response.json();
-        setCustomers(data.customers || []);
+        setCustomers((data.customers || []).map(toCustomer));
       }
     } catch (error) {
       console.error('获取客户列表失败:', error);
@@ -151,7 +176,7 @@ export default function CustomerListPanel({
       if (response.ok) {
         const data = await response.json();
         console.log('[CustomerListPanel] 添加成功:', data);
-        setCustomers([...customers, data.customer]);
+        setCustomers([...customers, toCustomer(data.customer)]);
         setShowAddDialog(false);
         toast({
           title: '添加成功',
@@ -217,6 +242,29 @@ export default function CustomerListPanel({
     }
   };
 
+  // 更新客户
+  const handleUpdateCustomer = async (data: Customer) => {
+    try {
+      const res = await fetch('/api/customers', {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setCustomers(customers.map(c => c.id === data.id ? toCustomer(result.customer) : c));
+        if (selectedCustomer?.id === data.id) setSelectedCustomer(toCustomer(result.customer));
+        setEditingCustomer(null);
+        toast({ title: '更新成功', description: '客户信息已更新' });
+      } else {
+        const err = await res.json();
+        toast({ title: '更新失败', description: err.error || '请重试', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: '更新失败', description: '网络错误', variant: 'destructive' });
+    }
+  };
+
   // 选择客户
   const handleSelectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -227,6 +275,12 @@ export default function CustomerListPanel({
       phone: customer.phone,
       email: customer.email,
       address: customer.address,
+      bankName: customer.bankName || '',
+      bankAccount: customer.bankAccount || '',
+      taxNumber: customer.taxNumber || '',
+      paymentTerms: customer.paymentTerms || '',
+      creditLimit: customer.creditLimit || 0,
+      notes: customer.notes || '',
     });
 
     // 触发选择回调并关闭弹窗
@@ -235,6 +289,38 @@ export default function CustomerListPanel({
     }
     if (onClose) {
       onClose();
+    }
+  };
+
+  const toggleCheck = (id: string) => {
+    setCheckedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (checkedIds.size === customers.length) {
+      setCheckedIds(new Set());
+    } else {
+      setCheckedIds(new Set(customers.map(c => c.id)));
+    }
+  };
+
+  // 批量删除
+  const handleBatchDelete = async () => {
+    if (checkedIds.size === 0) return;
+    if (!confirm(`确定删除选中的 ${checkedIds.size} 个客户？`)) return;
+    try {
+      await Promise.all([...checkedIds].map(id =>
+        fetch(`/api/customers?id=${id}`, { method: 'DELETE', headers: getAuthHeaders() })
+      ));
+      setCustomers(customers.filter(c => !checkedIds.has(c.id)));
+      setCheckedIds(new Set());
+      toast({ title: '批量删除成功', description: `已删除 ${checkedIds.size} 个客户` });
+    } catch {
+      toast({ title: '批量删除失败', variant: 'destructive' });
     }
   };
 
@@ -357,9 +443,14 @@ export default function CustomerListPanel({
                 <Users className="h-5 w-5 text-green-500" />
                 客户资料库
               </CardTitle>
-              <CardDescription>{customers.length} 个客户记录</CardDescription>
+              <CardDescription>{customers.length} 个客户记录{checkedIds.size > 0 && ` · 已选 ${checkedIds.size} 个`}</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              {checkedIds.size > 0 && (
+                <Button size="sm" variant="destructive" onClick={handleBatchDelete}>
+                  删除选中 ({checkedIds.size})
+                </Button>
+              )}
               <Button size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>
                 <FileText className="h-4 w-4 mr-2" />
                 模板
@@ -409,76 +500,41 @@ export default function CustomerListPanel({
                 {searchTerm ? '未找到匹配的客户' : '暂无客户记录'}
               </div>
             ) : (
-              customers.map((customer) => (
-                <div
-                  key={customer.id}
-                  className={`border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
-                    selectedCustomer?.id === customer.id ? 'border-green-500 bg-green-50' : ''
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1" onClick={() => handleSelectCustomer(customer)}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Building className="h-4 w-4 text-gray-500" />
-                        <span className="font-semibold text-sm">{customer.companyName}</span>
-                        {selectedCustomer?.id === customer.id && (
-                          <Check className="h-4 w-4 text-green-500" />
-                        )}
-                      </div>
-
-                      <div className="space-y-1 text-xs text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">项目:</span>
-                          <span>{customer.projectName}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <User className="h-3 w-3" />
-                          <span>{customer.contactPerson}</span>
-                          <Phone className="h-3 w-3 ml-2" />
-                          <span>{customer.phone}</span>
-                        </div>
-                        {customer.email && (
-                          <div className="flex items-center gap-2">
-                            <Mail className="h-3 w-3" />
-                            <span className="truncate">{customer.email}</span>
+              <div>
+                {customers.length > 1 && (
+                  <div className="flex items-center gap-2 px-1 pb-2 border-b mb-2">
+                    <input type="checkbox" checked={checkedIds.size === customers.length} onChange={toggleAll} className="rounded border-gray-300" />
+                    <span className="text-xs text-muted-foreground">全选</span>
+                  </div>
+                )}
+                {customers.map((customer) => (
+                  <div key={customer.id} className={`border rounded-lg p-4 hover:bg-gray-50 transition-colors ${selectedCustomer?.id === customer.id ? 'border-green-500 bg-green-50' : ''}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3 flex-1" onClick={() => handleSelectCustomer(customer)}>
+                        <input type="checkbox" checked={checkedIds.has(customer.id)} onChange={() => toggleCheck(customer.id)} onClick={(e) => e.stopPropagation()} className="mt-1 rounded border-gray-300" />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Building className="h-4 w-4 text-gray-500" />
+                            <span className="font-semibold text-sm">{customer.companyName}</span>
+                            {selectedCustomer?.id === customer.id && <Check className="h-4 w-4 text-green-500" />}
                           </div>
-                        )}
-                        {customer.bankName && (
-                          <div className="flex items-center gap-2 text-blue-600">
-                            <CreditCard className="h-3 w-3" />
-                            <span className="truncate">{customer.bankName}</span>
+                          <div className="space-y-1 text-xs text-gray-600">
+                            <div className="flex items-center gap-2"><span className="font-medium">项目:</span><span>{customer.projectName}</span></div>
+                            <div className="flex items-center gap-2"><User className="h-3 w-3" /><span>{customer.contactPerson}</span><Phone className="h-3 w-3 ml-2" /><span>{customer.phone}</span></div>
+                            {customer.email && <div className="flex items-center gap-2"><Mail className="h-3 w-3" /><span className="truncate">{customer.email}</span></div>}
+                            {customer.bankName && <div className="flex items-center gap-2 text-blue-600"><CreditCard className="h-3 w-3" /><span className="truncate">{customer.bankName}</span></div>}
                           </div>
-                        )}
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="flex gap-1 ml-4">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectCustomer(customer);
-                        }}
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteCustomer(customer);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1 ml-4">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleSelectCustomer(customer); }}><Check className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); setEditingCustomer(customer); }}><Edit2 className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); handleDeleteCustomer(customer); }}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </CardContent>
@@ -504,6 +560,16 @@ export default function CustomerListPanel({
         </DialogContent>
       </Dialog>
 
+      {/* 编辑客户对话框 */}
+      {editingCustomer && (
+        <EditCustomerDialog
+          open={!!editingCustomer}
+          onOpenChange={(open) => { if (!open) setEditingCustomer(null); }}
+          customer={editingCustomer}
+          onSave={handleUpdateCustomer}
+        />
+      )}
+
       {/* 添加客户对话框 */}
       <AddCustomerDialog
         open={showAddDialog}
@@ -520,6 +586,109 @@ export default function CustomerListPanel({
         setTemplates={saveTemplates}
       />
     </>
+  );
+}
+
+// 编辑客户对话框
+function EditCustomerDialog({
+  open, onOpenChange, customer, onSave,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  customer: Customer;
+  onSave: (data: Customer) => Promise<void>;
+}) {
+  const [formData, setFormData] = useState({
+    companyName: customer.companyName,
+    projectName: customer.projectName || '',
+    contactPerson: customer.contactPerson || '',
+    phone: customer.phone || '',
+    email: customer.email || '',
+    address: customer.address || '',
+    bankName: customer.bankName || '',
+    bankAccount: customer.bankAccount || '',
+    taxNumber: customer.taxNumber || '',
+    paymentTerms: customer.paymentTerms || '',
+    creditLimit: customer.creditLimit || 0,
+    notes: customer.notes || '',
+  });
+
+  const handleSubmit = () => {
+    if (!formData.companyName) { alert('请填写公司名称'); return; }
+    onSave({ ...customer, ...formData });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>编辑客户 - {customer.companyName}</DialogTitle>
+          <DialogDescription>修改客户信息</DialogDescription>
+        </DialogHeader>
+        <Tabs defaultValue="basic" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="basic">基本信息</TabsTrigger>
+            <TabsTrigger value="financial">财务信息</TabsTrigger>
+          </TabsList>
+          <TabsContent value="basic" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">公司名称 <span className="text-red-500">*</span></Label>
+                <Input value={formData.companyName} onChange={(e) => setFormData({ ...formData, companyName: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">项目名称</Label>
+                <Input value={formData.projectName} onChange={(e) => setFormData({ ...formData, projectName: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">联系人 <span className="text-red-500">*</span></Label>
+                <Input value={formData.contactPerson} onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">电话 <span className="text-red-500">*</span></Label>
+                <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">邮箱</Label>
+                <Input value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">地址</Label>
+                <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+              </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="financial" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">银行名称</Label>
+                <Input value={formData.bankName} onChange={(e) => setFormData({ ...formData, bankName: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">银行账号</Label>
+                <Input value={formData.bankAccount} onChange={(e) => setFormData({ ...formData, bankAccount: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">税号</Label>
+                <Input value={formData.taxNumber} onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">付款方式</Label>
+                <Input value={formData.paymentTerms} onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">备注</Label>
+              <Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={3} />
+            </div>
+          </TabsContent>
+        </Tabs>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
+          <Button onClick={handleSubmit}>保存修改</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
