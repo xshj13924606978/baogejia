@@ -2478,6 +2478,7 @@ export default function ChatArea({
                         <SelectContent>
                           <SelectItem value="deepseek">DeepSeek</SelectItem>
                           <SelectItem value="gemini">Gemini</SelectItem>
+                          <SelectItem value="gemma">Gemma 4 (本地)</SelectItem>
                         </SelectContent>
                       </Select>
                     </TooltipTrigger>

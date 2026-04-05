@@ -3,7 +3,7 @@ import {  ChatCompletionChunk } from 'openai/resources/chat/completions';
 import { Stream } from 'openai/streaming';
 
 // 定义支持的AI模型类型
-export type AIModel = 'deepseek' | 'coze' | 'gemini';
+export type AIModel = 'deepseek' | 'coze' | 'gemini' | 'gemma';
 
 // 聊天补全参数接口
 export interface ChatCompletionParams {
@@ -272,15 +272,17 @@ export class AIClient {
     const model = params.model || 'deepseek';
 
     try {
-      if (model === 'gemini') {
+      if (model === 'gemma') {
+        yield* this.streamGemma(params);
+      } else if (model === 'gemini') {
         yield* this.streamGemini(params);
       } else {
         yield* this.streamDeepSeek(params);
       }
     } catch (error: any) {
-      // 降级：gemini 失败切 deepseek，deepseek 失败切 gemini
-      if (model === 'gemini' && process.env.DEEPSEEK_API_KEY) {
-        console.log('[AIClient] Gemini流式失败，降级到DeepSeek');
+      // 降级：gemma 失败切 deepseek，gemini 失败切 deepseek，deepseek 失败切 gemini
+      if ((model === 'gemma' || model === 'gemini') && process.env.DEEPSEEK_API_KEY) {
+        console.log(`[AIClient] ${model}流式失败，降级到DeepSeek`);
         yield* this.streamDeepSeek(params);
       } else if (model === 'deepseek' && this.geminiClient) {
         console.log('[AIClient] DeepSeek流式失败，降级到Gemini');
@@ -317,6 +319,37 @@ export class AIClient {
       }
     } catch (error: any) {
       console.error('DeepSeek流式调用失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 流式调用 Gemma 本地模型（通过 Ollama）
+   */
+  private async *streamGemma(params: ChatCompletionParams): AsyncGenerator<string, void, unknown> {
+    const gemmaClient = new OpenAI({
+      baseURL: process.env.GEMMA_API_URL || 'http://localhost:11434/v1',
+      apiKey: 'ollama',
+    });
+
+    try {
+      console.log('[AIClient] 使用 Gemma 本地模型流式调用');
+      const stream = await gemmaClient.chat.completions.create({
+        model: process.env.GEMMA_MODEL || 'gemma4:e4b',
+        messages: params.messages,
+        temperature: params.temperature ?? 0.7,
+        max_tokens: params.maxTokens ?? parseInt(process.env.GEMMA_MAX_TOKENS || '2048'),
+        stream: true,
+      }) as Stream<ChatCompletionChunk>;
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          yield content;
+        }
+      }
+    } catch (error: any) {
+      console.error('[AIClient] Gemma流式调用失败:', error);
       throw error;
     }
   }
