@@ -2471,7 +2471,7 @@ export default function ChatArea({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Select value={selectedModel} onValueChange={setSelectedModel}>
-                        <SelectTrigger className="h-9 w-auto min-w-[90px] rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs">
+                        <SelectTrigger className="h-9 w-auto min-w-[120px] rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs">
                           <Brain className="h-3.5 w-3.5 mr-1 text-violet-500" />
                           <SelectValue />
                         </SelectTrigger>
@@ -2486,26 +2486,6 @@ export default function ChatArea({
                       className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
                     >
                       AI 模型
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Select defaultValue="auto">
-                        <SelectTrigger className="h-9 w-20 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="auto">自动</SelectItem>
-                          <SelectItem value="manual">手动</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="top"
-                      className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
-                    >
-                      生成模式
                     </TooltipContent>
                   </Tooltip>
 
