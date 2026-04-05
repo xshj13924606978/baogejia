@@ -104,7 +104,7 @@ export function BrandCompareCard({ items, onBrandSelect }: BrandCompareCardProps
         </span>
         <span className="text-xs">（共 {items.length} 款产品，点击卡片查看详情）</span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {items.map((item, index) => {
           // 判断是否为性价比推荐（价格最低）
           const prices = items.map(i => i.price).filter(p => p > 0);
@@ -166,7 +166,7 @@ function ProductCard({
 
   return (
     <Card
-      className={`transition-shadow hover:shadow-md cursor-pointer ${
+      className={`transition-shadow hover:shadow-md cursor-pointer max-w-[280px] overflow-hidden ${
         isRecommended
           ? 'border-blue-500 ring-1 ring-blue-200 bg-blue-50/20'
           : ''
@@ -200,11 +200,11 @@ function ProductCard({
               <p className="text-xs text-muted-foreground mt-0.5 truncate" title={item.productName}>{item.productName}</p>
             )}
             {item.model && item.model !== '-' && (
-              <p className="text-xs text-muted-foreground mt-0.5">型号: {item.model}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate" title={item.model}>型号: {item.model.length > 20 ? item.model.slice(0, 18) + '...' : item.model}</p>
             )}
           </div>
           <div className="text-right shrink-0">
-            <div className={`text-lg font-bold ${hasPriceDiff ? 'text-red-600' : 'text-foreground'}`}>
+            <div className={`text-base font-bold whitespace-nowrap ${hasPriceDiff ? 'text-red-600' : 'text-foreground'}`}>
               ¥{item.price.toLocaleString()}
             </div>
             {canViewMinPrice && item.minPrice != null && item.minPrice > 0 && (
@@ -225,11 +225,11 @@ function ProductCard({
           </div>
         )}
 
-        {/* 差异化参数 - 紧凑展示 */}
+        {/* 差异化参数 - 网格布局 */}
         {diffParams.length > 0 && (
-          <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-2 text-xs">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 mt-2 text-xs">
             {diffParams.map((p, i) => (
-              <span key={i}>
+              <span key={i} className="truncate">
                 <span className="text-muted-foreground">{p.key}:</span>{' '}
                 <span className="font-medium">{p.value}</span>
               </span>
@@ -250,7 +250,7 @@ function ProductCard({
         )}
       </CardHeader>
 
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 overflow-x-auto">
         {/* 展开/折叠按钮 */}
         <div
           className="flex items-center gap-1 text-xs text-muted-foreground mt-1 hover:text-foreground transition-colors"

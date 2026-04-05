@@ -67,22 +67,24 @@ const SPEC_FIELD_MAP: Record<string, string> = {
 
 // ═══════════════════════ 通用工具函数 ═══════════════════════
 
-// 从环境变量读取容差（百分比），默认精确5%/相近20%
-const EXACT_TOLERANCE = (parseFloat(process.env.NUMERIC_MATCH_TOLERANCE_EXACT || '5')) / 100;
-const CLOSE_TOLERANCE = (parseFloat(process.env.NUMERIC_MATCH_TOLERANCE_CLOSE || '20')) / 100;
+// 从环境变量读取容差（百分比），默认精确3%/相近10%
+const EXACT_TOLERANCE = (parseFloat(process.env.NUMERIC_MATCH_TOLERANCE_EXACT || '3')) / 100;
+const CLOSE_TOLERANCE = (parseFloat(process.env.NUMERIC_MATCH_TOLERANCE_CLOSE || '10')) / 100;
+// 精确匹配结果少于该数量时，才扩大到相近范围
+const EXACT_MIN_COUNT = 3;
 
 /**
- * 通用数值匹配：精确(<5%) / 相近(5-20%) / 不匹配(>20%)
+ * 通用数值匹配：精确(<3%) / 相近(3-10%) / 不匹配(>10%)
  */
 export function matchNumericParam(
   userValue: number,
   productValue: number
-): { matched: boolean; type: 'exact' | 'close' | 'none' } {
-  if (userValue <= 0) return { matched: false, type: 'none' };
+): { matched: boolean; type: 'exact' | 'close' | 'none'; errorPercent: number } {
+  if (userValue <= 0) return { matched: false, type: 'none', errorPercent: 100 };
   const diff = Math.abs(userValue - productValue) / userValue;
-  if (diff < EXACT_TOLERANCE) return { matched: true, type: 'exact' };
-  if (diff < CLOSE_TOLERANCE) return { matched: true, type: 'close' };
-  return { matched: false, type: 'none' };
+  if (diff < EXACT_TOLERANCE) return { matched: true, type: 'exact', errorPercent: Math.round(diff * 100) };
+  if (diff < CLOSE_TOLERANCE) return { matched: true, type: 'close', errorPercent: Math.round(diff * 100) };
+  return { matched: false, type: 'none', errorPercent: Math.round(diff * 100) };
 }
 
 /**
@@ -248,11 +250,11 @@ export class IntentBasedSearch {
 
     let results = (products || []).map(toIntentProduct);
 
-    // 6. 参数精确过滤（通用匹配：精确<5%/相近5-20%，超出20%不返回）
+    // 6. 两阶段参数过滤：先精确(±3%)，不足3款时扩大到相近(±10%)
     if (specs && results.length > 0) {
       const useGeneric = process.env.ENABLE_GENERIC_MATCHING !== 'false';
       if (useGeneric) {
-        results = this.filterBySpecsGeneric(results, specs);
+        results = this.filterBySpecsTwoPass(results, specs);
       } else {
         results = this.filterBySpecsLegacy(results, specs);
       }
@@ -294,53 +296,109 @@ export class IntentBasedSearch {
   }
 
   /**
-   * 通用参数过滤（新逻辑）：从 parameter_description 动态提取参数值
-   * 精确匹配(<5%)直接保留，相近匹配(5-20%)保留并标记，超出20%不返回
+   * 评估单个产品对 specs 的最差匹配类型
+   * 返回所有参数中匹配最差的结果（决定产品整体匹配类型）
    */
-  private filterBySpecsGeneric(products: IntentProduct[], specs: Record<string, string>): IntentProduct[] {
-    return products.filter(product => {
-      const paramText = product.parameterDescription;
+  private evaluateProductMatch(product: IntentProduct, specs: Record<string, string>): {
+    matchType: 'exact' | 'close' | 'none';
+    details: string;
+  } {
+    const paramText = product.parameterDescription;
+    let worstType: 'exact' | 'close' | 'none' = 'exact';
+    const detailParts: string[] = [];
 
-      for (const [key, value] of Object.entries(specs)) {
-        if (!value) continue;
-        const numValue = parseFloat(String(value).replace(/[^0-9.]/g, ''));
-        if (isNaN(numValue) || numValue <= 0) continue;
+    for (const [key, value] of Object.entries(specs)) {
+      if (!value) continue;
+      const numValue = parseFloat(String(value).replace(/[^0-9.]/g, ''));
+      if (isNaN(numValue) || numValue <= 0) continue;
 
-        let extractedValue: number | null = null;
-        let specLabel = '';
+      let extractedValue: number | null = null;
+      let specLabel = '';
 
-        if (key === 'volume') {
-          const modelNum = parseFloat((product.model || '').replace(/[^0-9.]/g, ''));
-          if (!isNaN(modelNum) && modelNum > 0) extractedValue = modelNum;
-          specLabel = '容量';
-        } else if (key === 'controlType') {
-          if (!paramText.includes(value)) return false;
-          continue;
-        } else {
-          // 通用逻辑：优先通过 SPEC_FIELD_MAP 查找中文标签，无映射时直接用 key
-          const label = SPEC_FIELD_MAP[key];
-          specLabel = label || key;
-          if (label) {
-            extractedValue = extractNumericFromText(paramText, label);
-          }
-          if (extractedValue === null) {
-            extractedValue = extractNumericFromText(paramText, key);
-            if (extractedValue !== null) specLabel = key;
-          }
+      if (key === 'volume') {
+        const modelNum = parseFloat((product.model || '').replace(/[^0-9.]/g, ''));
+        if (!isNaN(modelNum) && modelNum > 0) extractedValue = modelNum;
+        specLabel = '容量';
+      } else if (key === 'controlType') {
+        if (!paramText.includes(value)) return { matchType: 'none', details: `${key}=${value} 不匹配` };
+        continue;
+      } else {
+        const label = SPEC_FIELD_MAP[key];
+        specLabel = label || key;
+        if (label) {
+          extractedValue = extractNumericFromText(paramText, label);
         }
-
-        if (extractedValue !== null) {
-          const result = matchNumericParam(numValue, extractedValue);
-          console.log(`[IntentBasedSearch] 数值匹配: ${specLabel} 需求=${numValue} 实际=${extractedValue} 类型=${result.type} 容差=精确${EXACT_TOLERANCE * 100}%/相近${CLOSE_TOLERANCE * 100}%`);
-          if (!result.matched) {
-            console.log(`[IntentBasedSearch] 过滤掉 ${product.name} ${product.model}: ${specLabel}=${extractedValue} 超出${CLOSE_TOLERANCE * 100}%容差 (需求=${numValue})`);
-            return false;
-          }
+        if (extractedValue === null) {
+          extractedValue = extractNumericFromText(paramText, key);
+          if (extractedValue !== null) specLabel = key;
         }
       }
 
-      return true;
-    });
+      if (extractedValue !== null) {
+        const result = matchNumericParam(numValue, extractedValue);
+        const sign = extractedValue < numValue ? '-' : '+';
+        console.log(`[IntentBasedSearch] 数值匹配: ${specLabel} 需求=${numValue} 实际=${extractedValue} 类型=${result.type} 误差=${sign}${result.errorPercent}%`);
+
+        if (result.type === 'none') {
+          worstType = 'none';
+          detailParts.push(`${specLabel}:${extractedValue}(${sign}${result.errorPercent}%)`);
+        } else if (result.type === 'close' && worstType !== 'none') {
+          worstType = 'close';
+          detailParts.push(`${specLabel}:${extractedValue}(${sign}${result.errorPercent}%)`);
+        }
+        // exact 不影响 worstType
+      }
+    }
+
+    return { matchType: worstType, details: detailParts.join(', ') };
+  }
+
+  /**
+   * 两阶段参数过滤（新逻辑）：
+   * 第1阶段：精确匹配(±3%) → exactProducts
+   * 第2阶段：如果精确匹配不足3款，扩大到相近匹配(±10%) → closeProducts
+   * 返回精确在前、相近在后的合并列表，每款产品标记 matchType
+   */
+  private filterBySpecsTwoPass(products: IntentProduct[], specs: Record<string, string>): IntentProduct[] {
+    const exactProducts: IntentProduct[] = [];
+    const closeProducts: IntentProduct[] = [];
+    const exactIds = new Set<string>();
+
+    // 第1阶段：精确匹配
+    for (const product of products) {
+      const { matchType, details } = this.evaluateProductMatch(product, specs);
+      if (matchType === 'exact') {
+        product.matchType = 'exact';
+        if (details) product.matchDetails = details;
+        exactProducts.push(product);
+        exactIds.add(`${product.name}|${product.model}`);
+      }
+    }
+
+    console.log(`[IntentBasedSearch] 第1阶段精确匹配: ${exactProducts.length} 款 (阈值≥${EXACT_MIN_COUNT})`);
+
+    // 第2阶段：精确不足时，补充相近匹配
+    if (exactProducts.length < EXACT_MIN_COUNT) {
+      for (const product of products) {
+        const key = `${product.name}|${product.model}`;
+        if (exactIds.has(key)) continue;
+
+        const { matchType, details } = this.evaluateProductMatch(product, specs);
+        if (matchType === 'close') {
+          product.matchType = 'close';
+          if (details) product.matchDetails = details;
+          closeProducts.push(product);
+        }
+      }
+      console.log(`[IntentBasedSearch] 第2阶段相近匹配: ${closeProducts.length} 款 (精确不足${EXACT_MIN_COUNT}款)`);
+    } else {
+      console.log(`[IntentBasedSearch] 精确匹配已有${exactProducts.length}款，跳过相近匹配`);
+    }
+
+    // 合并：精确在前，相近在后
+    const combined = [...exactProducts, ...closeProducts];
+    console.log(`[IntentBasedSearch] 最终结果: 精确${exactProducts.length}款 + 相近${closeProducts.length}款 = ${combined.length}款`);
+    return combined;
   }
 
   /**

@@ -42,6 +42,10 @@ export interface IntentProduct {
   minPrice: number;
   costPrice: number;
   source: string;
+  /** 匹配类型：exact=精确匹配, close=相近匹配 */
+  matchType?: 'exact' | 'close';
+  /** 匹配详情，如 "排气量: 需求1.1, 实际1.0, 误差-9%" */
+  matchDetails?: string;
 }
 
 // ═══════════════════════ 琐碎输入检测 ═══════════════════════
