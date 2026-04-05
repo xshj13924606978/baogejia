@@ -67,9 +67,9 @@ const SPEC_FIELD_MAP: Record<string, string> = {
 
 // ═══════════════════════ 通用工具函数 ═══════════════════════
 
-// 从环境变量读取容差（百分比），默认精确3%/相近10%
-const EXACT_TOLERANCE = (parseFloat(process.env.NUMERIC_MATCH_TOLERANCE_EXACT || '3')) / 100;
-const CLOSE_TOLERANCE = (parseFloat(process.env.NUMERIC_MATCH_TOLERANCE_CLOSE || '10')) / 100;
+// 容差：精确3% / 相近10%（硬编码，不依赖环境变量加载时序）
+const EXACT_TOLERANCE = 0.03;
+const CLOSE_TOLERANCE = 0.10;
 // 精确匹配结果少于该数量时，才扩大到相近范围
 const EXACT_MIN_COUNT = 3;
 
