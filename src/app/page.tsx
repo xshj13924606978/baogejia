@@ -192,13 +192,13 @@ export default function Home() {
             <main className="flex flex-1 flex-col overflow-hidden min-w-0">
               {/* 桌面端导航栏 - 无边框 */}
               <div className="hidden lg:flex h-16 items-center justify-between px-6 bg-white dark:bg-gray-950 flex-shrink-0">
-                <div className="w-32"></div>
+                <div className="w-36"></div>
                 <div className="flex-1 flex justify-center min-w-0">
                   <h1 className="text-lg font-medium text-gray-900 dark:text-gray-100 truncate px-4">
                     {currentConversationTitle}
                   </h1>
                 </div>
-                <div className="w-32 flex justify-end flex-shrink-0">
+                <div className="w-36 flex justify-end flex-shrink-0">
                   <UserMenu />
                 </div>
               </div>

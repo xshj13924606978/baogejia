@@ -863,7 +863,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="flex items-center gap-2 px-2 h-auto hover:bg-transparent"
+              className="flex items-center gap-2 px-2 h-9 hover:bg-transparent"
             >
               <Avatar className="h-8 w-8 ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-950 ring-blue-100 dark:ring-blue-900">
                 {user.avatar ? <AvatarImage src={user.avatar} /> : null}
@@ -880,7 +880,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
             </Button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-72 max-h-[80vh] overflow-y-auto mt-1">
+          <DropdownMenuContent align="end" sideOffset={8} className="w-72 max-h-[80vh] overflow-y-auto">
             {useDynamicMenu ? (
               <>
                 {renderDynamicMenu(menuConfig)}
