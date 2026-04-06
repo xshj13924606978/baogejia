@@ -15,7 +15,9 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Check, ChevronsUpDown, Search } from 'lucide-react';
-import { Upload, Paperclip, Sparkles, Square, Loader2, Plus, Code, ArrowUp, ChevronDown, Layers, ArrowDownToLine, MessageSquare, Zap, FileText, Sparkle, Info, Brain, FileSpreadsheet, FileText as _FileTextIcon, Image as _ImageIcon, ImageIcon, Users } from 'lucide-react';
+import { Upload, Paperclip, Sparkles, Square, Loader2, Plus, Code, ArrowUp, ChevronDown, Layers, ArrowDownToLine, MessageSquare, Zap, FileText, Sparkle, Info, Brain, FileSpreadsheet, FileText as _FileTextIcon, Image as _ImageIcon, ImageIcon, Users, Camera } from 'lucide-react';
+import { VoiceInput } from './VoiceInput';
+import { CameraInput } from './CameraInput';
 import { useDropzone } from 'react-dropzone';
 import ChatMessage from '@/components/chat-message';
 import { BrandCompareItem } from '@/components/brand-compare-card';
@@ -2442,6 +2444,45 @@ export default function ChatArea({
                       className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
                     >
                       上传附件
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <VoiceInput
+                        onTranscript={(text) => setInput((prev) => prev + text)}
+                        disabled={loading}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
+                    >
+                      语音输入
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <CameraInput
+                        onImageCaptured={async (file) => {
+                          const newFile = {
+                            id: `${Date.now()}-${Math.random()}`,
+                            name: file.name,
+                            size: `${(file.size / 1024).toFixed(0)}KB`,
+                            type: file.type,
+                            file: file,
+                          };
+                          setFiles((prev) => [...prev, newFile]);
+                        }}
+                        disabled={loading}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="bg-black text-white text-xs px-2 py-1 rounded shadow-md"
+                    >
+                      拍照/选择图片
                     </TooltipContent>
                   </Tooltip>
 
