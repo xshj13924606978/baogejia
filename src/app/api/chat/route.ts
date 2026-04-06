@@ -2876,7 +2876,7 @@ async function generateQuoteData(products: Product[]) {
   const terms = termsData || {};
 
   return {
-    quoteNumber: `Q-${Date.now()}`,
+    quoteNumber: `QT${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')}`,
     products: matchedProducts,
     subtotal,
     taxRate,
@@ -3748,8 +3748,12 @@ class QuoteGenerator {
     const today = new Date().toLocaleDateString('zh-CN');
     const totalChinese = this.numberToChinese(totalAmount);
 
-    // 使用用户输入的公司名称
-    const companyName = projectInfo.companyName || '兴燊环境技术（深圳）有限公司';
+    // 使用项目信息中的公司名称（用户输入优先），其余从商务信息获取
+    const companyName = projectInfo.companyName || '请填写公司名称';
+    const companyAddress = projectInfo.address || '请填写公司地址';
+    const contactPerson = projectInfo.contactPerson || '';
+    const contactPhone = projectInfo.contactPhone || '';
+    const contactEmail = projectInfo.contactEmail || '';
 
     // 生成设备清单表格
     const equipmentTable = equipmentList
@@ -3897,16 +3901,15 @@ class QuoteGenerator {
       <div>
         <h4>🏢 公司信息</h4>
         <p>${companyName}</p>
-        <p>深圳市龙岗区龙城街道愉园社区愉园新村7栋一层102</p>
-        <p>联系人：陈生 | 电话：13924606978</p>
-        <p>邮箱：519733058@qq.com</p>
+        <p>${companyAddress}</p>
+        <p>联系人：${contactPerson}${contactPhone ? ' | 电话：' + contactPhone : ''}</p>
+        ${contactEmail ? `<p>邮箱：${contactEmail}</p>` : ''}
       </div>
       <div>
         <h4>🏦 账户信息</h4>
-        <p>纳税人识别号：914403000769128313</p>
-        <p>开户行：中国建设银行深圳翠竹支行</p>
-        <p>账号：44201011200052542287</p>
-        <p>行号：105584000771</p>
+        ${projectInfo.taxNumber ? `<p>纳税人识别号：${projectInfo.taxNumber}</p>` : ''}
+        ${projectInfo.bankName ? `<p>开户行：${projectInfo.bankName}</p>` : ''}
+        ${projectInfo.bankAccount ? `<p>账号：${projectInfo.bankAccount}</p>` : ''}
       </div>
     </div>
 
