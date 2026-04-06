@@ -23,15 +23,27 @@ export default function Home() {
   const [currentConversationTitle, setCurrentConversationTitle] = useState<string>('新对话');
   const [supplierInfo, setSupplierInfo] = useState<any>(null);
 
-  // 从 localStorage 加载供应商信息
+  // 从 localStorage 加载供应商信息，若为空则从 API 获取
   useEffect(() => {
-    const load = () => {
+    const load = async () => {
       try {
         const stored = localStorage.getItem('supplierInfo');
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && parsed.companyName) {
             setSupplierInfo(parsed);
+            return;
+          }
+        }
+        // localStorage 为空时从 API 加载
+        const res = await fetch('/api/suppliers');
+        if (res.ok) {
+          const result = await res.json();
+          const suppliers = result.suppliers || (result.supplier ? [result.supplier] : []);
+          const defaultOne = suppliers.find((s: any) => s.isDefault) || suppliers[0];
+          if (defaultOne) {
+            setSupplierInfo(defaultOne);
+            localStorage.setItem('supplierInfo', JSON.stringify(defaultOne));
           }
         }
       } catch {}

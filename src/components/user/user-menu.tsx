@@ -184,14 +184,14 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   }, [user]);
 
   const [supplierForm, setSupplierForm] = useState({
-    companyName: '兴绿环境科技有限公司',
-    contactPerson: '张经理',
-    phone: '021-12345678',
-    email: 'zhang@xinglv.com',
-    address: '上海市浦东新区xx路123号',
-    bankName: '中国建设银行上海分行',
-    bankAccount: '3100 1234 5678 9012 345',
-    taxNumber: '91310115MA1H123456',
+    companyName: '',
+    contactPerson: '',
+    phone: '',
+    email: '',
+    address: '',
+    bankName: '',
+    bankAccount: '',
+    taxNumber: '',
   });
 
   const [_customerForm,_setCustomerFormm] = useState({
@@ -435,23 +435,21 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     }
   };
 
-  // 保存供应商信息（持久化到数据库）
+  // 保存供应商信息（统一保存到 /api/suppliers）
   const handleSaveSupplier = async () => {
     try {
-      const userId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}').id : null;
-      const res = await fetch('/api/user/business-profile', {
+      const res = await fetch('/api/suppliers', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userId ? { 'x-user-id': userId } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(supplierForm),
       });
-      const result = await res.json();
-      if (!result.success) {
-        toast({ title: '保存失败', description: result.error || '未知错误', variant: 'destructive', duration: 3000 });
+      if (!res.ok) {
+        toast({ title: '保存失败', description: '网络错误', variant: 'destructive', duration: 3000 });
         return;
       }
+      // 同步到 localStorage 和通知其他组件
+      localStorage.setItem('supplierInfo', JSON.stringify(supplierForm));
+      window.dispatchEvent(new CustomEvent('supplier-info-updated', { detail: supplierForm }));
       setEditingSupplier(false);
       setShowSupplierDialog(false);
       toast({ title: '保存成功', description: '商务信息已保存，刷新页面后仍会保留', duration: 2000 });
@@ -744,30 +742,46 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   // 动态菜单配置（必须在条件返回之前调用，遵守 Hooks 规则）
   const { data: menuConfig, loading: menuLoading } = useUserMenuConfig();
 
-  // 加载商务信息（从数据库持久化）
+  // 加载商务信息（统一从 /api/suppliers 读取）
   useEffect(() => {
-    const userId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}').id : null;
-    if (!userId) return;
-
-    fetch('/api/user/business-profile', {
-      headers: { 'x-user-id': userId, 'Content-Type': 'application/json' },
-    })
+    fetch('/api/suppliers')
       .then(res => res.json())
       .then(result => {
-        if (result.success && result.data) {
+        if (result.supplier) {
           setSupplierForm({
-            companyName: result.data.companyName || '',
-            contactPerson: result.data.contactPerson || '',
-            phone: result.data.phone || '',
-            email: result.data.email || '',
-            address: result.data.companyAddress || '',
-            bankName: result.data.bankName || '',
-            bankAccount: result.data.bankAccount || '',
-            taxNumber: result.data.taxNumber || '',
+            companyName: result.supplier.companyName || '',
+            contactPerson: result.supplier.contactPerson || '',
+            phone: result.supplier.phone || '',
+            email: result.supplier.email || '',
+            address: result.supplier.address || '',
+            bankName: result.supplier.bankName || '',
+            bankAccount: result.supplier.bankAccount || '',
+            taxNumber: result.supplier.taxNumber || result.supplier.taxId || '',
           });
         }
       })
       .catch(err => console.error('[UserMenu] 加载商务信息失败:', err));
+  }, []);
+
+  // 监听其他组件的供应方信息更新事件
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) {
+        setSupplierForm({
+          companyName: detail.companyName || '',
+          contactPerson: detail.contactPerson || '',
+          phone: detail.phone || '',
+          email: detail.email || '',
+          address: detail.address || '',
+          bankName: detail.bankName || '',
+          bankAccount: detail.bankAccount || '',
+          taxNumber: detail.taxNumber || '',
+        });
+      }
+    };
+    window.addEventListener('supplier-info-updated', handler);
+    return () => window.removeEventListener('supplier-info-updated', handler);
   }, []);
 
   if (loading) {
@@ -821,6 +835,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       if (dialogKey === 'customer') {
         // 客户管理跳转到独立页面
         handleNavigation('/customers');
+        return;
+      }
+      if (dialogKey === 'supplier_info' || dialogKey === 'supplier') {
+        // 供应方资料库跳转到独立页面
+        handleNavigation('/suppliers');
         return;
       }
       if (dialogKey === 'payment') {
@@ -1004,10 +1023,10 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <DropdownMenuGroup>
                   <DropdownMenuItem
                     className="cursor-pointer"
-                    onClick={() => setShowSupplierDialog(true)}
+                    onClick={() => handleNavigation('/suppliers')}
                   >
                     <Building2 className="mr-2 h-4 w-4" />
-                    <span>供应方信息</span>
+                    <span>供应方资料库</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem

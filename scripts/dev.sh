@@ -39,4 +39,4 @@ fi
 
 echo "Starting HTTP service on port ${PORT} for dev..."
 
-npx next dev --webpack --port $PORT
+npx next dev --webpack --port $PORT -H 0.0.0.0

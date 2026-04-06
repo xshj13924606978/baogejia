@@ -1313,6 +1313,21 @@ export default function ChatMessage({
   // 下载功能
   // ============================================================================
 
+  // 根据内容动态检测文档类型标题（仅用于替代硬编码默认值，不改变任何格式和布局逻辑）
+  const getDocType = (): string => {
+    const c = message.content;
+    if (c.includes('报价单') || c.includes('报价表') || c.includes('产品报价')) {
+      return '报价单';
+    }
+    if (c.includes('技术方案') || c.includes('设计方案') || c.includes('项目概述')) {
+      return '技术方案';
+    }
+    if (c.includes('产品对比') || c.includes('对比分析')) {
+      return '产品对比';
+    }
+    return '文档';
+  };
+
   /**
    * 下载为纯文本
    */
@@ -1322,7 +1337,7 @@ export default function ChatMessage({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `技术方案_${new Date().toLocaleDateString('zh-CN')}.txt`;
+    link.download = `${getDocType()}_${new Date().toLocaleDateString('zh-CN')}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1350,9 +1365,10 @@ export default function ChatMessage({
       day: 'numeric',
     });
 
+    const defaultTitle = getDocType();
     // 提取项目标题（第一个 h1 标签）
     const titleMatch = parsedContent.match(/<h1[^>]*>(.+?)<\/h1>/);
-    let projectTitle = titleMatch ? titleMatch[1] : '技术方案';
+    let projectTitle = titleMatch ? titleMatch[1] : defaultTitle;
 
     // 提取竖排文字（智能关键词提取）
     const rawTitle = projectTitle.replace(/<[^>]*>/g, '');
@@ -1369,11 +1385,11 @@ export default function ChatMessage({
       }
     }
 
-    // 如果没有找到关键词，默认为"技术方案"，并从主标题移除
+    // 如果没有找到关键词，使用动态检测的默认值
     if (!verticalText) {
-      verticalText = '技术方案';
-      // 从主标题中移除"技术方案"
-      projectTitle = projectTitle.replace(/技术方案/g, '').trim();
+      verticalText = defaultTitle;
+      // 从主标题中移除默认标题关键词
+      projectTitle = projectTitle.replace(new RegExp(defaultTitle, 'g'), '').trim();
     }
 
     // 移除正文中的第一个h1标签（避免重复显示）
@@ -1401,7 +1417,7 @@ export default function ChatMessage({
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>技术方案</title>
+  <title>${defaultTitle}</title>
   <style>
     /* 页面设置 */
     @page {
@@ -1774,7 +1790,7 @@ export default function ChatMessage({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `技术方案_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '_')}.doc`;
+    link.download = `${defaultTitle}_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '_')}.doc`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1816,9 +1832,10 @@ export default function ChatMessage({
       day: 'numeric',
     });
 
+    const defaultTitle = getDocType();
     // 提取PDF专用标题（独立于Word的逻辑）
     const titleMatch = content.match(/^#\s+(.+)$/m);
-    let pdfMainTitle = titleMatch ? titleMatch[1].trim() : '技术方案';
+    let pdfMainTitle = titleMatch ? titleMatch[1].trim() : defaultTitle;
 
     // 从主标题中移除"技术方案"等关键词，避免重复显示
     const pdfKeywords = ['技术方案', '报价方案', '报价单'];
@@ -1829,7 +1846,7 @@ export default function ChatMessage({
       }
     }
 
-    const pdfVerticalText = '技术方案'; // PDF固定显示"技术方案"竖排文字
+    const pdfVerticalText = defaultTitle;
 
     // 获取供应方信息
     const supplierName = supplierInfo?.companyName || '未填写';
@@ -1845,7 +1862,7 @@ export default function ChatMessage({
 <html>
 <head>
   <meta charset="utf-8">
-  <title>技术方案</title>
+  <title>${defaultTitle}</title>
   <style>
     /* 打印设置 - PDF专用 */
     @page {
@@ -2253,7 +2270,7 @@ export default function ChatMessage({
 </head>
 <body>
   <!-- 水印 -->
-  <div class="watermark">技术方案</div>
+  <div class="watermark">${defaultTitle}</div>
   
   <!-- 打印提示 -->
   <div class="print-hint no-print">

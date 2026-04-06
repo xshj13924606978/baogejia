@@ -170,7 +170,7 @@ importers:
         specifier: ^7.1.0
         version: 7.1.0
       openai:
-        specifier: ^6.25.0
+        specifier: ^6.31.0
         version: 6.31.0(ws@8.19.0)(zod@4.3.6)
       pdf-parse:
         specifier: 1.1.4

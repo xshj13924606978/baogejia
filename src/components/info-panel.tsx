@@ -142,6 +142,8 @@ export default function InfoPanel() {
       });
       if (response.ok) {
         alert('供应方信息保存成功');
+        // 通知其他组件刷新供应方信息
+        window.dispatchEvent(new CustomEvent('supplier-info-updated', { detail: supplierInfo }));
       }
     } catch (error) {
       console.error('Failed to save supplier:', error);

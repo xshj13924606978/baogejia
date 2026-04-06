@@ -299,13 +299,21 @@ export async function POST(request: NextRequest) {
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       );
 
-      // 获取商务信息（供应方）
-      if (userId) {
-        const { data: supplier } = await supabase
-          .from('suppliers')
-          .select('company_name,contact_person,phone,email,address,tax_number,bank_name,bank_account')
-          .eq('metadata->>user_id', userId)
-          .single();
+      // 获取商务信息（供应方）- 优先取默认供应方
+      const { data: defaultSupplier } = await supabase
+        .from('suppliers')
+        .select('company_name,contact_person,phone,email,address,tax_number,bank_name,bank_account')
+        .eq('metadata->>is_default', 'true')
+        .limit(1)
+        .maybeSingle();
+
+      const supplier = defaultSupplier || (await supabase
+        .from('suppliers')
+        .select('company_name,contact_person,phone,email,address,tax_number,bank_name,bank_account')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      ).data;
 
         if (supplier) {
           const supplierCtx = buildSupplierContext({
@@ -323,9 +331,8 @@ export async function POST(request: NextRequest) {
             console.log('[Chat Stream API] 已注入供应方商务信息');
           }
         } else {
-          console.log('[Chat Stream API] 未找到供应方数据, userId:', userId);
+          console.log('[Chat Stream API] 未找到供应方数据');
         }
-      }
 
       // 获取客户信息（采购方）
       if (customerId) {

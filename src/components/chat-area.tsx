@@ -1230,6 +1230,7 @@ export default function ChatArea({
         throw new Error('无法获取响应流');
       }
 
+      let buffer = '';
       while (true) {
         const { done, value } = await reader.read();
 
@@ -1237,8 +1238,10 @@ export default function ChatArea({
           break;
         }
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        // 最后一行可能不完整，保留在 buffer 中等待下一个 chunk
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {

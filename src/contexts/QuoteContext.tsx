@@ -101,46 +101,56 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
     loadBusinessInfo();
   }, []);
 
+  // 监听其他组件的供应方信息更新事件，保持同步
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) {
+        setQuoteData((prev) => ({
+          ...prev,
+          supplierInfo: {
+            companyName: detail.companyName || '',
+            contactPerson: detail.contactPerson || '',
+            phone: detail.phone || '',
+            email: detail.email || '',
+            address: detail.address || '',
+            bankName: detail.bankName || '',
+            bankAccount: detail.bankAccount || '',
+            taxNumber: detail.taxNumber || '',
+          },
+        }));
+      }
+    };
+    window.addEventListener('supplier-info-updated', handler);
+    return () => window.removeEventListener('supplier-info-updated', handler);
+  }, []);
+
   const loadBusinessInfo = async () => {
     try {
-      const response = await fetch('/api/business-info?type=all');
+      const response = await fetch('/api/suppliers');
       if (response.ok) {
         const result = await response.json();
-        if (result.success && result.data) {
-          const businessInfo = result.data;
-
-          // 更新状态
+        // 兼容新旧接口：优先从列表中找默认供应方，否则取第一条
+        const suppliers = result.suppliers || (result.supplier ? [result.supplier] : []);
+        const defaultOne = suppliers.find((s: any) => s.isDefault) || suppliers[0];
+        if (defaultOne) {
+          const s = defaultOne;
           setQuoteData((prev) => ({
             ...prev,
-            supplierInfo: businessInfo.supplier || prev.supplierInfo,
-            customerInfo: businessInfo.customer
-              ? {
-                  name: businessInfo.customer.companyName || prev.customerInfo.name,
-                  projectName: businessInfo.customer.projectName || prev.customerInfo.projectName,
-                  contactPerson:
-                    businessInfo.customer.contactPerson || prev.customerInfo.contactPerson,
-                  phone: businessInfo.customer.phone || prev.customerInfo.phone,
-                  email: businessInfo.customer.email || prev.customerInfo.email,
-                  address: businessInfo.customer.address || prev.customerInfo.address,
-                }
-              : prev.customerInfo,
-            terms: businessInfo.terms
-              ? {
-                  payment: businessInfo.terms.paymentTerms || prev.terms.payment,
-                  warranty: businessInfo.terms.warrantyPeriod || prev.terms.warranty,
-                  delivery: businessInfo.terms.deliveryPeriod || prev.terms.delivery,
-                  validity: businessInfo.terms.validityPeriod || prev.terms.validity,
-                  taxRate: businessInfo.terms.taxRate ?? prev.terms.taxRate,
-                  shipping: businessInfo.terms.shipping ?? prev.terms.shipping,
-                  installation: businessInfo.terms.installation ?? prev.terms.installation,
-                  otherFees: businessInfo.terms.otherFees ?? prev.terms.otherFees,
-                }
-              : prev.terms,
+            supplierInfo: {
+              companyName: s.companyName || '',
+              contactPerson: s.contactPerson || '',
+              phone: s.phone || '',
+              email: s.email || '',
+              address: s.address || '',
+              bankName: s.bankName || '',
+              bankAccount: s.bankAccount || '',
+              taxNumber: s.taxNumber || s.taxId || '',
+            },
           }));
         }
       }
     } catch (_error) {
-      // API 路由不存在时使用默认值，不显示错误堆栈
       console.warn('[QuoteContext] 商务信息 API 不可用，使用默认值');
     }
   };
@@ -149,24 +159,24 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
     // 更新状态
     setQuoteData((prev) => ({ ...prev, supplierInfo: info }));
 
-    // 保存到数据库（如果 API 可用）
+    // 保存到数据库
     try {
-      const response = await fetch('/api/business-info', {
+      const response = await fetch('/api/suppliers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'supplier',
-          data: info,
-        }),
+        body: JSON.stringify(info),
       });
 
       if (response.ok) {
         console.log('[QuoteContext] 供应商信息保存成功');
+        // 同步到 localStorage
+        localStorage.setItem('supplierInfo', JSON.stringify(info));
+        // 通知其他组件刷新
+        window.dispatchEvent(new CustomEvent('supplier-info-updated', { detail: info }));
       } else {
-        console.warn('[QuoteContext] 供应商信息保存失败，API 返回错误');
+        console.warn('[QuoteContext] 供应商信息保存失败');
       }
     } catch (_error) {
-      // API 不可用时静默失败，不影响用户体验
       console.warn('[QuoteContext] 商务信息 API 不可用，未保存到数据库');
     }
   };
