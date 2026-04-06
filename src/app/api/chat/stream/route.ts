@@ -266,10 +266,25 @@ export async function POST(request: NextRequest) {
       console.log(`[Chat Stream API] 意图管道直接构建卡片: 精确${exactProducts.length}款, 相近${closeProducts.length}款, 共${priceBrandCompareData.length}款`);
     }
 
-    // 4.6 标记联网搜索需求（所有非琐碎咨询）
-    const trivialPattern = /^(你好|hello|hi|hey|谢谢|thanks|再见|bye|ok|好的|嗯|嗯嗯|是|不是|对|错|收到|明白)$/i;
-    const isTrivial = trivialPattern.test(message.trim()) || message.trim().length < 4;
-    let needsWebSearch = !isTrivial;
+    // 4.6 智能判断是否需要联网搜索
+    // 不需要搜索的场景：问候、知识性问题、产品库查询、生成任务
+    const noSearchPatterns = [
+      /^(你好|hello|hi|hey|谢谢|thanks|再见|bye|ok|好的|嗯|嗯嗯|是|不是|对|错|收到|明白)$/i,
+      /^你是谁|^.+是什么|解释|说明/,
+      /多少钱|报价|价格|成本/,
+      /生成报价单|生成方案|帮我写/,
+    ];
+    // 需要实时信息的关键词
+    const needSearchKeywords = [
+      '最新', '今天', '现在', '当前', '行情', '价格走势',
+      '新闻', '报道', '2024', '2025', '2026',
+      '市场', '趋势', '对比', '排名',
+    ];
+
+    let needsWebSearch = false;
+    if (!noSearchPatterns.some(p => p.test(message.trim())) && message.trim().length >= 4) {
+      needsWebSearch = needSearchKeywords.some(kw => message.includes(kw));
+    }
 
     // 5. 定义智能处理器
     const smartProcessor = smartChatProcessor;

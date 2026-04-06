@@ -2635,8 +2635,8 @@ export default function ChatMessage({
               </Tooltip>
             </TooltipProvider>
 
-            {/* 下载按钮组 - 仅对详细方案和普通消息显示 */}
-            {!isTemporary && (!hasQuote || isDetailedProposal) && (
+            {/* 下载按钮组 - 所有非临时助手消息都显示 */}
+            {!isTemporary && (
               <>
                 {/* Word下载 */}
                 <TooltipProvider>
