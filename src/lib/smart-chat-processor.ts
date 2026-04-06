@@ -929,7 +929,17 @@ export class SmartChatProcessor {
    * 构建系统提示词
    */
   private buildSystemPrompt(processedInput?: ProcessedInput): string {
+    const now = new Date();
+    const currentDate = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日`;
+    const currentWeekday = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
+    const currentISO = now.toISOString().slice(0, 10);
+
     let prompt = `你是一个智能、专业的全行业报价与技术方案助手，同时也是一个通用的 AI 助手。你的特点是：
+
+## 当前时间信息（重要！生成报价单和方案时必须使用这个日期）
+- 日期：${currentDate}（星期${currentWeekday}）
+- ISO格式：${currentISO}
+- **严禁使用错误的日期，所有报价单号、报价日期、方案日期必须使用上述日期**
 
 ## 核心能力
 1. **真正的语义理解**：理解用户的真实意图，不依赖固定的关键词匹配
