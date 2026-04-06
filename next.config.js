@@ -3,6 +3,9 @@ const nextConfig = {
   /* 配置选项 */
   reactStrictMode: true,
 
+  // 允许所有来源访问（解决手机通过 IP 访问空白页问题）
+  allowedDevOrigins: ['*'],
+
   // 输出配置
   output: 'standalone',
 
@@ -25,6 +28,10 @@ const nextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
+      },
+      {
+        protocol: 'http',
+        hostname: '192.168.1.56',
       },
     ],
   },
