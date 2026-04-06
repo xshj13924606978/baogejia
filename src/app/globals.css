@@ -573,6 +573,41 @@
     }
   }
 
+  /* ===== 移动端响应式优化 ===== */
+
+  /* iOS 安全区域适配 */
+  @supports (padding: max(0px)) {
+    .pb-safe {
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+    .pt-safe {
+      padding-top: max(12px, env(safe-area-inset-top));
+    }
+  }
+
+  /* 移动端触控区域优化 */
+  @media (max-width: 768px) {
+    /* 最小触控区域 44px */
+    button:not(.prose button),
+    a:not(.prose a),
+    select,
+    input[type="checkbox"],
+    input[type="radio"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* iOS 输入框缩放防护：font-size < 16px 会触发自动缩放 */
+    textarea, input[type="text"], input[type="search"] {
+      font-size: 16px !important;
+    }
+
+    /* 禁用非必要 hover 效果 */
+    .hover\:scale-105:hover {
+      transform: none !important;
+    }
+  }
+
   /* PDF导出模式下的分页控制 */
   .pdf-export-mode .config-table tbody tr.page-break-before {
     page-break-before: always !important;

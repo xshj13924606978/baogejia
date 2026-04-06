@@ -2355,7 +2355,7 @@ export default function ChatArea({
       </div>
 
       {/* 输入区域 */}
-      <div className="flex-shrink-0 p-4 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+      <div className="flex-shrink-0 p-4 pb-safe bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-5xl mx-auto">
           <div
             {...dropzonePropsWithoutKeyboard}
