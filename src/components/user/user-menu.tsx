@@ -63,7 +63,7 @@ import { DynamicIcon } from '@/components/ui/dynamic-icon';
 
 export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   const { user, loading, updateUser, logout, changePassword } = useUser();
-  const _router = useRouter();
+  const router = useRouter();
   const { toast } = useToast();
   const _fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -717,9 +717,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     logout();
   };
 
-  // 导航功能
+  // 导航功能（使用 Next.js 客户端导航，避免全页刷新丢失状态）
   const handleNavigation = (path: string) => {
-    window.location.href = path;
+    router.push(path);
   };
 
   // 帮助功能
