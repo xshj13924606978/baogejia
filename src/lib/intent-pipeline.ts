@@ -96,6 +96,11 @@ export function groupByKeyParams(products: IntentProduct[], keyParams?: string[]
 
 // ═══════════════════════ Markdown 格式化 ═══════════════════════
 
+/** 转义 Markdown 特殊字符，防止参数中的 * | 等被 Markdown 解析 */
+function escapeMd(text: string): string {
+  return text.replace(/[*|]/g, '\\$&');
+}
+
 function formatProductTable(products: IntentProduct[], productType: string): string {
   if (products.length === 0) return '';
 
@@ -133,9 +138,9 @@ function formatProductTable(products: IntentProduct[], productType: string): str
         const params = extractAllParams(p.parameterDescription);
         return params.get(paramKey) || '-';
       });
-      ctx += `| ${i + 1}${tag} | ${p.brand || '-'} | ${p.name} | ${p.model || '-'} | ${paramValues.join(' | ')} | ${priceStr} |\n`;
+      ctx += `| ${i + 1}${tag} | ${p.brand || '-'} | ${p.name} | ${p.model || '-'} | ${paramValues.map(escapeMd).join(' | ')} | ${priceStr} |\n`;
     } else {
-      ctx += `| ${i + 1}${tag} | ${p.brand || '-'} | ${p.name} | ${p.model || '-'} | ${p.parameterDescription || '-'} | ${priceStr} |\n`;
+      ctx += `| ${i + 1}${tag} | ${p.brand || '-'} | ${p.name} | ${p.model || '-'} | ${escapeMd(p.parameterDescription || '-')} | ${priceStr} |\n`;
     }
   });
   ctx += '\n';
@@ -161,7 +166,7 @@ export function formatProductsAsContext(result: PipelineResult, originalQuery: s
     ctx += `单价：${p.price.toLocaleString('zh-CN', { minimumFractionDigits: 2 })} 元\n`;
     if (p.minPrice > 0) ctx += `最低售价：${p.minPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2 })} 元\n`;
     if (p.costPrice > 0) ctx += `成本：${p.costPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2 })} 元\n`;
-    if (p.parameterDescription) ctx += `产品参数：${p.parameterDescription}\n`;
+    if (p.parameterDescription) ctx += `产品参数：${escapeMd(p.parameterDescription)}\n`;
     ctx += `价格来源：产品库\n`;
     return ctx;
   }
@@ -208,7 +213,7 @@ export function formatProductsAsContext(result: PipelineResult, originalQuery: s
     ctx += `\n**⭐ 推荐产品详情：**\n`;
     if (recommended.brand) ctx += `- **品牌**：${recommended.brand}\n`;
     if (recommended.model) ctx += `- **型号**：${recommended.model}\n`;
-    if (recommended.parameterDescription) ctx += `- **参数**：${recommended.parameterDescription}\n`;
+    if (recommended.parameterDescription) ctx += `- **参数**：${escapeMd(recommended.parameterDescription)}\n`;
     const recPrice = recommended.minPrice || recommended.price;
     ctx += `- **价格**：¥${recPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`;
     if (recommended.costPrice > 0) {
