@@ -2607,10 +2607,31 @@ export default function ChatMessage({
             </div>
           )}
 
+          {/* 匹配等级提示 */}
+          {message.metadata?.entities?.matchLevel && message.metadata?.entities?.matchLevel !== 'exact' && message.metadata?.entities?.brandCompare && message.metadata?.entities.brandCompare.length > 0 && (
+            <div className="mb-3">
+              {message.metadata.entities.matchLevel === 'partial' && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-2 rounded-lg text-sm">
+                  部分匹配：以下产品满足主要条件，部分参数存在差异
+                </div>
+              )}
+              {message.metadata.entities.matchLevel === 'fuzzy' && (
+                <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-2 rounded-lg text-sm">
+                  相近匹配：未找到精确匹配，以下为相近参数产品（容差±10%）
+                </div>
+              )}
+              {message.metadata.entities.matchLevel === 'recommend' && (
+                <div className="bg-purple-50 border border-purple-200 text-purple-800 px-4 py-2 rounded-lg text-sm">
+                  推荐产品：未找到匹配产品，以下为同类型推荐
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 产品对比卡片（不受 prose 容器宽度限制） */}
           {message.metadata?.entities?.brandCompare &&
             Array.isArray(message.metadata.entities.brandCompare) &&
-            message.metadata.entities.brandCompare.length >= 2 && (
+            message.metadata.entities.brandCompare.length >= 1 && (
               <div className="mt-4 not-prose">
                 <BrandCompareCard
                   items={message.metadata.entities.brandCompare}

@@ -33,6 +33,8 @@ export interface IntentResult {
   confidence: number;
 }
 
+export type MatchLevel = 'exact' | 'partial' | 'fuzzy' | 'recommend';
+
 export interface IntentProduct {
   name: string;
   model: string;
@@ -42,10 +44,12 @@ export interface IntentProduct {
   minPrice: number;
   costPrice: number;
   source: string;
-  /** 匹配类型：exact=精确匹配, close=相近匹配 */
-  matchType?: 'exact' | 'close';
+  /** 匹配级别：exact=精确, partial=部分匹配, fuzzy=相近, recommend=推荐 */
+  matchType?: 'exact' | 'partial' | 'fuzzy' | 'recommend';
   /** 匹配详情，如 "排气量: 需求1.1, 实际1.0, 误差-9%" */
   matchDetails?: string;
+  /** 部分匹配时缺少的条件 */
+  missingConditions?: string;
 }
 
 // ═══════════════════════ 琐碎输入检测 ═══════════════════════
@@ -76,51 +80,79 @@ function isTrivialInput(input: string): boolean {
 
 // ═══════════════════════ Gemini Prompt ═══════════════════════
 
-const INTENT_SYSTEM_PROMPT = `你是一个产品意图理解引擎。你的任务是将用户的自然语言输入转化为结构化的 JSON 意图对象。
+const INTENT_SYSTEM_PROMPT = `你是一个工业设备产品意图理解引擎。将用户的自然语言输入转化为结构化 JSON。
 
 ## 规则
 1. 只返回 JSON，不要返回任何其他文本
 2. 如果无法识别产品类型，type 设为 "unknown"
-3. 对于模糊需求（如"便宜"、"节能"），将其映射到 attributes 数组
-4. 预算提取为数字范围（单位统一为元）
-5. confidence 表示你对意图理解的置信度（0-1）
+3. confidence 表示你对意图理解的置信度（0-1）
+4. specs 中每个参数都必须提取，不要遗漏任何数值+单位组合
 
 ## attributes 映射规则
 - "便宜/经济/实惠/预算有限/省钱/价格低" → ["便宜"]
 - "贵/高端/大品牌/品质好" → ["高端"]
 - "节能/省电/高效/低能耗/变频" → ["节能"]
-- "性价比/划算/实惠" → ["性价比"]
+- "性价比/划算" → ["性价比"]
 - "进口/海外/国外" → ["进口"]
-- "国产/自主/国内" → ["国产"]
-- "大功率/大型/大排量/大容量" → ["大功率"]
 - "静音/低噪音/安静" → ["静音"]
-- "稳定/可靠/耐用/持久" → ["稳定"]
-- "小巧/紧凑/小型/迷你" → ["小型"]
 
-## specs 参数提取规则
-- "排气量1.1/流量1.1 m³/min" → specs.flowRate = "1.1"
-- "压力0.8/0.8MPa" → specs.pressure = "0.8"
-- "功率5.5KW/5.5千瓦" → specs.power = "5.5"
-- "电压380V/380伏" → specs.voltage = "380"
-- "变频/永磁变频" → specs.controlType = "永磁变频"
-- "5方/5立方米/5m³化粪池" → specs.volume = "5"
+## specs 参数提取规则（核心！）
+
+### 已知参数（按字段名提取）
+- 排气量/流量 + m³/min 或 L/min → specs.flowRate = 数值（如 "1.1"）
+- 工作压力/压力 + MPa/兆帕 → specs.pressure = 数值（如 "0.8"）
+- 功率 + KW/千瓦/W → specs.power = 数值（如 "5.5"）
+- 电压 + V/伏 → specs.voltage = 数值（如 "380"）
+- 控制方式 = 变频/永磁变频/工频 → specs.controlType = 文本（如 "永磁变频"）
+- 容积/方/立方米/m³ + 化粪池/储气罐 → specs.volume = 数值（如 "5"）
+- 扬程/扬程 + m/米 → specs.head = 数值（如 "30"）
+
+### 通用规则（极其重要！）
+当用户输入中包含 "数值+单位" 的规格要求，且不属于上述已知参数时：
+→ specs.model = "数值+单位"（保留完整的原始字符串，单位不转换）
+
+适用场景：
+- "50g二氧化氯发生器" → specs.model = "50g"
+- "100g/h二氧化氯发生器" → specs.model = "100g/h"
+- "200g/h发生器" → specs.model = "200g/h"
+- "500kg/h二氧化氯" → specs.model = "500kg/h"
+- "50L/min加药装置" → specs.model = "50L/min"
+- "30kW风机" → specs.model = "30kW"
+
+注意：
+- 数值不论大小（1位、2位、3位、4位）都要提取
+- "g" 和 "g/h" 是不同的单位，要原样保留
+- 如果单位只有 "g" 没有每时间，也要提取
+- 只要有数字+单位组合，就必须提取到 specs 中
 
 ## 示例
 
 输入: "便宜点的空压机"
 输出: {"type":"query_product","entities":{"productType":"空压机","attributes":["便宜"]},"originalQuery":"便宜点的空压机","confidence":0.9}
 
-输入: "预算2万左右的水泵"
-输出: {"type":"query_product","entities":{"productType":"水泵","budget":{"max":22000}},"originalQuery":"预算2万左右的水泵","confidence":0.85}
-
 输入: "排气量1.1 m³/min的空压机"
 输出: {"type":"query_product","entities":{"productType":"空压机","specs":{"flowRate":"1.1"}},"originalQuery":"排气量1.1 m³/min的空压机","confidence":0.95}
 
-输入: "帮我推荐一个进口的节能水泵"
-输出: {"type":"query_product","entities":{"productType":"水泵","attributes":["进口","节能"]},"originalQuery":"帮我推荐一个进口的节能水泵","confidence":0.9}
+输入: "380V 5.5KW 0.8m³/min 杰瑞浩 空压机"
+输出: {"type":"query_product","entities":{"productType":"空压机","brand":"杰瑞浩","specs":{"voltage":"380","power":"5.5","flowRate":"0.8"}},"originalQuery":"380V 5.5KW 0.8m³/min 杰瑞浩 空压机","confidence":0.95}
+
+输入: "50g二氧化氯发生器多少钱"
+输出: {"type":"ask_price","entities":{"productType":"二氧化氯发生器","specs":{"model":"50g"}},"originalQuery":"50g二氧化氯发生器多少钱","confidence":0.95}
+
+输入: "100g/h二氧化氯发生器"
+输出: {"type":"ask_price","entities":{"productType":"二氧化氯发生器","specs":{"model":"100g/h"}},"originalQuery":"100g/h二氧化氯发生器","confidence":0.95}
+
+输入: "200g/h二氧化氯发生器多少钱"
+输出: {"type":"ask_price","entities":{"productType":"二氧化氯发生器","specs":{"model":"200g/h"}},"originalQuery":"200g/h二氧化氯发生器多少钱","confidence":0.95}
 
 输入: "5方化粪池多少钱"
 输出: {"type":"ask_price","entities":{"productType":"化粪池","specs":{"volume":"5"}},"originalQuery":"5方化粪池多少钱","confidence":0.95}
+
+输入: "预算2万左右的水泵"
+输出: {"type":"query_product","entities":{"productType":"水泵","budget":{"max":22000}},"originalQuery":"预算2万左右的水泵","confidence":0.85}
+
+输入: "变频空压机"
+输出: {"type":"query_product","entities":{"productType":"空压机","specs":{"controlType":"变频"}},"originalQuery":"变频空压机","confidence":0.9}
 
 输入: "你好"
 输出: {"type":"greeting","entities":{},"originalQuery":"你好","confidence":1.0}

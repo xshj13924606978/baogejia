@@ -14,103 +14,9 @@
 
 import { callDeepSeekChat } from './deepseek-client';
 import { ProcessedInput } from './input-processor';
-import { PriceMatcher, ProductMatch, PriceMatchResult } from './price-matching';
+import { PriceMatchResult } from './price-matching';
 import { fileUploadProcessor } from './upload-processor';
-import { ProductExtractor, ExtractedProduct } from './product-extractor';
-import { unifiedMatcher, UnifiedMatchResult } from './unified-matcher';
-import { productQueryParser } from './product-query-parser';
 import { processWithIntent, formatProductsAsContext, PipelineResult } from './intent-pipeline';
-
-/**
- * 判断产品参数是否满足用户需求
- * 返回 true 表示满足（在容差范围内）
- */
-// 通用参数标签映射（支持所有产品品类）
-const PARAM_LABELS: Record<string, string> = {
-  flowRate: '排气量', pressure: '工作压力', power: '功率',
-  voltage: '电压', controlType: '控制方式', tankType: '储气罐',
-  flow: '流量', head: '扬程', airVolume: '风量', windPressure: '风压',
-  speed: '转速', current: '电流', frequency: '频率', noise: '噪音',
-  weight: '重量', temperature: '温度', capacity: '容量',
-};
-
-// 通用参数单位映射
-const PARAM_UNITS: Record<string, string> = {
-  flowRate: 'm³/min', pressure: 'MPa', power: 'KW',
-  flow: 'm³/h', head: 'm', airVolume: 'm³/min', windPressure: 'Pa',
-  speed: 'rpm', current: 'A', frequency: 'Hz', noise: 'dB',
-  weight: 'kg', temperature: '℃', capacity: 'L',
-};
-
-// 已知为文本型（非数值型）的参数 key
-const TEXT_PARAMS = new Set(['voltage', 'controlType', 'tankType']);
-
-function isParamMatch(userValue: any, productValue: any, paramKey: string): boolean {
-  if (userValue == null || productValue == null) return true; // 用户未指定则不约束
-  // 文本型参数：精确匹配
-  if (TEXT_PARAMS.has(paramKey)) {
-    return String(userValue) === String(productValue);
-  }
-  const numUser = parseFloat(String(userValue));
-  const numProduct = parseFloat(String(productValue));
-  if (isNaN(numUser) || isNaN(numProduct)) return String(userValue) === String(productValue);
-  // 通用比例容差：±10%
-  if (numUser <= 0) return String(userValue) === String(productValue);
-  const ratio = Math.abs(numProduct - numUser) / numUser;
-  return ratio < 0.10;
-}
-
-/**
- * 检查产品是否满足用户的所有需求点
- */
-function meetsAllRequirements(userParams: Record<string, any>, productParams: Record<string, any>): boolean {
-  for (const key of Object.keys(userParams)) {
-    if (userParams[key] == null) continue;
-    if (!isParamMatch(userParams[key], productParams[key], key)) return false;
-  }
-  return true;
-}
-
-/**
- * 获取产品与用户需求不匹配的参数列表（用于差异标注）
- */
-function getParamDiffs(userParams: Record<string, any>, productParams: Record<string, any>): string[] {
-  const diffs: string[] = [];
-  for (const key of Object.keys(userParams)) {
-    if (userParams[key] == null) continue;
-    const productValue = productParams[key];
-    if (productValue == null) continue;
-    if (!isParamMatch(userParams[key], productValue, key)) {
-      const label = PARAM_LABELS[key] || key;
-      const unit = PARAM_UNITS[key] || '';
-      diffs.push(`${label}: 需求${userParams[key]}${unit}, 实际${productValue}${unit}`);
-    }
-  }
-  return diffs;
-}
-
-interface BrandCompareItem {
-  brand: string;
-  productName?: string;
-  supplier?: string;
-  contactPhone?: string;
-  model: string;
-  price: number;
-  minPrice?: number;
-  guidePrice?: number;
-  confidence: number;
-  rating: number;
-  quoteCount: number;
-  responseTime?: number;
-  tags: string[];
-  isRecommended: boolean;
-  source: string;
-  parameterDescription?: string;
-  /** 与用户需求不一致的参数列表（仅在回退模式时标注） */
-  paramDiffs?: string[];
-  /** 是否为回退模式（无严格匹配时展示的相近产品） */
-  isFallback?: boolean;
-}
 
 interface ConversationContext {
   conversationId?: string;
@@ -144,479 +50,6 @@ export class SmartChatProcessor {
 
   constructor() {
     console.log('[SmartChatProcessor] 智能对话处理器初始化完成');
-  }
-
-  /**
-   * 检测价格查询意图并提取产品信息
-   * 使用智能提取器，支持各种用户表达方式
-   */
-  private async detectPriceQuery(userInput: string): Promise<{
-    isPriceQuery: boolean;
-    productName?: string;
-    model?: string;
-    extraction?: ExtractedProduct;
-  }> {
-    // 价格查询关键词
-    const priceKeywords = [
-      '多少钱',
-      '价格',
-      '单价',
-      '售价',
-      '报价',
-      '成本',
-      '费用',
-      '询问',
-      '查询',
-      '想知道',
-    ];
-    const hasPriceKeyword = priceKeywords.some((keyword) => userInput.includes(keyword));
-
-    if (!hasPriceKeyword) {
-      return { isPriceQuery: false };
-    }
-
-    console.log('[SmartChatProcessor] 检测到价格查询，开始智能提取产品信息...');
-
-    // 使用智能提取器提取产品信息
-    const extraction = await ProductExtractor.extract(userInput);
-
-    if (!extraction || !ProductExtractor.validate(extraction)) {
-      console.warn('[SmartChatProcessor] 产品信息提取失败或无效');
-      return { isPriceQuery: false };
-    }
-
-    console.log('[SmartChatProcessor] 产品信息提取成功:', extraction);
-
-    return {
-      isPriceQuery: true,
-      productName: extraction.productName,
-      model: extraction.model,
-      extraction,
-    };
-  }
-
-  /**
-   * 智能产品匹配（使用 unified-matcher）
-   * 新增功能：提供更准确的产品匹配和置信度评估
-   */
-  private async smartProductMatch(userInput: string): Promise<{
-    hasMatch: boolean;
-    matchResult?: UnifiedMatchResult;
-    contextInfo?: string;
-  }> {
-    console.log('[SmartChatProcessor] 开始智能产品匹配...');
-
-    try {
-      // 确保统一匹配器已初始化
-      if (!unifiedMatcher.isInitialized()) {
-        console.log('[SmartChatProcessor] 初始化统一匹配器...');
-        await unifiedMatcher.initialize();
-      }
-
-      // 执行匹配
-      const matchResult = await unifiedMatcher.match(userInput);
-
-      console.log('[SmartChatProcessor] 智能匹配结果:', {
-        totalMatches: matchResult.summary.totalMatches,
-        exactMatches: matchResult.summary.exactMatches,
-        confidence: matchResult.confidence.overall,
-        level: matchResult.confidence.level
-      });
-
-      // 如果有匹配结果，生成上下文信息
-      let contextInfo = '';
-      if (matchResult.matches.length > 0) {
-        contextInfo = this.formatUnifiedMatchResult(matchResult);
-      }
-
-      return {
-        hasMatch: matchResult.matches.length > 0,
-        matchResult,
-        contextInfo
-      };
-
-    } catch (error) {
-      console.error('[SmartChatProcessor] 智能匹配失败:', error);
-      return { hasMatch: false };
-    }
-  }
-
-  /**
-   * 格式化统一匹配结果
-   */
-  private formatUnifiedMatchResult(result: UnifiedMatchResult): string {
-    const { matches, bestMatch, confidence, summary } = result;
-    let output = '';
-
-    // 添加置信度信息
-    if (confidence.level !== 'low') {
-      output += `\n\n【智能匹配系统】\n`;
-      output += `匹配置信度: ${(confidence.overall * 100).toFixed(1)}% (${confidence.level.toUpperCase()})\n`;
-      output += `找到 ${summary.totalMatches} 款匹配产品（精确: ${summary.exactMatches}, 近似: ${summary.approximateMatches}）\n\n`;
-    }
-
-    // 如果有多款匹配产品，使用表格格式
-    if (matches.length > 1) {
-      output += `| 序号 | 产品型号 | 排气量 | 工作压力 | 功率 | 电压 | 控制方式 | 储气罐 | 价格区间 |\n`;
-      output += `|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n`;
-
-      matches.slice(0, 10).forEach((match, index) => {
-        const product = match.product;
-        const isRecommended = index === 0 && match.matchLevel === 'exact' ? '⭐' : '';
-
-        // 格式化价格
-        const priceMin = product.minPrice ? product.minPrice.toLocaleString() : (product.displayPrice?.toLocaleString() || '面议');
-        const priceMax = product.guidePrice ? product.guidePrice.toLocaleString() : (product.displayPrice?.toLocaleString() || '面议');
-
-        output += `| ${index + 1}${isRecommended} | ${product.model || '-'} | ${product.flowRate || '-'} | ${product.pressure || '-'} | ${product.power || '-'} | ${product.voltage || '-'} | ${product.controlType || '-'} | ${product.tankType || '-'} | ¥${priceMin}-${priceMax} |\n`;
-      });
-
-      output += `\n`;
-
-      // 标注推荐产品详情
-      if (bestMatch && bestMatch.matchLevel === 'exact') {
-        const product = bestMatch.product;
-        output += `**⭐ 推荐产品详情：**\n`;
-        output += `- **品牌**：${product.brand || '杰瑞浩'}\n`;
-        output += `- **型号**：${product.model || '-'}\n`;
-        output += `- **核心参数**：排气量 ${product.flowRate || '-'} m³/min，工作压力 ${product.pressure || '-'} MPa，功率 ${product.power || '-'} KW，电压 ${product.voltage || '-'}\n`;
-        output += `- **产品特点**：${product.controlType || '工频'}机型，${product.tankType || '单储气罐'}，${product.controlType === '永磁变频' ? '节能效果好，适合长时间运行' : '经济实惠，适合间歇性使用'}\n`;
-        output += `- **参考价格**：¥${product.minPrice?.toLocaleString() || product.displayPrice?.toLocaleString()} - ¥${product.guidePrice?.toLocaleString() || product.displayPrice?.toLocaleString()} 元\n`;
-        output += `- **置信度**：${(bestMatch.score * 100).toFixed(1)}%\n`;
-        
-        // 添加相似度因素
-        if (bestMatch.similarityFactors && bestMatch.similarityFactors.length > 0) {
-          output += `- **相似度因素**：\n`;
-          bestMatch.similarityFactors.forEach(factor => {
-            output += `  - ${factor}\n`;
-          });
-        }
-        
-        output += `\n`;
-      }
-
-      // 添加置信度建议
-      if (confidence.recommendation.reliability) {
-        output += `💡 ${confidence.recommendation.reliability}：${confidence.recommendation.action}\n\n`;
-      }
-
-      output += `【智能匹配系统结果】\n`;
-    } else if (matches.length === 1 && bestMatch) {
-      // 单个产品，使用简化格式
-      const product = bestMatch.product;
-      output = `\n\n【智能匹配系统】\n`;
-      output += `产品名称：${product.name}\n`;
-      output += `规格型号：${product.model}\n`;
-      output += `品牌：${product.brand || '杰瑞浩'}\n`;
-      output += `核心参数：排气量 ${product.flowRate || '-'} m³/min，工作压力 ${product.pressure || '-'} MPa，功率 ${product.power || '-'} KW\n`;
-      output += `匹配置信度：${(bestMatch.score * 100).toFixed(1)}% (${bestMatch.matchLevel})\n`;
-      output += `参考价格：¥${product.displayPrice?.toLocaleString() || '面议'}\n`;
-      output += `置信度评估：${confidence.level.toUpperCase()} (${(confidence.overall * 100).toFixed(1)}%)\n\n`;
-    }
-
-    return output;
-  }
-
-  /**
-   * 处理价格查询
-   */
-  private async handlePriceQuery(
-    productName: string,
-    model?: string,
-    parameterDescription?: string,
-    userInput?: string
-  ): Promise<{ priceData?: PriceMatchResult; contextInfo?: string; brandCompareData?: BrandCompareItem[] }> {
-    console.log('[SmartChatProcessor] 处理价格查询:', productName, model, parameterDescription);
-
-    // 从用户原始输入解析需求参数（比从 LLM 提取的 parameterDescription 更准确，
-    // 因为 parameterDescription 可能包含 LLM 推断的额外参数）
-    const parsedQuery = userInput ? productQueryParser.parse(userInput) : null;
-    const userRequirementParams: Record<string, any> = {};
-    if (parsedQuery) {
-      if (parsedQuery.flowRate != null) userRequirementParams.flowRate = parsedQuery.flowRate;
-      if (parsedQuery.pressure != null) userRequirementParams.pressure = parsedQuery.pressure;
-      if (parsedQuery.power != null) userRequirementParams.power = parsedQuery.power;
-      if (parsedQuery.voltage != null) userRequirementParams.voltage = parsedQuery.voltage;
-      if (parsedQuery.controlType != null) userRequirementParams.controlType = parsedQuery.controlType;
-      if (parsedQuery.tankType != null) userRequirementParams.tankType = parsedQuery.tankType;
-    }
-    const hasUserRequirements = Object.keys(userRequirementParams).length > 0;
-    console.log('[SmartChatProcessor] 用户需求参数(从原始输入解析):', userRequirementParams);
-
-    try {
-      const productMatch: ProductMatch = {
-        name: productName,
-        model,
-        parameter_description: parameterDescription,
-      };
-
-      // 调用价格匹配器（启用品牌排序）
-      const priceResult = await PriceMatcher.matchPrice(productMatch, undefined);
-
-      console.log('[SmartChatProcessor] 价格查询结果:', priceResult);
-
-      // 生成上下文信息 - 如果有多款匹配产品，使用表格格式
-      let contextInfo = '';
-      if (priceResult) {
-        const allProducts = priceResult.matchedProducts || [];
-        // 基础过滤：仅保留 matchLevel <= 3 的产品（排除仅名称/仅型号匹配）
-        const baseProducts = allProducts.filter(p => p.matchLevel != null && p.matchLevel <= 3);
-
-        // === 两阶段过滤 ===
-        // 阶段1：严格匹配 — 产品必须满足用户的所有需求点
-        let strictProducts = baseProducts;
-        let isFallbackMode = false;
-
-        if (hasUserRequirements) {
-          strictProducts = baseProducts.filter(p => {
-            const productParams = (p as any).parameters || {};
-            if (!meetsAllRequirements(userRequirementParams, productParams)) {
-              console.log(`[SmartChatProcessor] 严格过滤排除: ${p.model}, params=${JSON.stringify(productParams)}`);
-              return false;
-            }
-            return true;
-          });
-
-          if (strictProducts.length === 0) {
-            // 阶段2：回退 — 整个数据库没有满足的，才展示相近产品
-            console.log('[SmartChatProcessor] 无严格匹配产品，回退到相近产品模式');
-            isFallbackMode = true;
-            strictProducts = baseProducts;
-          }
-        }
-
-        const relevantProducts = strictProducts;
-
-        // 如果有多款匹配产品，使用表格格式
-        if (relevantProducts.length > 1) {
-          console.log(`🚨 找到 ${relevantProducts.length} 款${isFallbackMode ? '相近' : '满足需求'}的产品，使用表格格式`);
-
-          // 构建响应标题
-          if (isFallbackMode) {
-            contextInfo += `\n\n⚠️ 未找到完全满足您需求的产品，以下为 **${relevantProducts.length}款** 相近规格的产品：\n\n`;
-          } else {
-            contextInfo += `\n\n✅ 根据您的要求，找到 **${relevantProducts.length}款** 满足需求的产品：\n\n`;
-          }
-
-          // 展示所有满足需求的产品对比表格
-          const displayProducts = relevantProducts.slice(0, 10);
-
-          // 通用：动态检测参数维度
-          const displayParamKeys = ['flowRate', 'pressure', 'power', 'voltage', 'controlType', 'tankType',
-            'flow', 'head', 'airVolume', 'windPressure', 'speed', 'current', 'frequency', 'noise'];
-          // 只展示产品实际有的参数列
-          const activeParamKeys = displayParamKeys.filter(key => {
-            return displayProducts.some(p => {
-              const params = (p as any).parameters || {};
-              return params[key] != null && params[key] !== '';
-            });
-          }).slice(0, 6); // 最多展示6个参数列
-
-          // 构建Markdown表格（动态列）
-          const paramHeaders = activeParamKeys.map(k => PARAM_LABELS[k] || k);
-          contextInfo += `| 序号 | 产品型号 | ${paramHeaders.join(' | ')} | 价格区间 |\n`;
-          contextInfo += `|:---:|:---|${activeParamKeys.map(() => ':---').join('|')}|:---:|\n`;
-
-          displayProducts.forEach((product, index) => {
-            const params = (product as any).parameters || {};
-            const isRecommended = index === 0 ? '⭐' : '';
-
-            const formatParam = (key: string, value: any): string => {
-              if (value == null || value === '') return '-';
-              if (userRequirementParams[key] == null) return `${value}`;
-              if (!isParamMatch(userRequirementParams[key], value, key)) {
-                return isFallbackMode ? `${value} ⚠️` : `${value}`;
-              }
-              return `${value}`;
-            };
-
-            const priceMin = params.minPrice ? params.minPrice.toLocaleString() : (product.price?.toLocaleString() || '面议');
-            const priceMax = params.costPrice ? params.costPrice.toLocaleString() : (product.price?.toLocaleString() || '面议');
-            const paramCells = activeParamKeys.map(k => formatParam(k, params[k])).join(' | ');
-
-            contextInfo += `| ${index + 1}${isRecommended} | ${product.model || '-'} | ${paramCells} | ¥${priceMin}-${priceMax} |\n`;
-          });
-
-          contextInfo += `\n`;
-
-          // 差异标注说明
-          if (isFallbackMode) {
-            contextInfo += `> ⚠️ 以上产品为相近规格，标注⚠️的参数与您的需求存在差异\n\n`;
-          } else {
-            // 检查是否有满足需求但其他参数不同的产品
-            const hasOtherDiffs = displayProducts.some(p => {
-              const params = (p as any).parameters || {};
-              // 对用户没有指定的参数，检查产品间是否有差异
-              const unspecifiedKeys = ['pressure', 'power', 'voltage', 'controlType', 'tankType'];
-              return unspecifiedKeys.some(key => params[key] != null && userRequirementParams[key] == null);
-            });
-            if (hasOtherDiffs) {
-              contextInfo += `> 以上产品均满足您的核心需求，参数差异为产品本身的规格区分\n\n`;
-            }
-          }
-
-          // 如果有更多产品，提示
-          if (relevantProducts.length > 10) {
-            contextInfo += `*还有 ${relevantProducts.length - 10} 款产品未显示*\n\n`;
-          }
-
-          // 标注当前推荐产品的参数详情（通用版：展示产品实际参数）
-          const recommended = relevantProducts[0];
-          if (recommended) {
-            const params = (recommended as any).parameters || {};
-
-            contextInfo += `**⭐ 推荐产品详情：**\n`;
-            contextInfo += `- **品牌**：${recommended.brand || '-'}\n`;
-            contextInfo += `- **型号**：${recommended.model || '-'}\n`;
-            // 动态展示产品实际有的参数
-            const paramParts: string[] = [];
-            for (const key of activeParamKeys) {
-              if (params[key] != null && params[key] !== '') {
-                const label = PARAM_LABELS[key] || key;
-                paramParts.push(`${label} ${params[key]}`);
-              }
-            }
-            if (paramParts.length > 0) {
-              contextInfo += `- **核心参数**：${paramParts.join('，')}\n`;
-            }
-            if (recommended.parameterDescription) {
-              contextInfo += `- **产品特点**：${recommended.parameterDescription}\n`;
-            }
-            contextInfo += `- **参考价格**：¥${params.minPrice?.toLocaleString() || recommended.price?.toLocaleString()} 元\n\n`;
-          }
-
-          contextInfo += `【数据库产品信息】\n`;
-        } else {
-          // 单个产品或仅名称匹配的产品，使用简洁格式
-          contextInfo = `\n\n【数据库产品信息】\n`;
-          contextInfo += `产品名称：${priceResult.productName || productName}\n`;
-          if (model) {
-            contextInfo += `规格型号：${model}\n`;
-          }
-          contextInfo += `单价：${priceResult.price.toFixed(2)} 元\n`;
-          contextInfo += `价格来源：${this.getPriceSourceText(priceResult.source)}\n`;
-          contextInfo += `置信度：${priceResult.confidence}%\n`;
-
-          // 添加新的数据库字段
-          if (priceResult.brand) {
-            contextInfo += `品牌：${priceResult.brand}\n`;
-          }
-          if (priceResult.parameterDescription) {
-            contextInfo += `参数描述：${priceResult.parameterDescription}\n`;
-          }
-          if (priceResult.costPrice) {
-            contextInfo += `成本：${priceResult.costPrice.toFixed(2)} 元\n`;
-          }
-          if (priceResult.minPrice) {
-            contextInfo += `最低售价：${priceResult.minPrice.toFixed(2)} 元\n`;
-          }
-          if (priceResult.currency) {
-            contextInfo += `货币单位：${priceResult.currency}\n`;
-          }
-
-          if (priceResult.source === 'market' && priceResult.marketSource) {
-            contextInfo += `市场价来源：${priceResult.marketSource}\n`;
-            contextInfo += `注意：此价格为市场参考价，实际价格可能因供应商、数量等因素而异。`;
-          }
-        }
-
-        console.log('[SmartChatProcessor] 生成的上下文信息:', contextInfo);
-      }
-
-      return {
-        priceData: priceResult,
-        contextInfo,
-        brandCompareData: this.buildBrandCompareData(priceResult, userRequirementParams),
-      };
-    } catch (error) {
-      console.error('[SmartChatProcessor] 价格查询失败:', error);
-      return {};
-    }
-  }
-
-  /**
-   * 从价格匹配结果中构建多品牌对比数据
-   * 核心原则：必须满足用户所有需求点才展示，除非整个数据库都没有满足的
-   * @param priceResult 价格匹配结果
-   * @param userRequirementParams 用户需求参数（从用户原始输入解析）
-   */
-  private buildBrandCompareData(priceResult: PriceMatchResult, userRequirementParams?: Record<string, any>): BrandCompareItem[] | undefined {
-    if (!priceResult.matchedProducts || priceResult.matchedProducts.length < 1) {
-      return undefined;
-    }
-
-    const hasUserRequirements = userRequirementParams && Object.keys(userRequirementParams).length > 0;
-    const baseProducts = priceResult.matchedProducts.filter(p => p.matchLevel != null && p.matchLevel <= 3);
-
-    // === 两阶段过滤（与 handlePriceQuery 保持一致） ===
-    let strictProducts = baseProducts;
-    let isFallbackMode = false;
-
-    if (hasUserRequirements) {
-      strictProducts = baseProducts.filter(p => {
-        const productParams = (p as any).parameters || {};
-        return meetsAllRequirements(userRequirementParams, productParams);
-      });
-
-      if (strictProducts.length === 0) {
-        isFallbackMode = true;
-        strictProducts = baseProducts;
-      }
-    }
-
-    if (strictProducts.length < 2) return undefined;
-
-    return strictProducts.slice(0, 10).map((product, index) => {
-      const productParams = (product as any).parameters || {};
-
-      // 差异标注：
-      // - 非回退模式：标注满足需求后的其他参数差异（用户未指定的参数在各产品间的差异不需要标注，
-      //   因为所有产品都满足需求，差异是正常的产品规格区分）
-      // - 回退模式：标注与用户需求不一致的参数
-      const paramDiffs: string[] = [];
-      if (hasUserRequirements) {
-        if (isFallbackMode) {
-          // 回退模式：标注所有与需求不一致的参数
-          paramDiffs.push(...getParamDiffs(userRequirementParams, productParams));
-        }
-        // 非回退模式下，所有产品都满足需求，不需要差异标注
-        // 产品间的规格差异由 BrandCompareCard 的 findDifferentiatingKeys 自动处理
-      }
-
-      return {
-        brand: product.brand || '未知品牌',
-        productName: product.productName,
-        supplier: product.supplier,
-        contactPhone: product.contactPhone,
-        model: product.model || '-',
-        price: product.price,
-        minPrice: product.parameters?.minPrice,
-        costPrice: product.parameters?.costPrice,
-        confidence: product.confidence,
-        rating: 0,
-        quoteCount: 0,
-        tags: product.tags || [],
-        isRecommended: index === 0,
-        source: priceResult.source,
-        parameterDescription: product.parameterDescription,
-        paramDiffs: paramDiffs.length > 0 ? paramDiffs : undefined,
-        isFallback: isFallbackMode || undefined,
-      };
-    });
-  }
-
-  /**
-   * 获取价格来源文本
-   */
-  private getPriceSourceText(source: string): string {
-    const sourceMap: Record<string, string> = {
-      database: '产品知识库（已验证）',
-      knowledge: '历史报价/案例',
-      market: '市场参考价',
-      estimate: '类别估算',
-      default: '默认兜底',
-    };
-    return sourceMap[source] || source;
   }
 
   /**
@@ -686,19 +119,17 @@ export class SmartChatProcessor {
       enhancedInput = this.enrichInputWithFileInfo(userInput, processedInput);
     }
 
-    // 2.4. 意图理解 + 语义搜索（新逻辑，优先于旧逻辑）
+    // 2.4 意图管道（统一入口）
     let intentResult: PipelineResult | null = null;
     if (!processedInput || processedInput.type === 'text') {
       intentResult = await processWithIntent(userInput);
     }
 
-    // 2.5. 检测价格查询并预处理（旧逻辑，作为降级方案）
     let priceContextInfo = '';
-    let priceBrandCompareData: BrandCompareItem[] | undefined;
     let priceData: PriceMatchResult | undefined;
 
     if (intentResult && intentResult.source === 'intent' && intentResult.products.length > 0) {
-      // 新逻辑命中 → 将搜索结果转换为 priceData 格式，复用 buildDatabaseResponse
+      // 意图管道命中 → 构建产品数据
       const topProduct = intentResult.products[0];
       priceData = {
         price: topProduct.price,
@@ -727,62 +158,12 @@ export class SmartChatProcessor {
           parameters: {},
         })),
       };
-      // 标记第一个为推荐
       if (priceData.matchedProducts && priceData.matchedProducts.length > 0) {
         priceData.matchedProducts[0].isRecommended = true;
       }
-
-      // 生成上下文信息（复用现有格式）
       priceContextInfo = formatProductsAsContext(intentResult, userInput);
       enhancedInput += priceContextInfo;
-      console.log('[SmartChatProcessor] 意图理解层命中，找到', intentResult.products.length, '个产品');
-    } else {
-      // 降级到旧逻辑
-      if (intentResult && intentResult.source === 'none') {
-        console.log('[SmartChatProcessor] 意图理解层未命中，降级到旧逻辑');
-      }
-      if (!processedInput || processedInput.type === 'text') {
-      const priceQuery = await this.detectPriceQuery(userInput);
-      if (priceQuery.isPriceQuery && priceQuery.productName) {
-        console.log('[SmartChatProcessor] 检测到价格查询:', priceQuery);
-        const priceResult = await this.handlePriceQuery(
-          priceQuery.productName,
-          priceQuery.model,
-          priceQuery.extraction?.parameter_description,
-          userInput
-        );
-        priceData = priceResult.priceData;
-        if (priceResult.contextInfo) {
-          priceContextInfo = priceResult.contextInfo;
-          enhancedInput += priceContextInfo;
-          console.log('[SmartChatProcessor] 已添加价格查询结果到上下文');
-        }
-        // 提取多品牌对比数据
-        if (priceResult.brandCompareData && priceResult.brandCompareData.length > 1) {
-          priceBrandCompareData = priceResult.brandCompareData;
-          console.log(`[SmartChatProcessor] 多品牌对比数据: ${priceBrandCompareData.length} 个品牌`);
-        }
-      }
-    }
-    } // end 降级到旧逻辑
-
-    // 2.6. 智能产品匹配（新增功能）
-    // 如果原有价格查询没有结果或置信度较低，尝试使用智能匹配系统
-    let smartMatchContextInfo = '';
-    let smartMatchResult: any = null;  // 移到外层定义
-    
-    if (!processedInput || processedInput.type === 'text') {
-      // 仅当没有价格查询结果，或者输入包含产品参数时使用智能匹配
-      const hasProductParams = /(\d+\.?\d*)\s*(m³|m3|立方)\s*(\/|\s)?\s*min|(\d+\.?\d*)\s*(MPa|兆帕|bar|巴)|(\d+\.?\d*)\s*(KW|kW|千瓦)/i.test(userInput);
-      
-      if (hasProductParams || !priceContextInfo) {
-        smartMatchResult = await this.smartProductMatch(userInput);
-        if (smartMatchResult.hasMatch && smartMatchResult.contextInfo) {
-          smartMatchContextInfo = smartMatchResult.contextInfo;
-          enhancedInput += smartMatchContextInfo;
-          console.log('[SmartChatProcessor] 已添加智能匹配结果到上下文');
-        }
-      }
+      console.log('[SmartChatProcessor] 意图管道命中，找到', intentResult.products.length, '个产品, matchLevel=', intentResult.matchLevel);
     }
 
     // 3. 使用 LLM 智能理解并生成响应
@@ -823,40 +204,18 @@ export class SmartChatProcessor {
     this.updateContext(context, userInput, response.content);
 
     // 5. 准备返回的 metadata（包含智能匹配摘要）
-    const returnMetadata: SmartResponse['metadata'] = {
+      const returnMetadata: SmartResponse['metadata'] = {
       inputType: response.metadata?.inputType || processedInput?.type || 'text',
-      confidence: smartMatchResult?.matchResult?.confidence.overall || response.metadata?.confidence || 0.9,
+      confidence: response.metadata?.confidence || 0.9,
       extractedEntities: response.metadata?.extractedEntities || {},
       uploadInfo: Object.keys(uploadInfo).length > 0 ? uploadInfo : undefined,
     };
 
-    // 添加智能匹配摘要到 entities
-    if (smartMatchResult?.matchResult) {
-      const matchSummary = {
-        totalMatches: smartMatchResult.matchResult.summary.totalMatches,
-        exactMatches: smartMatchResult.matchResult.summary.exactMatches,
-        approximateMatches: smartMatchResult.matchResult.summary.approximateMatches,
-        recommendedProduct: smartMatchResult.matchResult.summary.recommendedProduct,
-        confidenceLevel: smartMatchResult.matchResult.confidence.level,
-        confidenceScore: smartMatchResult.matchResult.confidence.overall,
-      };
-
-      // 添加最佳匹配的相似度因素
-      if (smartMatchResult.matchResult.bestMatch?.similarityFactors) {
-        (matchSummary as any).similarityFactors = smartMatchResult.matchResult.bestMatch.similarityFactors;
-      }
-
+    // 添加意图管道匹配等级到 entities
+    if (intentResult?.matchLevel) {
       returnMetadata.extractedEntities = {
         ...returnMetadata.extractedEntities,
-        matchSummary,
-      };
-    }
-
-    // 添加多品牌对比数据到 metadata
-    if (priceBrandCompareData && priceBrandCompareData.length > 1) {
-      returnMetadata.extractedEntities = {
-        ...returnMetadata.extractedEntities,
-        brandCompare: priceBrandCompareData,
+        matchLevel: intentResult.matchLevel,
       };
     }
 
@@ -1011,7 +370,8 @@ export class SmartChatProcessor {
 3. 如果你在回复中展示价格表格，价格数字必须与【数据库产品信息】中的完全一致
 4. 如果你不确定某个字段（标签中未提供），标注"暂无数据"，绝不能编造数字
 5. 如果标签中的价格为 1745.00，你回复中不能写成 3500 或其他任何数字
-6. 违反以上任何一条都是严重错误，会导致误导用户
+6. **必须列出标签中的全部产品**，禁止省略、合并或跳过任何一款产品。标签中有多少款产品，你的表格就必须有多少行
+7. 违反以上任何一条都是严重错误，会导致误导用户
 
 ### 3. 产品价格查询场景（重要！）
 - 识别：用户询问具体产品的价格，如"XX产品多少钱？"、"普耐尔氩弧焊枪10M多少？"
@@ -1377,6 +737,20 @@ export class SmartChatProcessor {
     }
 
     return prompt;
+  }
+
+  /**
+   * 获取价格来源文本
+   */
+  private getPriceSourceText(source: string): string {
+    const sourceMap: Record<string, string> = {
+      database: '产品知识库（已验证）',
+      knowledge: '历史报价/案例',
+      market: '市场参考价',
+      estimate: '类别估算',
+      default: '默认兜底',
+    };
+    return sourceMap[source] || source;
   }
 
   /**

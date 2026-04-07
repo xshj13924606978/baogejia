@@ -166,104 +166,69 @@ export async function POST(request: NextRequest) {
       console.log('[Chat Stream API] 对话历史:', { conversationId, historyCount: history.length });
     }
 
-    // 3.5. 意图理解 + 语义搜索（增强上下文 + 过滤卡片数据）
+    // 3.5 意图管道（统一入口）
     let enhancedMessage = message;
-    let databaseInfo: any = null;
     let priceMatchedProducts: any[] | undefined;
     let priceBrandCompareData: any[] | undefined;
     let extractedProductType = '';
-    let intentProducts: any[] = []; // 保存意图管道结果用于过滤卡片
+    let matchLevel: string | undefined;
     try {
       const intentPipelineResult = await processWithIntent(message);
       extractedProductType = intentPipelineResult?.intent?.entities?.productType || '';
+      matchLevel = intentPipelineResult?.matchLevel;
+
       if (intentPipelineResult.source === 'intent' && intentPipelineResult.products.length > 0) {
         enhancedMessage += formatProductsAsContext(intentPipelineResult, message);
-        intentProducts = intentPipelineResult.products;
-        console.log('[Chat Stream API] 意图理解层命中，找到', intentPipelineResult.products.length, '个产品，已增强上下文');
+
+        // 去重后构建卡片数据
+        const seen = new Set<string>();
+        const deduped = intentPipelineResult.products.filter((p: any) => {
+          const key = `${p.brand || ''}|${p.model || ''}|${p.parameterDescription || ''}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        priceBrandCompareData = deduped.map((p: any, i: number) => ({
+          brand: p.brand || '',
+          productName: p.name || '',
+          model: p.model || '',
+          price: p.price > 0 ? p.price : p.minPrice,
+          minPrice: p.minPrice || undefined,
+          costPrice: p.costPrice || undefined,
+          guidePrice: p.price > 0 ? p.price : undefined,
+          confidence: p.matchType === 'exact' ? 0.95 : p.matchType === 'partial' ? 0.85 : p.matchType === 'fuzzy' ? 0.75 : 0.60,
+          rating: 5,
+          quoteCount: 1,
+          tags: p.matchType === 'recommend' ? ['推荐产品'] : p.matchType === 'fuzzy' ? ['相近匹配'] : p.matchType === 'partial' ? ['部分匹配'] : [],
+          isRecommended: i === 0,
+          source: 'database',
+          parameterDescription: p.parameterDescription || '',
+          matchType: p.matchType || 'exact',
+          matchLevel: p.matchType || 'exact',
+          isFallback: p.matchType === 'fuzzy' || p.matchType === 'recommend',
+          matchDetails: p.matchDetails || p.missingConditions || undefined,
+        }));
+
+        priceMatchedProducts = deduped.map((p: any) => ({
+          brand: p.brand || '',
+          model: p.model || '',
+          price: p.price,
+          minPrice: p.minPrice,
+          costPrice: p.costPrice,
+          confidence: p.matchType === 'exact' ? 0.95 : p.matchType === 'partial' ? 0.85 : p.matchType === 'fuzzy' ? 0.75 : 0.60,
+          isRecommended: false,
+          source: 'database',
+          matchLevel: p.matchType || 'exact',
+          matchedBy: 'intent',
+          matchType: p.matchType || 'exact',
+          parameters: p.parameterDescription || '',
+        }));
+
+        console.log('[Chat Stream API] 意图管道命中, products=', priceBrandCompareData.length, ', matchLevel=', matchLevel);
       }
     } catch (error) {
-      console.error('[Chat Stream API] 意图理解层失败，降级:', error);
-    }
-
-    // 4. 价格查询预处理（对比卡片数据源）
-    try {
-      const priceQuery = await (smartChatProcessor as any).detectPriceQuery(message);
-      console.log('[Chat Stream API] detectPriceQuery结果:', JSON.stringify({ isPriceQuery: priceQuery.isPriceQuery, productName: priceQuery.productName, model: priceQuery.model }));
-      if (priceQuery.isPriceQuery && priceQuery.productName) {
-        console.log('[Chat Stream API] 检测到价格查询:', priceQuery);
-        const priceResult = await (smartChatProcessor as any).handlePriceQuery(
-          priceQuery.productName,
-          priceQuery.model,
-          priceQuery.extraction?.parameter_description
-        );
-        if (priceResult.priceData) {
-          databaseInfo = {
-            productName: priceResult.priceData.productName,
-            model: priceResult.priceData.model,
-            price: priceResult.priceData.price,
-            brand: priceResult.priceData.brand,
-            parameterDescription: priceResult.priceData.parameterDescription,
-            costPrice: priceResult.priceData.costPrice,
-            minPrice: priceResult.priceData.minPrice,
-          };
-          // 保存匹配产品列表用于前端卡片展示
-          priceMatchedProducts = priceResult.priceData?.matchedProducts;
-          priceBrandCompareData = priceResult.brandCompareData;
-          console.log('[Chat Stream API] 已保存数据库信息:', databaseInfo);
-          console.log('[Chat Stream API] 匹配产品数:', priceMatchedProducts?.length, '品牌对比数:', priceBrandCompareData?.length);
-        }
-        if (priceResult.contextInfo) {
-          enhancedMessage += priceResult.contextInfo;
-          console.log('[Chat Stream API] 已添加价格查询结果到上下文:', priceResult.contextInfo);
-        }
-      }
-    } catch (error) {
-      console.error('[Chat Stream API] 价格查询失败:', error);
-    }
-
-    // 4.5 意图管道结果直接构建卡片数据（彻底解决旧管道查询不全的根因）
-    // 当意图管道有结果时，直接用其产品列表生成卡片，绕过旧管道的查询限制
-    if (intentProducts.length > 0) {
-      const exactProducts = intentProducts.filter((p: any) => p.matchType === 'exact');
-      const closeProducts = intentProducts.filter((p: any) => p.matchType === 'close');
-
-      // 从意图管道产品直接构建卡片数据
-      priceBrandCompareData = intentProducts.map((p: any, i: number) => ({
-        brand: p.brand || '',
-        productName: p.name || '',
-        model: p.model || '',
-        price: p.minPrice > 0 ? p.minPrice : p.price,
-        minPrice: p.minPrice || undefined,
-        costPrice: p.costPrice || undefined,
-        confidence: p.matchType === 'exact' ? 0.95 : 0.70,
-        rating: 5,
-        quoteCount: 1,
-        tags: [],
-        isRecommended: i === 0,
-        source: 'database',
-        parameterDescription: p.parameterDescription || '',
-        matchType: p.matchType || 'exact',
-        isFallback: p.matchType === 'close',
-        matchDetails: p.matchDetails || undefined,
-      }));
-
-      // 同步构建 matchedProducts
-      priceMatchedProducts = intentProducts.map((p: any) => ({
-        brand: p.brand || '',
-        model: p.model || '',
-        price: p.price,
-        minPrice: p.minPrice,
-        costPrice: p.costPrice,
-        confidence: p.matchType === 'exact' ? 0.95 : 0.70,
-        isRecommended: false,
-        source: 'database',
-        matchLevel: p.matchType === 'exact' ? 'exact' : 'approximate',
-        matchedBy: 'intent',
-        matchType: p.matchType || 'exact',
-        parameters: p.parameterDescription || '',
-      }));
-
-      console.log(`[Chat Stream API] 意图管道直接构建卡片: 精确${exactProducts.length}款, 相近${closeProducts.length}款, 共${priceBrandCompareData.length}款`);
+      console.error('[Chat Stream API] 意图管道失败:', error);
     }
 
     // 4.6 智能判断是否需要联网搜索
@@ -445,8 +410,8 @@ export async function POST(request: NextRequest) {
 
             // 将数据库信息添加到AI回复的末尾（隐藏格式）
             let assistantMessage = fullContent;
-            if (databaseInfo) {
-              assistantMessage += `\n\n<!-- DATABASE_INFO: ${JSON.stringify(databaseInfo)} -->`;
+            if (priceBrandCompareData && priceBrandCompareData.length > 0) {
+              assistantMessage += `\n\n<!-- DATABASE_INFO: ${JSON.stringify(priceBrandCompareData)} -->`;
               console.log('[Chat Stream API] 已将数据库信息添加到AI回复中');
             }
 
@@ -512,18 +477,17 @@ export async function POST(request: NextRequest) {
                 webSearchUsed,
                 productType: extractedProductType,
                 brandCompare: priceBrandCompareData,
+                matchLevel,
                 matchedProducts: priceMatchedProducts?.map((p: any) => ({
                   brand: p.brand,
-                  supplier: p.supplier,
-                  contactPhone: p.contactPhone,
                   model: p.model,
                   price: p.price,
-                  minPrice: p.parameters?.minPrice,
-                  costPrice: p.parameters?.costPrice,
+                  minPrice: p.minPrice,
+                  costPrice: p.costPrice,
                   confidence: p.confidence,
                   isRecommended: p.isRecommended,
-                  source: 'database',
-                  tags: p.tags || [],
+                  source: p.source,
+                  tags: p.matchType === 'recommend' ? ['推荐产品'] : p.matchType === 'fuzzy' ? ['相近匹配'] : p.matchType === 'partial' ? ['部分匹配'] : [],
                   matchLevel: p.matchLevel,
                   matchedBy: p.matchedBy,
                   matchType: p.matchType || null,

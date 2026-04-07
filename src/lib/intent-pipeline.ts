@@ -1,26 +1,28 @@
 /**
  * 意图处理管道 — 统一入口
  *
- * 流程：用户输入 → 意图理解 → 产品搜索 → 返回结果
- * 失败时自动降级到旧逻辑（PriceMatcher）
+ * 流程：用户输入 → LLM 意图解析 → SQL 候选集 → 四层渐进筛选 → 返回结果
+ *
+ * 统一管道：不再有旧管道降级，所有产品查询由此管道处理
  */
 
 import { intentUnderstanding } from './intent-understanding';
 import { intentBasedSearch } from './intent-based-search';
 import { extractAllParams, getKeyParameters } from './product-comparison';
-import type { Intent, IntentResult, IntentProduct } from './intent-understanding';
+import type { Intent, IntentProduct, MatchLevel } from './intent-understanding';
 
 // ═══════════════════════ 接口 ═══════════════════════
 
 export interface PipelineResult {
   products: IntentProduct[];
-  source: 'intent' | 'legacy' | 'none';
+  source: 'intent' | 'none';
   confidence: number;
   intent?: Intent;
   searchStrategy?: string;
+  matchLevel?: MatchLevel;
+  missingInfo?: string;
 }
 
-/** 按关键参数分组后的产品组 */
 export interface ProductGroup {
   key: string;
   representative: IntentProduct;
@@ -31,140 +33,117 @@ export interface ProductGroup {
 // ═══════════════════════ 管道 ═══════════════════════
 
 export async function processWithIntent(userInput: string): Promise<PipelineResult> {
-  // 环境变量开关（默认开启）
-  const enabled = process.env.INTENT_PIPELINE_ENABLED !== 'false';
-
-  if (!enabled) {
-    console.log('[IntentPipeline] 新逻辑已通过环境变量禁用，直接走旧逻辑');
-    return { products: [], source: 'none', confidence: 0 };
-  }
-
   try {
-    // 第1步：意图理解
+    // 第1步：LLM 意图解析
     const intent = await intentUnderstanding.understand(userInput);
 
-    // 问候和未知意图 → 不走产品搜索，直接返回（交给旧逻辑处理问候）
+    // 问候和未知意图 → 直接返回，由 LLM 处理回复
     if (intent.type === 'greeting' || intent.type === 'unknown') {
-      console.log(`[IntentPipeline] type=${intent.type}, 交给旧逻辑处理`);
+      console.log(`[IntentPipeline] type=${intent.type}, 交给 LLM 处理`);
       return { products: [], source: 'none', confidence: intent.confidence, intent };
     }
 
-    // 第2步：基于意图的产品搜索
+    // 第2步：基于意图的产品搜索（四层渐进匹配）
     const searchResult = await intentBasedSearch.search(intent);
 
-    // 第3步：判断是否成功
-    if (searchResult.products.length > 0 && searchResult.confidence >= 0.7) {
-      console.log(
-        `[IntentPipeline] 新逻辑命中 source=intent, ` +
-        `products=${searchResult.products.length}, ` +
-        `strategy=${searchResult.searchStrategy}, ` +
-        `confidence=${searchResult.confidence}`
-      );
-      return {
-        products: searchResult.products,
-        source: 'intent',
-        confidence: searchResult.confidence,
-        intent,
-        searchStrategy: searchResult.searchStrategy,
-      };
-    }
-
-    // 新逻辑未命中 → 降级
+    // 第3步：返回结果
     console.log(
-      `[IntentPipeline] 新逻辑未命中 (products=${searchResult.products.length}, ` +
-      `confidence=${searchResult.confidence})，降级到旧逻辑`
+      `[IntentPipeline] source=intent, products=${searchResult.products.length}, ` +
+      `matchLevel=${searchResult.matchLevel}, confidence=${searchResult.confidence}`
     );
-    return { products: [], source: 'none', confidence: searchResult.confidence, intent };
+    return {
+      products: searchResult.products,
+      source: 'intent',
+      confidence: searchResult.confidence,
+      intent,
+      searchStrategy: searchResult.searchStrategy,
+      matchLevel: searchResult.matchLevel === 'none' ? undefined : searchResult.matchLevel,
+      missingInfo: searchResult.matchLevel !== 'exact'
+        ? searchResult.searchStrategy
+        : undefined,
+    };
 
   } catch (error) {
-    console.error('[IntentPipeline] 新逻辑异常，降级到旧逻辑:', error);
+    console.error('[IntentPipeline] 异常:', error);
     return { products: [], source: 'none', confidence: 0 };
   }
 }
 
 // ═══════════════════════ 分组函数 ═══════════════════════
 
-/**
- * 按关键参数分组（通用：自动识别参数维度）
- * 用于将大量匹配产品按关键差异分组展示
- */
 export function groupByKeyParams(products: IntentProduct[], keyParams?: string[]): ProductGroup[] {
   if (products.length === 0) return [];
-
   const productType = products[0]?.name || '';
   const params = keyParams || getKeyParameters(productType, products);
-  // 取前2个参数作为分组键（避免过度细分）
-  const groupKeys = params.slice(0, 2);
+  const groupKeys = params;
 
   if (groupKeys.length === 0) {
     return [{ key: 'all', representative: products[0], count: products.length, products }];
   }
 
   const groups = new Map<string, IntentProduct[]>();
-
   for (const product of products) {
     const allParams = extractAllParams(product.parameterDescription);
     const groupKey = groupKeys.map(p => `${p}:${allParams.get(p) || '-'}`).join('|');
-    if (!groups.has(groupKey)) {
-      groups.set(groupKey, []);
-    }
+    if (!groups.has(groupKey)) groups.set(groupKey, []);
     groups.get(groupKey)!.push(product);
   }
 
-  const maxPerGroup = parseInt(process.env.MAX_PRODUCTS_PER_GROUP || '3', 10);
   return Array.from(groups.entries()).map(([key, prods]) => ({
-    key,
-    representative: prods[0],
-    count: prods.length,
-    products: prods.slice(0, maxPerGroup),
+    key, representative: prods[0], count: prods.length, products: prods,
   }));
 }
 
-/**
- * 将产品列表格式化为 Markdown 表格（辅助函数）
- */
-function formatProductTable(products: IntentProduct[], productType: string, matchType: 'exact' | 'close'): string {
+// ═══════════════════════ Markdown 格式化 ═══════════════════════
+
+function formatProductTable(products: IntentProduct[], productType: string): string {
   if (products.length === 0) return '';
 
   const keyParams = getKeyParameters(productType, products);
   const displayParams = keyParams.slice(0, 4);
 
-  // 构建动态表头
-  let ctx = `| 序号 | 产品名称 | 型号 | ${displayParams.join(' | ')} | 价格（元） |\n`;
-  ctx += `|:---:|:---|:---|${displayParams.map(() => ':---').join('|')}|:---:|\n`;
+  // 始终包含品牌列；当无 key:value 参数时，用原始参数描述作为"规格"列
+  const hasParams = displayParams.length > 0;
+  const headers = hasParams
+    ? `| 序号 | 品牌 | 产品名称 | 型号 | ${displayParams.join(' | ')} | 价格（元） |`
+    : `| 序号 | 品牌 | 产品名称 | 型号 | 规格 | 价格（元） |`;
+  const separators = hasParams
+    ? `|:---:|:---|:---|:---|${displayParams.map(() => ':---').join('|')}|:---:|`
+    : `|:---:|:---|:---|:---|:---|:---:|`;
+
+  let ctx = headers + '\n' + separators + '\n';
 
   const prices = products.map(p => p.minPrice || p.price).filter(v => v > 0);
   const minP = Math.min(...prices);
 
   products.forEach((p, i) => {
-    const paramValues = displayParams.map(paramKey => {
-      const params = extractAllParams(p.parameterDescription);
-      return params.get(paramKey) || '-';
-    });
-
     let tag = '';
     const pMin = p.minPrice || p.price;
     if (pMin === minP && prices.length > 1) tag = ' ⭐';
-
-    // 相近产品标注误差
-    if (matchType === 'close' && p.matchDetails) {
-      tag = ` ⚠️${p.matchDetails}`;
-    }
+    if (p.matchType === 'partial' && p.missingConditions) tag = ` ⚠️`;
+    if (p.matchType === 'fuzzy') tag = ` ⚠️`;
+    if (p.matchType === 'recommend') tag = ` 💡`;
 
     const priceStr = p.minPrice > 0
       ? `¥${p.minPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
       : `¥${p.price.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`;
 
-    ctx += `| ${i + 1}${tag} | ${p.name} | ${p.model || '-'} | ${paramValues.join(' | ')} | ${priceStr} |\n`;
+    if (hasParams) {
+      const paramValues = displayParams.map(paramKey => {
+        const params = extractAllParams(p.parameterDescription);
+        return params.get(paramKey) || '-';
+      });
+      ctx += `| ${i + 1}${tag} | ${p.brand || '-'} | ${p.name} | ${p.model || '-'} | ${paramValues.join(' | ')} | ${priceStr} |\n`;
+    } else {
+      ctx += `| ${i + 1}${tag} | ${p.brand || '-'} | ${p.name} | ${p.model || '-'} | ${p.parameterDescription || '-'} | ${priceStr} |\n`;
+    }
   });
-
   ctx += '\n';
   return ctx;
 }
 
 /**
- * 将搜索结果格式化为 Markdown 上下文（注入到 AI 消息中）
- * 通用版：自动从 parameter_description 提取参数列，按 matchType 分组展示
+ * 将搜索结果格式化为 Markdown 上下文
  */
 export function formatProductsAsContext(result: PipelineResult, originalQuery: string): string {
   if (result.products.length === 0) return '';
@@ -172,7 +151,7 @@ export function formatProductsAsContext(result: PipelineResult, originalQuery: s
   const products = result.products;
   const productType = result.intent?.entities?.productType || products[0]?.name || '';
 
-  // 单个产品 — 简洁卡片（通用参数展示）
+  // 单个产品
   if (products.length === 1) {
     const p = products[0];
     let ctx = `\n\n【数据库产品信息】\n`;
@@ -184,34 +163,44 @@ export function formatProductsAsContext(result: PipelineResult, originalQuery: s
     if (p.costPrice > 0) ctx += `成本：${p.costPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2 })} 元\n`;
     if (p.parameterDescription) ctx += `产品参数：${p.parameterDescription}\n`;
     ctx += `价格来源：产品库\n`;
-    ctx += `匹配方式：${result.searchStrategy || '意图匹配'}\n`;
     return ctx;
   }
 
-  // 多个产品 — 按 matchType 分组展示（精确在前，相近在后）
-  let ctx = `\n\n【数据库产品信息】\n`;
+  // 多个产品 — 根据 matchLevel 展示不同提示
+  let ctx = '\n\n【数据库产品信息】\n';
+  const matchLevel = result.matchLevel || 'exact';
 
-  // 按 matchType 分组
-  const exactProducts = products.filter(p => p.matchType === 'exact');
-  const closeProducts = products.filter(p => p.matchType === 'close');
+  const levelLabels: Record<string, string> = {
+    exact: '精确匹配',
+    partial: '部分匹配',
+    fuzzy: '相近匹配',
+    recommend: '推荐产品',
+  };
 
-  if (exactProducts.length > 0 && closeProducts.length > 0) {
-    // 有精确和相近两类产品，分组展示
-    ctx += `根据您的需求"${originalQuery}"，找到 ${products.length} 款产品：\n\n`;
+  const levelIcons: Record<string, string> = {
+    exact: '✅',
+    partial: '⚠️',
+    fuzzy: '📌',
+    recommend: '💡',
+  };
 
-    // 精确匹配区域
-    ctx += `**✅ 精确匹配**（${exactProducts.length} 款）\n\n`;
-    ctx += formatProductTable(exactProducts, productType, 'exact');
+  const icon = levelIcons[matchLevel] || '';
+  const label = levelLabels[matchLevel] || '匹配';
 
-    // 相近匹配区域
-    ctx += `**⚠️ 相近产品**（${closeProducts.length} 款，参数存在偏差）\n\n`;
-    ctx += formatProductTable(closeProducts, productType, 'close');
-  } else {
-    // 全部精确或全部相近，统一表格
-    const matchLabel = exactProducts.length > 0 ? '精确匹配' : '相近匹配';
-    ctx += `根据您的需求"${originalQuery}"，${matchLabel}到 ${products.length} 款产品：\n\n`;
-    ctx += formatProductTable(products, productType, exactProducts.length > 0 ? 'exact' : 'close');
+  ctx += `${icon} ${label}到 ${products.length} 款产品`;
+  if (matchLevel === 'partial') {
+    const missing = products[0]?.missingConditions;
+    if (missing) ctx += `（缺少 ${missing} 条件）`;
   }
+  if (matchLevel === 'fuzzy') {
+    ctx += '（参数容差±10%）';
+  }
+  if (matchLevel === 'recommend') {
+    ctx += '（未找到精确匹配，以下为同类型推荐）';
+  }
+  ctx += `：\n\n`;
+
+  ctx += formatProductTable(products, productType);
 
   // 推荐产品参数详情
   const recommended = products[0];

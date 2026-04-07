@@ -46,21 +46,26 @@ function parseParams(desc: string): { key: string; value: string }[] {
   if (!desc) return [];
   const params: { key: string; value: string }[] = [];
   const kvRegex = /([^，,、]+?)[：:]\s*([^，,、]+?)(?=[，,、]|$)/g;
+  const matchedRanges: [number, number][] = [];
   let match;
   while ((match = kvRegex.exec(desc)) !== null) {
     const key = match[1].trim();
     const value = match[2].trim();
     if (key && value) {
       params.push({ key, value });
+      matchedRanges.push([match.index, match.index + match[0].length]);
     }
   }
-  if (params.length === 0) {
-    const parts = desc.split(/[，,、]/).map(s => s.trim()).filter(Boolean);
-    parts.forEach(part => {
-      if (part && !part.match(/^\d+(\.\d+)?$/)) {
-        params.push({ key: '', value: part });
-      }
-    });
+  // 提取未被 key:value 匹配的段，作为标签参数保留
+  const parts = desc.split(/[，,、]/).map(s => s.trim()).filter(Boolean);
+  for (const part of parts) {
+    const partStart = desc.indexOf(part);
+    const isMatched = matchedRanges.some(([start, end]) =>
+      partStart >= start && partStart < end
+    );
+    if (!isMatched && part && !/^\d+(\.\d+)?$/.test(part)) {
+      params.push({ key: '', value: part });
+    }
   }
   return params;
 }
@@ -159,10 +164,10 @@ function ProductCard({
   const otherParams = params.filter(p => p.key && !diffKeys.has(p.key));
   const labelParams = params.filter(p => !p.key && p.value);
 
-  // 提取核心差异标签（同品牌同型号时最关键的区分维度）
-  const highlightKeys = new Set(['工作压力', '电压']);
-  const highlightParams = params.filter(p => p.key && highlightKeys.has(p.key));
-  const otherDiffParams = diffParams.filter(p => !highlightKeys.has(p.key));
+  // 核心差异参数：优先展示的差异化维度（在产品间值不同的才展示）
+  const coreDiffKeys = new Set(['工作压力', '电压', '功率', '控制方式', '排气量', '流量', '扬程']);
+  const highlightParams = params.filter(p => p.key && coreDiffKeys.has(p.key) && diffKeys.has(p.key));
+  const otherDiffParams = diffParams.filter(p => !coreDiffKeys.has(p.key));
 
   // 利润率计算
   const margin = (item.costPrice && item.price > 0)
@@ -198,12 +203,13 @@ function ProductCard({
             {item.model && item.model !== '-' && (
               <p className="text-xs text-muted-foreground mt-0.5 truncate" title={item.model}>{item.model}</p>
             )}
-            {/* 核心差异标签：工作压力 + 电压（同品牌同型号时的关键区分） */}
+            {/* 差异高亮标签：只在多产品间值不同时展示，醒目颜色 */}
             {highlightParams.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-1.5">
+              <div className="flex flex-wrap gap-1.5 mt-2">
                 {highlightParams.map((p, i) => (
-                  <span key={i} className="inline-flex items-center text-xs font-semibold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
-                    {p.key} {p.value}
+                  <span key={i} className="inline-flex items-center text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-md">
+                    {p.value}
+                    <span className="ml-1 font-normal text-blue-500">{p.key}</span>
                   </span>
                 ))}
               </div>
@@ -237,7 +243,7 @@ function ProductCard({
             {otherDiffParams.map((p, i) => (
               <span key={i} className="truncate">
                 <span className="text-muted-foreground">{p.key}:</span>{' '}
-                <span className="font-medium">{p.value}</span>
+                <span className="font-semibold text-foreground">{p.value}</span>
               </span>
             ))}
           </div>
