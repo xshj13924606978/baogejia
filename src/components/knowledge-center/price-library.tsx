@@ -141,7 +141,6 @@ export default function PriceLibrary() {
 
         // 检查是否包含旧字段名，如果有则清理配置
         if (parsed.includes('product_name')) {
-          console.log('[Price Library] 检测到旧配置，使用默认配置');
           localStorage.removeItem('price-library-columns');
           // 使用默认配置
           const defaultColumns = availableColumns
@@ -318,7 +317,6 @@ export default function PriceLibrary() {
         
         // 如果是第一页数据加载完成，加载品牌列表
         if (page === 1) {
-          console.log('[Price Library] 第一页数据加载完成，开始加载品牌列表...');
           loadAllBrands();
         }
       } else {
@@ -340,25 +338,19 @@ export default function PriceLibrary() {
   // 获取所有品牌列表
   const loadAllBrands = async () => {
     try {
-      console.log('[Price Library] 开始加载品牌列表...');
       const res = await fetch('/api/tables/products/list?page=1&limit=10000');
       const data = await res.json();
-      
-      console.log('[Price Library] 品牌列表API响应:', { success: data.success, count: data.data?.length });
       
       if (data.success && data.data) {
         const brands = new Set(data.data.map((p: any) => p.brand).filter(Boolean) as string[]);
         const brandArray = Array.from(brands);
-        console.log('[Price Library] 提取到的品牌:', brandArray);
         setAllBrands(brandArray);
-        console.log('[Price Library] 品牌数量:', brandArray.length);
       } else {
         console.warn('[Price Library] 品牌列表API返回失败:', data.error);
         // 降级：从当前产品中提取品牌
         if (products.length > 0) {
           const brands = new Set(products.map((p) => p.brand).filter(Boolean) as string[]);
           setAllBrands(Array.from(brands));
-          console.log('[Price Library] 使用降级方案，从当前产品提取品牌:', Array.from(brands));
         }
       }
     } catch (error) {
@@ -367,7 +359,6 @@ export default function PriceLibrary() {
       if (products.length > 0) {
         const brands = new Set(products.map((p) => p.brand).filter(Boolean) as string[]);
         setAllBrands(Array.from(brands));
-        console.log('[Price Library] 使用降级方案，从当前产品提取品牌:', Array.from(brands));
       }
     }
   };
@@ -651,18 +642,13 @@ export default function PriceLibrary() {
             const detectedEncoding = detectEncoding(buffer);
             const text = decodeWithEncoding(buffer);
 
-            console.log('检测到CSV文件编码:', detectedEncoding);
-            console.log('CSV前200字符:', text.substring(0, 200));
-
             // 手动解析CSV
             const parsedResult = parseCSV(text);
-            console.log('解析后的CSV数据行数:', parsedResult.data.length);
 
             // 关键修复：对列名进行修复
             if (parsedResult.headers && parsedResult.headers.length > 0) {
               const originalHeaders = [...parsedResult.headers];
               parsedResult.headers = parsedResult.headers.map(header => fixMojibake(header));
-              console.log('列名修复:', originalHeaders, '->', parsedResult.headers);
             }
 
             // 对数据也进行修复
@@ -673,13 +659,6 @@ export default function PriceLibrary() {
             // 构造 jsonData 数组（与 Excel 格式一致）
             jsonData = parsedResult.data;
 
-            console.log('=== 编码修复统计 ===');
-            console.log('修复后列名:', parsedResult.headers);
-            console.log('是否包含中文:', parsedResult.headers.some(h => /[\u4e00-\u9fa5]/.test(h)));
-            console.log('数据行数:', parsedResult.data.length);
-            if (parsedResult.data.length > 0) {
-              console.log('第一行数据示例:', parsedResult.data[0]);
-            }
           } else {
             // Excel 文件处理：使用二进制读取，添加编码处理选项
             const data = new Uint8Array(evt.target?.result as ArrayBuffer);
@@ -707,11 +686,8 @@ export default function PriceLibrary() {
               blankrows: false
             });
             
-            console.log('解析到的Excel数据:', jsonData);
-            
             // 尝试修复乱码
             jsonData = fixDataMojibake(jsonData);
-            console.log('修复后的Excel数据:', jsonData);
           }
 
           // 获取表头
@@ -767,7 +743,7 @@ export default function PriceLibrary() {
         
         // 检查解码后的文本是否有效
         if (isValidText(text)) {
-          console.log(`成功使用 ${encoding} 编码解码文件`);
+          // 解码成功
           return text;
         }
       } catch (e) {
@@ -1048,18 +1024,13 @@ export default function PriceLibrary() {
         const detectedEncoding = detectEncoding(buffer);
         const text = decodeWithEncoding(buffer);
 
-        console.log('检测到CSV文件编码:', detectedEncoding);
-        console.log('CSV前200字符:', text.substring(0, 200));
-
         // 手动解析CSV
         const parsedResult = parseCSV(text);
-        console.log('解析后的CSV数据行数:', parsedResult.data.length);
 
         // 关键修复：对列名进行修复
         if (parsedResult.headers && parsedResult.headers.length > 0) {
           const originalHeaders = [...parsedResult.headers];
           parsedResult.headers = parsedResult.headers.map(header => fixMojibake(header));
-          console.log('列名修复:', originalHeaders, '->', parsedResult.headers);
         }
 
         // 对数据也进行修复
@@ -1070,14 +1041,6 @@ export default function PriceLibrary() {
         // 使用修复后的headers和data
         headers = parsedResult.headers;
         importData = parsedResult.data;
-
-        console.log('=== 编码修复统计 ===');
-        console.log('修复后列名:', parsedResult.headers);
-        console.log('是否包含中文:', parsedResult.headers.some(h => /[\u4e00-\u9fa5]/.test(h)));
-        console.log('数据行数:', parsedResult.data.length);
-        if (parsedResult.data.length > 0) {
-          console.log('第一行数据示例:', parsedResult.data[0]);
-        }
       } else {
         // Excel 文件处理：使用二进制读取，添加编码处理选项
         const data = await file.arrayBuffer();
@@ -1219,9 +1182,7 @@ export default function PriceLibrary() {
       await loadAllBrands();
 
       // 显示错误详情（如果有）
-      if (allErrors.length > 0) {
-        console.log('导入错误:', allErrors);
-      }
+      // errors collected for UI display
     } catch (error) {
       console.error('导入产品失败:', error);
       setImportProgress(prev => prev ? {
@@ -1581,8 +1542,6 @@ export default function PriceLibrary() {
   };
 
   const handleSaveColumnConfig = (columns: string[]) => {
-    console.log('[Price Library] 保存列配置:', columns);
-
     // 确保 select 在第一列，operations 在最后一列
     const selectCol = 'select';
     const operationsCol = 'operations';
@@ -1593,11 +1552,8 @@ export default function PriceLibrary() {
     // 组装：select + 中间列 + operations
     const columnsWithFixed = [selectCol, ...middleColumns, operationsCol];
 
-    console.log('[Price Library] 处理后的列配置:', columnsWithFixed);
-
     // 保存列配置到 localStorage
     localStorage.setItem('price-library-columns', JSON.stringify(columnsWithFixed));
-    console.log('[Price Library] 已保存到 localStorage');
 
     setVisibleColumns(columnsWithFixed);
     setShowColumnConfig(false);
@@ -2855,7 +2811,6 @@ export default function PriceLibrary() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('[Price Library] 保存配置按钮被点击');
                     handleSaveColumnConfig(visibleColumns);
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

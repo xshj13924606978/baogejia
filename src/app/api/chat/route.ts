@@ -58,13 +58,10 @@ class WebSearchService {
     sources: Array<{ title: string; url: string }>;
     followUpQuestions?: string[];
   }> {
-    console.log('[WebSearch] ========== 开始联网搜索 ==========');
-    console.log('[WebSearch] 查询词:', query);
 
     try {
       // 模拟搜索结果（实际应调用搜索引擎API）
       const searchResults = await this.performSearch(query);
-      console.log(`[WebSearch] 搜索到 ${searchResults.length} 条结果`);
 
       // 生成方案内容
       const content = this.generateSolution(query, searchResults);
@@ -103,15 +100,12 @@ class WebSearchService {
     content: string;
     sources: Array<{ title: string; url: string }>;
   }> {
-    console.log('[WebSearch] ========== 开始价格联网搜索 ==========');
-    console.log('[WebSearch] 产品数量:', products.length);
 
     try {
       const matchedProducts = [];
       const allSources: Array<{ title: string; url: string }> = [];
 
       for (const product of products) {
-        console.log(`[WebSearch] 搜索产品: ${product.name} ${product.specs || ''}`);
 
         // 构建搜索查询
         const searchQuery = `${product.name} ${product.specs || ''} 市场价格 采购价`.trim();
@@ -141,9 +135,6 @@ class WebSearchService {
 
       // 生成价格报告
       const content = this.generatePriceReport(products, matchedProducts);
-
-      console.log('[WebSearch] 价格搜索完成');
-
       return {
         matchedProducts,
         content,
@@ -721,29 +712,23 @@ class TextParser {
    * 从文字描述中提取产品信息（增强版，避免错误分割）
    */
   parse(text: string): Product[] {
-    console.log('[TextParser] ========== 开始解析文字描述 ==========');
-    console.log('[TextParser] 原始文本:', text);
 
     const products: Product[] = [];
 
     // 1. 清理文本（去除多余空格、换行）
     const cleanText = text.replace(/\s+/g, ' ').trim();
-    console.log('[TextParser] 清理后文本:', cleanText);
 
     // 2. 判断是否为单产品描述（包含规格说明但不应分割）
     const isSingleProduct = this.isSingleProductDescription(cleanText);
-    console.log('[TextParser] 是否为单产品描述:', isSingleProduct);
 
     if (isSingleProduct) {
       // 如果是单产品描述，整体解析为一个产品
-      console.log('[TextParser] 检测为单产品描述，整体解析');
       const product = this.parseAsSingleProduct(cleanText);
       if (product) {
         products.push(product);
       }
     } else {
       // 多产品描述，按分隔符分割
-      console.log('[TextParser] 检测为多产品描述，尝试分割');
 
       // 尝试按常见分隔符分割
       const separators = ['；', ';', '。', '，', ',', '、'];
@@ -755,7 +740,6 @@ class TextParser {
             .split(sep)
             .map((l) => l.trim())
             .filter((l) => l);
-          console.log(`[TextParser] 使用分隔符 "${sep}" 分割为 ${lines.length} 部分`);
           break;
         }
       }
@@ -763,30 +747,22 @@ class TextParser {
       // 逐行解析
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        console.log(`[TextParser] 解析第 ${i + 1} 行:`, line);
 
         const product = this.extractProductFromLine(line);
         if (product) {
-          console.log(`[TextParser] 第 ${i + 1} 行解析到产品:`, product);
           products.push(product);
         } else {
-          console.log(`[TextParser] 第 ${i + 1} 行未解析到产品`);
         }
       }
     }
 
     // 3. 如果仍然没有解析到产品，尝试按产品名称分割
     if (products.length === 0) {
-      console.log('[TextParser] 未按行解析到产品，尝试全文解析');
       const product = this.parseAsSingleProduct(cleanText);
       if (product) {
         products.push(product);
       }
     }
-
-    console.log(`[TextParser] 解析完成，共解析到 ${products.length} 个产品`);
-    console.log('[TextParser] ========== 解析结束 ==========');
-
     return products;
   }
 
@@ -811,14 +787,6 @@ class TextParser {
     // 特征5：包含"一套"、"一台"等数量单位，但没有明确分割
     const hasUnit = /一(套|台|个|只|件|组)/.test(text);
 
-    console.log('[TextParser] 单产品判断特征:', {
-      hasQuantity,
-      hasSpecKeywords,
-      keywordCount,
-      isShort,
-      hasUnit,
-    });
-
     // 如果有规格描述且有数量词，但产品关键词数量<=1，认为是单产品
     return (hasSpecKeywords || hasQuantity || hasUnit) && keywordCount <= 1;
   }
@@ -827,7 +795,6 @@ class TextParser {
    * 将整个文本解析为单个产品
    */
   private parseAsSingleProduct(text: string): Product | null {
-    console.log('[TextParser] 解析为单个产品:', text);
 
     // 提取产品名称
     const name = this.extractProductName(text);
@@ -915,7 +882,6 @@ class TextParser {
     // 优先匹配完整关键词
     for (const keyword of productKeywords) {
       if (text.includes(keyword)) {
-        console.log(`[TextParser] 匹配到产品关键词: ${keyword}`);
         return keyword;
       }
     }
@@ -1002,23 +968,19 @@ class TextParser {
 
 class FileDownloader {
   async download(file: any, _fileKey: any): Promise<Buffer | null> {
-    console.log('[Downloader] 开始下载文件:', file?.name || '未知');
 
     if (file?.buffer) {
-      console.log('[Downloader] 使用已有的 buffer');
       return file.buffer;
     }
 
     if (file?.url) {
       try {
-        console.log('[Downloader] 从 URL 下载:', file.url);
         const response = await fetch(file.url, {
           signal: AbortSignal.timeout(30000), // 30秒超时
         });
 
         if (response.ok) {
           const arrayBuffer = await response.arrayBuffer();
-          console.log('[Downloader] 下载成功，大小:', arrayBuffer.byteLength);
           return Buffer.from(arrayBuffer);
         } else {
           console.error('[Downloader] 下载失败，状态码:', response.status);
@@ -1042,7 +1004,6 @@ class FileDownloader {
 
 class ExcelParser {
   async parse(buffer: Buffer): Promise<ParseResult> {
-    console.log('[Excel] 开始解析Excel文件');
 
     try {
       const workbook = XLSX.read(buffer, { type: 'buffer', cellStyles: true, cellText: true });
@@ -1051,7 +1012,6 @@ class ExcelParser {
 
       // 获取合并单元格信息
       const merges = worksheet['!merges'] || [];
-      console.log('[Excel] 合并单元格数量:', merges.length);
 
       // 转换为二维数组，保留原始格式
       const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
@@ -1106,7 +1066,6 @@ class ExcelParser {
       let unitCol = -1;
       let brandCol = -1;  // 新增：品牌列
 
-      console.log('[Excel] 开始查找表头...');
       for (let i = 0; i < Math.min(10, data.length); i++) {
         const row = data[i];
         if (!row || row.length === 0) continue;
@@ -1116,9 +1075,6 @@ class ExcelParser {
           .map((cell) => (cell ? String(cell) : ''))
           .join('|')
           .toLowerCase();
-
-        console.log(`[Excel] 第${i}行内容:`, rowStr);
-
         // 检测是否为表头行 - 更严格的匹配
         if (rowStr.includes('产品名称') || rowStr.includes('设备名称') || 
             (rowStr.includes('名称') && (rowStr.includes('规格') || rowStr.includes('数量')))) {
@@ -1132,7 +1088,6 @@ class ExcelParser {
             if (cellStr === '产品名称' || cellStr === '设备名称' || 
                 cellStr === '名称' || cellStr === '项目名称') {
               nameCol = col;
-              console.log(`[Excel] 识别产品名称列: 第${col}列 (${cellStr})`);
             }
             
             // 规格型号列 - 精确匹配
@@ -1140,35 +1095,24 @@ class ExcelParser {
                 cellStr === '参数描述' || cellStr === '技术参数' || cellStr === '参数' ||
                 cellStr === '简介说明' || cellStr === '设备规格') {
               specsCol = col;
-              console.log(`[Excel] 识别规格型号列: 第${col}列 (${cellStr})`);
             }
             
             // 数量列
             if (cellStr === '数量' || cellStr === '台数' || cellStr === '套数') {
               quantityCol = col;
-              console.log(`[Excel] 识别数量列: 第${col}列 (${cellStr})`);
             }
             
             // 单位列
             if (cellStr === '单位') {
               unitCol = col;
-              console.log(`[Excel] 识别单位列: 第${col}列 (${cellStr})`);
             }
             
             // 品牌列
             if (cellStr === '品牌' || cellStr === '厂家' || cellStr === '制造商') {
               brandCol = col;
-              console.log(`[Excel] 识别品牌列: 第${col}列 (${cellStr})`);
             }
           });
 
-          console.log('[Excel] 找到表头行:', i, '列位置:', {
-            nameCol,
-            specsCol,
-            quantityCol,
-            unitCol,
-            brandCol,
-          });
           break;
         }
       }
@@ -1224,9 +1168,6 @@ class ExcelParser {
       const products: Product[] = [];
       const productMap = new Map<string, Product>(); // 用于去重：产品名称 -> 产品对象
       let lastProductName = ''; // 记录上一个产品名称
-
-      console.log('[Excel] 开始解析数据行...');
-
       for (let i = headerRow + 1; i < data.length; i++) {
         const row = data[i];
 
@@ -1236,13 +1177,11 @@ class ExcelParser {
         );
 
         if (isRowEmpty) {
-          console.log(`[Excel] 第${i}行: 空行，跳过`);
           continue;
         }
         
         // 检查是否是备注行
         if (isRemarkRow(row)) {
-          console.log(`[Excel] 第${i}行: 备注行，跳过 - ${row.slice(0, 3).join(' | ')}`);
           continue;
         }
 
@@ -1263,7 +1202,6 @@ class ExcelParser {
                 } else {
                   currentProduct.specs = specsStr;
                 }
-                console.log(`[Excel] 第${i}行: 规格追加到 ${lastProductName} - ${specsStr.substring(0, 30)}...`);
               }
             }
           }
@@ -1281,7 +1219,6 @@ class ExcelParser {
             // 第一部分作为产品名称，其余部分作为参数描述
             productName = parts[0].trim();
             extractedSpecs = parts.slice(1).join(' ').trim();
-            console.log(`[Excel] 从产品名称中分离出参数描述: "${extractedSpecs.substring(0, 50)}..."`);
           }
         }
         
@@ -1296,7 +1233,6 @@ class ExcelParser {
             } else {
               currentProduct.specs = productName;
             }
-            console.log(`[Excel] 第${i}行: 参数描述追加到 ${lastProductName}`);
             continue;
           }
         }
@@ -1348,7 +1284,6 @@ class ExcelParser {
 
           productMap.set(productName, newProduct);
           lastProductName = productName;
-          console.log(`[Excel] 第${i}行: 新产品 - ${productName}`);
         } else {
           // 如果当前行没有产品名称或产品名称相同，追加规格说明
           if (lastProductName !== '' && productMap.has(lastProductName)) {
@@ -1367,9 +1302,6 @@ class ExcelParser {
                 } else {
                   currentProduct.specs = specsStr;
                 }
-                console.log(
-                  `[Excel] 第${i}行: 追加规格到 ${productName || lastProductName} - ${specsStr}`
-                );
               }
             }
           }
@@ -1384,9 +1316,7 @@ class ExcelParser {
         }
       }
 
-      console.log(`[Excel] 解析完成，共 ${products.length} 个产品`);
       products.forEach((p, idx) => {
-        console.log(`[Excel] 产品${idx + 1}: ${p.name}, 规格行数: ${p.specs.split('\n').length}`);
       });
 
       return {
@@ -1529,7 +1459,6 @@ class PdfParser {
 
 class WordParser {
   async parse(fileInfo: FileInfo): Promise<ParseResult> {
-    console.log('[Word] 开始解析Word文件');
 
     try {
       if (!fileInfo.buffer) {
@@ -1570,7 +1499,6 @@ class ConversationGenerator {
    * 生成文字性回复
    */
   generateTextResponse(message: string): string {
-    console.log('[Conversation] 生成文字回复:', message);
 
     // 检查是否是问候语
     if (this.isGreeting(message)) {
@@ -2030,16 +1958,12 @@ class ProfessionalDialogueEngine {
     requiresFollowUp: boolean;
     followUpQuestions?: string[];
   }> {
-    console.log('[ProfessionalEngine] ========== 开始分析 ==========');
-    console.log('[ProfessionalEngine] 消息:', message);
-    console.log('[ProfessionalEngine] 对话ID:', conversationId);
 
     // 1. 获取对话记忆
     const memory = this.memory.getMemory(conversationId);
 
     // 2. 分析意图
     const intent = this.analyzeIntent(message, memory);
-    console.log('[ProfessionalEngine] 识别意图:', intent);
 
     // 3. 根据意图生成回复
     switch (intent.type) {
@@ -2333,7 +2257,6 @@ class ProfessionalDialogueEngine {
     requiresFollowUp: boolean;
     followUpQuestions?: string[];
   }> {
-    console.log('[PriceInquiry] ========== 开始处理价格查询 ==========');
 
     // 尝试提取产品信息
     const parser = new TextParser();
@@ -2343,7 +2266,6 @@ class ProfessionalDialogueEngine {
     let followUpQuestions: string[] = [];
 
     if (products.length > 0) {
-      console.log(`[PriceInquiry] 解析到 ${products.length} 个产品`);
 
       content = `我理解您想查询以下产品的价格：\n\n`;
       products.forEach((p, i) => {
@@ -2356,7 +2278,6 @@ class ProfessionalDialogueEngine {
       content += `\n`;
 
       // 第一步：尝试从价格库匹配
-      console.log('[PriceInquiry] 尝试从价格库匹配...');
       const matchedProducts = [];
       const matchResults = [];
 
@@ -2392,7 +2313,6 @@ class ProfessionalDialogueEngine {
       );
 
       if (hasHighConfidenceMatch) {
-        console.log('[PriceInquiry] 从价格库匹配到高置信度价格');
         content += `**价格库匹配结果：**\n\n`;
 
         for (let i = 0; i < matchedProducts.length; i++) {
@@ -2421,7 +2341,6 @@ class ProfessionalDialogueEngine {
           '采购数量是多少？',
         ];
       } else {
-        console.log('[PriceInquiry] 价格库匹配置信度不足，启动联网搜索');
 
         // 显示搜索状态
         content += `🔍 正在为您搜索实时市场价格...\n\n`;
@@ -2453,7 +2372,6 @@ class ProfessionalDialogueEngine {
       content += `2️⃣ 提供不同品牌价格对比\n`;
       content += `3️⃣ 根据您的预算推荐合适方案\n`;
     } else {
-      console.log('[PriceInquiry] 未能解析出产品');
       content =
         `为了给您准确的价格，请提供：\n\n` +
         `- **产品名称**：如离心泵、污水处理设备\n` +
@@ -2474,9 +2392,6 @@ class ProfessionalDialogueEngine {
 
     // 更新最后讨论的主题
     this.memory.updateLastTopic(conversationId, '价格查询');
-
-    console.log('[PriceInquiry] ========== 价格查询处理完成 ==========');
-
     return {
       content,
       suggestions,
@@ -2708,9 +2623,6 @@ class UnifiedFileParser {
 
   async parseFile(fileInfo: FileInfo): Promise<ParseResult> {
     const ext = fileInfo.name.split('.').pop()?.toLowerCase() || '';
-
-    console.log(`[Parser] 解析文件: ${fileInfo.name}, 类型: ${ext}`);
-
     try {
       if (['xlsx', 'xls'].includes(ext)) {
         const parser = new ExcelParser();
@@ -2808,8 +2720,6 @@ async function generateQuoteData(products: Product[]) {
 
   for (let i = 0; i < products.length; i++) {
     const product = products[i];
-    console.log(`[QuoteGen] ========== 处理产品 ${i + 1}/${products.length} ==========`);
-    console.log('[QuoteGen] 产品:', product.name);
 
     // 使用 PriceMatcher 进行多级价格匹配
     const productMatch: ProductMatch = {
@@ -2820,15 +2730,7 @@ async function generateQuoteData(products: Product[]) {
       unit: product.unit,
     };
 
-    console.log('[QuoteGen] 调用 PriceMatcher.matchPrice');
     const matchResult = await PriceMatcher.matchPrice(productMatch, undefined);
-    // 简化匹配结果输出，只输出关键信息
-    console.log('[QuoteGen] 匹配结果:', {
-      price: matchResult.price,
-      source: matchResult.source,
-      confidence: matchResult.confidence,
-      productName: matchResult.productName,
-    });
     matchResults.push(matchResult);
 
     // 统计匹配来源
@@ -2865,11 +2767,6 @@ async function generateQuoteData(products: Product[]) {
   const taxRate = 13;
   const taxAmount = subtotal * (taxRate / 100);
   const totalAmount = subtotal + taxAmount;
-
-  console.log('[QuoteGen] ========== 报价生成完成 ==========');
-  console.log('[QuoteGen] 匹配统计:', matchStats);
-  console.log('[QuoteGen] 小计:', subtotal, '总计:', totalAmount);
-
   // ✅ 使用自动获取的商务信息，如果没有则使用默认值
   const supplier = supplierData || {};
   const customer = customerData || {};
@@ -3021,7 +2918,6 @@ class DetailedProposalGenerator {
     products: Product[],
     _messagemessage: string
   ): Promise<string> {
-    console.log('[DetailedProposalGenerator] 开始生成详细方案');
 
     try {
       // 并行生成各个章节，但添加错误处理
@@ -3041,7 +2937,6 @@ class DetailedProposalGenerator {
       results.forEach((result, index) => {
         if (result.status === 'fulfilled') {
           sections.push(result.value);
-          console.log(`[DetailedProposalGenerator] 章节 ${index + 1} 生成成功`);
         } else {
           console.error(`[DetailedProposalGenerator] 章节 ${index + 1} 生成失败:`, result.reason);
           // 使用备用内容
@@ -3050,7 +2945,6 @@ class DetailedProposalGenerator {
       });
 
       const proposal = this.formatProposal(sections);
-      console.log('[DetailedProposalGenerator] 详细方案生成完成');
       return proposal;
     } catch (error) {
       console.error('[DetailedProposalGenerator] 生成方案失败:', error);
@@ -3961,7 +3855,6 @@ class IntentResponseGenerator {
     processedInput: ProcessedInput,
     conversationId?: string
   ): Promise<string> {
-    console.log('[ResponseGenerator] 根据意图生成回复:', intent.intent);
 
     const baseContent = processedInput.textContent || '';
 
@@ -3973,7 +3866,6 @@ class IntentResponseGenerator {
       (baseContent.includes('污水') && baseContent.includes('立方'));
 
     if (hasDetailedProject && intent.intent === 'ask_quote') {
-      console.log('[ResponseGenerator] 检测到详细项目需求，生成专业报价');
 
       // 解析项目信息
       const projectInfo = this.projectParser.parseProjectInfo(baseContent);
@@ -4009,7 +3901,6 @@ class IntentResponseGenerator {
         }
 
         // 智能判断：根据文件内容和类型自动判断生成报价单还是方案
-        console.log('[ResponseGenerator] 智能判断文件处理方向');
 
         // 判断特征
         const hasProductKeywords = /产品|设备|规格|型号|数量|单价|价格|泵|阀|罐|电机/.test(
@@ -4021,21 +3912,12 @@ class IntentResponseGenerator {
         const hasTableStructure = baseContent.includes('|') && baseContent.split('\n').length > 5;
         const isExcel = fileType === 'excel';
 
-        console.log('[ResponseGenerator] 文件内容分析:', {
-          hasProductKeywords,
-          hasProjectKeywords,
-          hasTableStructure,
-          isExcel,
-          fileType,
-        });
-
         // Excel 文件或包含产品清單的文件 → 生成报价单
         if (
           isExcel ||
           (hasProductKeywords && !hasProjectKeywords) ||
           (hasTableStructure && hasProductKeywords)
         ) {
-          console.log('[ResponseGenerator] 判断为：生成报价单');
           response += `根据文件内容分析，我检测到这是一份产品清单，为您生成报价单。\n\n`;
           response += `📊 **生成报价单中**\n\n`;
           response += `正在为您处理：\n`;
@@ -4048,7 +3930,6 @@ class IntentResponseGenerator {
 
         // 包含项目描述和技术要求的文件 → 生成方案
         if (hasProjectKeywords || (!hasProductKeywords && baseContent.length > 200)) {
-          console.log('[ResponseGenerator] 判断为：生成技术方案');
           response += `根据文件内容分析，我检测到这是一份项目需求文档，为您生成技术方案。\n\n`;
           response += `📝 **生成技术方案中**\n\n`;
           response += `正在为您处理：\n`;
@@ -4061,7 +3942,6 @@ class IntentResponseGenerator {
         }
 
         // 无法明确判断时，提供选项
-        console.log('[ResponseGenerator] 无法明确判断，提供选项');
         response += `请选择您需要的服务：\n📊 生成报价单 - 基于文件内容生成专业报价\n📝 生成技术方案 - 提供详细的技术方案\n🔍 查询价格 - 查询具体产品价格\n📑 两者都生成 - 同时生成报价单和技术方案\n\n直接回复数字或文字选择即可。`;
 
         return response;
@@ -4076,7 +3956,6 @@ class IntentResponseGenerator {
         return `我理解您想要导出报价单。\n\n${baseContent ? `您提到：${baseContent.substring(0, previewLength)}${baseContent.length > previewLength ? '...' : ''}` : ''}\n\n我可以为您：\n📄 生成PDF格式报价单\n📊 导出Excel格式报价单\n📧 发送报价单到邮箱\n\n请告诉我您需要的格式和接收方式。`;
 
       case 'generate_proposal':
-        console.log('[ResponseGenerator] 检测到方案生成需求');
 
         // 自动生成技术方案
         let proposalResponse = `根据您的需求，我将为您生成技术方案。\n\n`;
@@ -4093,7 +3972,6 @@ class IntentResponseGenerator {
 
         // 尝试执行联网搜索以获取更详细的方案信息
         try {
-          console.log('[ResponseGenerator] 执行联网搜索以丰富方案内容');
           const searchResult = await this.webSearch.searchAndGenerate(
             baseContent || '污水处理技术方案'
           );
@@ -4116,15 +3994,12 @@ class IntentResponseGenerator {
         return proposalResponse;
 
       case 'simple_quote':
-        console.log('[ResponseGenerator] 生成纯报价单（基础版）');
         return `正在为您生成纯报价单...\n\n报价单将包含：\n• 供需双方信息\n• 设备清单及报价\n• 商务条款\n\n请稍候...`;
 
       case 'enhanced_quote':
-        console.log('[ResponseGenerator] 生成增强型报价单');
         return `正在为您生成增强型报价单...\n\n报价单将包含：\n• 供需双方信息\n• 设备清单及报价\n• 设备应用范围描述\n• 安装调试说明\n• 商务条款\n\n请稍候...`;
 
       case 'detailed_proposal':
-        console.log('[ResponseGenerator] 生成详细技术方案');
 
         try {
           // 解析项目信息
@@ -4200,7 +4075,6 @@ const smartProcessor = smartChatProcessor;
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Chat API] ========== 新请求 ==========');
 
     // 1. 解析请求（兼容两种格式：JSON 或 FormData）
     let message: string | null = null;
@@ -4230,20 +4104,8 @@ export async function POST(request: NextRequest) {
       userId = body.userId;
     }
 
-    console.log('[Chat API] 请求参数:', {
-      hasMessage: !!message,
-      messagePreview: message?.substring(0, 50),
-      hasFile: !!uploadedFile,
-      fileName: uploadedFile?.name,
-      fileType: uploadedFile?.type,
-      filesCount: files?.length,
-      intent,
-      conversationId,
-    });
-
     // 2. 处理文件上传解析模式（保留原有逻辑）
     if (files && files.length > 0 && !intent) {
-      console.log('[Chat API] 文件上传解析模式（原有逻辑）');
 
       const fileParser = new UnifiedFileParser();
       const downloader = new FileDownloader();
@@ -4292,11 +4154,9 @@ export async function POST(request: NextRequest) {
 
     // 3. 处理意图选择模式（保留原有逻辑）
     if (intent) {
-      console.log('[Chat API] 意图选择模式（原有逻辑）:', intent);
 
       // 纯文字对话意图选择
       if (!files || files.length === 0) {
-        console.log('[Chat API] 纯文字对话意图选择，进行联网搜索');
 
         const currentMessage = message || '';
 
@@ -4331,7 +4191,6 @@ export async function POST(request: NextRequest) {
 
       // 有文件，处理文件并生成报价（完全保留）
       if (files && files.length > 0) {
-        console.log('[Chat API] 有文件，处理文件并生成报价（原有逻辑）');
 
         const fileParser = new UnifiedFileParser();
         const downloader = new FileDownloader();
@@ -4380,19 +4239,12 @@ export async function POST(request: NextRequest) {
 
     // 4. 新流程：智能对话处理（使用 LLM 语义理解）
     if (message || uploadedFile) {
-      console.log('[Chat API] ========== 智能对话处理模式 ==========');
 
       // 4.1 处理输入（统一格式化）
       let processedInput: ProcessedInput;
 
       if (uploadedFile) {
         // 有文件上传
-        console.log(
-          '[Chat API] 处理文件上传:',
-          uploadedFile.name,
-          uploadedFile.type,
-          uploadedFile.size
-        );
         const buffer = Buffer.from(await uploadedFile.arrayBuffer());
 
         processedInput = await inputProcessor.process({
@@ -4401,15 +4253,8 @@ export async function POST(request: NextRequest) {
           mimeType: uploadedFile.type,
           fileName: uploadedFile.name,
         });
-
-        console.log('[Chat API] 文件处理结果:', {
-          type: processedInput.type,
-          textLength: processedInput.textContent.length,
-          metadata: processedInput.metadata,
-        });
       } else {
         // 纯文本输入
-        console.log('[Chat API] 处理文本输入:', message);
         processedInput = await inputProcessor.process({
           type: 'text',
           content: message || '',
@@ -4417,20 +4262,12 @@ export async function POST(request: NextRequest) {
       }
 
       // 4.2 ✅ 使用智能对话处理器（LLM 语义理解，无需固定意图检测）
-      console.log('[Chat API] 调用智能对话处理器进行语义理解...');
       const smartResponse = await smartProcessor.process(
         message || '',
         processedInput,
         conversationId || undefined,
         userId || undefined
       );
-
-      console.log('[Chat API] 智能响应生成完成:', {
-        intent: smartResponse.intent,
-        contentLength: smartResponse.content.length,
-        suggestions: smartResponse.suggestions?.length,
-        requiresFollowUp: smartResponse.requiresFollowUp,
-      });
 
       // 4.3 保存对话历史（如果有conversationId）
       if (conversationId) {

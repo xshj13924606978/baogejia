@@ -105,14 +105,12 @@ export default function ConversationList({
 
   const loadConversations = useCallback(async () => {
     if (isRefreshing) {
-      console.log('[ConversationList] 正在刷新中，跳过');
       return;
     }
 
     // 缓存机制：5秒内使用缓存数据
     const now = Date.now();
     if (now - lastRequestTime < REQUEST_CACHE_DURATION && cachedData.length > 0) {
-      console.log('[ConversationList] 使用缓存数据');
       setConversations(cachedData);
       return;
     }
@@ -125,10 +123,6 @@ export default function ConversationList({
       });
       if (response.ok) {
         const data = await response.json();
-        console.log('[ConversationList] 加载对话列表完成', {
-          count: data.conversations?.length || 0,
-        });
-
         const savedPins = localStorage.getItem('pinned-conversations');
         if (savedPins) {
           setPinnedConversations(new Set(JSON.parse(savedPins)));
@@ -146,7 +140,6 @@ export default function ConversationList({
         setConversations(filteredConversations);
         setCachedData(filteredConversations); // 缓存数据
         setLastRequestTime(now); // 更新请求时间
-        console.log('[ConversationList] 过滤后剩余:', filteredConversations.length);
       }
     } catch (error) {
       console.error('[ConversationList] 加载异常:', error);
@@ -159,14 +152,11 @@ export default function ConversationList({
   // 加载单个对话的详细内容
   const loadConversationDetail = async (conversationId: string) => {
     try {
-      console.log('[ConversationList] 加载对话详情:', conversationId);
       const response = await fetch(`/api/conversations/${conversationId}`, {
         headers: getClientAuthHeaders(),
       });
       if (response.ok) {
         const data = await response.json();
-        console.log('[ConversationList] 对话详情加载成功:', data);
-
         window.dispatchEvent(
           new CustomEvent('load-conversation', {
             detail: {
@@ -204,8 +194,6 @@ export default function ConversationList({
     e.stopPropagation();
     e.preventDefault();
 
-    console.log('[ConversationList] 点击标题导入对话:', conversation.id);
-
     onSelectConversation(conversation.id);
 
     window.dispatchEvent(
@@ -218,7 +206,6 @@ export default function ConversationList({
   };
 
   const handleCardClick = (conversation: Conversation) => {
-    console.log('[ConversationList] 点击卡片加载对话:', conversation.id);
     onSelectConversation(conversation.id);
 
     window.dispatchEvent(
@@ -257,12 +244,10 @@ export default function ConversationList({
     let timeoutId: NodeJS.Timeout;
 
     const handleNewConversation = () => {
-      console.log('[ConversationList] 收到新建对话事件，准备刷新');
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
       timeoutId = setTimeout(() => {
-        console.log('[ConversationList] 执行刷新');
         loadConversations();
       }, 100);
     };

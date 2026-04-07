@@ -358,21 +358,9 @@ export default function QuoteTable({
   // 使用传入的供应信息或从报价数据中获取
   const actualSupplierInfo = propSupplierInfo || data?.supplierInfo;
 
-  // 调试日志：检查接收到的产品数据
-  console.log('[QuoteTable] ========== 组件初始化 ==========');
-  console.log('[QuoteTable] 接收到的 data.products:', data?.products);
-  if (data?.products && data.products.length > 0) {
-    console.log('[QuoteTable] 第一个产品的数据:', data.products[0]);
-    console.log('[QuoteTable] 第一个产品的 parameter_description:', data.products[0]?.parameter_description);
-  }
-
   // 内部状态
   const [quoteData, setQuoteData] = useState<QuoteData>(() => {
     const filteredProducts = Array.isArray(data?.products) ? data.products.filter((p) => p != null) : [];
-    console.log('[QuoteTable] 过滤后的 products:', filteredProducts);
-    if (filteredProducts.length > 0) {
-      console.log('[QuoteTable] 过滤后第一个产品的 parameter_description:', filteredProducts[0]?.parameter_description);
-    }
     return {
       ...data,
       products: filteredProducts,
@@ -479,7 +467,6 @@ export default function QuoteTable({
 
   // 当传入数据更新时更新本地状态
   useEffect(() => {
-    console.log('[QuoteTable] 收到新数据:', data);
 
     if (!data) return;
 
@@ -864,12 +851,6 @@ export default function QuoteTable({
       return;
     }
 
-    console.log('[QuoteTable] ========== 开始查询市场价 ==========');
-    console.log('[QuoteTable] 产品信息:', {
-      name: product.name,
-      model: product.model,
-      parameter_description: product.parameter_description,
-    });
 
     setSearchingMarketPrice(productIndex);
     setMarketPrices((prev) => ({
@@ -893,7 +874,6 @@ export default function QuoteTable({
         ],
       };
 
-      console.log('[QuoteTable] 请求体:', requestBody);
 
       const response = await fetch('/api/quotes/market-price', {
         method: 'POST',
@@ -901,14 +881,12 @@ export default function QuoteTable({
         body: JSON.stringify(requestBody),
       });
 
-      console.log('[QuoteTable] 响应状态:', response.status);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('[QuoteTable] 响应数据:', result);
 
       const marketData = result.data?.[0] || result;
 
@@ -920,7 +898,6 @@ export default function QuoteTable({
         marketData.unitPrice ||
         0;
 
-      console.log('[QuoteTable] 提取的价格值:', priceValue);
 
       setMarketPrices((prev) => ({
         ...prev,
@@ -933,11 +910,9 @@ export default function QuoteTable({
       }));
 
       if (autoFillEnabled && priceValue > 0) {
-        console.log('[QuoteTable] 准备自动填充价格:', priceValue);
         setPendingAutoFill({ index: productIndex, price: priceValue });
       }
 
-      console.log('[QuoteTable] ========== 查询完成 ==========');
     } catch (error) {
       console.error('[QuoteTable] 搜索市场价失败:', error);
       setMarketPrices((prev) => ({
@@ -956,7 +931,6 @@ export default function QuoteTable({
 
   // 搜索所有产品的市场价
   const handleSearchAllMarketPrices = async () => {
-    console.log('[QuoteTable] ========== 开始批量查询市场价 ==========');
     setIsSearchingAll(true);
     setMarketPriceStats(null);
 
@@ -1030,7 +1004,6 @@ export default function QuoteTable({
     });
 
     setIsSearchingAll(false);
-    console.log('[QuoteTable] ========== 批量查询完成 ==========');
 
     if (autoFillEnabled && matched > 0) {
       setTimeout(() => {
@@ -1061,11 +1034,6 @@ export default function QuoteTable({
       return;
     }
 
-    console.log('[QuoteTable] 应用市场价:', {
-      productIndex,
-      oldPrice: safeProducts[productIndex]?.unitPrice,
-      newPrice: marketPriceValue,
-    });
 
     if (onUpdateProductPrice) {
       onUpdateProductPrice(productIndex, marketPriceValue);
@@ -1094,7 +1062,6 @@ export default function QuoteTable({
 
   // 应用所有市场价
   const handleApplyAllMarketPrices = () => {
-    console.log('[QuoteTable] 开始应用所有市场价');
 
     const updatedProducts = [...safeProducts];
     let appliedCount = 0;
@@ -1138,7 +1105,6 @@ export default function QuoteTable({
       });
       setMarketPrices(newMarketPrices);
 
-      console.log(`[QuoteTable] 已应用 ${appliedCount} 个产品的市场价`);
     }
   };
 
@@ -1152,18 +1118,15 @@ export default function QuoteTable({
 
   // 一键填充市场价
   const handleFillPrices = async () => {
-    console.log('[QuoteTable] ========== 开始填充市场价 ==========');
     setFillPricesLoading(true);
 
     const zeroPriceProducts = safeProducts.filter((p) => (p?.unitPrice || 0) === 0);
 
     if (zeroPriceProducts.length === 0) {
-      console.log('[QuoteTable] 没有零价格产品需要填充');
       setFillPricesLoading(false);
       return;
     }
 
-    console.log('[QuoteTable] 待填充产品数量:', zeroPriceProducts.length);
 
     try {
       const response = await fetch('/api/quotes/market-price', {
@@ -1180,7 +1143,6 @@ export default function QuoteTable({
 
       if (response.ok) {
         const result = await response.json();
-        console.log('[QuoteTable] 填充响应:', result);
 
         if (result.data && Array.isArray(result.data)) {
           const updatedProducts = [...safeProducts];
@@ -1199,7 +1161,6 @@ export default function QuoteTable({
                 marketData.unitPrice ||
                 0;
 
-              console.log(`[QuoteTable] 产品 ${i} - 提取价格: ${marketPriceValue}`);
 
               if (marketPriceValue > 0 && updatedProducts[i]) {
                 if (onUpdateProductPrice) {
@@ -1225,7 +1186,6 @@ export default function QuoteTable({
             setQuoteData(newData);
             onUpdateData?.(newData);
           }
-          console.log('[QuoteTable] 填充完成，更新了', filledCount, '个产品');
         }
       }
     } catch (error) {
@@ -1237,7 +1197,6 @@ export default function QuoteTable({
 
   // 导出 Excel
   const handleDownloadExcel = () => {
-    console.log('[QuoteTable] ========== 导出 Excel ==========');
     setIsExporting(true);
 
     try {
@@ -1345,7 +1304,6 @@ export default function QuoteTable({
       const fileName = `报价单_${quoteData?.quoteNumber || 'export'}_${new Date().getTime()}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
-      console.log('[QuoteTable] Excel 导出成功');
     } catch (error) {
       console.error('[QuoteTable] Excel 导出失败:', error);
     } finally {
@@ -1355,7 +1313,6 @@ export default function QuoteTable({
 
   // 导出 HTML 预览
   const handleExportHTML = async () => {
-    console.log('[QuoteTable] ========== 导出 HTML ==========');
     setIsExporting(true);
 
     try {
@@ -1373,7 +1330,6 @@ export default function QuoteTable({
         notes: quoteData?.notes,
       };
 
-      console.log('[QuoteTable] 准备发送到后端的数据:', htmlData);
 
       const response = await fetch('/api/quotes/export-html', {
         method: 'POST',
@@ -1395,7 +1351,6 @@ export default function QuoteTable({
         alert('请允许浏览器弹出窗口');
       }
 
-      console.log('[QuoteTable] HTML 导出成功');
     } catch (error) {
       console.error('[QuoteTable] HTML 导出失败:', error);
       alert(`HTML导出失败: ${error instanceof Error ? error.message : '未知错误'}`);

@@ -76,7 +76,6 @@ export const LevelList: React.FC = () => {
       // 最多保留50条记录
       const trimmedHistory = history.slice(0, 50);
       localStorage.setItem(key, JSON.stringify(trimmedHistory));
-      console.log('[LevelList] 历史记录已保存');
     } catch (e) {
       console.error('[LevelList] 保存历史失败:', e);
     }
@@ -237,7 +236,6 @@ export const LevelList: React.FC = () => {
       const stored = localStorage.getItem('level_configs');
       if (stored) {
         const parsed = JSON.parse(stored);
-        console.log('[LevelList] 从localStorage加载配置:', parsed.length, '个等级');
         // 如果本地有配置，先设置到状态
         setLevels(parsed);
       }
@@ -250,7 +248,6 @@ export const LevelList: React.FC = () => {
   const persistLevels = (newLevels: LevelConfig[]) => {
     try {
       localStorage.setItem('level_configs', JSON.stringify(newLevels));
-      console.log('[LevelList] 配置已持久化到localStorage');
     } catch (e) {
       console.error('[LevelList] 持久化失败:', e);
     }
@@ -296,7 +293,6 @@ export const LevelList: React.FC = () => {
   };
 
   const handleUpdateLevel = async (level: number, changes: any, reason: string) => {
-    console.log('[LevelList] 保存等级权限:', { level, changes, reason });
     try {
       const res = await fetch(`/api/admin/levels/${level}`, {
         method: 'PUT',
@@ -305,9 +301,7 @@ export const LevelList: React.FC = () => {
         body: JSON.stringify({ changes, reason })
       });
 
-      console.log('[LevelList] 更新响应状态:', res.status);
       const data = await res.json();
-      console.log('[LevelList] 更新响应数据:', data);
 
       if (data.success) {
         // 更新本地状态并持久化
@@ -362,8 +356,6 @@ export const LevelList: React.FC = () => {
   };
 
   const showHistory = async (level: number) => {
-    console.log('[LevelList] 显示历史记录, level:', level);
-    
     // 设置当前查看的等级和加载状态
     setHistoryLevel(level);
     setHistoryLoading(true);
@@ -372,7 +364,6 @@ export const LevelList: React.FC = () => {
     // 先从本地存储加载历史记录
     const localHistory = loadHistoryFromStorage(level);
     if (localHistory.length > 0) {
-      console.log('[LevelList] 从本地加载历史记录:', localHistory.length, '条');
       const formattedLocalHistory = localHistory.map((item: any) => {
         const date = item.created_at;
         let timeStr = '未知时间';
@@ -405,8 +396,6 @@ export const LevelList: React.FC = () => {
         credentials: 'include'
       });
       
-      console.log('[LevelList] 历史API响应状态:', res.status);
-      
       if (!res.ok) {
         const errorText = await res.text();
         console.error('[LevelList] 历史API错误:', errorText);
@@ -416,7 +405,6 @@ export const LevelList: React.FC = () => {
       }
       
       const data = await res.json();
-      console.log('[LevelList] 历史数据:', data);
       
       if (!data.success || !data.history || data.history.length === 0) {
         setHistoryData([]);
@@ -471,7 +459,6 @@ export const LevelList: React.FC = () => {
 
   // 预览效果
   const showPreview = (level: number) => {
-    console.log('[LevelList] 预览等级:', level);
     const levelData = levels.find(l => l.level === level);
     if (!levelData) {
       console.error('[LevelList] 未找到等级数据:', level);
@@ -482,7 +469,6 @@ export const LevelList: React.FC = () => {
       });
       return;
     }
-    console.log('[LevelList] 等级数据:', levelData);
     setPreviewLevel(level);
   };
 
@@ -546,8 +532,6 @@ export const LevelList: React.FC = () => {
         reason: batchUpdateReason
       }));
 
-      console.log('[LevelList] 批量更新数据:', updates);
-
       const res = await fetch('/api/admin/levels/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -562,8 +546,6 @@ export const LevelList: React.FC = () => {
       }
 
       const data = await res.json();
-      console.log('[LevelList] 批量更新结果:', data);
-
       if (data.success) {
         // 更新本地状态并持久化
         const newLevels = levels.map(level => {
@@ -707,14 +689,11 @@ export const LevelList: React.FC = () => {
 
   // 恢复默认配置
   const restoreDefaults = async () => {
-    console.log('[LevelList] 开始恢复默认配置');
-    
     try {
       // 从 level_definitions 表获取系统默认配置
       const res = await fetch('/api/admin/levels/defaults', {
         credentials: 'include', // 确保携带Cookie
       });
-      console.log('[LevelList] 默认配置API响应状态:', res.status);
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -725,7 +704,6 @@ export const LevelList: React.FC = () => {
       }
 
       const defaultConfig = await res.json();
-      console.log('[LevelList] 默认配置数据:', defaultConfig);
 
       // 使用系统默认配置
       if (defaultConfig && defaultConfig.length > 0) {
@@ -738,8 +716,6 @@ export const LevelList: React.FC = () => {
             console.warn(`[LevelList] 未找到等级 ${level.level} 的默认配置`);
             return;
           }
-
-          console.log(`[LevelList] 等级 ${level.level} 默认配置:`, levelConfig);
 
           // 配额默认值 - 优先使用嵌套结构，否则使用扁平结构
           const quotas = levelConfig.quotas || levelConfig;
@@ -776,14 +752,6 @@ export const LevelList: React.FC = () => {
               ? fieldPerms.can_view_phone 
               : (levelConfig.can_view_phone !== undefined ? levelConfig.can_view_phone : false)
           );
-
-          console.log(`[LevelList] 等级 ${level.level} 字段权限配置:`, {
-            can_view_cost_price: newValues[`${level.level}-can_view_cost_price`],
-            can_view_min_price: newValues[`${level.level}-can_view_min_price`],
-            can_view_manufacturer: newValues[`${level.level}-can_view_manufacturer`],
-            can_view_contact: newValues[`${level.level}-can_view_contact`],
-            can_view_phone: newValues[`${level.level}-can_view_phone`],
-          });
 
           // 添加到勾选列表
           Object.keys(configCategories).forEach((categoryKey) => {
@@ -832,8 +800,6 @@ export const LevelList: React.FC = () => {
             reason: '恢复系统默认配置'
           }));
 
-          console.log('[LevelList] 恢复默认配置数据:', updates);
-
           const res = await fetch('/api/admin/levels/batch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -848,8 +814,6 @@ export const LevelList: React.FC = () => {
           }
 
           const data = await res.json();
-          console.log('[LevelList] 恢复默认配置结果:', data);
-
           if (data.success) {
             toast({
               title: '已成功恢复默认配置',
@@ -859,19 +823,6 @@ export const LevelList: React.FC = () => {
 
             // 刷新列表
             await fetchLevels();
-            
-            // 添加验证日志
-            setTimeout(() => {
-              console.log('[LevelList] 恢复后当前等级列表:', levels);
-              if (levels.length > 0) {
-                const firstLevel = levels[0].level;
-                const updatedLevel = levels.find(l => l.level === firstLevel);
-                if (updatedLevel) {
-                  console.log('[LevelList] 等级', firstLevel, '的字段权限:', updatedLevel.fieldPermissions);
-                  console.log('[LevelList] 等级', firstLevel, '的配额设置:', updatedLevel.quotas);
-                }
-              }
-            }, 500);
             
             // 如果弹窗打开，重新加载默认配置到表单（不清空表单）
             if (batchUpdateOpen) {
@@ -937,7 +888,6 @@ export const LevelList: React.FC = () => {
                   // 重新填充表单（不清空）
                   setItemValues(refreshedValues);
                   setCheckedItems(refreshedChecked);
-                  console.log('[LevelList] 已重新加载默认配置到表单');
                 }
               } catch (error) {
                 console.error('[LevelList] 重新加载默认配置失败:', error);
@@ -972,7 +922,6 @@ export const LevelList: React.FC = () => {
 
   // 使用硬编码默认值（fallback）- 每个等级有不同的默认配置
   const applyHardcodedDefaults = async () => {
-    console.log('[LevelList] 使用硬编码默认值');
     const newValues: Record<string, string> = {};
     const newChecked = new Set<string>();
 
@@ -1101,8 +1050,6 @@ export const LevelList: React.FC = () => {
         reason: '恢复系统默认配置'
       }));
 
-      console.log('[LevelList] 恢复默认配置数据:', updates);
-
       const res = await fetch('/api/admin/levels/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1117,8 +1064,6 @@ export const LevelList: React.FC = () => {
       }
 
       const data = await res.json();
-      console.log('[LevelList] 恢复默认配置结果:', data);
-
       if (data.success) {
         toast({
           title: '已成功恢复默认配置',

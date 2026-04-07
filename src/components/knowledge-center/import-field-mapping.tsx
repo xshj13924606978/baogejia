@@ -234,7 +234,6 @@ export default function ImportFieldMapping({
           };
         });
         setFieldConfigs(configs);
-        console.log('加载的字段配置:', configs.map((c: { label: string; key: string }) => `${c.label} (${c.key})`));
       }
     } catch (error) {
       console.error('加载字段配置失败:', error);
@@ -393,10 +392,6 @@ export default function ImportFieldMapping({
       const autoMapping: Record<string, string> = {};
       const usedHeaders = new Set<string>(); // 记录已映射的列名，避免重复映射
 
-      console.log('=== 开始自动映射字段 ===');
-      console.log('文件列名:', excelHeaders);
-      console.log('系统字段:', fieldConfigs.map(f => f.label));
-
       // 第一轮：使用同义词表进行智能匹配
       excelHeaders.forEach((header) => {
         if (usedHeaders.has(header)) return;
@@ -408,7 +403,6 @@ export default function ImportFieldMapping({
           if (fieldConfig && !autoMapping[matchResult.fieldKey]) {
             autoMapping[matchResult.fieldKey] = header;
             usedHeaders.add(header);
-            console.log(`同义词匹配: ${fieldConfig.label} (${matchResult.fieldKey}) -> ${header} (分数: ${matchResult.score})`);
           }
         }
       });
@@ -428,7 +422,6 @@ export default function ImportFieldMapping({
         if (exactMatch) {
           autoMapping[field.key] = exactMatch;
           usedHeaders.add(exactMatch);
-          console.log(`精确匹配: ${field.label} -> ${exactMatch}`);
           return;
         }
 
@@ -443,7 +436,6 @@ export default function ImportFieldMapping({
         if (containsMatch) {
           autoMapping[field.key] = containsMatch;
           usedHeaders.add(containsMatch);
-          console.log(`包含匹配: ${field.label} -> ${containsMatch}`);
           return;
         }
 
@@ -452,12 +444,9 @@ export default function ImportFieldMapping({
         if (bestMatch) {
           autoMapping[field.key] = bestMatch;
           usedHeaders.add(bestMatch);
-          console.log(`模糊匹配: ${field.label} -> ${bestMatch}`);
         }
       });
 
-      console.log('自动映射结果:', autoMapping);
-      console.log('未映射的系统字段:', fieldConfigs.filter(f => !autoMapping[f.key]).map(f => f.label));
       setMapping(autoMapping);
       setAutoMapped(true);
     }

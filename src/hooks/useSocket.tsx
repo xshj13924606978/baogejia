@@ -33,8 +33,6 @@ export function useSocket(_options?: { userId?: number }) {
         process.env.NEXT_PUBLIC_APP_URL ||
         (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000');
 
-      console.log('[useSocket] 正在连接到:', url);
-
       const socket = io(url, {
         path: '/api/socket',
         transports: ['polling', 'websocket'],
@@ -47,17 +45,13 @@ export function useSocket(_options?: { userId?: number }) {
       setSocket(socket);
 
       socket.on('connect', () => {
-        console.log('[useSocket] 连接成功，ID:', socket.id);
         setIsConnected(true);
         setError(null);
         reconnectAttemptsRef.current = 0;
 
         // 如果有用户，发送认证
         if (user?.id) {
-          console.log('[useSocket] 发送认证，用户ID:', user.id);
           socket.emit('authenticate', user.id);
-        } else {
-          console.log('[useSocket] 等待用户登录...');
         }
       });
 
@@ -67,13 +61,11 @@ export function useSocket(_options?: { userId?: number }) {
         reconnectAttemptsRef.current++;
 
         if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-          console.log('[useSocket] 达到最大重连次数');
           socket.disconnect();
         }
       });
 
       socket.on('disconnect', (reason) => {
-        console.log('[useSocket] 断开连接:', reason);
         setIsConnected(false);
       });
 
@@ -118,7 +110,6 @@ export function useSocket(_options?: { userId?: number }) {
   // 当用户变化时重新认证
   useEffect(() => {
     if (socketRef.current?.connected && user?.id) {
-      console.log('[useSocket] 用户已登录，发送认证:', user.id);
       socketRef.current.emit('authenticate', user.id);
     }
   }, [user]);

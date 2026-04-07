@@ -170,17 +170,14 @@ const saveMessageToDatabase = async (
   metadata?: any
 ) => {
   if (!conversationId) {
-    console.log('[ChatArea] 没有 conversationId，不保存消息');
     return;
   }
 
   if (!content || content.trim() === '') {
-    console.log('[ChatArea] 消息内容为空，不保存到数据库');
     return;
   }
 
   try {
-    console.log('[ChatArea] 保存消息到数据库:', { conversationId, role, content });
     const response = await fetch('/api/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
@@ -196,7 +193,6 @@ const saveMessageToDatabase = async (
 
     const data = await response.json();
     if (response.ok) {
-      console.log('[ChatArea] 消息保存成功:', data);
     } else {
       console.error('[ChatArea] 消息保存失败:', data);
     }
@@ -208,7 +204,6 @@ const saveMessageToDatabase = async (
 // 更新对话标题
 const updateConversationTitle = async (conversationId: string, title: string) => {
   try {
-    console.log('[ChatArea] 更新对话标题:', { conversationId, title });
     const response = await fetch(`/api/conversations/${conversationId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...getClientAuthHeaders() },
@@ -216,7 +211,6 @@ const updateConversationTitle = async (conversationId: string, title: string) =>
     });
 
     if (response.ok) {
-      console.log('[ChatArea] 标题更新成功');
       window.dispatchEvent(new CustomEvent('conversation-list-refresh'));
 
       window.dispatchEvent(
@@ -325,7 +319,6 @@ export default function ChatArea({
   useEffect(() => {
     if (messages.length > prevMessagesLengthRef.current) {
       // 移除频繁的滚动日志，避免控制台过于嘈杂
-      // console.log('[ChatArea] 消息数量增加，触发滚动');
       setTimeout(scrollToBottom, 100);
     }
     prevMessagesLengthRef.current = messages.length;
@@ -433,7 +426,7 @@ export default function ChatArea({
     const handleSelectConversation = (event: Event) => {
       const customEvent = event as CustomEvent;
       const { conversationId } = customEvent.detail;
-      console.log('[ChatArea] 收到选择对话事件:', conversationId);
+      // select-conversation handler
     };
 
     window.addEventListener('select-conversation', handleSelectConversation);
@@ -447,17 +440,9 @@ export default function ChatArea({
     const handleLoadConversation = (event: Event) => {
       const customEvent = event as CustomEvent;
       const { conversationId, messages: loadedMessages, files: loadedFiles } = customEvent.detail;
-      console.log('[ChatArea] 收到加载对话事件:', {
-        conversationId,
-        loadedMessagesCount: loadedMessages?.length,
-        loadedFilesCount: loadedFiles?.length,
-      });
-
       setCurrentConversationId(conversationId);
 
       if (loadedMessages && loadedMessages.length > 0) {
-        console.log('[ChatArea] 设置消息:', loadedMessages);
-
         const allFiles: any[] = [];
 
         // 找到最后一个助手消息的索引
@@ -473,7 +458,6 @@ export default function ChatArea({
           .map((msg: any, index: number) => {
             // 如果是助手消息但不是最后一个，返回 null（后续过滤掉）
             if (msg.role === 'assistant' && index !== lastAssistantIndex) {
-              console.log(`[ChatArea] 过滤掉旧的助手消息: ${msg.id}`);
               return null;
             }
 
@@ -481,21 +465,10 @@ export default function ChatArea({
 
             if (msg.file_data && Array.isArray(msg.file_data) && msg.file_data.length > 0) {
               fileData = msg.file_data;
-              console.log(
-                `[ChatArea] 消息 ${msg.id || index} 从 file_data 获取文件:`,
-                fileData.length
-              );
             } else if (msg.files && Array.isArray(msg.files) && msg.files.length > 0) {
               fileData = msg.files;
-              console.log(`[ChatArea] 消息 ${msg.id || index} 从 files 获取文件:`, fileData.length);
             } else if (msg.fileData && Array.isArray(msg.fileData) && msg.fileData.length > 0) {
               fileData = msg.fileData;
-              console.log(
-                `[ChatArea] 消息 ${msg.id || index} 从 fileData 获取文件:`,
-                fileData.length
-              );
-            } else {
-              console.log(`[ChatArea] 消息 ${msg.id || index} 没有文件数据`);
             }
 
             if (fileData.length > 0) {
@@ -532,12 +505,7 @@ export default function ChatArea({
         // 注意：不要在这里调用 setFiles(uniqueFiles)
         // 历史消息中的文件应该只在消息历史中显示，不应该再次添加到输入框
         if (uniqueFiles.length > 0) {
-          console.log(
-            '[ChatArea] 检测到历史消息中的文件，但不会将其添加到输入框，数量:',
-            uniqueFiles.length
-          );
-        } else {
-          console.log('[ChatArea] 没有文件可设置');
+          // 历史消息中的文件不添加到输入框
         }
 
         const firstUserMessage = formattedMessages.find((m: any) => m.role === 'user');
@@ -550,10 +518,7 @@ export default function ChatArea({
           id: m.id,
           filesCount: m.files?.length || 0,
         }));
-        console.log('[ChatArea] 各消息文件数量统计:', fileCountByMessage);
-        console.log('[ChatArea] 总文件数量:', uniqueFiles.length);
       } else {
-        console.log('[ChatArea] 没有消息可显示');
         setMessages([]);
         setFiles([]);
         if (onTitleChange) {
@@ -663,11 +628,7 @@ export default function ChatArea({
       const customEvent = event as CustomEvent;
       const { fileGroupId, choice } = customEvent.detail;
 
-      console.log('[Chat] 收到 intent-select 事件:', { fileGroupId, choice });
-      console.log('[Chat] 当前 parsedFilesMap:', Object.keys(parsedFilesMapRef.current));
-
       const files = parsedFilesMapRef.current[fileGroupId];
-      console.log('[Chat] 获取到的 files:', files ? `有 ${files.length} 个文件` : 'undefined');
 
       if (files) {
         setActiveGroup(fileGroupId, files, choice);
@@ -733,17 +694,12 @@ export default function ChatArea({
 
   const loadConversation = async (id: string) => {
     try {
-      console.log('[ChatArea] 加载对话:', id);
       const response = await fetch(`/api/conversations/${id}`, {
         headers: getClientAuthHeaders(),
       });
       if (response.ok) {
         const data = await response.json();
-        console.log('[ChatArea] 加载成功:', data);
-
         if (data.conversation?.messages && data.conversation.messages.length > 0) {
-          console.log('[ChatArea] 从API获取到消息:', data.conversation.messages.length);
-
           const allFiles: any[] = [];
 
           // 找到最后一个助手消息的索引
@@ -759,7 +715,6 @@ export default function ChatArea({
             .map((msg: any, index: number) => {
               // 如果是助手消息但不是最后一个，返回 null
               if (msg.role === 'assistant' && index !== lastAssistantIndex) {
-                console.log(`[ChatArea] 过滤掉旧的助手消息: ${msg.id}`);
                 return null;
               }
 
@@ -771,8 +726,6 @@ export default function ChatArea({
 
               const quoteData = msg.quote_data;
               const metadata = msg.metadata;
-
-              console.log(`[ChatArea] 消息 ${msg.id} 文件数据:`, fileData);
 
               return {
                 id: msg.id || Date.now() + index,
@@ -792,7 +745,7 @@ export default function ChatArea({
           // 注意：不要在这里设置 setFiles(allFiles)
           // 历史消息中的文件应该只在消息历史中显示，不应该再次添加到输入框
           if (allFiles.length > 0) {
-            console.log('[ChatArea] 检测到历史消息中的文件，但不会将其添加到输入框');
+            // 历史消息中的文件不添加到输入框
           }
 
           const firstUserMessage = formattedMessages.find((m: any) => m.role === 'user');
@@ -801,7 +754,6 @@ export default function ChatArea({
             onTitleChange(title);
           }
         } else {
-          console.log('[ChatArea] API返回的消息为空');
           setMessages([]);
           setFiles([]);
           if (onTitleChange) {
@@ -812,7 +764,6 @@ export default function ChatArea({
         window.dispatchEvent(new CustomEvent('clear-quote-table'));
         setTimeout(scrollToBottom, 300);
       } else if (response.status === 404) {
-        console.log('[ChatArea] 对话不存在');
         setMessages([]);
         setFiles([]);
         if (onTitleChange) {
@@ -846,11 +797,9 @@ export default function ChatArea({
 
       if (response.ok) {
         const data = await response.json();
-        console.log('[ChatArea] 对话创建成功:', data.conversation.id);
         return data.conversation;
       } else {
         const error = await response.json();
-        console.log('[ChatArea] 对话创建被拒绝:', error);
         return null;
       }
     } catch (error) {
@@ -870,7 +819,6 @@ export default function ChatArea({
     }
 
     if (!hasContent) {
-      console.log('[ChatArea] 没有内容，不创建对话');
       return null;
     }
 
@@ -892,8 +840,6 @@ export default function ChatArea({
 
   // 编辑消息处理函数
   const handleEditMessage = async (messageId: number, newContent: string) => {
-    console.log('[ChatArea] 编辑消息:', { messageId, newContent });
-
     const activeConversationId = currentConversationId || conversationId;
     if (!activeConversationId) {
       console.error('[ChatArea] 没有对话ID，无法编辑消息');
@@ -937,7 +883,6 @@ export default function ChatArea({
       });
 
       if (response.ok) {
-        console.log('[ChatArea] 消息编辑成功');
         toast({
           title: '编辑成功',
           description: '消息已更新',
@@ -966,8 +911,6 @@ export default function ChatArea({
 
   // 重新生成回复
   const handleRegenerate = async (messageId: number) => {
-    console.log('[ChatArea] 重新生成回复，消息ID:', messageId);
-
     const messageIndex = messages.findIndex((m) => m.id === messageId);
     if (messageIndex === -1) {
       console.error('[ChatArea] 未找到消息:', messageId);
@@ -991,27 +934,21 @@ export default function ChatArea({
     }
 
     const userMessage = messages[userMessageIndex];
-    console.log('[ChatArea] 找到用户消息:', userMessage);
 
     let userFiles = userMessage.files || userMessage.fileData || [];
 
     if (userFiles.length === 0) {
-      console.log('[ChatArea] 用户消息没有文件，尝试从助手消息获取');
-
       for (let i = userMessageIndex + 1; i < messages.length; i++) {
         const msg = messages[i];
         if (msg.role === 'assistant') {
           const assistantFiles = msg.files || msg.fileData || [];
           if (assistantFiles.length > 0) {
-            console.log('[ChatArea] 从助手消息获取到文件:', assistantFiles.length);
             userFiles = assistantFiles;
             break;
           }
         }
       }
     }
-
-    console.log('[ChatArea] 最终使用的文件数据:', userFiles.length);
 
     const fileGroupId = `regenerate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -1020,7 +957,6 @@ export default function ChatArea({
         ...prev,
         [fileGroupId]: userFiles,
       }));
-      console.log('[ChatArea] 保存文件到 parsedFilesMap:', fileGroupId, userFiles.length);
     }
 
     if (!currentConversationId) {
@@ -1033,20 +969,10 @@ export default function ChatArea({
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`🔄 重新生成消息: ${new Date().toLocaleString('zh-CN')}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
     setLoading(true);
 
     try {
       const filesToSend = userFiles;
-
-      console.log('[ChatArea] 调用API - 请求参数:', {
-        message: userMessage.content,
-        filesCount: filesToSend.length,
-        conversationId: currentConversationId,
-      });
 
       const chatResponse = await fetch('/api/chat', {
         method: 'POST',
@@ -1061,11 +987,8 @@ export default function ChatArea({
 
       if (chatResponse.ok) {
         const data = await chatResponse.json();
-        console.log('[ChatArea] API响应:', data);
 
         if (data.action === 'ASK_INTENT' && data.files) {
-          console.log('[ChatArea] 收到 ASK_INTENT 响应，文件数:', data.files.length);
-
           const intentFiles = data.files;
 
           setParsedFilesMap((prev) => ({
@@ -1102,7 +1025,6 @@ export default function ChatArea({
           if (intentFiles.length > 0) {
             setActiveGroup(fileGroupId, intentFiles, 'quote');
             setGeneratedChoice('quote');
-            console.log('[ChatArea] 设置活跃组 (ASK_INTENT):', fileGroupId, intentFiles.length);
           }
         } else {
           const newAssistantMessage: Message = {
@@ -1133,7 +1055,6 @@ export default function ChatArea({
           if (filesToSend.length > 0 && data.action !== 'ASK_INTENT') {
             setActiveGroup(fileGroupId, filesToSend, data.currentChoice || 'quote');
             setGeneratedChoice(data.currentChoice || 'quote');
-            console.log('[ChatArea] 设置活跃组 (正常):', fileGroupId, filesToSend.length);
           }
         }
 
@@ -1165,7 +1086,6 @@ export default function ChatArea({
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('[ChatArea] 重新生成被取消');
         return;
       }
       console.error('[ChatArea] 重新生成异常:', error);
@@ -1310,7 +1230,6 @@ export default function ChatArea({
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('[ChatArea] 流式请求已取消');
         return;
       }
 
@@ -1354,7 +1273,6 @@ export default function ChatArea({
       // 触发积分更新事件，通知其他组件刷新积分显示
       try {
         window.dispatchEvent(new CustomEvent('points-updated'));
-        console.log('[ChatArea] 已触发积分更新事件');
       } catch (e) {
         console.error('[ChatArea] 触发积分更新事件失败:', e);
       }
@@ -1364,7 +1282,6 @@ export default function ChatArea({
   const handleSendMessage = async () => {
     const hasContent = input.trim() !== '' || files.length > 0;
     if (!hasContent) {
-      console.log('[ChatArea] 没有内容，不发送消息');
       return;
     }
 
@@ -1421,11 +1338,6 @@ export default function ChatArea({
       ]);
     }
 
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`📤 开始上传文件: ${new Date().toLocaleString('zh-CN')}`);
-    console.log(`📁 文件数量: ${filesToUpload.length}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
     try {
       const uploadedFiles: any[] = [];
 
@@ -1460,7 +1372,6 @@ export default function ChatArea({
         if (uploadResponse.ok) {
           const uploadData = await uploadResponse.json();
           uploadedFiles.push(uploadData);
-          console.log('[ChatArea] 文件上传成功:', uploadData.fileName);
         } else {
           const errorData = await uploadResponse.json();
           console.error('[ChatArea] 文件上传失败:', errorData);
@@ -1491,7 +1402,6 @@ export default function ChatArea({
 
       // 如果没有文件上传，使用流式API
       if (uploadedFiles.length === 0 && userMessage.content.trim()) {
-        console.log('[ChatArea] 使用流式API处理纯文本消息');
         await handleStreamingChat(userMessage.content, activeConversationId);
         return;
       }
@@ -1646,7 +1556,6 @@ export default function ChatArea({
                   top: absoluteTop,
                   behavior: 'smooth',
                 });
-                console.log('[Chat] 滚动到报价表格位置:', absoluteTop);
               } else if (retryCount < 5) {
                 setTimeout(() => scrollToQuote(retryCount + 1), 300 * (retryCount + 1));
               }
@@ -1660,7 +1569,6 @@ export default function ChatArea({
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Request cancelled by user');
         return;
       }
       console.error('Failed to send message:', error);
@@ -2011,8 +1919,6 @@ export default function ChatArea({
         setActiveGroup(fileGroupId, uploadedFiles, intent);
         setGeneratedChoice(intent);
 
-        console.log('[Intent] 已生成内容，类型:', intent, 'fileGroupId:', fileGroupId);
-
         if (data.quoteData) {
           const scrollToQuote = (retryCount = 0) => {
             const quoteTable = document.querySelector('.export-container');
@@ -2024,7 +1930,6 @@ export default function ChatArea({
                 top: absoluteTop,
                 behavior: 'smooth',
               });
-              console.log('[Intent] 滚动到报价表格位置:', absoluteTop);
             } else if (retryCount < 5) {
               setTimeout(() => scrollToQuote(retryCount + 1), 300 * (retryCount + 1));
             }
@@ -2052,10 +1957,7 @@ export default function ChatArea({
 
   const handleIntentSelectionForSwitch = useCallback(
     async (fileGroupId: string, choice: string) => {
-      console.log('[Switch] handleIntentSelectionForSwitch 开始:', { fileGroupId, choice });
-
       if (switchIsLoadingRef.current) {
-        console.log('[Switch] 正在加载，忽略请求');
         return;
       }
 
@@ -2066,7 +1968,6 @@ export default function ChatArea({
       }
 
       if (generatedChoiceRef.current === choice) {
-        console.log('[Switch] 已生成相同类型的内容，忽略请求');
         return;
       }
 
@@ -2147,7 +2048,6 @@ export default function ChatArea({
           }
 
           setGeneratedChoice(choice);
-          console.log('[Switch] 已生成内容，类型:', choice);
 
           if (data.quoteData) {
             const scrollToQuote = (retryCount = 0) => {
@@ -2160,19 +2060,18 @@ export default function ChatArea({
                   top: absoluteTop,
                   behavior: 'smooth',
                 });
-                console.log('[Switch] 滚动到报价表格位置:', absoluteTop);
-              } else if (retryCount < 5) {
-                setTimeout(() => scrollToQuote(retryCount + 1), 300 * (retryCount + 1));
-              }
-            };
+            } else if (retryCount < 5) {
+              setTimeout(() => scrollToQuote(retryCount + 1), 300 * (retryCount + 1));
+            }
+          };
 
-            setTimeout(() => scrollToQuote(), 300);
-          }
-
-          setTimeout(scrollToBottom, 300);
+          setTimeout(() => scrollToQuote(), 300);
         }
-      } catch (error) {
-        console.error('[Switch] 处理意图失败:', error);
+
+        setTimeout(scrollToBottom, 300);
+      }
+    } catch (error) {
+      console.error('[Switch] 处理意图失败:', error);
       } finally {
         setSwitchLoading(false);
       }

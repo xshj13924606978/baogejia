@@ -35,123 +35,74 @@ export function cleanParameterDescriptionEnhanced(text: string): CleanResult {
     };
   }
 
-  console.log('🧹 [增强清洗] 开始清洗参数描述');
-  console.log('📥 原始内容:', text);
-
   const removedItems: string[] = [];
   const original = text;
   let cleaned = text;
 
   // 步骤1：基础清洗（调用现有的清洗函数）
-  console.log('\n  步骤1: 执行基础清洗');
   cleaned = baseClean(cleaned);
-  console.log('  ✅ 基础清洗完成');
 
   // 步骤2：修复被拆分的品牌信息
-  console.log('\n  步骤2: 修复品牌信息');
   const beforeBrandFix = cleaned;
   cleaned = fixBrokenBrands(cleaned);
   if (beforeBrandFix !== cleaned) {
     removedItems.push('修复品牌信息拆分');
-    console.log('  ✅ 修复品牌:', beforeBrandFix, '→', cleaned);
-  } else {
-    console.log('  ℹ️ 无需修复品牌');
   }
 
   // 步骤3：规格去重（新增）
-  console.log('\n  步骤3: 规格去重');
   const beforeSpecDedupe = cleaned;
   const specResult = removeDuplicateSpecifications(cleaned);
   cleaned = specResult.text;
   if (specResult.duplicates.length > 0) {
     removedItems.push(`规格去重: ${specResult.duplicates.join(', ')}`);
-    console.log('  ✅ 移除重复规格:', specResult.duplicates);
-  } else {
-    console.log('  ℹ️ 无重复规格');
   }
 
   // 步骤4：功率去重（新增）
-  console.log('\n  步骤4: 功率去重');
   const beforePowerDedupe = cleaned;
   const powerResult = removeDuplicatePower(cleaned);
   cleaned = powerResult.text;
   if (powerResult.duplicates.length > 0) {
     removedItems.push(`功率去重: ${powerResult.duplicates.join(', ')}`);
-    console.log('  ✅ 移除重复功率:', powerResult.duplicates);
-  } else {
-    console.log('  ℹ️ 无重复功率');
   }
 
   // 步骤5：修复拆分的参数格式
-  console.log('\n  步骤5: 修复参数格式');
   const beforeParamFix = cleaned;
   cleaned = fixBrokenParameters(cleaned);
   if (beforeParamFix !== cleaned) {
     removedItems.push('修复参数格式');
-    console.log('  ✅ 修复参数:', beforeParamFix, '→', cleaned);
-  } else {
-    console.log('  ℹ️ 无需修复参数');
   }
 
   // 步骤6：移除数量信息（如果仍在参数描述中）
-  console.log('\n  步骤6: 移除残留数量信息');
   const beforeQuantityRemoval = cleaned;
   const quantityRemoved = removeQuantityInfo(cleaned);
   cleaned = quantityRemoved.text;
   if (quantityRemoved.removed.length > 0) {
     removedItems.push(`数量信息: ${quantityRemoved.removed.join(', ')}`);
-    console.log('  ✅ 移除数量:', quantityRemoved.removed);
-  } else {
-    console.log('  ℹ️ 无需移除数量');
   }
 
   // 步骤7：修复换行问题
-  console.log('\n  步骤7: 修复换行问题');
   const beforeLineFix = cleaned;
   cleaned = fixLineBreaks(cleaned);
   if (beforeLineFix !== cleaned) {
     removedItems.push('修复换行');
-    console.log('  ✅ 修复换行');
-  } else {
-    console.log('  ℹ️ 无需修复换行');
   }
 
   // 步骤8：规范化分隔符
-  console.log('\n  步骤8: 规范化分隔符');
   const beforeSepNorm = cleaned;
   cleaned = normalizeSeparators(cleaned);
   if (beforeSepNorm !== cleaned) {
     removedItems.push('规范化分隔符');
-    console.log('  ✅ 规范化分隔符');
-  } else {
-    console.log('  ℹ️ 无需规范化');
   }
 
   // 步骤9：最终清理
-  console.log('\n  步骤9: 最终清理');
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
   cleaned = cleaned.replace(/[；;，,。.、]+$/, '');
-  console.log('  ✅ 最终清理完成');
 
   const statistics = {
     originalLength: original.length,
     cleanedLength: cleaned.length,
     removedChars: original.length - cleaned.length,
   };
-
-  console.log('\n📊 清洗统计:');
-  console.log(`  原始长度: ${statistics.originalLength}`);
-  console.log(`  清洗后长度: ${statistics.cleanedLength}`);
-  console.log(`  减少字符: ${statistics.removedChars}`);
-  console.log(`  清洗项: ${removedItems.length} 项`);
-  if (removedItems.length > 0) {
-    console.log('  清洗内容:');
-    removedItems.forEach((item, i) => {
-      console.log(`    ${i + 1}. ${item}`);
-    });
-  }
-  console.log('\n✨ 最终结果:', cleaned);
-  console.log('🧹 [增强清洗] 完成\n');
 
   return {
     cleaned,

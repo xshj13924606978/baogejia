@@ -197,10 +197,7 @@ function LoginPage() {
   // 处理账号密码登录
   const handleAccountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[Login] handleAccountSubmit called', { account, password: password ? '***' : 'empty' });
-
     const inputType = identifyInput(account);
-    console.log('[Login] inputType:', inputType);
     
     if (inputType === 'unknown') {
       toast({ title: '请输入正确的邮箱、手机号或用户名', variant: 'destructive', duration: 3000 });
@@ -213,11 +210,9 @@ function LoginPage() {
     }
 
     setLoading(true);
-    console.log('[Login] Calling passwordLogin...');
 
     try {
       const response = await passwordLogin(account, password);
-      console.log('[Login] passwordLogin response:', response);
 
       if (response.success) {
         toast({ title: '登录成功', description: '欢迎回来', duration: 2000 });

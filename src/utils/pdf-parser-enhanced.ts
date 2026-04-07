@@ -61,9 +61,6 @@ export class EnhancedPdfParser {
   }
 
   async parse(fileInfo: any): Promise<ParseResult> {
-    console.log('[PDF增强] ========== 开始解析 ==========');
-    console.log('[PDF增强] 文件名:', fileInfo.name);
-
     const startTime = Date.now();
 
     try {
@@ -71,7 +68,6 @@ export class EnhancedPdfParser {
       if (fileInfo.buffer) {
         const textResult = await this.parseWithPdfParse(fileInfo.buffer);
         if (textResult.products.length > 0 && textResult.confidence > 70) {
-          console.log('[PDF增强] 第1层解析成功，置信度:', textResult.confidence);
           return this.addMetadata(textResult, fileInfo, 'pdf-parse', startTime);
         }
 
@@ -82,24 +78,19 @@ export class EnhancedPdfParser {
 
       // 第2层：尝试OCR（适用于扫描件）
       if (fileInfo.buffer) {
-        console.log('[PDF增强] 尝试OCR解析...');
         const ocrResult = await this.parseWithOCR(fileInfo);
         if (ocrResult.products.length > 0 && ocrResult.confidence > 60) {
-          console.log('[PDF增强] OCR解析成功，置信度:', ocrResult.confidence);
           return this.addMetadata(ocrResult, fileInfo, 'ocr', startTime);
         }
       }
 
       // 第3层：AI增强解析
-      console.log('[PDF增强] 尝试AI解析...');
       const aiResult = await this.parseWithAI(fileInfo);
       if (aiResult.products.length > 0 && aiResult.confidence > 50) {
-        console.log('[PDF增强] AI解析成功，置信度:', aiResult.confidence);
         return this.addMetadata(aiResult, fileInfo, 'ai', startTime);
       }
 
       // 第4层：降级方案
-      console.log('[PDF增强] 使用降级方案');
       const fallbackResult = this.createFallbackResult(fileInfo);
       return this.addMetadata(fallbackResult, fileInfo, 'fallback', startTime);
     } catch (error) {
@@ -110,20 +101,12 @@ export class EnhancedPdfParser {
   }
 
   private async parseWithPdfParse(buffer: Buffer): Promise<ParseResult> {
-    console.log('\n📄 ===== PDF解析开始（第1层：pdf-parse）=====');
     const timer = createTimer('PDF解析');
     
     try {
       parseContext.startPhase('PDF文本提取');
       const pdfParse = (await import('pdf-parse')).default;
-      console.log('📖 正在提取PDF文本...');
-      
       const data = await pdfParse(buffer);
-      
-      console.log('✅ PDF文本提取完成');
-      console.log(`  - 总页数: ${data.numpages}`);
-      console.log(`  - 文本长度: ${data.text.length} 字符`);
-      console.log(`  - 文本预览: ${data.text.substring(0, 200)}...`);
       
       parseContext.endPhase('PDF文本提取', {
         页数: data.numpages,
@@ -131,13 +114,9 @@ export class EnhancedPdfParser {
       });
 
       parseContext.startPhase('表格增强解析');
-      console.log('\n🔍 使用表格增强模式解析PDF');
       
       // 使用表格增强器解析
       const enhancedTable = this.tableEnhancer.enhanceTable(data.text);
-      console.log('\n📊 表格增强结果:');
-      console.log(`  - 识别行数: ${enhancedTable.rows.length}`);
-      console.log(`  - 识别列数: ${enhancedTable.columns.length}`);
       
       const products = this.tableEnhancer.extractProductsFromEnhancedTable(enhancedTable);
       
@@ -147,29 +126,10 @@ export class EnhancedPdfParser {
         产品数量: products.length,
       });
 
-      console.log('\n📦 产品提取结果:');
-      console.log(`  - 提取产品数: ${products.length}`);
-      
-      if (products.length > 0) {
-        console.log('\n产品列表:');
-        products.forEach((p, i) => {
-          console.log(`  ${i + 1}. ${p.name}`);
-          if (p.parameter_description) {
-            console.log(`     参数: ${p.parameter_description.substring(0, 80)}...`);
-          }
-          if (p.brand) {
-            console.log(`     品牌: ${p.brand}`);
-          }
-        });
-      }
-
       const confidence = this.calculateLocalConfidence(products, data.text);
       
       timer.stop();
       
-      console.log(`\n📊 置信度: ${confidence}%`);
-      console.log('📄 ===== PDF解析完成 =====\n');
-
       return {
         products,
         globalRemarks: [],
@@ -204,7 +164,6 @@ export class EnhancedPdfParser {
           `pdftoppm -png -f 1 -singlefile ${tempPdf} ${tempImage.replace('.png', '')}`
         );
       } catch (_e) {
-        console.log('[PDF] pdftoppm可能未安装，跳过OCR');
         return {
           products: [],
           globalRemarks: ['OCR工具未安装'],
@@ -342,7 +301,6 @@ ${processedText.substring(0, 4000)}
 - 确保JSON格式正确，可以被程序解析`;
 
     try {
-      console.log('[PDF增强] 开始AI解析...');
       const response = await this.llmClient.invoke([{ role: 'user', content: prompt }], {
         temperature: 0.1, // 降低温度以获得更稳定的结果
       });
@@ -354,10 +312,6 @@ ${processedText.substring(0, 4000)}
         
         // 动态计算置信度
         const confidence = this.calculateAIConfidence(products, processedText);
-
-        console.log('[PDF增强] AI解析完成');
-        console.log(`  - 识别产品数: ${products.length}`);
-        console.log(`  - 置信度: ${confidence}%`);
 
         return {
           products,

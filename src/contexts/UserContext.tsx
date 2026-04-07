@@ -269,7 +269,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         users.push(userData);
       }
       localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(users));
-      console.log('[UserContext] 用户保存成功:', userData.email || userData.phone || userData.id);
       return true;
     } catch (error) {
       console.error('[UserContext] 保存用户失败:', error);
@@ -281,7 +280,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEYS.LOGOUT_EVENT) {
-        console.log('[UserContext] 检测到其他标签页登出');
         setUser(null);
         localStorage.removeItem(STORAGE_KEYS.USER);
         localStorage.removeItem(STORAGE_KEYS.TOKEN);
@@ -289,7 +287,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (e.key === STORAGE_KEYS.LOGOUT_ALL_EVENT) {
-        console.log('[UserContext] 检测到登出所有设备');
         setUser(null);
         localStorage.removeItem(STORAGE_KEYS.USER);
         localStorage.removeItem(STORAGE_KEYS.TOKEN);
@@ -297,7 +294,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (e.key === STORAGE_KEYS.ACCOUNT_DELETED_EVENT) {
-        console.log('[UserContext] 检测到账号已注销');
         setUser(null);
         localStorage.removeItem(STORAGE_KEYS.USER);
         localStorage.removeItem(STORAGE_KEYS.TOKEN);
@@ -305,7 +301,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (e.key === STORAGE_KEYS.PASSWORD_CHANGE_EVENT && e.newValue) {
-        console.log('[UserContext] 检测到密码修改事件');
         setUser(null);
         localStorage.removeItem(STORAGE_KEYS.USER);
         localStorage.removeItem(STORAGE_KEYS.TOKEN);
@@ -346,7 +341,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         },
       ];
       localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(defaultUsers));
-      console.log('[UserContext] 默认用户已创建');
     }
   }, []);
 
@@ -449,9 +443,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
       localStorage.setItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES, JSON.stringify(codes));
 
-      const savedCodes = localStorage.getItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES);
-      console.log('[UserContext] 验证码存储结果:', savedCodes);
-
       return { success: true, code };
     } catch (error) {
       console.error('[UserContext] 存储验证码失败:', error);
@@ -461,35 +452,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   // 验证邮箱
   const verifyEmail = async (email: string, code: string): Promise<boolean> => {
-    console.log('[UserContext] 验证邮箱:', { email });
-
     try {
       if (typeof window === 'undefined') {
         return false;
       }
 
       const codesStr = localStorage.getItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES);
-      console.log('[UserContext] 从 localStorage 读取验证码:', codesStr);
 
       if (!codesStr) {
-        console.log('[UserContext] 没有找到验证码存储');
         return false;
       }
 
       const codes = JSON.parse(codesStr);
       const stored = codes[email];
 
-      console.log('[UserContext] 验证码存储记录存在:', !!stored);
-
       if (stored && stored.code === code) {
         if (stored.timestamp < Date.now() - 5 * 60 * 1000) {
-          console.log('[UserContext] 验证码已过期');
           delete codes[email];
           localStorage.setItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES, JSON.stringify(codes));
           return false;
         }
 
-        console.log('[UserContext] 验证码正确，删除已使用的验证码');
         delete codes[email];
         localStorage.setItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES, JSON.stringify(codes));
 
@@ -500,7 +483,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
 
-      console.log('[UserContext] 验证码不存在或错误');
       return false;
     } catch (error) {
       console.error('[UserContext] 验证邮箱出错:', error);
@@ -887,8 +869,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   ): Promise<{ success: boolean; error?: string }> => {
     if (!user || !user.id) return { success: false, error: '用户未登录' };
 
-    console.log('[UserContext] 绑定邮箱开始:', { email, hasPassword: !!password, hasCode: !!code });
-
     // 检查邮箱是否已被其他账号使用
     const existingUser = findUserInDB(email);
     if (existingUser && existingUser.id !== user.id) {
@@ -897,9 +877,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     // 如果提供了验证码，验证验证码
     if (code) {
-      console.log('[UserContext] 验证验证码:', code);
       const verified = await verifyEmail(email, code);
-      console.log('[UserContext] 验证结果:', verified);
       if (!verified) {
         return { success: false, error: '验证码错误或已过期' };
       }
@@ -920,7 +898,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (password) {
       // 重要：只设置密码，不清除其他数据
       updatedUser.password = password;
-      console.log('[UserContext] 设置密码用于邮箱登录');
     }
 
     // 保存到数据库
@@ -933,8 +910,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const { password: _, ...userWithoutPassword } = updatedUser;
     setUser(userWithoutPassword);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
-
-    console.log('[UserContext] 邮箱绑定成功:', email);
 
     return { success: true };
   };
@@ -1083,7 +1058,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           setUser(userWithoutPassword);
           localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
 
-          console.log('[UserContext] 头像上传成功');
           resolve({ success: true, url: avatarUrl });
         };
 
@@ -1306,8 +1280,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       applications.push(newApplication);
       localStorage.setItem('enterprise_applications', JSON.stringify(applications));
 
-      console.log('[UserContext] 企业申请已提交:', applicationId);
-
       return {
         success: true,
         applicationId,
@@ -1367,9 +1339,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           success: false,
           error: '企业不存在或已禁用',
         };
-      }
-
-      console.log('[UserContext] 企业登录成功:', { enterpriseId, employeeId });
+        }
 
       // 更新用户角色为企业用户
       if (user) {
@@ -1441,18 +1411,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const localUser = localStorage.getItem(STORAGE_KEYS.USER);
         if (localUser) {
           const parsedUser = JSON.parse(localUser);
-          console.log(
-            '[UserContext] 从localStorage加载用户:',
-            parsedUser.id,
-            parsedUser.email,
-            parsedUser.role
-          );
 
           // 直接使用 localStorage 中保存的用户信息，不再依赖本地数据库
           // 这样可以避免本地数据库与实际数据库不一致的问题
           setUser(parsedUser);
-        } else {
-          console.log('[UserContext] localStorage中无用户信息');
         }
       } catch (error) {
         console.error('[UserContext] 加载用户失败:', error);

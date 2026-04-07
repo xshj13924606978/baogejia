@@ -615,8 +615,6 @@ const parseMarkdownToHtml = (text: string): string => {
 const fixTableStructure = (htmlContent: string): string => {
   if (!htmlContent) return htmlContent;
 
-  console.log('[修复] 开始修复，原始HTML长度:', htmlContent.length);
-
   // 1. 提取所有表格
   const tableRegex = /<table\b([^>]*)>([\s\S]*?)<\/table>/gi;
   const tables: Array<{ original: string; attrs: string; body: string }> = [];
@@ -630,18 +628,13 @@ const fixTableStructure = (htmlContent: string): string => {
     });
   }
 
-  console.log(`[修复] 找到 ${tables.length} 个表格`);
-
   // 如果没有表格，直接返回
   if (tables.length === 0) {
-    console.log('[修复] 没有找到表格，直接返回原始内容');
     return htmlContent;
   }
 
   // 2. 清理每个表格中的重复汇总行
   const cleanedTables = tables.map((table, index) => {
-    console.log(`[修复] 处理表格${index}`);
-
     // 检查表格是否包含所有汇总项
     const hasAllSummaries =
       table.body.includes('设备小计') &&
@@ -651,8 +644,6 @@ const fixTableStructure = (htmlContent: string): string => {
       table.body.includes('合计金额') &&
       table.body.includes('大写金额');
 
-    console.log(`[修复] 表格${index}包含所有汇总项: ${hasAllSummaries}`);
-
     if (hasAllSummaries) {
       // 方法：找到"设备小计"开始的位置和"大写金额"结束的位置
       // 提取完整的汇总行
@@ -660,7 +651,6 @@ const fixTableStructure = (htmlContent: string): string => {
       // 找到"设备小计"在body中的位置
       const subtotalStart = table.body.indexOf('设备小计');
       if (subtotalStart === -1) {
-        console.log('[修复] 未找到设备小计，跳过');
         return {
           original: table.original,
           attrs: table.attrs,
@@ -674,7 +664,6 @@ const fixTableStructure = (htmlContent: string): string => {
       const lastTrStart = beforeSubtotal.lastIndexOf('<tr');
 
       if (lastTrStart === -1) {
-        console.log('[修复] 未找到tr标签开始，跳过');
         return {
           original: table.original,
           attrs: table.attrs,
@@ -682,12 +671,9 @@ const fixTableStructure = (htmlContent: string): string => {
         };
       }
 
-      console.log(`[修复] 找到tr标签开始位置: ${lastTrStart}`);
-
       // 找到"大写金额"在body中的位置（从lastTrStart开始）
       const amountEnd = table.body.indexOf('大写金额', lastTrStart);
       if (amountEnd === -1) {
-        console.log('[修复] 未找到大写金额，跳过');
         return {
           original: table.original,
           attrs: table.attrs,
@@ -699,7 +685,6 @@ const fixTableStructure = (htmlContent: string): string => {
       // 从amountEnd开始，找"</tr>"
       const trEnd = table.body.indexOf('</tr>', amountEnd);
       if (trEnd === -1) {
-        console.log('[修复] 未找到</tr>标签，跳过');
         return {
           original: table.original,
           attrs: table.attrs,
@@ -709,16 +694,11 @@ const fixTableStructure = (htmlContent: string): string => {
 
       // 提取完整的汇总行（包含所有<tr>标签）
       const summaryRows = table.body.substring(lastTrStart, trEnd + 5); // +5 是因为"</tr>"的长度
-      console.log(`[修复] 提取汇总行，长度: ${summaryRows.length}`);
-      console.log(`[修复] 汇总行开头: ${summaryRows.substring(0, 50)}...`);
-
       // 移除所有旧的汇总行（从lastTrStart到trEnd之后）
       let cleanedBody = table.body.substring(0, lastTrStart) + table.body.substring(trEnd + 5);
 
       // 将汇总行添加到末尾
       cleanedBody = cleanedBody + summaryRows;
-
-      console.log(`[修复] 清理后body长度: ${cleanedBody.length} (原始: ${table.body.length})`);
 
       return {
         original: table.original,
@@ -743,16 +723,12 @@ const fixTableStructure = (htmlContent: string): string => {
     const cleanedTable = `<table${table.attrs}>${table.body}</table>`;
     if (table.original !== cleanedTable) {
       result = result.replace(table.original, cleanedTable);
-      console.log('[修复] 已替换表格');
     }
   }
 
   // 4. 移除外层的div容器中的汇总段落
   const summaryDivRegex = /<div[^>]*>\s*(?:设备小计[\s\S]*?大写金额[^<]*)\s*<\/div>/gi;
   result = result.replace(summaryDivRegex, '');
-  console.log('[修复] 移除了外层的汇总div容器');
-
-  console.log('[修复] 完成，结果长度:', result.length, ' (原始:', htmlContent.length, ')');
   return result;
 };
 
@@ -853,21 +829,18 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
 
   // 处理打印
   const handlePrint = () => {
-    console.log('[打印] 开始打印');
     if (!iframeRef.current || !contentRef.current) return;
 
     const iframe = iframeRef.current;
     const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
 
     if (!iframeDoc) {
-      console.log('[打印] 无法获取iframe内容');
       return;
     }
 
     try {
       if (iframe.contentWindow) {
         iframe.contentWindow.print();
-        console.log('[打印] 打印成功');
       } else {
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
@@ -915,15 +888,7 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
     htmlContent.includes('<style>') ||
     htmlContent.includes('<table');
 
-  console.log('[IframeHTMLContainer] 内容长度:', htmlContent.length);
-  console.log('[IframeHTMLContainer] 包含 <!DOCTYPE html:', htmlContent.includes('<!DOCTYPE html'));
-  console.log('[IframeHTMLContainer] 包含 <html:', htmlContent.includes('<html'));
-  console.log('[IframeHTMLContainer] 包含 <style>:', htmlContent.includes('<style>'));
-  console.log('[IframeHTMLContainer] 包含 <table:', htmlContent.includes('<table'));
-  console.log('[IframeHTMLContainer] 是否渲染:', isFullHTML);
-
   if (!isFullHTML) {
-    console.log('[IframeHTMLContainer] 不满足渲染条件，返回SimpleMarkdown');
     return <SimpleMarkdown content={htmlContent} />;
   }
 
@@ -1284,11 +1249,7 @@ export default function ChatMessage({
 
   // 修改：打开编辑对话框
   const handleEdit = () => {
-    console.log('[编辑] 点击编辑按钮');
-    console.log('[编辑] onEdit 是否存在:', !!onEdit);
-
     if (onEdit) {
-      console.log('[编辑] 打开编辑对话框');
       setIsEditDialogOpen(true);
     } else {
       console.warn('[编辑] 编辑功能需要父组件提供 onEdit 回调');
@@ -1302,10 +1263,6 @@ export default function ChatMessage({
 
   // 保存编辑内容
   const handleSaveEdit = (newContent: string) => {
-    console.log('[编辑] 保存编辑内容');
-    console.log('[编辑] 原内容:', message.content);
-    console.log('[编辑] 新内容:', newContent);
-
     onEdit?.(message.id, newContent);
   };
 
@@ -2429,15 +2386,6 @@ export default function ChatMessage({
       (message.content &&
         (message.content.includes('技术方案') || message.content.includes('项目概述')));
 
-    console.log('[ChatMessage] ========== 渲染助手消息 ==========');
-    console.log('[ChatMessage] 消息ID:', message.id);
-    console.log('[ChatMessage] 意图:', intent);
-    console.log('[ChatMessage] 是否详细方案:', isDetailedProposal);
-    console.log('[ChatMessage] 是否报价单:', hasQuote);
-    console.log('[ChatMessage] 内容长度:', message.content?.length);
-    console.log('[ChatMessage] 内容预览:', message.content?.substring(0, 100));
-    console.log('[ChatMessage] metadata:', message.metadata);
-
     if (action === 'ASK_INTENT' && files.length > 0) {
       return (
         <div className="flex items-start gap-3">
@@ -2492,15 +2440,6 @@ export default function ChatMessage({
       );
     }
 
-    console.log(
-      '[ChatMessage] 选择渲染组件:',
-      isDetailedProposal
-        ? 'SimpleMarkdown (详细方案)'
-        : hasQuote
-          ? 'IframeHTMLContainer (报价单)'
-          : 'SimpleMarkdown (普通)'
-    );
-
     return (
       <div className="flex items-start gap-3">
         <Avatar className="h-8 w-8 flex-shrink-0">
@@ -2514,7 +2453,6 @@ export default function ChatMessage({
           {isDetailedProposal
             ? /* 详细方案使用 SimpleMarkdown 渲染 */
               (() => {
-                console.log('[ChatMessage] 渲染详细方案');
                 return (
                   <SimpleMarkdown content={message.content} isStreaming={message.isStreaming} />
                 );
@@ -2522,12 +2460,10 @@ export default function ChatMessage({
             : hasQuote
               ? /* 报价单使用 IframeHTMLContainer 渲染 */
                 (() => {
-                  console.log('[ChatMessage] 渲染报价单');
                   return <IframeHTMLContainer htmlContent={message.content} />;
                 })()
               : /* 普通消息使用 SimpleMarkdown 渲染 */
                 (() => {
-                  console.log('[ChatMessage] 渲染普通消息');
                   return (
                     <SimpleMarkdown content={message.content} isStreaming={message.isStreaming} />
                   );
