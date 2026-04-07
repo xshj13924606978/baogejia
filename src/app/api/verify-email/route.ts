@@ -5,8 +5,6 @@ export async function GET(request: NextRequest) {
   const _email = searchParams.get('email');
   const _code = searchParams.get('code');
 
-  console.log('[API] 邮箱验证请求:', { _email, _code });
-
   if (!_email || !_code) {
     return new NextResponse(
       `
@@ -62,6 +60,14 @@ export async function GET(request: NextRequest) {
         headers: { 'Content-Type': 'text/html; charset=utf-8' }}
     );
   }
+
+  // HTML 实体转义，防止 XSS 注入
+  const safeEmail = _email
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  const safeCode = _code
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 
   try {
     // 返回纯HTML验证成功页面，不加载任何React资源
@@ -171,7 +177,7 @@ export async function GET(request: NextRequest) {
             <div class="success-icon">✓</div>
             <h1>邮箱验证成功</h1>
             <p>您的邮箱</p>
-            <div class="email">${_email}</div>
+            <div class="email">${safeEmail}</div>
             <p>已经成功验证！</p>
             
             <div class="countdown" id="countdown">3</div>
@@ -192,9 +198,9 @@ export async function GET(request: NextRequest) {
               // 保存验证状态到localStorage
               try {
                 const verifiedEmails = JSON.parse(localStorage.getItem('verified_emails') || '{}');
-                verifiedEmails['${_email}'] = {
+                verifiedEmails['${safeEmail}'] = {
                   verified: true,
-                  code: '${_code}',
+                  code: '${safeCode}',
                   timestamp: Date.now()
                 };
                 localStorage.setItem('verified_emails', JSON.stringify(verifiedEmails));
@@ -208,9 +214,9 @@ export async function GET(request: NextRequest) {
                 try {
                   window.opener.postMessage({
                     type: 'EMAIL_VERIFIED',
-                    email: '${_email}',
-                    code: '${_code}'
-                  }, '*');
+                    email: '${safeEmail}',
+                    code: '${safeCode}'
+                  }, window.location.origin);
                   console.log('已通知父窗口');
                 } catch (e) {
                   console.error('通知父窗口失败:', e);
@@ -225,7 +231,7 @@ export async function GET(request: NextRequest) {
                   if (window.opener) {
                     window.close();
                   } else {
-                    window.location.href = '/login?verified=true&email=${encodeURIComponent(_email)}';
+                    window.location.href = '/login?verified=true&email=' + encodeURIComponent('${safeEmail}');
                   }
                 } catch (e) {
                   document.getElementById('warning').style.display = 'block';

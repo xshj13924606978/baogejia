@@ -367,13 +367,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
     localStorage.setItem(STORAGE_KEYS.EMAIL_LOGIN_CODES, JSON.stringify(codes));
 
-    console.log('═══════════════════════════════════════════');
-    console.log('        邮箱登录验证码');
-    console.log('═══════════════════════════════════════════');
-    console.log(`邮箱: ${email}`);
-    console.log(`验证码: ${code}`);
-    console.log('═══════════════════════════════════════════');
-
     return { success: true, code };
   };
 
@@ -459,14 +452,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const savedCodes = localStorage.getItem(STORAGE_KEYS.EMAIL_VERIFICATION_CODES);
       console.log('[UserContext] 验证码存储结果:', savedCodes);
 
-      console.log('═══════════════════════════════════════════');
-      console.log('            邮箱验证码');
-      console.log('═══════════════════════════════════════════');
-      console.log(`邮箱: ${email}`);
-      console.log(`验证码: ${code}`);
-      console.log(`存储键: ${STORAGE_KEYS.EMAIL_VERIFICATION_CODES}`);
-      console.log('═══════════════════════════════════════════');
-
       return { success: true, code };
     } catch (error) {
       console.error('[UserContext] 存储验证码失败:', error);
@@ -476,7 +461,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   // 验证邮箱
   const verifyEmail = async (email: string, code: string): Promise<boolean> => {
-    console.log('[UserContext] 验证邮箱:', { email, code });
+    console.log('[UserContext] 验证邮箱:', { email });
 
     try {
       if (typeof window === 'undefined') {
@@ -494,7 +479,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const codes = JSON.parse(codesStr);
       const stored = codes[email];
 
-      console.log('[UserContext] 存储的验证码:', stored);
+      console.log('[UserContext] 验证码存储记录存在:', !!stored);
 
       if (stored && stored.code === code) {
         if (stored.timestamp < Date.now() - 5 * 60 * 1000) {
@@ -537,13 +522,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       timestamp: Date.now(),
     };
     localStorage.setItem(STORAGE_KEYS.PHONE_CODES, JSON.stringify(codes));
-
-    console.log('===========================================');
-    console.log('📱 手机验证码');
-    console.log('-------------------------------------------');
-    console.log(`手机号: ${phone}`);
-    console.log(`验证码: ${code}`);
-    console.log('===========================================');
 
     return { success: true };
   };
