@@ -717,9 +717,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     logout();
   };
 
-  // 导航功能（使用 Next.js 客户端导航，避免全页刷新丢失状态）
+  // 导航功能（在新标签页打开，保持当前对话不丢失）
   const handleNavigation = (path: string) => {
-    router.push(path);
+    window.open(path, '_blank');
   };
 
   // 帮助功能
