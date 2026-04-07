@@ -717,9 +717,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     logout();
   };
 
-  // 导航功能（在新标签页打开，保持当前对话不丢失）
+  // 导航功能
   const handleNavigation = (path: string) => {
-    window.open(path, '_blank');
+    window.location.href = path;
   };
 
   // 帮助功能
@@ -923,11 +923,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   return (
     <TooltipProvider>
       <>
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="flex items-center gap-2 px-2 h-9 hover:bg-transparent"
+            <button
+              type="button"
+              className="flex items-center gap-2 px-2 h-9 hover:bg-transparent cursor-pointer"
             >
               <Avatar className="h-8 w-8 ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-950 ring-blue-100 dark:ring-blue-900">
                 {user.avatar ? <AvatarImage src={user.avatar} /> : null}
@@ -941,7 +941,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 {user.name || '用户'}
               </span>
               <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-            </Button>
+            </button>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" sideOffset={8} className="w-72 max-h-[80vh] overflow-y-auto">

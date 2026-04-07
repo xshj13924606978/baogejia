@@ -300,9 +300,9 @@ export default function ChatArea({
         minute: '2-digit',
         second: '2-digit'
       });
-      
+
       logOnce(
-        'ChatArea-Init', 
+        'ChatArea-Init',
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${timestamp} - ChatArea 组件初始化\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
       );
     }
