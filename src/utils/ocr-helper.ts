@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import OpenAI from 'openai';
 import { Logger } from '@/lib/logger';
 import { callDeepSeekChat } from '@/lib/deepseek-client';
 import { cleanParameterDescriptionEnhanced } from '@/utils/string-cleaner-enhanced';
@@ -102,45 +103,18 @@ export class OcrHelper {
   }
 
   /**
-   * 识别图片中的文本（使用 Tesseract OCR）
+   * 识别图片中的文本
+   * 方案1: 系统 tesseract（快速）
+   * 方案2: AI Vision（Gemini 多模态，质量高）
+   * 方案3: Tesseract.js（带超时，最后兜底）
    */
   async recognizeImage(imageBuffer: Buffer): Promise<{ text: string; isTable: boolean }> {
     Logger.info('[OCR] 开始处理图片', { size: imageBuffer.length });
 
-    // 尝试使用 Tesseract.js 进行图片 OCR
-    try {
-      // 动态导入 Tesseract.js
-      const Tesseract = await import('tesseract.js');
-
-      Logger.info('[OCR] 使用 Tesseract.js 识别图片...');
-
-      // 将 Buffer 转换为 base64
-      const base64Image = imageBuffer.toString('base64');
-      const dataUrl = `data:image/png;base64,${base64Image}`;
-
-      // 使用 Tesseract 识别
-      const result = await Tesseract.recognize(dataUrl, 'chi_sim+eng', {
-        logger: (m: any) => {
-          if (m.status === 'recognizing text') {
-            Logger.debug(`[OCR] 识别进度: ${(m.progress * 100).toFixed(2)}%`);
-          }
-        },
-      });
-
-      const text = result.data.text;
-
-      if (text && text.trim().length > 0) {
-        Logger.info('[OCR] Tesseract.js 识别成功', { textLength: text.length });
-        return { text, isTable: this.isLikelyTable(text) };
-      }
-    } catch (error) {
-      Logger.warn('[OCR] Tesseract.js 识别失败', error);
-    }
-
-    // 如果 Tesseract 不可用，尝试使用系统命令（tesseract）
+    // 方案1: 优先使用系统 tesseract 命令（速度极快）
     try {
       await execAsync('which tesseract');
-      Logger.info('[OCR] 系统工具 tesseract 可用');
+      Logger.info('[OCR] 使用系统 tesseract 命令识别图片...');
 
       const tempDir = os.tmpdir();
       const timestamp = Date.now();
@@ -158,28 +132,183 @@ export class OcrHelper {
         if (fs.existsSync(tempTxt)) {
           const text = fs.readFileSync(tempTxt, 'utf-8');
           if (text && text.trim().length > 0) {
-            Logger.info('[OCR] tesseract 识别成功', { textLength: text.length });
+            Logger.info('[OCR] 系统 tesseract 识别成功', { textLength: text.length });
+            // 检测 OCR 质量，如果质量差则降级到 AI Vision
+            if (!this.isOCRQualityAcceptable(text)) {
+              Logger.info('[OCR] tesseract 识别质量较差，尝试 AI Vision...');
+              const aiResult = await this.recognizeImageWithAI(imageBuffer);
+              if (aiResult.text.trim().length > 0) {
+                return aiResult;
+              }
+            }
             return { text, isTable: this.isLikelyTable(text) };
           }
         }
       } catch (error) {
-        Logger.error('[OCR] tesseract 失败', error);
+        Logger.error('[OCR] 系统 tesseract 失败', error);
       } finally {
         // 清理临时文件
-        try {
-          fs.unlinkSync(tempImage);
-        } catch (_e) {}
-        try {
-          fs.unlinkSync(tempTxt);
-        } catch (_e) {}
+        try { fs.unlinkSync(tempImage); } catch (_e) {}
+        try { fs.unlinkSync(tempTxt); } catch (_e) {}
       }
     } catch (_error) {
-      Logger.warn('[OCR] tesseract 不可用');
+      Logger.warn('[OCR] 系统 tesseract 不可用');
     }
 
-    // 如果所有 OCR 方法都失败，返回空
+    // 方案2: AI Vision（Gemini 多模态模型）
+    try {
+      const aiResult = await this.recognizeImageWithAI(imageBuffer);
+      if (aiResult.text.trim().length > 0) {
+        return aiResult;
+      }
+    } catch (error) {
+      Logger.warn('[OCR] AI Vision 识别失败', error);
+    }
+
+    // 方案3: Tesseract.js（带超时保护，最后兜底）
+    try {
+      const Tesseract = await import('tesseract.js');
+      Logger.info('[OCR] 降级使用 Tesseract.js 识别图片...');
+
+      const base64Image = imageBuffer.toString('base64');
+      const dataUrl = `data:image/png;base64,${base64Image}`;
+
+      const result = await Promise.race([
+        Tesseract.recognize(dataUrl, 'chi_sim+eng', {
+          logger: (m: any) => {
+            if (m.status === 'recognizing text') {
+              Logger.debug(`[OCR] 识别进度: ${(m.progress * 100).toFixed(2)}%`);
+            }
+          },
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Tesseract.js 识别超时（60秒）')), 60000)
+        ),
+      ]);
+
+      const text = result.data.text;
+      if (text && text.trim().length > 0) {
+        Logger.info('[OCR] Tesseract.js 识别成功', { textLength: text.length });
+        return { text, isTable: this.isLikelyTable(text) };
+      }
+    } catch (error) {
+      Logger.warn('[OCR] Tesseract.js 识别失败', error);
+    }
+
     Logger.warn('[OCR] 所有 OCR 方法都失败，无法提取图片文本');
     return { text: '', isTable: false };
+  }
+
+  /**
+   * 检测 OCR 文本质量
+   * 评估中文/英文字符比例、乱码特征、行级中文覆盖等
+   */
+  private isOCRQualityAcceptable(text: string): boolean {
+    const trimmed = text.trim();
+    if (trimmed.length < 10) return false;
+
+    const totalChars = trimmed.replace(/\s/g, '').length;
+    const chineseChars = (trimmed.match(/[\u4e00-\u9fff]/g) || []).length;
+    const chineseRatio = totalChars > 0 ? chineseChars / totalChars : 0;
+
+    // 检查1: 中文字符比例过低 — 中文询价单应至少 30% 是中文
+    if (chineseRatio < 0.3 && totalChars > 20) {
+      Logger.debug('[OCR] 质量检测: 中文比例过低', { chineseRatio: (chineseRatio * 100).toFixed(1) + '%', chineseChars, totalChars });
+      return false;
+    }
+
+    // 检查2: 含中文行占比过低 — 多数行应包含中文
+    const lines = trimmed.split('\n').filter(l => l.trim());
+    if (lines.length >= 3) {
+      const linesWithChinese = lines.filter(l => /[\u4e00-\u9fff]/.test(l)).length;
+      const chineseLineRatio = linesWithChinese / lines.length;
+      if (chineseLineRatio < 0.5) {
+        Logger.debug('[OCR] 质量检测: 含中文行比例过低', { chineseLineRatio: (chineseLineRatio * 100).toFixed(1) + '%', linesWithChinese, totalLines: lines.length });
+        return false;
+      }
+    }
+
+    // 检查3: 乱码特征 — 非法字符比例过高
+    const garbagePattern = /[^\u4e00-\u9ffa-zA-Z0-9\s\u3000-\u303f\uff00-\uffef.,;:!?()（）【】《》、\-——\/\\@#%+*=<>「」]/g;
+    const garbageChars = (trimmed.match(garbagePattern) || []).length;
+    const garbageRatio = totalChars > 0 ? garbageChars / totalChars : 0;
+
+    if (garbageRatio > 0.2) {
+      Logger.debug('[OCR] 质量检测: 乱码比例过高', { garbageRatio: (garbageRatio * 100).toFixed(1) + '%', garbageChars, totalChars });
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * 使用 AI Vision（Gemini 多模态）识别图片中的文字和产品信息
+   */
+  private async recognizeImageWithAI(imageBuffer: Buffer): Promise<{ text: string; isTable: boolean }> {
+    const apiKey = process.env.LAOZHANG_API_KEY;
+    const baseURL = process.env.LAOZHANG_BASE_URL || 'https://api.laozhang.ai/v1';
+
+    if (!apiKey) {
+      Logger.warn('[OCR] AI Vision 不可用: LAOZHANG_API_KEY 未配置');
+      return { text: '', isTable: false };
+    }
+
+    Logger.info('[OCR] 使用 AI Vision 识别图片...');
+
+    const client = new OpenAI({ apiKey, baseURL, dangerouslyAllowBrowser: false });
+    const base64Image = imageBuffer.toString('base64');
+
+    // 检测图片类型
+    const mimeType = this.detectMimeType(imageBuffer);
+    const dataUrl = `data:${mimeType};base64,${base64Image}`;
+
+    const prompt = `请仔细识别这张图片中的所有文字内容，这是一张产品询价单。
+
+要求：
+1. 逐字逐行完整提取所有文字，不要遗漏
+2. 保持原有的行列结构
+3. 不要自行推测或补充内容
+4. 如果是表格，请保留表格结构（使用制表符分隔列）
+5. 只输出识别到的原始文字，不要添加任何解释或分析
+
+请直接输出图片中的文字内容：`;
+
+    const response = await client.chat.completions.create({
+      model: process.env.LAOZHANG_MODEL || 'gemini-2.5-flash',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: dataUrl } },
+          ],
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 8192,
+    });
+
+    const text = response.choices?.[0]?.message?.content || '';
+
+    if (text.trim().length > 0) {
+      Logger.info('[OCR] AI Vision 识别成功', { textLength: text.length });
+      return { text, isTable: this.isLikelyTable(text) };
+    }
+
+    Logger.warn('[OCR] AI Vision 未识别到文字');
+    return { text: '', isTable: false };
+  }
+
+  /**
+   * 检测图片 MIME 类型
+   */
+  private detectMimeType(buffer: Buffer): string {
+    if (buffer[0] === 0xFF && buffer[1] === 0xD8) return 'image/jpeg';
+    if (buffer[0] === 0x89 && buffer[1] === 0x50) return 'image/png';
+    if (buffer[0] === 0x47 && buffer[1] === 0x49) return 'image/gif';
+    if (buffer[0] === 0x42 && buffer[1] === 0x4D) return 'image/bmp';
+    if (buffer[0] === 0x52 && buffer[1] === 0x49) return 'image/webp';
+    return 'image/png'; // 默认
   }
 
   /**
