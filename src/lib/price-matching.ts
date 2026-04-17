@@ -1563,7 +1563,9 @@ export class PriceMatcher {
     }
 
     // ========== 级别5：仅型号匹配 ==========
-    if (normalizedModel) {
+    // 纯数字型号跳过此级别：如 "5" 会匹配到所有 "5m³化粪池"、"50g/h发生器" 等无关产品
+    // 级别3已有带名称过滤的数字边界匹配，此处不需要无名称约束的纯数字型号搜索
+    if (normalizedModel && !/^\d+(\.\d+)?$/.test(normalizedModel)) {
       const modelOnlyMatches = await supabase
         .from('products')
         .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category, supplier, contact_person, contact_phone, unit, stock, image_url')
