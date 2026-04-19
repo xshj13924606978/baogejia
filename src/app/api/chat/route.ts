@@ -1459,34 +1459,316 @@ class PdfParser {
 
 class WordParser {
   async parse(fileInfo: FileInfo): Promise<ParseResult> {
-
     try {
       if (!fileInfo.buffer) {
-        return { products: [], globalRemarks: [], parseLevel: 'error' };
+        return { products: [], globalRemarks: ['无法读取Word文件'], parseLevel: 'error' };
       }
 
-      const result = await mammoth.extractRawText({ buffer: fileInfo.buffer });
-      const text = result.value;
+      // 优先使用 HTML 模式提取，保留表格结构
+      const htmlResult = await mammoth.convertToHtml({ buffer: fileInfo.buffer });
+      const html = htmlResult.value;
 
-      const products: Product[] = [];
-      const lines = text.split('\n');
+      if (!html || html.trim().length === 0) {
+        return { products: [], globalRemarks: ['Word文件未包含可提取的内容'], parseLevel: 'error' };
+      }
 
-      // 简单的产品提取逻辑
-      for (const line of lines) {
-        if (line.includes('产品') || line.includes('型号')) {
-          // TODO: 实现更复杂的Word解析逻辑
+      // 从 HTML 中提取表格数据
+      const tableData = this.parseHtmlTables(html);
+
+      if (tableData.length === 0) {
+        // 降级：如果没有表格，尝试纯文本提取
+        const textResult = await mammoth.extractRawText({ buffer: fileInfo.buffer });
+        const text = textResult.value;
+        if (text && text.trim().length > 0) {
+          // 尝试按制表符或连续空格分列（模拟表格）
+          const fallbackData = this.parseTextAsTable(text);
+          if (fallbackData.length > 0) {
+            const products = this.extractProductsFromData(fallbackData);
+            if (products.length > 0) {
+              return { products, globalRemarks: [], parseLevel: 'word' };
+            }
+          }
         }
+        return { products: [], globalRemarks: ['Word文件中未检测到表格结构'], parseLevel: 'error' };
       }
 
-      return {
-        products,
-        globalRemarks: [],
-        parseLevel: 'word',
-      };
+      const products = this.extractProductsFromData(tableData);
+      return { products, globalRemarks: [], parseLevel: 'word' };
     } catch (error) {
       console.error('[Word] 解析失败:', error);
       return { products: [], globalRemarks: ['Word解析失败'], parseLevel: 'error' };
     }
+  }
+
+  /** 从 HTML 中提取所有表格为二维字符串数组 */
+  private parseHtmlTables(html: string): string[][] {
+    const rows: string[][] = [];
+    const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+    let tableMatch;
+
+    while ((tableMatch = tableRegex.exec(html)) !== null) {
+      const tableHtml = tableMatch[1];
+      const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+      let trMatch;
+
+      while ((trMatch = trRegex.exec(tableHtml)) !== null) {
+        const trHtml = trMatch[1];
+        const cells: string[] = [];
+        const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+        let cellMatch;
+
+        while ((cellMatch = cellRegex.exec(trHtml)) !== null) {
+          // 清理 HTML 标签，保留文本
+          const text = cellMatch[1]
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#039;/g, "'")
+            .trim();
+          cells.push(text);
+        }
+
+        if (cells.length > 0) {
+          rows.push(cells);
+        }
+      }
+    }
+
+    return rows;
+  }
+
+  /** 尝试将纯文本按制表符或多空格分列为表格 */
+  private parseTextAsTable(text: string): string[][] {
+    const lines = text.split('\n').filter(l => l.trim());
+    const rows: string[][] = [];
+
+    for (const line of lines) {
+      // 尝试按制表符分列
+      if (line.includes('\t')) {
+        rows.push(line.split('\t').map(c => c.trim()));
+      } else {
+        // 尝试按多个连续空格分列
+        const cells = line.split(/\s{2,}/).map(c => c.trim());
+        if (cells.length >= 2) {
+          rows.push(cells);
+        }
+      }
+    }
+
+    return rows;
+  }
+
+  /** 从二维数据中提取产品列表（与 ExcelParser 列头匹配逻辑一致） */
+  private extractProductsFromData(data: string[][]): Product[] {
+    // 查找表头行
+    let headerRow = -1;
+    let nameCol = -1;
+    let specsCol = -1;
+    let quantityCol = -1;
+    let unitCol = -1;
+    let brandCol = -1;
+    let modelCol = -1;
+
+    for (let i = 0; i < Math.min(10, data.length); i++) {
+      const row = data[i];
+      if (!row || row.length === 0) continue;
+
+      const rowStr = row.join('|').toLowerCase();
+      if (rowStr.includes('产品名称') || rowStr.includes('设备名称') ||
+          (rowStr.includes('名称') && (rowStr.includes('规格') || rowStr.includes('数量') || rowStr.includes('型号')))) {
+        headerRow = i;
+
+        row.forEach((cell, col) => {
+          const cellStr = cell ? cell.trim().toLowerCase() : '';
+          if (cellStr === '产品名称' || cellStr === '设备名称' || cellStr === '名称' || cellStr === '项目名称') {
+            nameCol = col;
+          }
+          if (cellStr === '规格型号' || cellStr === '规格' || cellStr === '型号' || cellStr === '参数描述' || cellStr === '技术参数' || cellStr === '参数' || cellStr === '简介说明' || cellStr === '设备规格') {
+            // 如果列头是"型号"且有其他"规格"列，优先分配给规格列
+            if (cellStr === '型号' && specsCol !== -1) {
+              modelCol = col;
+            } else if (cellStr === '型号' && specsCol === -1) {
+              specsCol = col;
+            } else {
+              specsCol = col;
+            }
+          }
+          if (cellStr === '数量' || cellStr === '台数' || cellStr === '套数') {
+            quantityCol = col;
+          }
+          if (cellStr === '单位') {
+            unitCol = col;
+          }
+          if (cellStr === '品牌' || cellStr === '厂家' || cellStr === '制造商') {
+            brandCol = col;
+          }
+        });
+
+        break;
+      }
+    }
+
+    if (headerRow === -1 || nameCol === -1) {
+      return [];
+    }
+
+    // 备注行过滤
+    const remarkKeywords = [
+      '备注', '说明', '注意', '注：', '注:', '以上', '以下', '合计', '总计',
+      '小计', '本页', '共页', '审核', '批准', '编制', '日期', '签名',
+      '技术要求', '质量要求', '交货期', '付款方式', '质保', '售后服务'
+    ];
+
+    const isRemarkRow = (rowData: string[]): boolean => {
+      const rowStr = rowData.join(' ').toLowerCase();
+      for (const keyword of remarkKeywords) {
+        if (rowStr.startsWith(keyword.toLowerCase())) return true;
+      }
+      let keywordCount = 0;
+      for (const keyword of remarkKeywords) {
+        if (rowStr.includes(keyword.toLowerCase())) keywordCount++;
+      }
+      if (keywordCount >= 2) return true;
+      const firstCell = rowData[0] ? rowData[0].trim().toLowerCase() : '';
+      if (remarkKeywords.some(kw => firstCell.includes(kw.toLowerCase()))) return true;
+      return false;
+    };
+
+    const getCellValue = (row: number, col: number): string => {
+      if (row < 0 || row >= data.length || col < 0) return '';
+      const rowData = data[row];
+      if (!rowData || col >= rowData.length) return '';
+      return rowData[col] || '';
+    };
+
+    // 解析数据行
+    const products: Product[] = [];
+    const productMap = new Map<string, Product>();
+    let lastProductName = '';
+
+    for (let i = headerRow + 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row || row.every(c => !c || c.trim() === '')) continue;
+      if (isRemarkRow(row)) continue;
+
+      const rawProductName = getCellValue(i, nameCol).trim();
+
+      // 没有产品名称，追加规格到上一个产品
+      if (!rawProductName) {
+        if (specsCol !== -1 && lastProductName !== '') {
+          const specsValue = getCellValue(i, specsCol).trim();
+          if (specsValue) {
+            const currentProduct = productMap.get(lastProductName);
+            if (currentProduct) {
+              currentProduct.specs = currentProduct.specs
+                ? currentProduct.specs + '\n' + specsValue
+                : specsValue;
+            }
+          }
+        }
+        continue;
+      }
+
+      let productName = rawProductName;
+      let extractedSpecs = '';
+
+      // 处理产品名称中的多行内容
+      if (rawProductName.includes('\n')) {
+        const parts = rawProductName.split('\n').filter(p => p.trim());
+        if (parts.length > 1) {
+          productName = parts[0].trim();
+          extractedSpecs = parts.slice(1).join(' ').trim();
+        }
+      }
+
+      // 如果当前行看起来是参数而非产品名，追加到上一个产品
+      const specPattern = /^[\dφΦ×xX\-]+\d|^功率\s*\d|^电压\s*\d|^容量\s*\d|^尺寸\s*\d/i;
+      if (specPattern.test(productName) && lastProductName !== '' && productName.length < 50) {
+        const currentProduct = productMap.get(lastProductName);
+        if (currentProduct) {
+          currentProduct.specs = currentProduct.specs
+            ? currentProduct.specs + '\n' + productName
+            : productName;
+        }
+        continue;
+      }
+
+      // 新产品
+      if (productName !== lastProductName) {
+        // 保存上一个产品
+        if (lastProductName !== '' && productMap.has(lastProductName)) {
+          const prev = productMap.get(lastProductName)!;
+          if (!products.some(p => p.name === prev.name)) {
+            products.push(prev);
+          }
+        }
+
+        const specsValue = getCellValue(i, specsCol).trim();
+        const quantityValue = getCellValue(i, quantityCol).trim();
+        const unitValue = getCellValue(i, unitCol).trim();
+        const brandValue = getCellValue(i, brandCol).trim();
+        const modelValue = modelCol !== -1 ? getCellValue(i, modelCol).trim() : '';
+
+        let quantity = 1;
+        const qtyMatch = quantityValue.match(/(\d+)/);
+        if (qtyMatch) quantity = parseInt(qtyMatch[1]);
+
+        // 合并规格
+        let finalSpecs = '';
+        if (extractedSpecs && specsValue) {
+          finalSpecs = extractedSpecs + '\n' + specsValue;
+        } else if (extractedSpecs) {
+          finalSpecs = extractedSpecs;
+        } else {
+          finalSpecs = specsValue;
+        }
+
+        // 清洗 specs
+        const cleanResult = cleanParameterDescriptionEnhanced(finalSpecs);
+
+        const newProduct: Product = {
+          name: productName,
+          model: modelValue,
+          brand: brandValue,
+          specs: cleanResult.cleaned,
+          quantity,
+          unit: unitValue || '套',
+          price: 0,
+          total: 0,
+          remark: '从Word提取',
+        };
+
+        productMap.set(productName, newProduct);
+        lastProductName = productName;
+      } else {
+        // 同名产品，追加规格
+        if (lastProductName !== '' && productMap.has(lastProductName)) {
+          const currentProduct = productMap.get(lastProductName)!;
+          if (specsCol !== -1) {
+            const specsValue = getCellValue(i, specsCol).trim();
+            if (specsValue) {
+              currentProduct.specs = currentProduct.specs
+                ? currentProduct.specs + '\n' + specsValue
+                : specsValue;
+            }
+          }
+        }
+      }
+    }
+
+    // 保存最后一个产品
+    if (lastProductName !== '' && productMap.has(lastProductName)) {
+      const last = productMap.get(lastProductName)!;
+      if (!products.some(p => p.name === last.name)) {
+        products.push(last);
+      }
+    }
+
+    return products;
   }
 }
 
@@ -2615,10 +2897,12 @@ class ProfessionalDialogueEngine {
 class UnifiedFileParser {
   private downloader: FileDownloader;
   private textParser: TextParser;
+  private ocrHelper: OcrHelper;
 
   constructor() {
     this.downloader = new FileDownloader();
     this.textParser = new TextParser();
+    this.ocrHelper = new OcrHelper();
   }
 
   async parseFile(fileInfo: FileInfo): Promise<ParseResult> {
@@ -2633,6 +2917,8 @@ class UnifiedFileParser {
       } else if (['doc', 'docx'].includes(ext)) {
         const parser = new WordParser();
         return await parser.parse(fileInfo);
+      } else if (['png', 'jpg', 'jpeg', 'bmp', 'webp', 'gif', 'tiff'].includes(ext)) {
+        return await this.parseImage(fileInfo);
       }
 
       return { products: [], globalRemarks: ['不支持的文件类型'], parseLevel: 'error' };
@@ -2640,6 +2926,151 @@ class UnifiedFileParser {
       console.error('[Parser] 解析失败:', error);
       return { products: [], globalRemarks: ['解析失败'], parseLevel: 'error' };
     }
+  }
+
+  /** 解析图片文件：OCR识别后提取产品 */
+  private async parseImage(fileInfo: FileInfo): Promise<ParseResult> {
+    if (!fileInfo.buffer) {
+      return { products: [], globalRemarks: ['无法读取图片文件'], parseLevel: 'error' };
+    }
+
+    const { text } = await this.ocrHelper.recognizeImage(fileInfo.buffer);
+
+    if (!text || text.trim().length === 0) {
+      return { products: [], globalRemarks: ['图片中未识别到文字内容，请确保图片清晰'], parseLevel: 'error' };
+    }
+
+    // 尝试将 OCR 文本作为表格解析
+    const tableData = this.parseTextAsTable(text);
+    if (tableData.length > 1) {
+      // 有表格结构，按表格方式提取
+      const products = this.extractProductsFromTableData(tableData);
+      if (products.length > 0) {
+        return { products, globalRemarks: [], parseLevel: 'image' };
+      }
+    }
+
+    // 降级：尝试 OcrHelper 的产品提取
+    const ocrProducts = this.ocrHelper.extractProductsFromTable(text);
+    if (ocrProducts.length > 0) {
+      const products = ocrProducts.map((p) => {
+        const cleanResult = cleanParameterDescriptionEnhanced(p.specs || '');
+        return {
+          name: p.name,
+          model: p.model || '',
+          brand: p.brand || '',
+          specs: cleanResult.cleaned,
+          quantity: p.quantity,
+          unit: p.unit,
+          price: 0,
+          total: 0,
+          remark: '从图片OCR提取',
+        };
+      });
+      return { products, globalRemarks: [], parseLevel: 'image' };
+    }
+
+    // 都无法提取，返回 OCR 文本供 LLM 分析
+    return { products: [], globalRemarks: [text], parseLevel: 'image-text' };
+  }
+
+  /** 将纯文本按制表符或多空格分列为表格 */
+  private parseTextAsTable(text: string): string[][] {
+    const lines = text.split('\n').filter(l => l.trim());
+    const rows: string[][] = [];
+    for (const line of lines) {
+      if (line.includes('\t')) {
+        rows.push(line.split('\t').map(c => c.trim()));
+      } else {
+        const cells = line.split(/\s{2,}/).map(c => c.trim());
+        if (cells.length >= 2) rows.push(cells);
+      }
+    }
+    return rows;
+  }
+
+  /** 从二维数据中提取产品（简化版，与 WordParser 逻辑一致） */
+  private extractProductsFromTableData(data: string[][]): Product[] {
+    let headerRow = -1;
+    let nameCol = -1;
+    let specsCol = -1;
+    let quantityCol = -1;
+    let unitCol = -1;
+    let brandCol = -1;
+
+    for (let i = 0; i < Math.min(10, data.length); i++) {
+      const row = data[i];
+      if (!row || row.length === 0) continue;
+      const rowStr = row.join('|').toLowerCase();
+      if (rowStr.includes('产品名称') || rowStr.includes('设备名称') ||
+          (rowStr.includes('名称') && (rowStr.includes('规格') || rowStr.includes('数量') || rowStr.includes('型号')))) {
+        headerRow = i;
+        row.forEach((cell, col) => {
+          const cs = cell ? cell.trim().toLowerCase() : '';
+          if (['产品名称', '设备名称', '名称', '项目名称'].includes(cs)) nameCol = col;
+          if (['规格型号', '规格', '型号', '参数描述', '技术参数', '参数'].includes(cs)) specsCol = col;
+          if (['数量', '台数', '套数'].includes(cs)) quantityCol = col;
+          if (cs === '单位') unitCol = col;
+          if (['品牌', '厂家', '制造商'].includes(cs)) brandCol = col;
+        });
+        break;
+      }
+    }
+
+    if (headerRow === -1 || nameCol === -1) return [];
+
+    const products: Product[] = [];
+    for (let i = headerRow + 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row || row.every(c => !c || c.trim() === '')) continue;
+
+      const name = (row[nameCol] || '').trim();
+      if (!name) continue;
+
+      const specs = specsCol !== -1 ? (row[specsCol] || '').trim() : '';
+      const qty = quantityCol !== -1 ? (row[quantityCol] || '').trim() : '';
+      const unit = unitCol !== -1 ? (row[unitCol] || '').trim() : '';
+      const brand = brandCol !== -1 ? (row[brandCol] || '').trim() : this.extractBrandFromName(name);
+
+      let quantity = 1;
+      const qtyMatch = qty.match(/(\d+)/);
+      if (qtyMatch) quantity = parseInt(qtyMatch[1]);
+
+      const cleanResult = cleanParameterDescriptionEnhanced(specs);
+
+      products.push({
+        name,
+        model: '',
+        brand,
+        specs: cleanResult.cleaned,
+        quantity,
+        unit: unit || '套',
+        price: 0,
+        total: 0,
+        remark: '从图片OCR提取',
+      });
+    }
+
+    return products;
+  }
+
+  /** 从产品名称中提取嵌入的品牌（如"普耐尔QQ150夹子" → "普耐尔"） */
+  private extractBrandFromName(name: string): string {
+    if (!name || name.length < 4) return '';
+    const brandPatterns = [
+      /([\u4e00-\u9fa5]{2,4})(?:QQ?\d|氩弧|焊枪|夹子|搅拌|水泵|风机|空压|电机|阀门|管道|焊机|切割|打磨|抛光|压缩机|发电机|钻机)/,
+    ];
+    for (const pattern of brandPatterns) {
+      const match = name.match(pattern);
+      if (match && match[1] && match[1].length >= 2) {
+        // 确保提取的不是通用词（如"不锈"不是品牌）
+        const commonWords = ['不锈', '碳钢', '合金', '镀锌', '塑料', '玻璃', '陶瓷'];
+        if (!commonWords.includes(match[1])) {
+          return match[1];
+        }
+      }
+    }
+    return '';
   }
 
   /**
@@ -2741,7 +3172,7 @@ async function generateQuoteData(products: Product[]) {
     matchedProducts.push({
       name: product.name,
       model: matchResult.model || product.model,
-      brand: '',
+      brand: matchResult.brand || product.brand || '',
       parameter_description: cleanParameterDescriptionEnhanced(product.specs || '').cleaned,
       quantity: product.quantity,
       unit: product.unit,
@@ -4046,7 +4477,10 @@ class IntentResponseGenerator {
 
       case 'unknown':
         if (processedInput.type === 'image') {
-          return `您上传了一张图片。目前图片分析功能正在完善中，请上传Excel、Word或PDF格式的文件，或直接输入文字描述您的需求。`;
+          if (processedInput.textContent && processedInput.textContent.trim().length > 0) {
+            return `您上传了一张图片，已通过OCR识别出以下内容：\n\n${processedInput.textContent.substring(0, 2000)}${processedInput.textContent.length > 2000 ? '\n\n(内容较长，仅显示前2000字符)' : ''}\n\n请告诉我您需要基于这些信息做什么：\n• 生成报价单\n• 查询产品价格\n• 提供选型建议\n• 其他需求`;
+          }
+          return `您上传了一张图片，但未能识别出有效文字内容。\n\n建议：\n• 确保图片清晰、文字可读\n• 尝试上传 Excel、Word 或 PDF 格式替代\n• 或直接输入文字描述您的需求`;
         }
         if (processedInput.type === 'unknown') {
           return `抱歉，我无法解析您上传的文件格式。请上传以下格式的文件：\n• Excel (.xlsx, .xls)\n• Word (.docx, .doc)\n• PDF (.pdf)\n• 文本文件 (.txt)\n\n或者直接输入文字描述您的需求。`;
@@ -4138,6 +4572,26 @@ export async function POST(request: NextRequest) {
       const totalProducts = parsedFiles.reduce((sum, f) => sum + (f.products?.length || 0), 0);
 
       if (totalProducts === 0) {
+        // 检查是否有图片OCR文本可供LLM分析
+        const imageText = parsedFiles.find(f => f.parseLevel === 'image-text')?.remarks?.join('\n');
+        if (imageText && imageText.trim()) {
+          // 将OCR文本作为用户输入传给智能处理器
+          const processedInput = await inputProcessor.process({
+            type: 'text',
+            content: imageText,
+          });
+          const smartResponse = await smartChatProcessor.process(
+            imageText, processedInput,
+            conversationId || undefined, userId || undefined
+          );
+          return NextResponse.json({
+            action: 'CHAT',
+            content: smartResponse.content,
+            files: parsedFiles,
+            metadata: { intent: smartResponse.intent },
+          });
+        }
+
         return NextResponse.json({
           action: 'ERROR',
           content: '无法从文件中解析到产品信息',

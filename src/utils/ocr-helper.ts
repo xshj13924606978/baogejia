@@ -13,6 +13,7 @@ const execAsync = promisify(exec);
 export interface ExtractedProduct {
   name: string;
   model: string;
+  brand: string;
   specs: string;
   quantity: number;
   unit: string;
@@ -269,7 +270,9 @@ export class OcrHelper {
 2. 保持原有的行列结构
 3. 不要自行推测或补充内容
 4. 如果是表格，请保留表格结构（使用制表符分隔列）
-5. 只输出识别到的原始文字，不要添加任何解释或分析
+5. 如果有品牌列（品牌、厂家、制造商等），请保留该列信息
+6. 如果品牌信息嵌入在产品名称中（如"普耐尔氩弧焊枪"），请原样保留，不要分离
+7. 只输出识别到的原始文字，不要添加任何解释或分析
 
 请直接输出图片中的文字内容：`;
 
@@ -439,6 +442,7 @@ export class OcrHelper {
     const product: ExtractedProduct = {
       name: defaultName,
       model: '',
+      brand: this.extractBrand(cleanedText),
       specs: cleanedText,  // 使用清洗后的文本
       quantity: 1,
       unit: '台',
@@ -505,6 +509,36 @@ export class OcrHelper {
         Logger.debug('[OCR] 通过可能数量提取到', { quantity: maxQty });
       }
     }
+  }
+
+  /**
+   * 提取品牌（从产品文本中识别品牌名）
+   * 匹配常见品牌模式：连续2-4个中文字符后跟产品名关键词
+   */
+  private extractBrand(text: string): string {
+    // 常见品牌名模式：中文品牌 + 产品关键词
+    const brandPatterns = [
+      // "普耐尔QQ150夹子" -> "普耐尔", "普耐尔氩弧焊枪5M" -> "普耐尔"
+      /([\u4e00-\u9fa5]{2,4})(?:QQ?\d|氩弧|焊枪|夹子|搅拌|水泵|风机|空压|电机|阀门|管道|焊机|切割|打磨|抛光|压缩机|发电机|钻机)/,
+      // "品牌：XXX" 或 "品牌:XXX" 模式
+      /品牌[\s：:]*([\u4e00-\u9fa5a-zA-Z0-9]{2,20})/,
+      // "厂家：XXX" 模式
+      /厂家[\s：:]*([\u4e00-\u9fa5a-zA-Z0-9]{2,20})/,
+      // "制造商：XXX" 模式
+      /制造商[\s：:]*([\u4e00-\u9fa5a-zA-Z0-9]{2,20})/,
+    ];
+
+    for (const pattern of brandPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const brand = match[1].trim();
+        if (brand.length >= 2) {
+          Logger.debug('[OCR] 提取到品牌', { brand });
+          return brand;
+        }
+      }
+    }
+    return '';
   }
 
   /**
