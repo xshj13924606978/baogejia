@@ -140,15 +140,33 @@ export async function PUT(request: NextRequest) {
       const val = (rest as any)[bodyKey];
       if (val !== undefined) updateData[dbKey] = val;
     }
-    // 处理 is_default
+    // 处理 is_default — 只更新 is_default 字段，不覆盖整个 metadata
     if (rest.isDefault !== undefined) {
-      updateData.metadata = { is_default: rest.isDefault, user_id: userId };
+      updateData.metadata = { is_default: rest.isDefault };
     }
 
-    let query = supabase.from('suppliers').update(updateData).eq('id', id);
-    if (userId) query = query.eq('metadata->>user_id', userId);
+    // 先查询记录是否存在，以及其 metadata 中的 user_id
+    const { data: existingRow } = await supabase.from('suppliers').select('id,metadata').eq('id', id).single();
+    if (!existingRow) {
+      return NextResponse.json({ error: '供应方不存在' }, { status: 404 });
+    }
 
-    const { data, error } = await query.select().single();
+    // 验证归属：如果记录有 user_id 且与当前用户不匹配，拒绝更新
+    const existingUserId = existingRow.metadata?.user_id;
+    if (existingUserId && userId && existingUserId !== userId) {
+      return NextResponse.json({ error: '无权更新此供应方' }, { status: 403 });
+    }
+
+    // 合并 metadata：保留原有字段，只更新指定字段
+    if (updateData.metadata) {
+      updateData.metadata = { ...existingRow.metadata, ...updateData.metadata };
+      // 如果当前用户有 userId 且记录没有，补上
+      if (userId && !updateData.metadata.user_id) {
+        updateData.metadata.user_id = userId;
+      }
+    }
+
+    const { data, error } = await supabase.from('suppliers').update(updateData).eq('id', id).select().single();
     if (error) throw error;
 
     // 如果设为默认，清除其他记录的默认标记
