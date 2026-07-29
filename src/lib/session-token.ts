@@ -10,7 +10,12 @@
 
 import crypto from 'crypto';
 
-const SECRET = process.env.SESSION_TOKEN_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || 'fallback-dev-secret-change-me';
+const SECRET = process.env.SESSION_TOKEN_SECRET;
+if (!SECRET) {
+  throw new Error(
+    '[安全] 环境变量 SESSION_TOKEN_SECRET 未设置。请在 .env.local 中配置一个强随机字符串（至少 32 字符）。'
+  );
+}
 
 /**
  * 签发 session token
