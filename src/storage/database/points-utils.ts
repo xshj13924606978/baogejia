@@ -25,8 +25,8 @@ export async function awardPoints(
 
   // 原子更新积分（SQL 表达式 points = points + delta，避免 read-then-write 竞态）
   await db.rpc('exec_sql', {
-    sql: `UPDATE users SET points = GREATEST(COALESCE(points, 0) + ${points}, 0) WHERE id = ${userId};`,
-    params: [],
+    sql: `UPDATE users SET points = GREATEST(COALESCE(points, 0) + $1, 0) WHERE id = $2;`,
+    params: [points, userId],
   });
 
   // 读取更新后的值
@@ -69,8 +69,8 @@ export async function consumePoints(
   // 原子操作：仅当 points >= 需要消耗的值时才扣减
   const absPoints = Math.abs(points);
   const { data: result, error: rpcError } = await db.rpc('exec_sql', {
-    sql: `UPDATE users SET points = points - ${absPoints} WHERE id = ${userId} AND points >= ${absPoints} RETURNING points;`,
-    params: [],
+    sql: `UPDATE users SET points = points - $1 WHERE id = $2 AND points >= $1 RETURNING points;`,
+    params: [absPoints, userId],
   });
 
   if (rpcError || !result || result.length === 0) {

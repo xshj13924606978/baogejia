@@ -430,8 +430,8 @@ export class TokenBillingService {
     try {
       // 原子操作：使用 exec_sql RPC 同时检查余额并扣减
       await this.supabase.rpc('exec_sql', {
-        sql: `UPDATE user_token_balance SET points_balance = points_balance - ${points}, total_consumed_points = COALESCE(total_consumed_points, 0) + ${points}, last_updated = NOW() WHERE user_id = ${userId} AND points_balance >= ${points};`,
-        params: [],
+        sql: `UPDATE user_token_balance SET points_balance = points_balance - $1, total_consumed_points = COALESCE(total_consumed_points, 0) + $1, last_updated = NOW() WHERE user_id = $2 AND points_balance >= $1;`,
+        params: [points, userId],
       });
 
       // 读取更新后的余额
