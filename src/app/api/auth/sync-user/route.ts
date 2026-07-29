@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     // 注意：不再从 body 中解构 role，禁止客户端指定角色
-    const { phone, email, username, password, name, clearEmail, clearPhone, supabaseUserId } = body;
+    const { phone, email, username, password, name, clearEmail, clearPhone, supabaseUserId, currentPassword } = body;
 
     if (!email && !phone && !username) {
       return NextResponse.json({ error: '缺少用户标识' }, { status: 400 });
@@ -70,6 +70,16 @@ export async function POST(request: NextRequest) {
     // 2. 准备密码哈希
     let passwordHash = null;
     if (password) {
+      // 安全：已有用户修改密码时，必须验证当前密码（如果 DB 中已存密码）
+      if (existingUser?.password_hash) {
+        if (!currentPassword) {
+          return NextResponse.json({ error: '修改密码需提供当前密码' }, { status: 403 });
+        }
+        const isCurrentValid = await bcrypt.compare(currentPassword, existingUser.password_hash);
+        if (!isCurrentValid) {
+          return NextResponse.json({ error: '当前密码不正确' }, { status: 403 });
+        }
+      }
       // 检查是否已经是 bcrypt hash
       if (password.startsWith('$2b$') || password.startsWith('$2a$')) {
         passwordHash = password;

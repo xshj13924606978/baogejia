@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 积分流水记录 API（管理员）
@@ -9,6 +10,9 @@ import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 export async function GET(request: NextRequest) {
   try {
+    const { errorResponse } = await requireAdmin(request);
+    if (errorResponse) return errorResponse;
+
     const supabase = getSupabaseServiceClient();
     const { searchParams } = new URL(request.url);
 

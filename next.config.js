@@ -1,23 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* 配置选项 */
   reactStrictMode: true,
 
-  // 允许所有来源访问（解决手机通过 IP 访问空白页问题）
-  allowedDevOrigins: ['*'],
-
-  // 输出配置
   output: 'standalone',
 
-  // 实验性配置
   experimental: {},
 
-  // 环境变量
-  env: {
-    // 可以在这里定义环境变量
-  },
+  env: {},
 
-  // 图片优化配置
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -29,23 +19,24 @@ const nextConfig = {
         protocol: 'http',
         hostname: 'localhost',
       },
-      {
-        protocol: 'http',
-        hostname: '192.168.1.56',
-      },
     ],
   },
 
-  // API 路由配置
   async headers() {
+    const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || '';
     return [
       {
         source: '/api/:path*',
         headers: [
           { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Origin', value: allowedOrigin || 'http://localhost:3000' },
           { key: 'Access-Control-Allow-Methods', value: 'GET,POST,PUT,DELETE,OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version' },
+          // 安全响应头
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         ],
       },
     ];

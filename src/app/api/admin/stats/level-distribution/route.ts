@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 等级分布统计API
@@ -7,8 +8,11 @@ import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
  * GET: 获取用户等级分布、等级转化趋势、等级升级时间统计
  */
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { errorResponse } = await requireAdmin(request);
+    if (errorResponse) return errorResponse;
+
     const supabase = getSupabaseServiceClient();
 
     // 获取用户等级数据

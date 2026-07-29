@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { hasPermission, UserRole } from '@/lib/auth/roles';
+import { requireAdmin } from '@/lib/auth-utils';
 
 export async function POST(request: NextRequest) {
   try {
+    const { user, errorResponse } = await requireAdmin(request);
+    if (errorResponse) return errorResponse;
+
     const { entryId, approve, type, reason } = await request.json();
     const supabase = getSupabaseClient();
-
 
     // 验证必要参数
     if (!entryId) {
@@ -17,21 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少类型' }, { status: 400 });
     }
 
-    // 获取当前用户（从cookie或header）
-    // 实际项目中应该从session获取
-    const userStr = request.cookies.get('user')?.value;
-    if (!userStr) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 });
-    }
-
-    const user = JSON.parse(userStr);
-    const userRole = user.role as UserRole;
-
-    // 权限检查
-    if (!hasPermission(userRole, 'canApproveKnowledge')) {
-      return NextResponse.json({ error: '没有审核权限' }, { status: 403 });
-    }
-
+    const userId = user.id;
     const now = new Date().toISOString();
 
     // 根据类型处理不同表的审核
@@ -40,7 +28,7 @@ export async function POST(request: NextRequest) {
         .from('knowledge_entries')
         .update({
           status: approve ? 'approved' : 'rejected',
-          reviewed_by: user.id || user.userId,
+          reviewed_by: userId,
           reviewed_at: now,
           metadata: approve ? {} : { rejectReason: reason },
         })
@@ -50,7 +38,6 @@ export async function POST(request: NextRequest) {
         console.error('[Admin Approve] 知识库审核失败:', error);
         return NextResponse.json({ error: '审核失败' }, { status: 500 });
       }
-
     }
 
     if (type === 'product') {
@@ -66,7 +53,6 @@ export async function POST(request: NextRequest) {
         console.error('[Admin Approve] 产品审核失败:', error);
         return NextResponse.json({ error: '审核失败' }, { status: 500 });
       }
-
     }
 
     if (type === 'user') {
@@ -75,7 +61,7 @@ export async function POST(request: NextRequest) {
         .update({
           status: approve ? 'active' : 'rejected',
           reviewed_at: now,
-          reviewed_by: user.id || user.userId,
+          reviewed_by: userId,
         })
         .eq('id', entryId);
 
@@ -83,9 +69,7 @@ export async function POST(request: NextRequest) {
         console.error('[Admin Approve] 用户审核失败:', error);
         return NextResponse.json({ error: '审核失败' }, { status: 500 });
       }
-
     }
-
 
     return NextResponse.json({
       success: true,
@@ -110,6 +94,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const { errorResponse } = await requireAdmin(request);
+    if (errorResponse) return errorResponse;
+
     const supabase = getSupabaseClient();
     const { searchParams } = new URL(request.url);
 
@@ -117,20 +104,6 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = (page - 1) * limit;
-
-
-    // 权限检查
-    const userStr = request.cookies.get('user')?.value;
-    if (!userStr) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 });
-    }
-
-    const user = JSON.parse(userStr);
-    const userRole = user.role as UserRole;
-
-    if (!hasPermission(userRole, 'canApproveKnowledge')) {
-      return NextResponse.json({ error: '没有查看权限' }, { status: 403 });
-    }
 
     let data: any[] = [];
     let count = 0;
