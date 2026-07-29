@@ -55,7 +55,18 @@ test_pg*.js
 # Backup files
 *.backup
 *.bak
+*.bak.*
 *.backup_*
+
+# Python
+__pycache__/
+*.pyc
+
+# Temp/Report files
+eslint-output.json
+final-eslint.json
+typescript-errors-full.txt
+benchmark-report.txt
 
 # Logs
 logs/
