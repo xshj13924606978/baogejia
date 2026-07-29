@@ -74,3 +74,5 @@ eng.traineddata
 
 # Sensitive clean config (contains user's custom file paths)
 .clean-sensitive-config
+scripts/bfg.jar
+scripts/git-filter-repo
