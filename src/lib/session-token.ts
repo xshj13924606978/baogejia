@@ -10,12 +10,13 @@
 
 import crypto from 'crypto';
 
-const SECRET = process.env.SESSION_TOKEN_SECRET;
-if (!SECRET) {
+const _secret = process.env.SESSION_TOKEN_SECRET;
+if (!_secret) {
   throw new Error(
     '[安全] 环境变量 SESSION_TOKEN_SECRET 未设置。请在 .env.local 中配置一个强随机字符串（至少 32 字符）。'
   );
 }
+const SECRET: string = _secret;
 
 /**
  * 签发 session token
