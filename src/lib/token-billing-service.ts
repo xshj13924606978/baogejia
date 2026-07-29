@@ -525,26 +525,28 @@ export class TokenBillingService {
     amount?: number
   ): Promise<boolean> {
     try {
-      const balance = await this.getUserBalance(userId);
-      if (!balance) {
-        console.error('[TokenBillingService] 用户余额不存在');
-        return false;
-      }
+      // 原子操作：使用 exec_sql RPC 同时更新多个字段，避免 read-then-write 竞态
+      const amountValue = amount || 0;
+      await this.supabase.rpc('exec_sql', {
+        sql: `UPDATE user_token_balance SET points_balance = COALESCE(points_balance, 0) + $1, total_recharged_points = COALESCE(total_recharged_points, 0) + $1, total_recharged_amount = COALESCE(total_recharged_amount, 0) + $3, last_updated = NOW() WHERE user_id = $2;`,
+        params: [points, userId, amountValue],
+      });
 
-      // 更新余额
-      const { error: updateError } = await this.supabase
-        .from('user_token_balance')
-        .update({
-          points_balance: balance.pointsBalance + points,
-          total_recharged_points: balance.totalRechargedPoints + points,
-          total_recharged_amount: balance.totalRechargedAmount + (amount || 0),
-          last_updated: new Date(),
-        })
-        .eq('user_id', userId);
+      // 记录积分流水
+      try {
+        const { error: logError } = await this.supabase.from('point_logs').insert({
+          user_id: userId,
+          points,
+          type: 'recharge',
+          description: `充值 ${points} 积分 (支付单: ${paymentId})`,
+          created_at: new Date(),
+        });
 
-      if (updateError) {
-        console.error('[TokenBillingService] 更新用户余额失败:', updateError);
-        return false;
+        if (logError) {
+          console.error('[TokenBillingService] 记录积分流水失败:', logError);
+        }
+      } catch (logError) {
+        console.error('[TokenBillingService] 记录积分流水异常:', logError);
       }
 
       return true;
