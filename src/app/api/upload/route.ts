@@ -10,7 +10,6 @@ const MIN_UPLOAD_POINTS = 1; // 最少扣减1积分
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Upload] ========== 开始文件上传 ==========');
 
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
@@ -24,9 +23,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    console.log('[Upload] 原始文件名:', file.name);
-    console.log('[Upload] 文件大小:', file.size);
-    console.log('[Upload] 文件类型:', file.type);
 
     // 验证文件大小（最小1KB，最大10MB）
     if (file.size < 10) {
@@ -82,11 +78,6 @@ export async function POST(request: NextRequest) {
       const hasEnough = await pointsService.checkPointsBalance(userId, requiredPoints);
       if (!hasEnough) {
         const pointsInfo = await pointsService.getUserPoints(userId);
-        console.log('[Upload] 积分不足:', {
-          userId,
-          required: requiredPoints,
-          balance: pointsInfo?.points
-        });
         return NextResponse.json(
           {
             error: '积分不足',
@@ -97,7 +88,6 @@ export async function POST(request: NextRequest) {
           { status: 402 }
         );
       }
-      console.log('[Upload] 积分检查通过，需要:', requiredPoints, '积分');
     }
 
     // 获取Supabase客户端
@@ -111,8 +101,6 @@ export async function POST(request: NextRequest) {
     const safeName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     const fileKey = `uploads/${uploadUserId}/${safeName}`;
 
-    console.log('[Upload] 安全的文件名:', safeName);
-    console.log('[Upload] 完整路径:', fileKey);
 
     // 转换为Buffer
     const bytes = await file.arrayBuffer();
@@ -137,7 +125,6 @@ export async function POST(request: NextRequest) {
 
     // 如果 bucket 不存在，尝试创建它
     if (uploadError && uploadError.message && uploadError.message.includes('Bucket not found')) {
-      console.log('[Upload] 检测到 Bucket not found，尝试处理...');
 
       try {
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -166,7 +153,6 @@ export async function POST(request: NextRequest) {
 
         if (!bucketExists) {
           // bucket 确实不存在，创建它
-          console.log('[Upload] 存储桶不存在，正在创建...');
 
           const { error: createError } = await serviceClient.storage.createBucket('quote-files', {
             public: true,
@@ -190,12 +176,9 @@ export async function POST(request: NextRequest) {
             throw createError;
           }
 
-          console.log('[Upload] 存储桶创建成功');
         } else {
-          console.log('[Upload] 存储桶已存在，可能是权限问题');
         }
 
-        console.log('[Upload] 使用 service role 重新上传...');
 
         // 使用 service role 直接上传
         const retryResult = await serviceClient.storage
@@ -214,7 +197,6 @@ export async function POST(request: NextRequest) {
           throw uploadError;
         }
 
-        console.log('[Upload] 使用 service role 上传成功!');
       } catch (e: any) {
         console.error('[Upload] 处理存储桶问题失败:', e);
         return NextResponse.json(
@@ -232,14 +214,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Upload] 上传成功!');
-    console.log('[Upload] 文件路径:', fileKey);
 
     // 手动构建公共 URL（确保 URL 正确）
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const publicUrl = `${supabaseUrl}/storage/v1/object/public/quote-files/${fileKey}`;
 
-    console.log('[Upload] 公开 URL:', publicUrl);
 
     // 扣除积分（如果有用户）
     if (userId) {
@@ -252,13 +231,11 @@ export async function POST(request: NextRequest) {
         );
 
         if (deductResult.success) {
-          console.log('[Upload] 扣除积分成功:', requiredPoints);
 
           // 获取更新后的积分
           const newPointsInfo = await pointsService.getUserPoints(userId);
 
           // 返回响应时包含积分信息
-          console.log('[Upload] ========== 上传完成 ==========');
 
           return NextResponse.json({
             success: true,
@@ -300,13 +277,11 @@ export async function POST(request: NextRequest) {
       if (dbError) {
         console.error('[Upload] 保存文件记录失败:', dbError);
       } else {
-        console.log('[Upload] 文件记录已保存');
       }
     } catch (dbError) {
       console.error('[Upload] 保存文件记录异常:', dbError);
     }
 
-    console.log('[Upload] ========== 上传完成 ==========');
 
     return NextResponse.json({
       success: true,

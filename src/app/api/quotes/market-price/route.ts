@@ -107,7 +107,6 @@ async function searchMarketPrice(
   model?: string
 ): Promise<{ price: number; range: string; source: string } | null> {
   try {
-    console.log('[MarketPrice] 正在搜索市场价格:', productName);
 
     // 构建搜索查询
     const searchQuery = model
@@ -125,11 +124,9 @@ async function searchMarketPrice(
     const response = await client.webSearch(searchQuery, 5, true);
 
     if (!response.web_items || response.web_items.length === 0) {
-      console.log('[MarketPrice] 搜索结果为空');
       return null;
     }
 
-    console.log('[MarketPrice] 搜索到', response.web_items.length, '条结果');
 
     // 优先从 AI 摘要中提取价格
     if (response.summary) {
@@ -138,7 +135,6 @@ async function searchMarketPrice(
         const avgPrice = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
         const minPrice = Math.round(Math.min(...prices));
         const maxPrice = Math.round(Math.max(...prices));
-        console.log('[MarketPrice] 从摘要中提取价格:', avgPrice);
         return {
           price: avgPrice,
           range: `${minPrice}-${maxPrice}`,
@@ -165,13 +161,6 @@ async function searchMarketPrice(
         const avgPrice = Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length);
         const minPrice = Math.round(Math.min(...validPrices));
         const maxPrice = Math.round(Math.max(...validPrices));
-        console.log(
-          '[MarketPrice] 从搜索结果中提取价格:',
-          avgPrice,
-          '（样本数:',
-          validPrices.length,
-          '）'
-        );
         return {
           price: avgPrice,
           range: `${minPrice}-${maxPrice}`,
@@ -179,7 +168,6 @@ async function searchMarketPrice(
       }
     }
 
-    console.log('[MarketPrice] 未能从搜索结果中提取到有效价格');
     return null;
   } catch (error) {
     console.error('[MarketPrice] 搜索市场价格失败:', error);
@@ -231,8 +219,6 @@ export async function POST(request: NextRequest) {
       products = [{ name: body.productName, specifications: body.specifications || '' }];
     }
 
-    console.log('[MarketPrice] ========== 查询市场价 ==========');
-    console.log('[MarketPrice] 产品数量:', products.length);
 
     if (products.length === 0) {
       return NextResponse.json(
@@ -249,7 +235,6 @@ export async function POST(request: NextRequest) {
       const model = product.model || '';
       const specs = product.specs || '';
 
-      console.log('[MarketPrice] 查询产品:', productName);
 
       try {
         let priceData = null;
@@ -259,7 +244,6 @@ export async function POST(request: NextRequest) {
           try {
             // 使用完整产品名匹配（而非仅第一个词）
             const searchName = productName.trim();
-            console.log('[MarketPrice] 知识库查询产品名:', searchName, '型号:', model);
 
             // 优先：名称 + 型号同时匹配
             let query = db
@@ -299,7 +283,6 @@ export async function POST(request: NextRequest) {
                   source: '知识库价格库',
                   range: `${Math.round(price * 0.8)}-${Math.round(price * 1.2)}`
                 };
-                console.log('[MarketPrice] 从知识库获取价格:', priceData, '产品:', data.name, '型号:', data.model);
               }
             }
           } catch (dbError) {
@@ -313,7 +296,6 @@ export async function POST(request: NextRequest) {
             const marketPriceData = await searchMarketPrice(productName, model);
             if (marketPriceData) {
               priceData = marketPriceData;
-              console.log('[MarketPrice] 从网络搜索获取价格:', priceData);
             }
           } catch (searchError) {
             console.error('[MarketPrice] 网络搜索失败:', searchError);
@@ -323,7 +305,6 @@ export async function POST(request: NextRequest) {
         // 第3级：使用模拟价格兜底
         if (!priceData) {
           priceData = calculateMockPrice(productName);
-          console.log('[MarketPrice] 使用模拟价格兜底:', priceData);
         }
 
         // 解析价格范围
@@ -345,10 +326,6 @@ export async function POST(request: NextRequest) {
           maxPrice: maxPrice,
           sampleSize: 1});
 
-        console.log('[MarketPrice] 结果:', {
-          name: productName,
-          price: priceData.price,
-          source: priceData.source});
       } catch (error) {
         console.error('[MarketPrice] 查询产品失败:', productName, error);
         // 即使失败也返回估算价
@@ -375,8 +352,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('[MarketPrice] ========== 查询完成 ==========');
-    console.log('[MarketPrice] 成功:', results.length, '个产品');
 
     // 如果是单个产品查询，返回单个结果
     if (products.length === 1) {

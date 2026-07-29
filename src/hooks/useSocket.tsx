@@ -49,9 +49,12 @@ export function useSocket(_options?: { userId?: number }) {
         setError(null);
         reconnectAttemptsRef.current = 0;
 
-        // 如果有用户，发送认证
+        // 如果有用户，发送认证（使用 session token）
         if (user?.id) {
-          socket.emit('authenticate', user.id);
+          const token = typeof window !== 'undefined' ? localStorage.getItem('session_token') : null;
+          if (token) {
+            socket.emit('authenticate', token);
+          }
         }
       });
 
@@ -110,7 +113,10 @@ export function useSocket(_options?: { userId?: number }) {
   // 当用户变化时重新认证
   useEffect(() => {
     if (socketRef.current?.connected && user?.id) {
-      socketRef.current.emit('authenticate', user.id);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('session_token') : null;
+      if (token) {
+        socketRef.current.emit('authenticate', token);
+      }
     }
   }, [user]);
 

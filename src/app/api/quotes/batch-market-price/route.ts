@@ -4,9 +4,6 @@ export async function POST(request: NextRequest) {
   try {
     const { products } = await request.json();
 
-    console.log('[BatchMarketPrice] Batch search request:', {
-      productCount: products?.length || 0,
-    });
 
     if (!products || !Array.isArray(products) || products.length === 0) {
       return NextResponse.json({ error: 'Products array is required' }, { status: 400 });
@@ -68,11 +65,6 @@ export async function POST(request: NextRequest) {
     const successCount = results.filter((r) => r.success).length;
     const failCount = results.filter((r) => !r.success).length;
 
-    console.log('[BatchMarketPrice] Batch search completed:', {
-      total: results.length,
-      success: successCount,
-      failed: failCount,
-    });
 
     return NextResponse.json({
       total: results.length,

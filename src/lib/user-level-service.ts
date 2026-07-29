@@ -153,7 +153,6 @@ export class UserLevelService {
    */
   async getUserLevel(userId: string | number): Promise<UserLevelInfo | null> {
     try {
-      console.log('[UserLevelService] 获取用户等级:', userId);
 
       // 1. 查询用户等级
       const { data: userLevel, error: levelError } = await this.supabase
@@ -285,7 +284,6 @@ export class UserLevelService {
    */
   async addPoints(userId: string | number, points: number, description: string = ''): Promise<{ success: boolean; upgraded: boolean; newLevel?: number }> {
     try {
-      console.log('[UserLevelService] 添加积分:', { userId, points, description });
 
       // 1. 获取当前用户等级
       const currentLevelInfo = await this.getUserLevel(userId);
@@ -357,7 +355,6 @@ export class UserLevelService {
         currentPoints = levelInfo.current_points;
       }
 
-      console.log('[UserLevelService] 检查升级:', { userId, currentPoints });
 
       // 1. 获取当前用户等级
       const { data: userLevel, error: levelError } = await this.supabase
@@ -388,7 +385,6 @@ export class UserLevelService {
       }
 
       const nextLevel = nextLevels[0] as LevelDefinition;
-      console.log('[UserLevelService] 发现可升级等级:', nextLevel);
 
       // 3. 执行升级
       const { error: updateError } = await this.supabase
@@ -414,11 +410,6 @@ export class UserLevelService {
           points_at_upgrade: currentPoints
         });
 
-      console.log('[UserLevelService] 升级成功:', {
-        userId,
-        from: currentLevel,
-        to: nextLevel.level
-      });
 
       return { upgraded: true, newLevel: nextLevel.level };
     } catch (error) {
@@ -482,7 +473,6 @@ export class UserLevelService {
    */
   async setUserLevel(userId: string | number, level: number): Promise<boolean> {
     try {
-      console.log('[UserLevelService] 设置用户等级:', { userId, level });
 
       // 验证等级是否存在
       const levelConfig = await this.getLevelDefinition(level);
@@ -584,7 +574,6 @@ export class UserLevelService {
     reason: string
   ): Promise<boolean> {
     try {
-      console.log('[UserLevelService] 更新等级权限:', { level, adminId, reason, changes });
 
       // 构建更新数据
       const updateData: any = {};
@@ -609,10 +598,8 @@ export class UserLevelService {
 
       if (error) {
         // 如果表不存在或其他错误，记录日志但返回成功（开发环境）
-        console.log('[UserLevelService] 更新等级权限（表可能不存在）:', error.message);
         // 在开发环境下，即使数据库更新失败也返回成功
         if (process.env.NODE_ENV === 'development') {
-          console.log('[UserLevelService] 开发环境：模拟更新成功');
           return true;
         }
         return false;
@@ -630,10 +617,8 @@ export class UserLevelService {
             created_at: new Date().toISOString(),
           });
       } catch (historyError) {
-        console.log('[UserLevelService] 记录历史失败（表可能不存在）');
       }
 
-      console.log('[UserLevelService] 等级权限更新成功:', { level, adminId });
       return true;
     } catch (error) {
       console.error('[UserLevelService] 更新等级权限异常:', error);
@@ -689,7 +674,6 @@ export class UserLevelService {
       }
     }
 
-    console.log('[UserLevelService] 批量更新完成:', results);
     return results;
   }
 
@@ -700,7 +684,6 @@ export class UserLevelService {
    */
   async getLevelPermissionHistory(level: number): Promise<PermissionHistory[]> {
     try {
-      console.log('[UserLevelService] 查询等级历史记录, level:', level);
       
       // 先查询基础数据（不关联表）
       const { data, error } = await this.supabase
@@ -709,11 +692,6 @@ export class UserLevelService {
         .eq('level', level)
         .order('created_at', { ascending: false });
 
-      console.log('[UserLevelService] 查询结果:', { 
-        hasData: !!data, 
-        dataLength: data?.length || 0,
-        error 
-      });
 
       if (error || !data) {
         console.error('[UserLevelService] 获取权限历史失败:', error);
@@ -722,7 +700,6 @@ export class UserLevelService {
 
       // 获取所有管理员ID
       const adminIds = [...new Set(data.map(item => item.admin_id))];
-      console.log('[UserLevelService] 管理员ID列表:', adminIds);
 
       // 查询管理员信息
       let adminMap: Record<number, { username: string; email: string }> = {};
@@ -755,7 +732,6 @@ export class UserLevelService {
         };
       });
       
-      console.log('[UserLevelService] 格式化后的历史记录数量:', formattedData.length);
       return formattedData;
     } catch (error) {
       console.error('[UserLevelService] 获取权限历史异常:', error);

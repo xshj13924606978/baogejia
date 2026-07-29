@@ -34,24 +34,16 @@ export class IntentDetector {
    * 结合规则和关键词匹配
    */
   async detect(input: ProcessedInput): Promise<IntentResult> {
-    console.log('[IntentDetector] 检测意图，输入类型:', input.type);
 
     // 策略1：基于输入类型的规则判断
     const typeBasedIntent = this.detectByType(input);
     if (typeBasedIntent.confidence > 0.8) {
-      console.log('[IntentDetector] 类型匹配成功:', typeBasedIntent.intent);
       return typeBasedIntent;
     }
 
     // 策略2：基于关键词的规则判断
     const keywordBasedIntent = this.detectByKeywords(input.textContent);
     if (keywordBasedIntent.confidence > 0.6) {
-      console.log(
-        '[IntentDetector] 关键词匹配成功:',
-        keywordBasedIntent.intent,
-        '置信度:',
-        keywordBasedIntent.confidence
-      );
       return keywordBasedIntent;
     }
 
@@ -77,7 +69,6 @@ export class IntentDetector {
         ? typeBasedIntent
         : keywordBasedIntent;
 
-    console.log('[IntentDetector] 最终意图:', result.intent, '置信度:', result.confidence);
     return result;
   }
 
@@ -299,7 +290,6 @@ export class IntentDetector {
       for (const keyword of keywords) {
         if (lowerText.includes(keyword)) {
           matches++;
-          console.log(`[IntentDetector] 匹配到关键词: "${keyword}"`);
         }
       }
       // 如果有匹配，返回基础分 + 匹配数量加成
@@ -319,16 +309,6 @@ export class IntentDetector {
     const enhancedQuoteScore = matchScore(enhancedQuoteKeywords);
     const simpleQuoteScore = matchScore(simpleQuoteKeywords);
 
-    console.log('[IntentDetector] 关键词匹配分数:', {
-      ask_quote: quoteScore,
-      compare_quotes: compareScore,
-      modify_quote: modifyScore,
-      export_quote: exportScore,
-      generate_proposal: proposalScore,
-      detailed_proposal: detailedProposalScore,
-      enhanced_quote: enhancedQuoteScore,
-      simple_quote: simpleQuoteScore,
-    });
 
     // 找出最高分
     let maxIntent: UserIntent = 'ask_general';

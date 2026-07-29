@@ -49,20 +49,15 @@ interface MergedRow {
  * 主解析函数
  */
 export async function parseExcelEnhanced(fileBuffer: ArrayBuffer, fileName: string): Promise<ExcelParseResult> {
-  console.log('\n📗 ===== Excel增强解析开始 =====');
-  console.log('📄 文件名:', fileName);
-  console.log('📦 文件大小:', fileBuffer.byteLength, 'bytes');
 
   const startTime = Date.now();
 
   try {
     // 读取 Excel
     const workbook = XLSX.read(fileBuffer, { type: 'array' });
-    console.log('📊 工作表数量:', workbook.SheetNames.length);
 
     // 获取第一个工作表
     const sheetName = workbook.SheetNames[0];
-    console.log('📑 工作表名称:', sheetName);
 
     const worksheet = workbook.Sheets[sheetName];
 
@@ -73,15 +68,12 @@ export async function parseExcelEnhanced(fileBuffer: ArrayBuffer, fileName: stri
       blankrows: true // 保留空行
     });
 
-    console.log('📋 原始行数:', jsonData.length);
-    console.log('📋 原始数据预览:', JSON.stringify(jsonData.slice(0, 5), null, 2));
 
     // 步骤1：识别表格范围
     const range = detectTableRange(jsonData);
 
     // 步骤2：提取数据行
     const dataRows = jsonData.slice(range.dataStartRow, range.dataEndRow + 1);
-    console.log('📋 提取数据行数:', dataRows.length);
 
     // 步骤3：多行内容合并
     const mergedRows = mergeMultiRowContent(dataRows as any[][], range.columnCount);
@@ -93,7 +85,6 @@ export async function parseExcelEnhanced(fileBuffer: ArrayBuffer, fileName: stri
     let validProducts = products.filter(p => {
       const isValid = p.name && p.name.length > 1;
       if (!isValid) {
-        console.log('⚠️ 过滤无效产品:', p);
       }
       return isValid;
     });
@@ -120,27 +111,10 @@ export async function parseExcelEnhanced(fileBuffer: ArrayBuffer, fileName: stri
       }
     };
 
-    console.log('✅ ===== Excel增强解析完成 =====');
-    console.log('📊 解析详情:', {
-      表格名称: result.parseDetails.tableName,
-      原始行数: result.parseDetails.rowCount,
-      表头行: result.parseDetails.headerRow,
-      数据范围: `${result.parseDetails.dataStartRow} - ${result.parseDetails.dataEndRow}`,
-      列数: result.parseDetails.columnCount,
-      合并产品数: result.parseDetails.mergedProducts,
-      最终产品数: result.products.length,
-      页脚行数: result.parseDetails.footerRows.length,
-      解析耗时: result.parseDetails + 'ms'
-    });
 
-    console.log('📋 提取的产品列表:');
     validProducts.forEach((p, i) => {
-      console.log(`  ${i + 1}. ${p.name}`);
       if (p.parameter_description) {
-        console.log(`     参数: ${p.parameter_description}`);
       }
-      if (p.brand) console.log(`     品牌: ${p.brand}`);
-      if (p.unit && p.quantity) console.log(`     数量: ${p.quantity} ${p.unit}`);
     });
 
     return result;
@@ -154,7 +128,6 @@ export async function parseExcelEnhanced(fileBuffer: ArrayBuffer, fileName: stri
  * 1. 表格范围智能识别
  */
 function detectTableRange(jsonData: any[]): any {
-  console.log('\n🔍 [步骤1] 表格范围识别');
 
   const result: any = {
     headerRow: 0,
@@ -167,30 +140,24 @@ function detectTableRange(jsonData: any[]): any {
 
   // 1.1 找到表头行
   result.headerRow = findHeaderRow(jsonData);
-  console.log('  📍 表头行:', result.headerRow);
 
   // 1.2 确定列数
   result.columnCount = determineColumnCount(jsonData, result.headerRow);
-  console.log('  📍 列数:', result.columnCount);
 
   // 1.3 识别列映射
   result.headerMapping = mapColumns(jsonData[result.headerRow], result.columnCount);
-  console.log('  📍 列映射:', result.headerMapping);
 
   // 1.4 找到数据结束行（排除页脚备注）
   result.dataEndRow = findDataEndRow(jsonData, result.headerRow, result.columnCount);
-  console.log('  📍 数据结束行:', result.dataEndRow);
 
   // 1.5 记录页脚行
   for (let i = result.dataEndRow + 1; i < jsonData.length; i++) {
     const row = jsonData[i].filter((v: any) => v).join(' ');
     if (row.trim()) {
       result.footerRows.push(row);
-      console.log('  ⚠️ 发现页脚备注:', row);
     }
   }
 
-  console.log('✅ [步骤1] 完成');
 
   return result;
 }
@@ -217,13 +184,11 @@ function findHeaderRow(jsonData: any[]): number {
     const matchCount = headerKeywords.filter(kw => text.includes(kw)).length;
 
     if (matchCount >= 2 || text.match(/产品|名称|型号|规格/)) {
-      console.log('  ✅ 找到表头行:', row, '| 匹配关键词数:', matchCount);
       return row;
     }
   }
 
   // 如果找不到，假设第一行是表头
-  console.log('  ⚠️ 未找到明确表头，使用第1行');
   return 0;
 }
 
@@ -298,7 +263,6 @@ function mapColumns(headerRow: any[], columnCount: number): Record<string, numbe
  * 找到数据结束行（排除页脚备注）- 强化版
  */
 function findDataEndRow(jsonData: any[], headerRow: number, columnCount: number): number {
-  console.log('🔍 [强化表格结束行识别] 总行数:', jsonData.length);
 
   let consecutiveEmptyRows = 0;
   const maxEmptyRows = 2;
@@ -306,12 +270,10 @@ function findDataEndRow(jsonData: any[], headerRow: number, columnCount: number)
   let foundFooter = false;
 
   // 打印前30行的内容用于调试
-  console.log('📊 扫描表格内容（前30行）:');
   for (let i = 0; i < Math.min(jsonData.length, 30); i++) {
     const rowData = jsonData[i];
     const values = rowData.filter((v: any) => v && v.toString().trim());
     if (values.length > 0) {
-      console.log(`  行${i}:`, values);
     }
   }
 
@@ -319,12 +281,9 @@ function findDataEndRow(jsonData: any[], headerRow: number, columnCount: number)
     const rowData = jsonData[row];
     const values = rowData.filter((v: any) => v && v.toString().trim() !== '');
 
-    console.log(`  🔍 检查行${row}:`, values.length ? values.join(' | ') : '(空行)');
 
     // 检查是否是页脚备注（强化识别规则）
     if (isFooterNote(values)) {
-      console.log('  ⚠️ 发现页脚备注，表格结束于行:', row - 1);
-      console.log('  ⚠️ 备注内容:', values.join(' '));
       foundFooter = true;
       lastDataRow = row - 1;
       break;
@@ -332,7 +291,6 @@ function findDataEndRow(jsonData: any[], headerRow: number, columnCount: number)
 
     // 检查是否包含合计行（通常也是表格结束标志）
     if (isTotalRow(values)) {
-      console.log('  📊 发现合计行，表格结束于行:', row - 1);
       foundFooter = true;
       lastDataRow = row - 1;
       break;
@@ -342,7 +300,6 @@ function findDataEndRow(jsonData: any[], headerRow: number, columnCount: number)
     if (values.length === 0) {
       consecutiveEmptyRows++;
       if (consecutiveEmptyRows >= maxEmptyRows) {
-        console.log('  ✅ 连续空行，表格结束于行:', row - maxEmptyRows);
         lastDataRow = row - maxEmptyRows;
         break;
       }
@@ -354,7 +311,6 @@ function findDataEndRow(jsonData: any[], headerRow: number, columnCount: number)
       const firstCell = rowData[0] ? rowData[0].toString().trim() : '';
       if (!firstCell && values.length >= 1) {
         // 这是续行，不是备注
-        console.log('  ✓ 续行:', row);
         continue;
       }
 
@@ -366,8 +322,6 @@ function findDataEndRow(jsonData: any[], headerRow: number, columnCount: number)
         // 但需要检查内容是否像产品数据
         const firstNonEmpty = rowData.find((v: any) => v);
         if (firstNonEmpty && firstNonEmpty.toString().match(/以上|不含税|含运费|备注|说明|价格条款/)) {
-          console.log('  ⚠️ 发现备注关键词，表格结束于行:', row - 1);
-          console.log('  ⚠️ 备注内容:', firstNonEmpty);
           lastDataRow = row - 1;
           break;
         }
@@ -377,25 +331,18 @@ function findDataEndRow(jsonData: any[], headerRow: number, columnCount: number)
 
   // 如果没有找到明确的结束标志，但发现了备注文本在最后几行
   if (!foundFooter) {
-    console.log('  ℹ️ 未找到明确的结束标志，再次扫描最后5行查找备注');
     // 再次扫描，查找备注文本
     for (let row = Math.max(lastDataRow + 1, jsonData.length - 5); row < jsonData.length; row++) {
       const rowData = jsonData[row];
       const values = rowData.filter((v: any) => v && v.toString().trim() !== '');
 
       if (values.length > 0 && isFooterNote(values)) {
-        console.log('  ⚠️ 在数据行后发现备注:', row, values.join(' '));
         // 不修改lastDataRow，保持原有数据行数
         break;
       }
     }
   }
 
-  console.log('✅ 表格范围识别完成:', {
-    起始行: headerRow + 1,
-    结束行: lastDataRow,
-    找到页脚: foundFooter
-  });
 
   return lastDataRow;
 }
@@ -451,7 +398,6 @@ function isFooterNote(values: any[]): boolean {
 
   if (isLikelyFooter) {
     const matchedKeywords = footerKeywords.filter(k => text.includes(k));
-    console.log('  🔍 匹配到备注关键词:', matchedKeywords);
   }
 
   return isLikelyFooter;
@@ -473,8 +419,6 @@ function isTotalRow(values: any[]): boolean {
  * 2. 多行内容合并 - 防止备注被合并
  */
 function mergeMultiRowContent(dataRows: any[][], columnCount: number): MergedRow[] {
-  console.log('\n🔗 [步骤2] 多行内容合并（防备注合并）');
-  console.log('  输入行数:', dataRows.length);
 
   const mergedRows: MergedRow[] = [];
   let currentProduct: MergedRow | null = null;
@@ -483,23 +427,19 @@ function mergeMultiRowContent(dataRows: any[][], columnCount: number): MergedRow
     const rowData = dataRows[i];
     const cells = rowData.slice(0, columnCount); // 只取有效列
 
-    console.log(`\n  🔍 处理行${i}:`, cells.filter(v => v).join(' | '));
 
     // 检查是否是备注行（即使在endRow之前，也要排除）
     if (isFooterNote(cells)) {
-      console.log('  ⚠️ 跳过备注行:', i, cells.filter(v => v).join(' '));
       continue;
     }
 
     // 检查是否是合计行
     if (isTotalRow(cells)) {
-      console.log('  📊 跳过合计行:', i);
       continue;
     }
 
     // 检查是否是空行
     if (!cells || cells.filter(v => v && v.toString().trim()).length === 0) {
-      console.log('  ⚠️ 跳过空行:', i);
       continue;
     }
 
@@ -508,7 +448,6 @@ function mergeMultiRowContent(dataRows: any[][], columnCount: number): MergedRow
       // 保存上一个产品
       if (currentProduct) {
         mergedRows.push(currentProduct);
-        console.log('  ✅ 产品完成:', currentProduct.row, '| 名称:', currentProduct.cells[1]?.toString().substring(0, 20));
       }
 
       // 开始新产品
@@ -517,20 +456,16 @@ function mergeMultiRowContent(dataRows: any[][], columnCount: number): MergedRow
         cells: [...cells],
         isMerged: false
       };
-      console.log('  🆕 新产品开始于行:', i, '| 名称:', cells[1]?.toString().substring(0, 20));
     }
     // 检查是否是当前产品的续行
     else if (currentProduct && shouldMergeWithPrevious(cells, currentProduct)) {
-      console.log('  🔄 检查续行:', i);
 
       // 合并内容前，先检查是否是备注内容
       const cellText = cells.join(' ').toLowerCase();
       if (isFooterNote([cellText])) {
-        console.log('  ⚠️ 续行包含备注内容，不合并:', cellText);
         continue;
       }
 
-      console.log('  ✅ 合并行:', i, '到产品行:', currentProduct.row);
 
       // 合并内容
       for (let col = 0; col < cells.length; col++) {
@@ -545,7 +480,6 @@ function mergeMultiRowContent(dataRows: any[][], columnCount: number): MergedRow
 
             // 检查新内容是否可能是备注
             if (isFooterNote([newContent])) {
-              console.log('  ⚠️ 参数描述包含备注内容，不合并:', newContent);
               continue;
             }
 
@@ -563,20 +497,14 @@ function mergeMultiRowContent(dataRows: any[][], columnCount: number): MergedRow
     }
     // 既不是新产品也不是续行，可能是游离文本
     else {
-      console.log('  ⚠️ 忽略无法归类的行:', i, '| 内容:', cells.filter(v => v).join(', '));
     }
   }
 
   // 添加最后一个产品
   if (currentProduct) {
     mergedRows.push(currentProduct);
-    console.log('  ✅ 最后产品完成:', currentProduct.row, '| 名称:', currentProduct.cells[1]?.toString().substring(0, 20));
   }
 
-  console.log('\n✅ [步骤2] 多行合并完成');
-  console.log('  原始行数:', dataRows.length);
-  console.log('  合并后产品数:', mergedRows.length);
-  console.log('  合并产品数:', mergedRows.filter(r => r.isMerged).length);
 
   return mergedRows;
 }
@@ -711,7 +639,6 @@ function calculateOverlap(str1: string, str2: string): number {
  * 3. 产品信息提取
  */
 function extractProductInfo(row: MergedRow, headerMapping: Record<string, number>): ProductInfo {
-  console.log('\n📦 [产品信息提取] 行号:', row.row);
 
   const cells = row.cells;
   const product: ProductInfo = {
@@ -747,7 +674,6 @@ function extractProductInfo(row: MergedRow, headerMapping: Record<string, number
     } else {
       product.name = nameText;
     }
-    console.log('  ✓ 名称:', product.name);
   }
 
   // 2. 提取参数描述
@@ -757,43 +683,36 @@ function extractProductInfo(row: MergedRow, headerMapping: Record<string, number
 
     // 清洗参数描述
     product.parameter_description = cleanParameterDescription(paramText);
-    console.log('  ✓ 参数:', product.parameter_description);
   }
 
   // 3. 提取品牌
   if (headerMapping.brand !== undefined && cells[headerMapping.brand]) {
     product.brand = cells[headerMapping.brand].toString().trim();
-    console.log('  ✓ 品牌:', product.brand);
   }
 
   // 4. 提取型号
   if (headerMapping.model !== undefined && cells[headerMapping.model]) {
     product.model = cells[headerMapping.model].toString().trim();
-    console.log('  ✓ 型号:', product.model);
   }
 
   // 5. 提取单位
   if (headerMapping.unit !== undefined && cells[headerMapping.unit]) {
     product.unit = cells[headerMapping.unit].toString().trim();
-    console.log('  ✓ 单位:', product.unit);
   }
 
   // 6. 提取数量
   if (headerMapping.quantity !== undefined && cells[headerMapping.quantity]) {
     product.quantity = parseQuantity(cells[headerMapping.quantity]);
-    console.log('  ✓ 数量:', product.quantity);
   }
 
   // 7. 提取单价
   if (headerMapping.unit_price !== undefined && cells[headerMapping.unit_price]) {
     product.unit_price = parsePrice(cells[headerMapping.unit_price]);
-    console.log('  ✓ 单价:', product.unit_price);
   }
 
   // 8. 提取小计
   if (headerMapping.subtotal !== undefined && cells[headerMapping.subtotal]) {
     product.subtotal = parsePrice(cells[headerMapping.subtotal]);
-    console.log('  ✓ 小计:', product.subtotal);
   }
 
   return product;
@@ -805,7 +724,6 @@ function extractProductInfo(row: MergedRow, headerMapping: Record<string, number
 function cleanParameterDescription(text: string): string {
   if (!text) return '';
 
-  console.log('  🧹 参数清洗 | 原始:', text);
 
   let cleaned = text;
 
@@ -828,7 +746,6 @@ function cleanParameterDescription(text: string): string {
   // 6. 清理特殊字符
   cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF]/g, ''); // 零宽字符
 
-  console.log('  🧹 参数清洗 | 结果:', cleaned);
 
   return cleaned;
 }
@@ -952,7 +869,6 @@ function parsePrice(value: any): string | number {
  * 后处理清洗：移除参数描述中的备注内容（最后一道防线）
  */
 function cleanProductDescriptions(products: ProductInfo[]): ProductInfo[] {
-  console.log('\n🧹 [后处理清洗] 移除参数描述中的备注内容');
 
   return products.map((product, index) => {
     if (product.parameter_description) {
@@ -976,7 +892,6 @@ function cleanProductDescriptions(products: ProductInfo[]): ProductInfo[] {
       let hasFooter = false;
       footerPatterns.forEach(pattern => {
         if (pattern.test(cleaned)) {
-          console.log(`  ⚠️ 产品${index + 1} "${product.name}" 发现备注文本，移除`);
           cleaned = cleaned.replace(pattern, '').trim();
           hasFooter = true;
         }
@@ -987,12 +902,8 @@ function cleanProductDescriptions(products: ProductInfo[]): ProductInfo[] {
       cleaned = cleaned.replace(/[，,;；\uff0c\uff1b\s]+$/, '');
 
       if (original !== cleaned) {
-        console.log(`  ✅ 产品${index + 1} 清洗完成:`);
-        console.log(`     原: ${original}`);
-        console.log(`     新: ${cleaned}`);
         product.parameter_description = cleaned;
       } else {
-        console.log(`  ✓ 产品${index + 1} 无需清洗`);
       }
     }
 

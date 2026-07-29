@@ -54,13 +54,6 @@ export class FileUploadProcessor {
     fileContent: string,
     options: UploadOptions
   ): Promise<UploadResult> {
-    console.log('[FileUploadProcessor] ========== 开始处理文件上传 ==========');
-    console.log('[FileUploadProcessor] 文件信息:', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      userId: options.userId,
-    });
 
     try {
       // 步骤1: 上传文件到对象存储
@@ -84,7 +77,6 @@ export class FileUploadProcessor {
         return { success: false, error: '保存上传记录失败' };
       }
 
-      console.log('[FileUploadProcessor] 上传记录已保存，ID:', record.id);
 
       // 步骤3: 向量化内容并保存到知识库（如果启用）
       let embeddingId: string | undefined;
@@ -105,7 +97,6 @@ export class FileUploadProcessor {
         productsUpdated = priceResult.productsUpdated;
       }
 
-      console.log('[FileUploadProcessor] ========== 文件上传处理完成 ==========');
 
       return {
         success: true,
@@ -128,7 +119,6 @@ export class FileUploadProcessor {
    * 上传文件到对象存储
    */
   private async uploadToStorage(file: File, userId: string): Promise<UploadResult> {
-    console.log('[FileUploadProcessor] 开始上传到对象存储...');
 
     try {
       // 读取文件内容
@@ -140,7 +130,6 @@ export class FileUploadProcessor {
       const safeName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
       const fileKey = `uploads/${userId}/${safeName}`;
 
-      console.log('[FileUploadProcessor] 文件路径:', fileKey);
 
       // 上传到对象存储
       const actualKey = await this.storage.uploadFile({
@@ -149,7 +138,6 @@ export class FileUploadProcessor {
         contentType: file.type,
       });
 
-      console.log('[FileUploadProcessor] 对象存储上传成功，Key:', actualKey);
 
       // 生成签名 URL
       const fileUrl = await this.storage.generatePresignedUrl({
@@ -157,7 +145,6 @@ export class FileUploadProcessor {
         expireTime: 86400, // 1 天
       });
 
-      console.log('[FileUploadProcessor] 签名 URL 已生成');
 
       return {
         success: true,
@@ -185,7 +172,6 @@ export class FileUploadProcessor {
     fileSize: number;
     fileType: string;
   }) {
-    console.log('[FileUploadProcessor] 保存上传记录到数据库...');
 
     const supabase = getSupabaseClient();
 
@@ -218,7 +204,6 @@ export class FileUploadProcessor {
       return null;
     }
 
-    console.log('[FileUploadProcessor] 上传记录已保存');
     return record;
   }
 
@@ -231,7 +216,6 @@ export class FileUploadProcessor {
     content: string,
     userId: string
   ): Promise<{ embeddingId?: string; error?: string }> {
-    console.log('[FileUploadProcessor] 开始向量化内容...');
 
     try {
       // 创建 embedding 客户端（不传递 headers，因为在后台处理）
@@ -240,7 +224,6 @@ export class FileUploadProcessor {
       // 生成文本向量
       const embedding = await client.embedText(content);
 
-      console.log('[FileUploadProcessor] 向量化完成，向量维度:', embedding.length);
 
       // 保存到 knowledge_entries 表
       const supabase = getSupabaseClient();
@@ -267,7 +250,6 @@ export class FileUploadProcessor {
         return { error: '保存知识库记录失败' };
       }
 
-      console.log('[FileUploadProcessor] 知识库记录已保存，ID:', record.id);
 
       return { embeddingId: record.id };
     } catch (error) {
@@ -283,7 +265,6 @@ export class FileUploadProcessor {
     content: string,
     userId: string
   ): Promise<{ productsUpdated: number; error?: string }> {
-    console.log('[FileUploadProcessor] 开始提取产品价格...');
 
     try {
       // 从内容中提取产品列表（简化版，实际可能需要更复杂的解析）
@@ -309,17 +290,14 @@ export class FileUploadProcessor {
         }
       }
 
-      console.log('[FileUploadProcessor] 从内容中提取到', products.length, '个产品');
 
       if (products.length === 0) {
-        console.log('[FileUploadProcessor] 未提取到产品信息');
         return { productsUpdated: 0 };
       }
 
       // 使用 PriceMatcher 批量匹配价格
       const priceResults = await PriceMatcher.matchPrices(products, userId);
 
-      console.log('[FileUploadProcessor] 价格匹配完成，结果:', priceResults.length);
 
       // 统计成功匹配的产品数量
       const productsUpdated = priceResults.filter((r) => r.confidence >= 50).length;

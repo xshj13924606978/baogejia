@@ -74,9 +74,6 @@ export class OrderService {
     // 保存订单
     this.orders.set(order.id, order);
 
-    console.log(
-      `[OrderService] 创建订单成功: 订单号=${order_no}, 用户=${user_id}, 金额=${final_amount}`
-    );
     return order;
   }
 
@@ -156,7 +153,6 @@ export class OrderService {
 
     this.orders.set(orderId, order);
 
-    console.log(`[OrderService] 更新订单状态: 订单号=${order.order_no}, 状态=${status}`);
     return order;
   }
 
@@ -196,7 +192,6 @@ export class OrderService {
 
     this.orders.set(order.id, order);
 
-    console.log(`[OrderService] 支付成功处理完成: 订单号=${orderNo}, 交易号=${transactionId}`);
 
     // TODO: 处理后续业务逻辑
     // - 增加用户积分（如果购买了积分）
@@ -253,9 +248,6 @@ export class OrderService {
     order.updated_at = new Date();
     this.orders.set(orderId, order);
 
-    console.log(
-      `[OrderService] 退款申请成功: 订单号=${order.order_no}, 退款金额=${refund.refund_amount}`
-    );
 
     // TODO: 调用第三方退款接口（微信/支付宝）
 
@@ -293,9 +285,6 @@ export class OrderService {
         order.updated_at = new Date();
         this.orders.set(order.id, order);
 
-        console.log(
-          `[OrderService] 退款成功: 订单号=${order.order_no}, 退款金额=${refund.refund_amount}`
-        );
 
         // TODO: 处理后续业务逻辑
         // - 退回积分
@@ -327,7 +316,6 @@ export class OrderService {
     order.updated_at = new Date();
     this.orders.set(orderId, order);
 
-    console.log(`[OrderService] 订单已取消: 订单号=${order.order_no}`);
     return order;
   }
 
@@ -349,7 +337,6 @@ export class OrderService {
     }
 
     if (count > 0) {
-      console.log(`[OrderService] 更新过期订单: ${count}个`);
     }
 
     return count;
@@ -445,7 +432,6 @@ export class OrderService {
       this.orders.set(order.id, order);
     });
 
-    console.log(`[OrderService] 初始化模拟订单: ${mockOrders.length}个`);
   }
 }
 

@@ -90,17 +90,10 @@ export default function IntentSelector({
         <Button
           variant="ghost"
           onClick={() => {
-            console.log(
-              '[IntentSelector] 点击生成报价单按钮, fileGroupId:',
-              fileGroupId,
-              'currentChoice:',
-              currentChoice
-            );
             // 触发自定义事件通知父组件
             const event = new CustomEvent('intent-select', {
               detail: { fileGroupId, choice: 'quote' },
             });
-            console.log('[IntentSelector] 触发 intent-select 事件:', event.detail);
             window.dispatchEvent(event);
           }}
           disabled={isLoading}

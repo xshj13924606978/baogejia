@@ -29,7 +29,7 @@ interface SocketEvents {
   connect_error: (error: Error) => void;
 
   // 认证事件
-  authenticate: (userId: string) => void;
+  authenticate: (token: string) => void;
 
   // 用户状态事件
   'user:online': (data: { userId: string; onlineCount: number }) => void;
@@ -125,10 +125,13 @@ class SocketClient {
         this.socket.on('connect', () => {
           this.reconnectAttempts = 0;
 
-          // 发送认证信息
+          // 发送认证信息（使用 session token）
           if (userId) {
             this.userId = userId;
-            this.socket?.emit('authenticate', userId);
+            const token = typeof window !== 'undefined' ? localStorage.getItem('session_token') : null;
+            if (token) {
+              this.socket?.emit('authenticate', token);
+            }
           }
 
           // 触发所有连接监听器

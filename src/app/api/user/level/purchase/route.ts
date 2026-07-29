@@ -38,13 +38,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[LevelPurchase API] 购买等级:', { 
-      userId: currentUser.id, 
-      level, 
-      amount, 
-      paymentMethod,
-      days 
-    });
 
     const supabase = getSupabaseClient();
 

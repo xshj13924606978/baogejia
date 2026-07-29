@@ -78,13 +78,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '积分不能为0' }, { status: 400 });
     }
 
-    console.log('[UserPoints API] 操作积分:', {
-      userId: targetUserId,
-      points,
-      type,
-      description,
-      operator: currentUser.id,
-    });
 
     // 操作积分
     if (points > 0) {

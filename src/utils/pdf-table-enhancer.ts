@@ -60,7 +60,6 @@ export class TableMerger {
    * 合并表格行
    */
   public mergeRows(rows: TableRow[]): TableRow[] {
-    console.log('📊 [行合并开始]', { 行数: rows.length });
 
     if (rows.length === 0) return [];
 
@@ -72,12 +71,7 @@ export class TableMerger {
 
       if (currentRow === null) {
         currentRow = row;
-        console.log(`  初始化行 ${i + 1}:`, row.cells.join(' | '));
       } else if (this.shouldMergeWithPrevious(row, currentRow)) {
-        console.log(`  合并行 ${i + 1} 到前一行:`, {
-          当前行: row.cells.join(' | '),
-          前一行: currentRow.cells.join(' | ')
-        });
         currentRow = this.mergeTwoRows(currentRow, row);
       } else {
         mergedRows.push(currentRow);
@@ -89,7 +83,6 @@ export class TableMerger {
       mergedRows.push(currentRow);
     }
 
-    console.log(`✅ [行合并完成] 合并前: ${rows.length}行, 合并后: ${mergedRows.length}行`);
 
     return mergedRows;
   }
@@ -98,45 +91,35 @@ export class TableMerger {
    * 判断是否应该与前一行合并
    */
   private shouldMergeWithPrevious(currentRow: TableRow, previousRow: TableRow): boolean {
-    console.log('\n    🔍 [判断合并] 检查当前行是否应合并到上一行');
 
     // 规则1：垂直距离很近
     const yGap = Math.abs(currentRow.y - (previousRow.y + previousRow.height));
-    console.log(`      规则1 - 垂直距离: ${yGap}px (阈值: ${this.verticalGapThreshold}px)`);
     
     if (yGap > this.verticalGapThreshold) {
-      console.log('      ❌ 距离过远，不合并');
       return false;
     }
 
     // 规则2：水平位置对齐
     const xAlignScore = this.calculateXAlignment(currentRow, previousRow);
-    console.log(`      规则2 - 水平对齐度: ${xAlignScore.toFixed(2)} (阈值: 0.6)`);
     
     if (xAlignScore < 0.6) {
-      console.log('      ❌ 水平对齐度低，不合并');
       return false;
     }
 
     // 规则3：内容特征判断（优先级最高）
     const continuationResult = this.hasContinuationPattern(currentRow, previousRow);
-    console.log(`      规则3 - 内容延续模式: ${continuationResult.found ? continuationResult.reason : '无'}`);
     
     if (continuationResult.found) {
-      console.log('      ✅ 检测到内容延续模式，合并');
       return true;
     }
 
     // 规则4：当前行较短且第一列为空（可能是续行）
     const isContinuation = this.isLikelyContinuationRow(currentRow, previousRow);
-    console.log(`      规则4 - 疑似续行: ${isContinuation}`);
     
     if (isContinuation) {
-      console.log('      ✅ 判断为续行，合并');
       return true;
     }
 
-    console.log('      ❌ 不满足合并条件，不合并');
     return false;
   }
 
@@ -170,7 +153,6 @@ export class TableMerger {
     const prevLastCell = previousRow.cells[previousRow.cells.length - 1] || '';
     const currFirstCell = currentRow.cells[0] || '';
 
-    console.log(`      分析内容: 上一行末尾="${prevLastCell.substring(0, 20)}", 当前行开头="${currFirstCell.substring(0, 20)}"`);
 
     const checks = [
       // 检查1：上一行以品牌名结尾（如"电机："、"佳木斯/"）
@@ -217,7 +199,6 @@ export class TableMerger {
 
     for (const check of checks) {
       if (check.pattern) {
-        console.log(`      ✅ 匹配: ${check.reason}`);
         return { found: true, reason: check.reason };
       }
     }
@@ -271,7 +252,6 @@ export class TableMerger {
    * 合并两行（增强版）
    */
   private mergeTwoRows(row1: TableRow, row2: TableRow): TableRow {
-    console.log(`      🔄 [合并行] 开始合并`);
     
     const mergedCells: string[] = [];
     const maxCells = Math.max(row1.cells.length, row2.cells.length);
@@ -302,13 +282,11 @@ export class TableMerger {
         const merged = (cell1 + separator + cell2).trim();
         mergedCells.push(merged);
         
-        console.log(`        列${i}: "${cell1.substring(0, 15)}..." + "${cell2.substring(0, 15)}..." → "${merged.substring(0, 25)}..."`);
       } else {
         mergedCells.push(cell1);
       }
     }
 
-    console.log(`      ✅ [合并行] 完成，共${maxCells}列`);
 
     return {
       cells: mergedCells,
@@ -382,10 +360,6 @@ export class ColumnIdentifier {
    * 识别列类型
    */
   public identifyColumns(headerRow: TableRow, dataRows: TableRow[]): ColumnInfo[] {
-    console.log('📊 [列识别开始]', {
-      表头: headerRow.cells,
-      数据行数: dataRows.length,
-    });
 
     const columnInfos: ColumnInfo[] = [];
 
@@ -401,7 +375,6 @@ export class ColumnIdentifier {
         width: 100, // 简化处理
       });
 
-      console.log(`  列${index} "${header}" → 类型: ${type}, 置信度: 0.7`);
     });
 
     // 基于数据内容验证和调整
@@ -416,19 +389,15 @@ export class ColumnIdentifier {
           
           if (dataType === col.type) {
             col.confidence += 0.2;
-            console.log(`  ✅ 列${col.index}数据验证通过，置信度提升至 ${col.confidence.toFixed(1)}`);
           } else if (dataType !== 'unknown' && col.type === 'unknown') {
             col.type = dataType;
             col.confidence = 0.6;
-            console.log(`  ⚠️ 列${col.index}类型修正为 ${dataType}`);
           }
         }
       });
     }
 
-    console.log('✅ [列识别完成]');
     columnInfos.forEach(col => {
-      console.log(`  列${col.index}: ${col.header} → ${col.type} (置信度: ${col.confidence.toFixed(1)})`);
     });
 
     return columnInfos;
@@ -557,7 +526,6 @@ export class ColumnIdentifier {
   public detectMergedColumns(columns: ColumnInfo[]): Map<number, number[]> {
     const mergedColumns = new Map<number, number[]>();
 
-    console.log('🔍 [检测合并列]');
 
     // 检查内容相似的相邻列
     for (let i = 0; i < columns.length - 1; i++) {
@@ -566,18 +534,15 @@ export class ColumnIdentifier {
 
       // 如果两列都是规格相关，可能是拆分列
       if (col1.type === 'parameter_description' && col2.type === 'parameter_description') {
-        console.log(`  发现可能的合并列: 列${i} 和 列${i + 1}`);
         mergedColumns.set(i, [i, i + 1]);
       }
 
       // 如果前一列是产品名称，后一列是规格，可能需要合并
       if (col1.type === 'name' && col2.type === 'parameter_description') {
-        console.log(`  发现可能需要合并的列: 列${i} (名称) 和 列${i + 1} (规格)`);
         // 不自动标记为合并列，但提供信息
       }
     }
 
-    console.log(`✅ [合并列检测完成] 发现 ${mergedColumns.size} 组合并列`);
 
     return mergedColumns;
   }
@@ -592,11 +557,9 @@ export class TextEnhancer {
    * 提取表格文本内容
    */
   public extractTableText(text: string): string[] {
-    console.log('📝 [提取表格文本]', { 原始长度: text.length });
 
     // 按行分割
     const lines = text.split('\n').filter(line => line.trim().length > 0);
-    console.log(`  提取到 ${lines.length} 行文本`);
 
     return lines;
   }
@@ -710,7 +673,6 @@ export class PdfTableEnhancer {
     columns: ColumnInfo[];
     mergedColumns: Map<number, number[]>;
   } {
-    console.log('\n🚀 [表格增强开始]');
 
     // 1. 提取文本行
     const lines = this.textEnhancer.extractTableText(text);
@@ -724,7 +686,6 @@ export class PdfTableEnhancer {
       originalIndex: index,
     }));
 
-    console.log(`📊 解析到 ${rawRows.length} 行原始数据`);
 
     // 3. 合并行
     const mergedRows = this.merger.mergeRows(rawRows);
@@ -737,7 +698,6 @@ export class PdfTableEnhancer {
       const columns = this.columnIdentifier.identifyColumns(headerRow, dataRows);
       const mergedColumns = this.columnIdentifier.detectMergedColumns(columns);
 
-      console.log('🚀 [表格增强完成]\n');
 
       return {
         rows: mergedRows,
@@ -763,23 +723,18 @@ export class PdfTableEnhancer {
       mergedColumns: Map<number, number[]>;
     }
   ): any[] {
-    console.log('\n📦 [从增强表格提取产品] 开始');
     
     const products: any[] = [];
     const rows = enhancedTable.rows;
     const columns = enhancedTable.columns;
 
-    console.log(`  📊 可用列: ${columns.length}`);
     columns.forEach((col, i) => {
-      console.log(`    ${i + 1}. "${col.header}" → ${col.type} (置信度: ${col.confidence.toFixed(1)})`);
     });
 
     // 跳过表头
-    console.log(`\n  📝 开始处理数据行（共${rows.length - 1}行）`);
     
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      console.log(`\n  行 ${i + 1}/${rows.length}:`, row.cells.slice(0, 3).join(' | '));
       
       const product: any = {};
 
@@ -788,7 +743,6 @@ export class PdfTableEnhancer {
         const value = row.cells[col.index] || '';
         
         if (value) {
-          console.log(`    列"${col.header}" (${col.type}): ${value.substring(0, 30)}...`);
         }
 
         switch (col.type) {
@@ -823,7 +777,6 @@ export class PdfTableEnhancer {
       if (!product.parameter_description) {
         const unknownCols = columns.filter(col => col.type === 'unknown');
         if (unknownCols.length > 0) {
-          console.log(`    ℹ️ 无参数描述列，尝试合并${unknownCols.length}个未知列`);
           const desc = unknownCols
             .map(col => row.cells[col.index])
             .filter(cell => cell)
@@ -831,7 +784,6 @@ export class PdfTableEnhancer {
           
           if (desc) {
             product.parameter_description = desc;
-            console.log(`    合并结果: ${desc.substring(0, 50)}...`);
           }
         }
       }
@@ -843,19 +795,15 @@ export class PdfTableEnhancer {
           product.parameter_description
         );
         if (beforeFix !== product.parameter_description) {
-          console.log(`    🔧 修复文本问题`);
         }
       }
 
       if (product.name && product.name.length > 0) {
-        console.log(`    ✅ 提取产品: ${product.name}`);
         products.push(product);
       } else {
-        console.log(`    ⚠️ 跳过：无产品名称`);
       }
     }
 
-    console.log(`\n✅ 提取完成，共 ${products.length} 个产品\n`);
 
     return products;
   }

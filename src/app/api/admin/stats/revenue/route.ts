@@ -28,7 +28,6 @@ export async function GET(request: NextRequest) {
 
     if (paymentsError) {
       // 表不存在时返回空统计
-      console.log('[Revenue API] payment_records 表不存在或查询失败:', paymentsError.message);
       return NextResponse.json(emptyStats());
     }
 
@@ -191,10 +190,6 @@ export async function GET(request: NextRequest) {
         .sort((a, b) => b.amount - a.amount)
         .slice(0, 10); // 取前10名
 
-      console.log('[Revenue API] 收入统计完成:', {
-        totalRevenue: stats.totalRevenue,
-        totalOrders: stats.totalOrders,
-        successRate: stats.summary.successRate});
 
       return NextResponse.json(stats);
     } catch (error) {

@@ -17,11 +17,9 @@ const POINTS_PER_PRODUCT = 0.5; // 每个产品额外消耗 0.5 积分
 function normalizeProducts(products: any[]): any[] {
   if (!Array.isArray(products)) return products;
   
-  console.log(`[字段映射] 开始处理 ${products.length} 个产品`);
   
   return products.map((p, index) => {
     // 打印原始字段（调试用）
-    console.log(`[字段映射] 产品 ${index + 1} 原始字段:`, JSON.stringify(p, null, 2));
     
     // 获取原始参数描述
     const rawDescription = p.parameter_description || p.specs || p.specifications || p.description || p.parameters || '';
@@ -32,12 +30,7 @@ function normalizeProducts(products: any[]): any[] {
     
     // 记录清洗结果
     if (cleanResult.statistics.removedChars > 0) {
-      console.log(`[参数清洗] 产品 ${index + 1} 清洗统计:`);
-      console.log(`  - 原始长度: ${cleanResult.statistics.originalLength}`);
-      console.log(`  - 清洗后长度: ${cleanResult.statistics.cleanedLength}`);
-      console.log(`  - 减少字符: ${cleanResult.statistics.removedChars}`);
       if (cleanResult.removedItems.length > 0) {
-        console.log(`  - 清洗项: ${cleanResult.removedItems.join(', ')}`);
       }
     }
     
@@ -54,7 +47,6 @@ function normalizeProducts(products: any[]): any[] {
     };
     
     // 打印映射后的字段
-    console.log(`[字段映射] 产品 ${index + 1} 映射后:`, JSON.stringify(normalized, null, 2));
     
     return normalized;
   });
@@ -80,7 +72,6 @@ function deduplicateProducts(products: any[]): any[] {
 
   // 记录去重信息
   if (products.length !== uniqueProducts.length) {
-    console.log(`[去重] 原始产品数: ${products.length}, 去重后: ${uniqueProducts.length}`);
   }
 
   return uniqueProducts;
@@ -129,11 +120,6 @@ export async function POST(request: NextRequest) {
     const hasEnough = await pointsService.checkPointsBalance(userId, estimatedPoints);
     if (!hasEnough) {
       const pointsInfo = await pointsService.getUserPoints(userId);
-      console.log('[文档解析] 积分不足:', {
-        userId,
-        required: estimatedPoints,
-        balance: pointsInfo?.points
-      });
       return NextResponse.json(
         {
           error: '积分不足',
@@ -144,7 +130,6 @@ export async function POST(request: NextRequest) {
         { status: 402 }
       );
     }
-    console.log('[文档解析] 积分预检查通过，预估消耗:', estimatedPoints, '积分');
 
     // 将File对象转换为Buffer
     const bytes = await file.arrayBuffer();
@@ -170,7 +155,6 @@ export async function POST(request: NextRequest) {
           throw new Error('TextIn returned empty result');
         }
       } catch (textInError) {
-        console.log('TextIn parsing failed, falling back to Coze Vision:', textInError);
         const cozeResult = await getCozeResponse(textInFileId);
         result = cozeResult;
       }
@@ -184,18 +168,14 @@ export async function POST(request: NextRequest) {
 
     // ==================== 统一处理返回数据 ====================
     if (result && result.products && Array.isArray(result.products)) {
-      console.log(`[数据处理] 开始处理 ${result.products.length} 个产品`);
       
       // 1. 先统一字段名
       result.products = normalizeProducts(result.products);
-      console.log(`[数据处理] 字段映射完成`);
       
       // 2. 再去重
       result.products = deduplicateProducts(result.products);
-      console.log(`[数据处理] 去重完成，最终产品数: ${result.products.length}`);
       
       // 打印最终结果
-      console.log(`[数据处理] 最终产品列表:`, JSON.stringify(result.products, null, 2));
     }
     // ========================================================
     
@@ -213,7 +193,6 @@ export async function POST(request: NextRequest) {
       );
       
       if (deductResult.success) {
-        console.log('[文档解析] 扣除积分成功:', actualPoints);
         
         // 获取更新后的积分
         const newPointsInfo = await pointsService.getUserPoints(userId);

@@ -39,7 +39,6 @@ export async function processWithIntent(userInput: string): Promise<PipelineResu
 
     // 问候和未知意图 → 直接返回，由 LLM 处理回复
     if (intent.type === 'greeting' || intent.type === 'unknown') {
-      console.log(`[IntentPipeline] type=${intent.type}, 交给 LLM 处理`);
       return { products: [], source: 'none', confidence: intent.confidence, intent };
     }
 
@@ -47,10 +46,6 @@ export async function processWithIntent(userInput: string): Promise<PipelineResu
     const searchResult = await intentBasedSearch.search(intent);
 
     // 第3步：返回结果
-    console.log(
-      `[IntentPipeline] source=intent, products=${searchResult.products.length}, ` +
-      `matchLevel=${searchResult.matchLevel}, confidence=${searchResult.confidence}`
-    );
     return {
       products: searchResult.products,
       source: 'intent',

@@ -43,7 +43,6 @@ export const GET = withPermissionCheck(
       const { searchParams } = new URL(request.url);
       const days = parseInt(searchParams.get('days') || '30', 10);
 
-      console.log('[Heatmap API] 获取权限使用热力图，时间范围:', days, '天');
 
       // 获取权限使用统计（从token_consumption_log表）
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
@@ -122,10 +121,6 @@ export const GET = withPermissionCheck(
       heatmap.summary.averageDailyUsage =
         dailyMap.size > 0 ? Math.round(heatmap.summary.totalUsage / dailyMap.size) : 0;
 
-      console.log('[Heatmap API] 热力图数据统计完成:', {
-        dailyPoints: heatmap.daily.length,
-        deniedApis: Object.keys(heatmap.deniedApis).length,
-        totalUsage: heatmap.summary.totalUsage});
 
       return NextResponse.json(heatmap);
     } catch (error) {

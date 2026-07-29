@@ -17,7 +17,6 @@ export async function GET() {
       .select('user_id, level, level_up_at, created_at');
 
     if (levelsError) {
-      console.log('[LevelDistribution API] user_levels 表不存在:', levelsError.message);
       return NextResponse.json(emptyDistribution());
     }
 
@@ -27,7 +26,6 @@ export async function GET() {
       .select('id, created_at');
 
     if (usersError) {
-      console.log('[LevelDistribution API] users 表查询失败:', usersError.message);
       return NextResponse.json(emptyDistribution());
     }
 
@@ -165,10 +163,6 @@ export async function GET() {
             count}))
         );
 
-      console.log('[LevelDistribution API] 等级分布统计完成:', {
-        totalUsers: distribution.summary.totalUsers,
-        levels: distribution.levels.length,
-        averageLevel: distribution.summary.averageLevel});
 
       return NextResponse.json(distribution);
     } catch (error) {

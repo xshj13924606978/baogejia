@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Server as SocketIOServer } from 'socket.io';
 import { createClient } from '@supabase/supabase-js';
+import { verifySessionToken } from '@/lib/session-token';
 
 declare global {
   var _socketServer: SocketIOServer | null;
@@ -45,10 +46,6 @@ export async function GET(_req_reqreq: NextRequest) {
 
       await new Promise<void>((resolve) => {
         global._httpServer.listen(0, () => {
-          console.log(
-            '[Socket.IO] HTTP server listening on port:',
-            global._httpServer.address()?.port
-          );
           resolve();
         });
       });
@@ -71,21 +68,22 @@ export async function GET(_req_reqreq: NextRequest) {
 
     // 连接处理
     io.on('connection', (socket) => {
-      console.log('[Socket.IO] Client connected:', socket.id);
 
-      // 处理认证 - 接收 UUID 字符串
-      socket.on('authenticate', async (userId: string) => {
+      // 处理认证 - 接收 session token 并验证
+      socket.on('authenticate', async (token: string) => {
         try {
-          console.log('[Socket.IO] User authenticated:', userId);
-
-          // 验证 userId 格式（应该是 UUID）
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          if (!uuidRegex.test(userId)) {
-            console.log('[Socket.IO] 无效的 UUID 格式:', userId);
-            socket.emit('error', { message: 'Invalid user ID format' });
+          if (typeof token !== 'string' || !token) {
+            socket.emit('error', { message: 'Missing authentication token' });
             return;
           }
 
+          const payload = verifySessionToken(token);
+          if (!payload) {
+            socket.emit('error', { message: 'Invalid or expired session token' });
+            return;
+          }
+
+          const userId = payload.userId;
           socket.data.userId = userId;
 
           // 更新在线状态（内存中）
@@ -101,7 +99,7 @@ export async function GET(_req_reqreq: NextRequest) {
             userIds: Array.from(onlineUsers.keys()),
             count: onlineUsers.size});
 
-          // 尝试更新数据库（使用 UUID）
+          // 尝试更新数据库
           try {
             const { error } = await supabase
               .from('users')
@@ -110,10 +108,8 @@ export async function GET(_req_reqreq: NextRequest) {
               .eq('id', userId);
 
             if (error) {
-              console.log('[Socket.IO] 数据库更新错误:', error.message);
             }
           } catch (_dbError) {
-            console.log('[Socket.IO] 数据库更新失败:');
           }
         } catch (error) {
           console.error('[Socket.IO] Auth error:', error);
@@ -132,7 +128,6 @@ export async function GET(_req_reqreq: NextRequest) {
 
       // 处理断开连接
       socket.on('disconnect', async () => {
-        console.log('[Socket.IO] Client disconnected:', socket.id);
 
         if (socket.data.userId) {
           const userId = socket.data.userId;
@@ -163,7 +158,6 @@ export async function GET(_req_reqreq: NextRequest) {
     });
 
     global._socketServer = io;
-    console.log('[Socket.IO] Server initialized successfully');
 
     return NextResponse.json({
       success: true,

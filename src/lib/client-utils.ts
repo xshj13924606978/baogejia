@@ -16,14 +16,9 @@ export function getClientAuthHeaders(): Record<string, string> {
       const user = JSON.parse(userStr);
       if (user.role) headers['x-user-role'] = String(user.role);
     }
-    // 优先使用签名 token（更安全），降级使用旧的 header 方式（兼容过渡）
     const token = localStorage.getItem('session_token');
     if (token) {
       headers['x-user-token'] = token;
-    } else if (userStr) {
-      const user = JSON.parse(userStr);
-      if (user.id) headers['x-user-id'] = user.id;
-      if (user.email) headers['x-user-email'] = String(user.email);
     }
     const authToken = localStorage.getItem('token');
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;

@@ -35,7 +35,6 @@ export class DuplicateChecker {
    */
   setConfig(config: DuplicateCheckConfig) {
     this.config = config;
-    console.log('⚙️ 判重规则已更新:', this.config);
   }
 
   /**
@@ -89,7 +88,6 @@ export class DuplicateChecker {
       throw new Error('数据库实例未设置');
     }
 
-    console.log('[DuplicateChecker] 开始数据库查重，判重字段:', fields.join(', '));
 
     // 构建查询条件
     let query = this.db.from('products').select('id, name, model, brand, parameter_description, price');
@@ -115,7 +113,6 @@ export class DuplicateChecker {
       }
     });
 
-    console.log('[DuplicateChecker] 查询条件:', matchValues);
 
     const { data: existingList, error } = await query;
 
@@ -126,7 +123,6 @@ export class DuplicateChecker {
 
     // 如果查询结果为空，直接返回不重复
     if (!existingList || existingList.length === 0) {
-      console.log('[DuplicateChecker] 未发现重复产品');
       return { isDuplicate: false };
     }
 
@@ -142,10 +138,6 @@ export class DuplicateChecker {
         if (normalizedParamDesc && existingParamDesc) {
           // 使用精确匹配而非相似度匹配
           if (normalizedParamDesc !== existingParamDesc) {
-            console.log('[DuplicateChecker] 参数描述不同，不是重复产品:', {
-              new: normalizedParamDesc.substring(0, 80) + '...',
-              existing: existingParamDesc.substring(0, 80) + '...'
-            });
             continue; // 参数描述不同，跳过这条记录
           }
         } else if (normalizedParamDesc !== existingParamDesc) {
@@ -154,7 +146,6 @@ export class DuplicateChecker {
         }
         
         // 所有条件都满足，判定为重复
-        console.log('[DuplicateChecker] 发现重复产品:', existing);
         return {
           isDuplicate: true,
           duplicateProduct: existing,
@@ -164,13 +155,11 @@ export class DuplicateChecker {
       }
       
       // 所有记录的参数描述都不匹配
-      console.log('[DuplicateChecker] 未发现完全匹配的重复产品');
       return { isDuplicate: false };
     }
 
     // 不包含参数描述字段，直接返回第一条匹配记录
     const existing = existingList[0];
-    console.log('[DuplicateChecker] 发现重复产品:', existing);
     return {
       isDuplicate: true,
       duplicateProduct: existing,
@@ -273,7 +262,6 @@ export class DuplicateChecker {
   private checkDuplicateInMemory(product: any, existingProducts: any[]): DuplicateCheckResult {
     const fields = this.config.fields;
 
-    console.log('[DuplicateChecker] 开始内存查重，判重字段:', fields.join(', '));
 
     for (const existing of existingProducts) {
       let isMatch = true;
@@ -312,7 +300,6 @@ export class DuplicateChecker {
       }
 
       if (isMatch) {
-        console.log('[DuplicateChecker] 发现重复产品:', existing);
         return {
           isDuplicate: true,
           duplicateProduct: existing,
@@ -322,7 +309,6 @@ export class DuplicateChecker {
       }
     }
 
-    console.log('[DuplicateChecker] 未发现重复产品');
     return { isDuplicate: false };
   }
 
@@ -350,7 +336,6 @@ export class DuplicateChecker {
       }
 
       if (!data || data.length === 0) {
-        console.log('[DuplicateChecker] 未配置判重字段，使用默认配置');
         return { fields: ['name', 'model'], matchRule: 'and' };
       }
 
@@ -358,7 +343,6 @@ export class DuplicateChecker {
 
       // 确保 name 字段始终在列表中（如果已配置）
       // 注意：这里不再强制添加 name，尊重用户配置
-      console.log('[DuplicateChecker] 加载判重配置成功:', fields);
 
       return { fields, matchRule: 'and' };
     } catch (error) {
@@ -425,7 +409,6 @@ export class DuplicateChecker {
       );
     }
 
-    console.log(`[DuplicateChecker] 批量查重：加载了 ${existingProducts?.length || 0} 个已有产品`);
 
     // 在内存中进行批量检查
     return products.map(product =>

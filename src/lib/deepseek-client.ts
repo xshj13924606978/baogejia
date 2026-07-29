@@ -61,7 +61,6 @@ export class AIClient {
         baseURL: laoZhangBaseURL,
         dangerouslyAllowBrowser: false,
       });
-      console.log('Gemini客户端初始化完成（LaoZhang.ai 中转）');
     } else {
       console.warn('LAOZHANG_API_KEY 未配置，Gemini功能将不可用');
     }
@@ -70,7 +69,6 @@ export class AIClient {
     const models = [];
     if (apiKey) models.push('deepseek');
     if (laoZhangApiKey) models.push('gemini');
-    console.log(`AI客户端初始化完成，当前可用模型: ${models.join(', ') || '无'}`);
   }
 
   /**
@@ -97,23 +95,19 @@ export class AIClient {
       if (model === 'gemini') {
         // Gemini失败，尝试DeepSeek
         if (process.env.DEEPSEEK_API_KEY) {
-          console.log('Gemini失败，切换到DeepSeek');
           return await this.callDeepSeek(params);
         }
       } else if (model === 'deepseek') {
         // DeepSeek失败，尝试Gemini
         if (this.geminiClient) {
-          console.log('DeepSeek失败，切换到Gemini');
           return await this.callGemini(params);
         }
         // DeepSeek失败，尝试Coze（如果可用）
         if (await this.isCozeAvailable()) {
-          console.log('DeepSeek失败，切换到Coze');
           return await this.callCoze(params);
         }
       } else if (model === 'coze') {
         // Coze失败，尝试DeepSeek
-        console.log('Coze失败，切换到DeepSeek');
         return await this.callDeepSeek(params);
       }
 
@@ -145,11 +139,6 @@ export class AIClient {
     }
 
     try {
-      console.log('[DeepSeek] 准备调用 API，消息数:', params.messages?.length);
-      console.log(
-        '[DeepSeek] 消息内容（前2条）:',
-        JSON.stringify(params.messages?.slice(0, 2), null, 2)
-      );
 
       // 使用原生 fetch 调用 DeepSeek API
       const response = await fetch(`${process.env.DEEPSEEK_BASE_URL}/chat/completions`, {
@@ -175,7 +164,6 @@ export class AIClient {
       }
 
       const data = await response.json();
-      console.log('[DeepSeek] API 调用成功');
 
       return {
         text: data.choices[0]?.message?.content || '',
@@ -213,7 +201,6 @@ export class AIClient {
     }
 
     try {
-      console.log('[Gemini] 准备调用 API，消息数:', params.messages?.length);
 
       const response = await this.geminiClient.chat.completions.create({
         model: process.env.LAOZHANG_MODEL || 'gemini-2.5-flash',
@@ -222,7 +209,6 @@ export class AIClient {
         max_tokens: params.maxTokens ?? 8192,
       });
 
-      console.log('[Gemini] API 调用成功');
 
       return {
         text: response.choices[0]?.message?.content || '',
@@ -255,7 +241,6 @@ export class AIClient {
    * 调用Coze API（预留接口）
    */
   private async callCoze(params: ChatCompletionParams): Promise<AIResponse> {
-    console.log('Coze API当前未启用，使用模拟响应');
 
     const lastMessage = params.messages[params.messages.length - 1]?.content || '';
 
@@ -283,10 +268,8 @@ export class AIClient {
     } catch (error: any) {
       // 降级：gemma 失败切 deepseek，gemini 失败切 deepseek，deepseek 失败切 gemini
       if ((model === 'gemma' || model === 'gemini') && process.env.DEEPSEEK_API_KEY) {
-        console.log(`[AIClient] ${model}流式失败，降级到DeepSeek`);
         yield* this.streamDeepSeek(params);
       } else if (model === 'deepseek' && this.geminiClient) {
-        console.log('[AIClient] DeepSeek流式失败，降级到Gemini');
         yield* this.streamGemini(params);
       } else {
         console.error(`[AIClient] ${model}流式调用失败:`, error);
@@ -334,7 +317,6 @@ export class AIClient {
     });
 
     try {
-      console.log('[AIClient] 使用 Gemma 本地模型流式调用');
       const stream = await gemmaClient.chat.completions.create({
         model: process.env.GEMMA_MODEL || 'gemma4:e4b',
         messages: params.messages,

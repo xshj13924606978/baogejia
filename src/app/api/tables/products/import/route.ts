@@ -51,18 +51,11 @@ const FIELD_TO_DB_MAP: Record<string, string> = {
 // 导入产品
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  console.log('[Import API] ========== 开始产品导入 ==========');
-  console.log('[Import API] 时间:', new Date().toISOString());
 
   try {
     const body = await request.json();
     const { products: productData, fieldMapping } = body;
 
-    console.log('[Import API] 接收到的数据:', {
-      productCount: Array.isArray(productData) ? productData.length : 0,
-      hasFieldMapping: !!fieldMapping,
-      fieldMapping: fieldMapping ? JSON.stringify(fieldMapping, null, 2) : '无',
-    });
 
     if (!Array.isArray(productData)) {
       console.error('[Import API] ❌ 产品数据格式不正确，必须是数组');
@@ -80,10 +73,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(
-      '[Import API] Excel 原始数据示例 (前3条):',
-      JSON.stringify(productData.slice(0, 3), null, 2)
-    );
 
     let successCount = 0;
     let errorCount = 0;
@@ -105,7 +94,6 @@ export async function POST(request: NextRequest) {
       if (fieldConfigs && fieldConfigs.length > 0) {
         requiredFields = fieldConfigs.map((c) => c.field_key);
       }
-      console.log('[Import API] 必填字段:', requiredFields);
     } catch (error) {
       console.error('[Import API] 获取字段配置失败，使用默认必填字段:', error);
     }
@@ -115,27 +103,21 @@ export async function POST(request: NextRequest) {
     try {
       duplicateChecker = await createDuplicateChecker(db);
       const config = duplicateChecker.getConfig();
-      console.log('[Import API] 判重配置:', JSON.stringify(config, null, 2));
     } catch (error) {
       console.error('[Import API] 初始化判重检查器失败，使用默认配置:', error);
       duplicateChecker = new DuplicateChecker({ fields: ['name', 'model'], matchRule: 'and' }, db);
     }
 
-    console.log('[Import API] ========== 开始处理产品数据 ==========');
 
     // 批量插入产品
     for (let i = 0; i < productData.length; i++) {
       const item = productData[i];
-      console.log(
-        `[Import API] ========== 处理第 ${i + 1}/${productData.length} 条数据 ==========`
-      );
 
       try {
         let product: Record<string, any>;
 
         // 如果提供了字段映射，使用映射转换数据
         if (fieldMapping && typeof fieldMapping === 'object' && Object.keys(fieldMapping).length > 0) {
-          console.log('[Import API] 使用自定义字段映射:', JSON.stringify(fieldMapping, null, 2));
           product = {};
           Object.keys(fieldMapping).forEach((systemField) => {
             const excelHeader = fieldMapping[systemField];
@@ -143,21 +125,16 @@ export async function POST(request: NextRequest) {
               // 处理字段名映射：name -> product_name（兼容前端映射）
               if (systemField === 'name') {
                 product['product_name'] = item[excelHeader];
-                console.log(`[Import API]   ${excelHeader} -> name(product_name):`, item[excelHeader]);
               } else if (systemField === 'parameter_description') {
                 product['specifications'] = item[excelHeader];
-                console.log(`[Import API]   ${excelHeader} -> parameter_description(specifications):`, item[excelHeader]);
               } else if (systemField === 'unit') {
                 product['unit'] = normalizeUnit(item[excelHeader]);
-                console.log(`[Import API]   ${excelHeader} -> unit:`, product['unit']);
               } else {
                 product[systemField] = item[excelHeader];
-                console.log(`[Import API]   ${excelHeader} -> ${systemField}:`, product[systemField]);
               }
             }
           });
         } else {
-          console.log('[Import API] 使用默认字段映射');
           // 使用默认映射
           product = {
             product_name: item['产品名称'] || item['product_name'] || item['name'] || '',
@@ -178,10 +155,8 @@ export async function POST(request: NextRequest) {
             category: item['分类'] || item['category'] || '',
             image_url: item['图片'] || item['image_url'] || '',
           };
-          console.log('[Import API] 默认映射结果:', product);
         }
 
-        console.log('[Import API] 映射后的产品数据:', JSON.stringify(product, null, 2));
 
         // 验证必填字段 - 兼容 name 和 product_name
         const missingFields = requiredFields.filter(
@@ -210,7 +185,6 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        console.log('[Import API] ✅ 字段验证通过');
 
         // 构造数据库记录（统一产品字段规范）
         const dbProduct: any = {
@@ -239,7 +213,6 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        console.log('[Import API] 构造的数据库记录:', JSON.stringify(dbProduct, null, 2));
 
         // 智能分类匹配 - 如果没有提供分类则尝试智能匹配
         if (!dbProduct.category) {
@@ -249,13 +222,10 @@ export async function POST(request: NextRequest) {
           );
           if (matchedCategory) {
             dbProduct.category = matchedCategory;
-            console.log(`[Import API] 🏷️ 智能分类匹配: ${dbProduct.name} -> ${matchedCategory}`);
           } else {
-            console.log(`[Import API] ⚠️ 产品 "${dbProduct.name}" 未匹配到分类`);
           }
         }
 
-        console.log('[Import API] 准备插入数据库');
 
         // 使用判重检查器进行查重
         const checkResult = await duplicateChecker.checkDuplicate(dbProduct);
@@ -263,8 +233,6 @@ export async function POST(request: NextRequest) {
         // 如果已存在相同产品，跳过插入
         if (checkResult.isDuplicate) {
           const duplicateMsg = DuplicateChecker.formatResult(checkResult);
-          console.log(`[Import API] ⚠️ ${duplicateMsg}`);
-          console.log('[Import API] 已存在产品:', JSON.stringify(checkResult.duplicateProduct, null, 2));
           duplicateCount++;
           duplicateProducts.push({
             existing: checkResult.duplicateProduct,
@@ -274,7 +242,6 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        console.log('[Import API] ✅ 查重通过，准备插入数据库');
 
         // 插入数据库
         const { data: insertedData, error: insertError } = await db
@@ -288,7 +255,6 @@ export async function POST(request: NextRequest) {
           errorCount++;
           errors.push(`插入失败 "${dbProduct.name}": ${insertError.message}`);
         } else {
-          console.log('[Import API] ✅ 插入成功:', JSON.stringify(insertedData, null, 2));
           successCount++;
           insertedProducts.push(insertedData?.[0]);
         }
@@ -302,14 +268,8 @@ export async function POST(request: NextRequest) {
     }
 
     const duration = Date.now() - startTime;
-    console.log('[Import API] ========== 导入完成 ==========');
-    console.log('[Import API] 总耗时:', `${duration}ms`);
-    console.log('[Import API] 成功:', successCount, '条');
-    console.log('[Import API] 失败:', errorCount, '条');
-    console.log('[Import API] 重复:', duplicateCount, '条');
 
     // 导入后验证：查询实际数据库中的产品数量
-    console.log('[Import API] ========== 导入后验证 ==========');
     try {
       const { data: allProducts, error: verifyError } = await db
         .from('products')
@@ -318,7 +278,6 @@ export async function POST(request: NextRequest) {
         .limit(100);
 
       if (!verifyError && allProducts) {
-        console.log('[Import API] ✅ 验证成功，数据库中总产品数:', allProducts.length);
 
         // 统计本次导入的产品
         const recentProducts = allProducts.filter((p) => {
@@ -329,9 +288,7 @@ export async function POST(request: NextRequest) {
           return false;
         });
 
-        console.log('[Import API] 本次导入新增产品数:', recentProducts.length);
         recentProducts.forEach((p) => {
-          console.log(`  - ID: ${p.id}, 名称: ${p.name}, 型号: ${p.model}, 价格: ${p.price}`);
         });
       }
     } catch (error) {
@@ -360,7 +317,6 @@ export async function POST(request: NextRequest) {
         completed_at: new Date().toISOString(),
       });
 
-      console.log('[Import API] ✅ 导入日志已记录');
     } catch (logError) {
       console.error('[Import API] ⚠️ 记录导入日志失败:', logError);
       // 不影响主流程，仅记录错误

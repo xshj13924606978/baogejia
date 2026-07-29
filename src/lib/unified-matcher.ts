@@ -68,7 +68,6 @@ export class UnifiedMatcher {
   private initialized = false;
 
   private constructor() {
-    console.log('[UnifiedMatcher] 统一匹配器初始化完成（已启用缓存）');
   }
 
   /**
@@ -86,11 +85,9 @@ export class UnifiedMatcher {
    */
   public async initialize(options?: { forceRefresh?: boolean; enableAdvancedFeatures?: boolean }): Promise<void> {
     try {
-      console.log('[UnifiedMatcher] 开始初始化...');
 
       // 构建 Redis 连接
       await redisCacheManager.connect();
-      console.log('[UnifiedMatcher] 缓存管理器初始化完成');
 
       // 构建特征索引
       await productFeatureIndex.buildIndex();
@@ -112,7 +109,6 @@ export class UnifiedMatcher {
 
         if (corpus.length > 0) {
           vectorSimilarityCalculator.initializeVocabulary(corpus);
-          console.log('[UnifiedMatcher] 向量相似度计算器初始化完成');
         }
       }
 
@@ -120,30 +116,23 @@ export class UnifiedMatcher {
       const enableAdvanced = options?.enableAdvancedFeatures !== false;  // 默认启用
 
       if (enableAdvanced) {
-        console.log('[UnifiedMatcher] 初始化高级功能...');
 
         // Advanced Embedding 已在导入时初始化
-        console.log(`[UnifiedMatcher] Advanced Embedding 模型: ${advancedEmbedding.getCurrentModel()}`);
 
         // ML Matching Engine 已在导入时初始化
         const mlStats = mlMatchingEngine.getStats();
-        console.log(`[UnifiedMatcher] ML Matching Engine - 总匹配: ${mlStats.totalMatches}, 成功率: ${(mlStats.successRate * 100).toFixed(1)}%`);
 
         // 启动缓存预热器
         if (cacheWarmer) {
           await cacheWarmer.start();
-          console.log('[UnifiedMatcher] 缓存预热器已启动');
         }
 
         // A/B Testing Framework 已在导入时初始化
         const abStats = abTestingFramework.getStats();
-        console.log(`[UnifiedMatcher] A/B Testing Framework - 活跃算法: ${abStats.length} 个`);
 
-        console.log('[UnifiedMatcher] 高级功能初始化完成');
       }
 
       this.initialized = true;
-      console.log('[UnifiedMatcher] 初始化完成');
 
     } catch (error) {
       console.error('[UnifiedMatcher] 初始化失败:', error);
@@ -158,7 +147,6 @@ export class UnifiedMatcher {
     queryText: string,
     options?: MatchOptions
   ): Promise<UnifiedMatchResult> {
-    console.log('[UnifiedMatcher] 执行匹配:', queryText);
 
     try {
       // 1. 生成查询哈希
@@ -169,7 +157,6 @@ export class UnifiedMatcher {
       if (useCache && !options?.forceRefresh) {
         const cached = await this.getFromCache(queryHash);
         if (cached) {
-          console.log('[UnifiedMatcher] 使用缓存结果');
           return cached;
         }
       }
@@ -186,20 +173,9 @@ export class UnifiedMatcher {
 
       // 5. 解析查询
       const query = productQueryParser.parse(queryText);
-      console.log('[UnifiedMatcher] 查询解析完成:', {
-        type: query.queryType,
-        confidence: query.confidence,
-        params: {
-          flowRate: query.flowRate,
-          pressure: query.pressure,
-          power: query.power,
-          voltage: query.voltage
-        }
-      });
 
       // 6. 获取所有产品特征
       const products = productFeatureIndex.getAllFeatures();
-      console.log('[UnifiedMatcher] 获取到', products.length, '个产品');
 
       // 7. 执行匹配
       let matches: MatchResult[] = [];
@@ -208,11 +184,6 @@ export class UnifiedMatcher {
         matches = productMatcher.match(query, products);
       }
 
-      console.log('[UnifiedMatcher] 匹配结果:', {
-        total: matches.length,
-        exact: matches.filter(m => m.matchLevel === 'exact').length,
-        approximate: matches.filter(m => m.matchLevel === 'approximate').length
-      });
 
       // 8. 获取最佳匹配
       const bestMatch = productMatcher.getBestMatch(matches);
@@ -231,7 +202,6 @@ export class UnifiedMatcher {
           );
           if (transformerScores.length > 0) {
             transformerScore = transformerScores[0];
-            console.log('[UnifiedMatcher] Transformer 匹配分数:', transformerScore);
           }
         } catch (error) {
           console.warn('[UnifiedMatcher] Transformer 匹配失败，忽略:', error);
@@ -288,7 +258,6 @@ export class UnifiedMatcher {
       const cached = await redisCacheManager.get(queryHash);
       
       if (cached) {
-        console.log('[UnifiedMatcher] 命中缓存');
         return cached;
       }
 
@@ -306,7 +275,6 @@ export class UnifiedMatcher {
   private async saveToCache(queryHash: string, result: UnifiedMatchResult, ttl?: number): Promise<void> {
     try {
       await redisCacheManager.set(queryHash, result, ttl || 300000);
-      console.log('[UnifiedMatcher] 结果已缓存到 Redis');
     } catch (error) {
       console.error('[UnifiedCacheManager] 保存到缓存失败:', error);
     }
@@ -333,7 +301,6 @@ export class UnifiedMatcher {
    */
   public async clearCache(): Promise<void> {
     await redisCacheManager.clear();
-    console.log('[UnifiedMatcher] 缓存已清除');
   }
 
   /**
@@ -457,7 +424,6 @@ export class UnifiedMatcher {
     model?: string,
     params?: string
   ): Promise<MatchPrediction[]> {
-    console.log('[UnifiedMatcher] 使用 ML 引擎匹配');
     return await mlMatchingEngine.match(query, productName, model, params);
   }
 
@@ -468,7 +434,6 @@ export class UnifiedMatcher {
     query: string,
     candidates: string[]
   ): Promise<Array<{ text: string; similarity: number; distance: number }>> {
-    console.log('[UnifiedMatcher] 使用高级嵌入匹配');
     return await advancedEmbedding.calculateSimilarities(query, candidates);
   }
 
@@ -482,7 +447,6 @@ export class UnifiedMatcher {
     model?: string,
     params?: string
   ) {
-    console.log('[UnifiedMatcher] 执行 A/B 测试');
     return await abTestingFramework.test(userId, query, productName, model, params);
   }
 
@@ -494,7 +458,6 @@ export class UnifiedMatcher {
     query: string,
     feedback: 'positive' | 'negative' | 'neutral'
   ): void {
-    console.log(`[UnifiedMatcher] 提交 A/B 测试反馈: ${algorithm} - ${feedback}`);
     abTestingFramework.submitFeedback(algorithm, query, feedback);
   }
 
@@ -523,7 +486,6 @@ export class UnifiedMatcher {
    * 手动触发缓存预热（新增）
    */
   public async warmupCache(queries?: string[]): Promise<void> {
-    console.log('[UnifiedMatcher] 手动触发缓存预热');
     if (queries && queries.length > 0) {
       queries.forEach(q => cacheWarmer.addTask(q, 10));
     }
@@ -534,7 +496,6 @@ export class UnifiedMatcher {
    * 切换 Embedding 模型（新增）
    */
   public switchEmbeddingModel(model: EmbeddingModelType): void {
-    console.log(`[UnifiedMatcher] 切换 Embedding 模型: ${model}`);
     advancedEmbedding.switchModel(model);
   }
 
@@ -550,7 +511,6 @@ export class UnifiedMatcher {
    */
   public clearEmbeddingCache(): void {
     advancedEmbedding.clearCache();
-    console.log('[UnifiedMatcher] Embedding 缓存已清空');
   }
 
   /**
@@ -613,7 +573,6 @@ export class UnifiedMatcher {
     model?: string,
     params?: string
   ): Promise<TransformerMatchScore[]> {
-    console.log('[UnifiedMatcher] 使用 Transformer 引擎匹配');
     return await transformerMatchingEngine.match(query, productName, model, params);
   }
 
@@ -637,7 +596,6 @@ export class UnifiedMatcher {
    * 启动流式学习
    */
   public startStreamingLearning(): void {
-    console.log('[UnifiedMatcher] 启动流式学习');
     streamingLearningEngine.start();
   }
 
@@ -645,7 +603,6 @@ export class UnifiedMatcher {
    * 停止流式学习
    */
   public stopStreamingLearning(): void {
-    console.log('[UnifiedMatcher] 停止流式学习');
     streamingLearningEngine.stop();
   }
 

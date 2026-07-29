@@ -75,7 +75,6 @@ export class ConfidenceCalculator {
 
       ...config
     };
-    console.log('[ConfidenceCalculator] 置信度计算器初始化完成');
   }
 
   /**
@@ -85,7 +84,6 @@ export class ConfidenceCalculator {
     query: ParsedParameters,
     matches: MatchResult[]
   ): ConfidenceReport {
-    console.log('[ConfidenceCalculator] 开始计算置信度...');
 
     // 1. 查询解析置信度
     const parsingScore = this.calculateParsingScore(query);
@@ -133,11 +131,6 @@ export class ConfidenceCalculator {
       recommendation
     };
 
-    console.log('[ConfidenceCalculator] 置信度计算完成:', {
-      overall: `${(overall * 100).toFixed(1)}%`,
-      level,
-      ...recommendation
-    });
 
     return report;
   }
@@ -371,7 +364,6 @@ ${report.factors.negative.map(f => `  ⚠️ ${f}`).join('\n') || '  无'}
    */
   public updateConfig(config: Partial<ConfidenceCalculatorConfig>): void {
     this.config = { ...this.config, ...config };
-    console.log('[ConfidenceCalculator] 配置已更新:', this.config);
   }
 
   /**

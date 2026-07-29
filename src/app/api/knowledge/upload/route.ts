@@ -40,7 +40,6 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Knowledge Upload] ========== 开始知识库上传 ==========');
 
     // 统一认证上下文解析
     const ctx = await resolveAuthContext(request);
@@ -75,13 +74,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '无效的知识库类型' }, { status: 400 });
     }
 
-    console.log('[Knowledge Upload] 文件信息:', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      knowledgeType: type,
-      title: title,
-      userId: userId});
 
     // 验证文件大小
     if (file.size > MAX_FILE_SIZE) {
@@ -119,7 +111,6 @@ export async function POST(request: NextRequest) {
     const safeName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     const fileKey = `knowledge/${type}/${userId}/${safeName}`;
 
-    console.log('[Knowledge Upload] 上传路径:', fileKey);
 
     // 获取Supabase客户端
     const supabase = getSupabaseClient();
@@ -143,7 +134,6 @@ export async function POST(request: NextRequest) {
     // 获取公共URL
     const { data: urlData } = supabase.storage.from('knowledge-base').getPublicUrl(fileKey);
 
-    console.log('[Knowledge Upload] 上传成功，URL:', urlData.publicUrl);
 
     // 保存记录到数据库
     const { data: record, error: dbError } = await supabase
@@ -176,7 +166,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Knowledge Upload] 记录保存成功，ID:', record.id);
 
     // 处理 tags：自动创建并关联
     if (tagNames.length > 0) {
@@ -213,7 +202,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('[Knowledge Upload] ========== 上传完成 ==========');
 
     return NextResponse.json({
       success: true,
@@ -243,7 +231,6 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = (page - 1) * limit;
 
-    console.log('[Knowledge Upload] GET 请求', { userId, type, status, page, limit });
 
     let query = supabase.from('knowledge_entries').select('*', { count: 'exact' });
 
