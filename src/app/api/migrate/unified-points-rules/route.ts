@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 
 /**
  * 迁移 API: 执行 013_unified_points_rules 迁移
@@ -121,10 +121,8 @@ ON CONFLICT DO NOTHING;`, description: '插入11条预设规则' },
 export async function POST(request: NextRequest) {
   try {
     // 验证 super_admin 权限
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 });
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const adminRoles = ['admin', 'super_admin', 'Admin', 'SUPER_ADMIN', '管理员', '超级管理员'];
     const role = currentUser.role || '';
@@ -173,7 +171,6 @@ export async function POST(request: NextRequest) {
       await db.rpc('exec_sql', { params: [], sql: "NOTIFY pgrst, 'reload schema';" });
     } catch { /* ignore */ }
 
-    console.log(`[Migration] 完成: ${successCount} 成功, ${errorCount} 失败, 共 ${MIGRATION_STATEMENTS.length} 条`);
 
     return NextResponse.json({
       success: errorCount === 0,
@@ -185,17 +182,15 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Migration] 严重错误:', error);
-    return NextResponse.json({ error: '迁移执行失败', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: '迁移执行失败' }, { status: 500 });
   }
 }
 
 // GET: 迁移状态检查
 export async function GET(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 });
-    }
+    const { errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const db = getSupabaseServiceClient();
 

@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { signSessionToken } from '@/lib/session-token';
 import bcrypt from 'bcrypt';
 
 /**
  * 用户同步 API
  * 将前端 localStorage 中的用户数据同步到 Supabase 数据库
  * 实现前端/后端用户数据的打通
+ *
+ * 安全措施：
+ * - 不接受客户端传入的 role 字段（防权限提升）
+ * - 返回签名 session token 供后续认证
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phone, email, username, password, name, role, clearEmail, clearPhone, supabaseUserId } = body;
+    // 注意：不再从 body 中解构 role，禁止客户端指定角色
+    const { phone, email, username, password, name, clearEmail, clearPhone, supabaseUserId } = body;
 
     if (!email && !phone && !username) {
       return NextResponse.json({ error: '缺少用户标识' }, { status: 400 });
     }
 
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
 
     // 1. 尝试在 Supabase 中查找已有用户
     let existingUser: any = null;
@@ -81,6 +87,8 @@ export async function POST(request: NextRequest) {
     if (clearEmail) delete newMeta.email;
     if (name) newMeta.name = name;
 
+    let syncUser: any;
+
     if (existingUser) {
       // 4a. 更新已有用户
       const updateData: Record<string, unknown> = {
@@ -115,15 +123,10 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('[SyncUser] 更新失败:', error);
         return NextResponse.json({ error: '同步失败' }, { status: 500 });
       }
 
-      return NextResponse.json({
-        success: true,
-        user: { id: updatedUser.id, email: updatedUser.email, username: updatedUser.username },
-        synced: true,
-      });
+      syncUser = updatedUser;
     } else {
       // 4b. 创建新用户
       // 生成一个唯一的 username（基于手机号后4位或时间戳）
@@ -133,7 +136,8 @@ export async function POST(request: NextRequest) {
       const insertData: Record<string, unknown> = {
         username: generatedUsername,
         email: displayEmail,
-        role: role || 'free',
+        // 安全：固定为 'free' 角色，不接受客户端传入
+        role: 'free',
         status: 'active',
         metadata: newMeta,
         password_hash: passwordHash,
@@ -148,18 +152,27 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('[SyncUser] 创建失败:', error);
         return NextResponse.json({ error: '同步失败' }, { status: 500 });
       }
 
-      return NextResponse.json({
-        success: true,
-        user: { id: newUser.id, email: newUser.email, username: newUser.username },
-        synced: true,
-      });
+      syncUser = newUser;
     }
+
+    // 签发 session token
+    const sessionToken = signSessionToken(
+      syncUser.id,
+      syncUser.email || '',
+      syncUser.role || 'free',
+      7 * 24 * 3600
+    );
+
+    return NextResponse.json({
+      success: true,
+      sessionToken,
+      user: { id: syncUser.id, email: syncUser.email, username: syncUser.username, role: syncUser.role },
+      synced: true,
+    });
   } catch (error) {
-    console.error('[SyncUser] 同步异常:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

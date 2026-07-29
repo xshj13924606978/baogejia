@@ -120,6 +120,9 @@ export default function LoginModalWithOAuth({ isOpen, onClose, onLoginSuccess }:
 
       if (data.success) {
         localStorage.setItem('user', JSON.stringify(data.user));
+        if (data.sessionToken) {
+          localStorage.setItem('session_token', data.sessionToken);
+        }
         setSuccess('登录成功！');
         setTimeout(() => {
           onLoginSuccess?.(data.user);
@@ -412,18 +415,6 @@ export default function LoginModalWithOAuth({ isOpen, onClose, onLoginSuccess }:
               </div>
             </div>
 
-            {/* 测试账号提示 */}
-            <Alert className="bg-blue-50 border-blue-200">
-              <AlertDescription className="text-blue-700">
-                <div className="font-medium mb-1">💡 测试账号</div>
-                <div className="text-xs space-y-1">
-                  <div>• admin / 123456 (超级管理员)</div>
-                  <div>• vip / 123456 (高级会员)</div>
-                  <div>• factory / 123456 (产品厂家)</div>
-                  <div>• user / 123456 (普通用户)</div>
-                </div>
-              </AlertDescription>
-            </Alert>
           </TabsContent>
 
           {/* 注册表单 */}

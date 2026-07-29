@@ -117,7 +117,6 @@ export class ServerProcessUtils {
    */
   static async execCommand(command: string): Promise<{ stdout: string; stderr: string }> {
     try {
-      console.log(`[ServerProcess] 执行命令: ${command}`);
       const { stdout, stderr } = await execAsync(command);
       if (stderr) {
         console.warn(`[ServerProcess] 命令 stderr: ${stderr}`);
@@ -236,7 +235,6 @@ export class ServerDatabaseUtils {
       searchTerms.push(model);
     }
 
-    console.log('[ServerDatabase] 搜索词:', searchTerms);
 
     let query = db.from('products').select('*');
 
@@ -260,7 +258,6 @@ export class ServerDatabaseUtils {
     if (error) {
       // 只在第一次遇到此错误时输出，避免重复
       if (this.shouldLogError(error)) {
-        console.log('[ServerDatabase] 查询失败:', error);
       }
       return [];
     }

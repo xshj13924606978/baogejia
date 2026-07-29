@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userLevelService } from '@/lib/user-level-service';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 
 /**
  * 检查升级API
@@ -11,15 +11,9 @@ import { getCurrentUser } from '@/lib/auth-utils';
 export async function POST(request: NextRequest) {
   try {
     // 获取当前用户
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
-      );
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
-    console.log('[CheckUpgrade API] 检查升级:', currentUser.id);
 
     // 检查升级
     const result = await userLevelService.checkLevelUp(currentUser.id);

@@ -15,7 +15,6 @@ export async function smartRoute(
 ): Promise<string> {
   // 1. 多模态任务 → Gemini（暂未集成，降级到 DeepSeek）
   if (task === 'analyze_image' || task === 'analyze_doc') {
-    console.log('[AISmartRoute] 多模态任务，降级到 DeepSeek');
     const { callDeepSeekChat } = await import('./deepseek-client');
     const result = await callDeepSeekChat({
       model: 'deepseek',
@@ -31,10 +30,8 @@ export async function smartRoute(
     if (process.env.GEMMA_ENABLED === 'true') {
       const gemmaResult = await callGemmaLocal(messages, options);
       if (gemmaResult) {
-        console.log('[AISmartRoute] 使用 Gemma 本地模型');
         return gemmaResult;
       }
-      console.log('[AISmartRoute] Gemma 不可用，降级到 DeepSeek');
     }
     const { callDeepSeekChat } = await import('./deepseek-client');
     const result = await callDeepSeekChat({
@@ -48,7 +45,6 @@ export async function smartRoute(
 
   // 3. 复杂报价 → DeepSeek
   if (task === 'quote') {
-    console.log('[AISmartRoute] 复杂报价任务，使用 DeepSeek');
     const { callDeepSeekChat } = await import('./deepseek-client');
     const result = await callDeepSeekChat({
       model: 'deepseek',

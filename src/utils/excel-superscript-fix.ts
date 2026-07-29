@@ -108,7 +108,6 @@ export function fixWorksheetSuperscript(worksheet: XLSX.WorkSheet): boolean {
   }
 
   if (fixed) {
-    console.log('[Excel Superscript Fix] 已修复工作表中的上标字符');
   }
 
   return fixed;

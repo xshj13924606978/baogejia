@@ -49,7 +49,6 @@ export class SmartChatProcessor {
   private conversations: Map<string, ConversationContext> = new Map();
 
   constructor() {
-    console.log('[SmartChatProcessor] 智能对话处理器初始化完成');
   }
 
   /**
@@ -61,10 +60,6 @@ export class SmartChatProcessor {
     conversationId?: string,
     userId?: string
   ): Promise<SmartResponse> {
-    console.log('[SmartChatProcessor] ========== 开始智能处理 ==========');
-    console.log('[SmartChatProcessor] 用户输入:', userInput);
-    console.log('[SmartChatProcessor] 输入类型:', processedInput?.type);
-    console.log('[SmartChatProcessor] 用户ID:', userId);
 
     // 1. 获取或创建对话上下文
     const context = this.getOrCreateContext(conversationId);
@@ -81,7 +76,6 @@ export class SmartChatProcessor {
     if (processedInput && processedInput.type !== 'text') {
       // 持久化文件上传到对象存储、知识库和产品库
       if (userId && processedInput.metadata.fileName) {
-        console.log('[SmartChatProcessor] 开始处理文件上传持久化...');
         try {
           // 创建 File 对象
           const file = new File([processedInput.rawContent], processedInput.metadata.fileName, {
@@ -107,7 +101,6 @@ export class SmartChatProcessor {
               embeddingId: uploadResult.embeddingId,
               productsUpdated: uploadResult.productsUpdated,
             };
-            console.log('[SmartChatProcessor] 文件上传持久化成功:', uploadInfo);
           } else {
             console.error('[SmartChatProcessor] 文件上传持久化失败:', uploadResult.error);
           }
@@ -163,7 +156,6 @@ export class SmartChatProcessor {
       }
       priceContextInfo = formatProductsAsContext(intentResult, userInput);
       enhancedInput += priceContextInfo;
-      console.log('[SmartChatProcessor] 意图管道命中，找到', intentResult.products.length, '个产品, matchLevel=', intentResult.matchLevel);
     }
 
     // 3. 使用 LLM 智能理解并生成响应
@@ -185,7 +177,6 @@ export class SmartChatProcessor {
         content: dataResponse + '\n\n' + (aiSuggestion.content || ''),
         metadata: aiSuggestion.metadata,
       };
-      console.log('[SmartChatProcessor] 数据库精确模式：产品数据由代码构建，AI 仅生成建议');
     } else {
       // 无数据库匹配，走正常 AI 生成流程
       response = await this.generateSmartResponse(enhancedInput, context, processedInput);
@@ -194,7 +185,6 @@ export class SmartChatProcessor {
       if (priceContextInfo) {
         const correctedContent = this.correctPriceHallucination(response.content, priceContextInfo);
         if (correctedContent !== response.content) {
-          console.log('[SmartChatProcessor] 价格校验：检测到AI幻觉，已自动修正回复中的价格');
           response.content = correctedContent;
         }
       }
@@ -220,7 +210,6 @@ export class SmartChatProcessor {
     }
 
     // 6. 返回响应
-    console.log('[SmartChatProcessor] ========== 智能处理完成 ==========');
     return {
       ...response,
       metadata: returnMetadata,
@@ -235,7 +224,6 @@ export class SmartChatProcessor {
     context: ConversationContext,
     processedInput?: ProcessedInput
   ): Promise<SmartResponse> {
-    console.log('[SmartChatProcessor] 调用 LLM 进行语义理解...');
 
     // 构建对话历史
     const historyText = this.formatHistoryForLLM(context.history);
@@ -251,9 +239,6 @@ export class SmartChatProcessor {
         { role: 'user', content: userInput },
       ] as Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
 
-      console.log('[SmartChatProcessor] 发送给 LLM 的消息数:', messages.length);
-      console.log('[SmartChatProcessor] System Prompt 长度:', systemPrompt.length);
-      console.log('[SmartChatProcessor] User Input:', userInput);
 
       const aiResponse = await callDeepSeekChat({
         messages: messages,
@@ -261,7 +246,6 @@ export class SmartChatProcessor {
         maxTokens: 8192,
       });
 
-      console.log('[SmartChatProcessor] LLM 响应:', aiResponse.text.substring(0, 200));
 
       // 解析 LLM 响应（提取内容和元数据）
       const parsedResponse = this.parseLLMResponse(aiResponse.text);
@@ -877,7 +861,6 @@ export class SmartChatProcessor {
         const oldText = match[0];
         const newText = `| ¥${formattedPrice} |`;
         corrected = corrected.replace(oldText, newText);
-        console.log(`[SmartChatProcessor] 价格修正: ${match[1]} -> ${formattedPrice} (数据库${dbPrice.field}: ${dbPrice.value})`);
       }
     }
 
@@ -899,7 +882,6 @@ export class SmartChatProcessor {
         const oldText = match[0];
         const newText = `| ${formattedPrice} |`;
         corrected = corrected.replace(oldText, newText);
-        console.log(`[SmartChatProcessor] 价格修正: ${match[1]} -> ${formattedPrice} (数据库${dbPrice.field}: ${dbPrice.value})`);
       }
     }
 
@@ -1085,7 +1067,6 @@ export class SmartChatProcessor {
    * 创建测试产品数据（用于调试）
    */
   private createTestProducts(): any[] {
-    console.log('创建测试产品数据');
     return [
       {
         productName: '空压机',

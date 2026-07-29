@@ -255,16 +255,13 @@ export class IntentUnderstanding {
         model: 'gemini',
       });
 
-      console.log('[IntentUnderstanding] Gemini 响应:', response.text.substring(0, 200));
 
       const raw = parseJSON(response.text);
       if (!raw) {
-        console.log('[IntentUnderstanding] JSON 解析失败，降级');
         return this.buildFallbackIntent(trimmed);
       }
 
       const intent = validateIntent(raw);
-      console.log('[IntentUnderstanding] 意图:', intent.type, '产品:', intent.entities.productType, '属性:', JSON.stringify(intent.entities.attributes), '置信度:', intent.confidence);
       return intent;
     } catch (error) {
       console.error('[IntentUnderstanding] Gemini 调用失败:', error);

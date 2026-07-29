@@ -28,7 +28,6 @@ const supabase = createClient(
  * - level: number - 按付费等级筛选（可选）
  */
 export async function GET(request: NextRequest) {
-  console.log('[BrandVendors] GET 获取品牌列表');
 
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -55,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[BrandVendors] 查询失败:', error);
-      return NextResponse.json({ error: '查询失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '查询失败' }, { status: 500 });
     }
 
     return NextResponse.json({ brands: data || [] });
@@ -81,7 +80,6 @@ export async function GET(request: NextRequest) {
  * - is_featured: boolean - 是否为精选品牌（默认false）
  */
 export async function POST(request: NextRequest) {
-  console.log('[BrandVendors] POST 创建新品牌');
 
   try {
     const body = await request.json();
@@ -129,10 +127,9 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[BrandVendors] 插入失败:', error);
-      return NextResponse.json({ error: '创建失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '创建失败' }, { status: 500 });
     }
 
-    console.log('[BrandVendors] ✅ 品牌创建成功:', data.brand_name);
     return NextResponse.json({
       success: true,
       brand: data,

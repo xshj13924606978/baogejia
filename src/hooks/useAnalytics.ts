@@ -229,7 +229,6 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
     const handleBeforeUnload = () => {
       const sessionDuration = Date.now() - sessionStartTimeRef.current.getTime();
       // 这里可以发送会话时长事件
-      console.log('[Analytics] 会话时长:', sessionDuration, 'ms');
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);

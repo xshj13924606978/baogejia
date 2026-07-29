@@ -39,7 +39,6 @@ export class ProductSynonymMapper {
 
   private constructor() {
     this.initializeDefaultMappings();
-    console.log('[ProductSynonymMapper] 同义词映射管理器初始化完成');
   }
 
   /**
@@ -464,7 +463,6 @@ export class ProductSynonymMapper {
       priority: 80
     });
 
-    console.log(`[ProductSynonymMapper] 已加载 ${this.mappings.size} 个同义词映射`);
   }
 
   /**

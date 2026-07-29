@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAuth } from '@/lib/auth-utils';
 
 // GET /api/products - 获取产品列表
 export async function GET(request: NextRequest) {
@@ -13,7 +14,6 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const id = searchParams.get('id');
 
-    console.log('[Products API] GET 请求', { page, limit, search, id });
 
     let query = supabase.from('products').select('*', { count: 'exact' });
 
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('[Products API] 查询失败:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch products', details: error.message },
+        { error: 'Failed to fetch products' },
         { status: 500 }
       );
     }
@@ -65,11 +65,13 @@ export async function GET(request: NextRequest) {
 
 // POST /api/products - 创建产品
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const supabase = getSupabaseClient();
     const body = await request.json();
 
-    console.log('[Products API] POST 请求', body);
 
     // 验证必要字段
     if (!body.name) {
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('[Products API] 创建失败:', error);
       return NextResponse.json(
-        { error: 'Failed to create product', details: error.message },
+        { error: 'Failed to create product' },
         { status: 500 }
       );
     }
@@ -123,11 +125,13 @@ export async function POST(request: NextRequest) {
 
 // PUT /api/products - 更新产品
 export async function PUT(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const supabase = getSupabaseClient();
     const body = await request.json();
 
-    console.log('[Products API] PUT 请求', body);
 
     if (!body.id) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
@@ -157,7 +161,7 @@ export async function PUT(request: NextRequest) {
     if (error) {
       console.error('[Products API] 更新失败:', error);
       return NextResponse.json(
-        { error: 'Failed to update product', details: error.message },
+        { error: 'Failed to update product' },
         { status: 500 }
       );
     }
@@ -175,6 +179,9 @@ export async function PUT(request: NextRequest) {
 
 // DELETE /api/products - 删除产品
 export async function DELETE(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const supabase = getSupabaseClient();
     const { searchParams } = new URL(request.url);
@@ -184,14 +191,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
     }
 
-    console.log('[Products API] DELETE 请求', { id });
 
     const { error } = await supabase.from('products').delete().eq('id', id);
 
     if (error) {
       console.error('[Products API] 删除失败:', error);
       return NextResponse.json(
-        { error: 'Failed to delete product', details: error.message },
+        { error: 'Failed to delete product' },
         { status: 500 }
       );
     }

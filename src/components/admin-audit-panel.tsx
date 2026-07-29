@@ -167,7 +167,7 @@ export default function AdminAuditPanel({ userId, userRole }: AdminAuditPanelPro
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="bg-gradient-to-r from-[#0a4a7a] to-[#2c8c99] text-white">
+        <CardHeader className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white">
           <CardTitle>管理员审核</CardTitle>
           <CardDescription className="text-white/80">审核用户注册和产品上传</CardDescription>
         </CardHeader>
@@ -249,7 +249,7 @@ export default function AdminAuditPanel({ userId, userRole }: AdminAuditPanelPro
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell>{product.brand}</TableCell>
                         <TableCell>{product.model}</TableCell>
-                        <TableCell className="text-[#d32f2f] font-bold">¥{product.price}</TableCell>
+                        <TableCell className="text-brand-danger font-bold">¥{product.price}</TableCell>
                         <TableCell>{product.users?.company}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(product.created_at).toLocaleString('zh-CN')}
@@ -357,7 +357,7 @@ export default function AdminAuditPanel({ userId, userRole }: AdminAuditPanelPro
             <Button
               onClick={handleAudit}
               disabled={submitting || (auditAction === 'reject' && !auditReason)}
-              className={auditAction === 'approve' ? 'bg-[#2c8c99]' : 'bg-red-500'}
+              className={auditAction === 'approve' ? 'bg-brand-secondary' : 'bg-red-500'}
             >
               {submitting ? (
                 '处理中...'

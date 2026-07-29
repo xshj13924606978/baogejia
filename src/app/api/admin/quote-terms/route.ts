@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 报价条款管理 API（管理员）
  */
 
 // GET: 获取全部条款列表
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const db = getSupabaseServiceClient();
     const { data, error } = await db
@@ -46,6 +50,9 @@ export async function GET() {
 
 // POST: 创建条款
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const db = getSupabaseServiceClient();

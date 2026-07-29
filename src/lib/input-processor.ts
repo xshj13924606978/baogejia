@@ -67,7 +67,6 @@ export class InputProcessor {
     // 1. 图片文件 - 使用OCR提取文本
     if (mime.startsWith('image/')) {
       try {
-        console.log('[InputProcessor] 开始处理图片文件:', fileName);
         const ocrHelper = new OcrHelper();
 
         // 使用 OCR 识别图片中的文本
@@ -76,7 +75,6 @@ export class InputProcessor {
         let textContent = '';
         if (ocrResult.text && ocrResult.text.trim().length > 0) {
           textContent = ocrResult.text;
-          console.log('[InputProcessor] OCR 识别成功，文本长度:', textContent.length);
         } else {
           textContent = `[图片文件: ${fileName} - OCR识别失败]`;
           console.warn('[InputProcessor] OCR 识别失败，返回占位符');

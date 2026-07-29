@@ -37,10 +37,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const { isConnected: _isConnected } = useSocket({
     userId: userId || undefined,
     onConnect: () => {
-      console.log('[WebSocketProvider] WebSocket 连接成功');
     },
     onDisconnect: () => {
-      console.log('[WebSocketProvider] WebSocket 断开连接');
     },
     onError: (error: Error) => {
       console.error('[WebSocketProvider] WebSocket 连接错误:', error);

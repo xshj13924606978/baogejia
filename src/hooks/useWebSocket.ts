@@ -37,7 +37,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   // 连接 WebSocket
   const connect = useCallback(() => {
     if (socketRef.current?.connected) {
-      console.log('[WebSocket] 已经连接，跳过重复连接');
       return;
     }
 
@@ -48,7 +47,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:${wsPort}`
         : `ws://localhost:${wsPort}`;
 
-    console.log('[WebSocket] 连接到:', wsUrl);
 
     const socket = io(wsUrl, {
       query: userId ? { userId: userId.toString() } : undefined,
@@ -63,7 +61,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     // 连接成功
     socket.on('connect', () => {
-      console.log('[WebSocket] 连接成功:', socket.id);
       setIsConnected(true);
       onConnect?.();
 
@@ -75,7 +72,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     // 连接断开
     socket.on('disconnect', (reason) => {
-      console.log('[WebSocket] 连接断开:', reason);
       setIsConnected(false);
       onDisconnect?.();
     });
@@ -88,19 +84,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     // 接收通知
     socket.on('notification', (notification) => {
-      console.log('[WebSocket] 收到通知:', notification);
       onNotification?.(notification);
     });
 
     // 接收消息
     socket.on('message', (message) => {
-      console.log('[WebSocket] 收到消息:', message);
       onMessage?.(message);
     });
 
     // 用户上线
     socket.on('user:online', (data) => {
-      console.log('[WebSocket] 用户上线:', data);
       setOnlineUsers((prev) => {
         if (!prev.find((u) => u.user_id === data.userId)) {
           return [...prev, { user_id: data.userId }];
@@ -112,27 +105,23 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     // 用户离线
     socket.on('user:offline', (data) => {
-      console.log('[WebSocket] 用户离线:', data);
       setOnlineUsers((prev) => prev.filter((u) => u.user_id !== data.userId));
       onUserOffline?.(data.userId);
     });
 
     // 消息已读
     socket.on('message:read', (data) => {
-      console.log('[WebSocket] 消息已读:', data);
       onMessageRead?.(data);
     });
 
     // 在线用户列表
     socket.on('online_users', (users) => {
-      console.log('[WebSocket] 在线用户列表:', users);
       setOnlineUsers(users);
       onOnlineUsers?.(users);
     });
 
     // 心跳响应
     socket.on('pong', () => {
-      console.log('[WebSocket] 心跳响应');
     });
 
     // 启动心跳
@@ -160,7 +149,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   // 断开连接
   const disconnect = useCallback(() => {
     if (socketRef.current) {
-      console.log('[WebSocket] 主动断开连接');
       socketRef.current.disconnect();
       socketRef.current = null;
       setIsConnected(false);

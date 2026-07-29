@@ -59,9 +59,8 @@ class SocketServer {
       port = 6000,
       cors = {
         origin: [
-          'http://localhost:5000',
+          process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000',
           'http://localhost:3000',
-          'https://eea906de-e74a-496b-a0fb-ee58e7165f0d.dev.coze.site',
         ],
         credentials: true,
       },
@@ -80,7 +79,6 @@ class SocketServer {
     this.setupEventHandlers();
     this.startHeartbeat();
 
-    console.log(`[Socket Server] Socket.IO 服务器已启动，端口: ${port}`);
   }
 
   /**
@@ -90,7 +88,6 @@ class SocketServer {
     if (!this.io) return;
 
     this.io.on('connection', (socket) => {
-      console.log(`[Socket Server] 客户端连接: ${socket.id}`);
 
       // 用户加入
       socket.on('join', (data: { userId: number; username?: string; avatar?: string }) => {
@@ -120,7 +117,6 @@ class SocketServer {
         // 发送在线用户列表
         this.sendOnlineUsersList();
 
-        console.log(`[Socket Server] 用户 ${userId} (${username}) 已加入`);
       });
 
       // 用户状态更新
@@ -137,7 +133,6 @@ class SocketServer {
             status: user.status,
           });
 
-          console.log(`[Socket Server] 用户 ${user.userId} 状态更新: ${data.status}`);
         }
       });
 
@@ -168,10 +163,6 @@ class SocketServer {
             timestamp: new Date(),
           });
         }
-
-        console.log(
-          `[Socket Server] 消息发送: ${type} from ${sender.userId} ${to ? `to ${to}` : 'broadcast'}`
-        );
       });
 
       // 消息已读
@@ -186,10 +177,6 @@ class SocketServer {
           userId: user.userId,
           readAt: new Date(),
         });
-
-        console.log(
-          `[Socket Server] 消息已读: ${data.messageType}/${data.messageId} by ${user.userId}`
-        );
       });
 
       // 通知已读
@@ -204,19 +191,16 @@ class SocketServer {
           readAt: new Date(),
         });
 
-        console.log(`[Socket Server] 通知已读: ${data.notificationId} by ${user.userId}`);
       });
 
       // 加入房间
       socket.on('room:join', (data: { roomId: string }) => {
         socket.join(data.roomId);
-        console.log(`[Socket Server] 客户端 ${socket.id} 加入房间: ${data.roomId}`);
       });
 
       // 离开房间
       socket.on('room:leave', (data: { roomId: string }) => {
         socket.leave(data.roomId);
-        console.log(`[Socket Server] 客户端 ${socket.id} 离开房间: ${data.roomId}`);
       });
 
       // 心跳响应
@@ -242,9 +226,7 @@ class SocketServer {
           // 发送在线用户列表
           this.sendOnlineUsersList();
 
-          console.log(`[Socket Server] 用户 ${user.userId} 断开连接: ${reason}`);
         } else {
-          console.log(`[Socket Server] 客户端 ${socket.id} 断开连接: ${reason}`);
         }
       });
     });
@@ -264,7 +246,6 @@ class SocketServer {
       for (const [userId, user] of this.onlineUsers.entries()) {
         const inactiveTime = now.getTime() - user.lastSeen.getTime();
         if (inactiveTime > timeout) {
-          console.log(`[Socket Server] 用户 ${userId} 超时，标记为离线`);
 
           // 发送断开指令
           this.io.to(user.socketId).emit('disconnect');
@@ -320,7 +301,6 @@ class SocketServer {
     if (!this.io) return;
 
     this.io.to(`user:${userId}`).emit('notification', notification);
-    console.log(`[Socket Server] 发送通知给用户 ${userId}: ${notification.title}`);
   }
 
   /**
@@ -330,7 +310,6 @@ class SocketServer {
     if (!this.io) return;
 
     this.io.emit('notification', notification);
-    console.log(`[Socket Server] 广播通知: ${notification.title}`);
   }
 
   /**
@@ -340,7 +319,6 @@ class SocketServer {
     if (!this.io) return;
 
     this.io.to(`user:${userId}`).emit('message', message);
-    console.log(`[Socket Server] 发送消息给用户 ${userId}`);
   }
 
   /**
@@ -350,7 +328,6 @@ class SocketServer {
     if (!this.io) return;
 
     this.io.emit('message', message);
-    console.log(`[Socket Server] 广播消息`);
   }
 
   /**
@@ -388,7 +365,6 @@ class SocketServer {
       this.io = null;
     }
 
-    console.log('[Socket Server] Socket.IO 服务器已关闭');
   }
 }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { tokenBillingService } from '@/lib/token-billing-service';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 
 /**
  * 等级兑换API
@@ -13,15 +13,9 @@ import { getCurrentUser } from '@/lib/auth-utils';
 export async function GET(request: NextRequest) {
   try {
     // 获取当前用户
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 }
-      );
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
-    console.log('[LevelExchange API] 获取兑换比例');
 
     // 获取兑换比例
     const exchangeRates = await tokenBillingService.getExchangeRates();
@@ -62,13 +56,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // 获取当前用户
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
-      );
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const body = await request.json();
     const { level, days } = body;
@@ -94,7 +83,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[LevelExchange API] 兑换等级:', { userId: currentUser.id, level, days });
 
     // 执行兑换
     const result = await tokenBillingService.exchangePointsForLevel(

@@ -7,8 +7,6 @@ export async function POST(request: NextRequest) {
     const { entryId, approve, type, reason } = await request.json();
     const supabase = getSupabaseClient();
 
-    console.log('[Admin Approve] ========== 开始审核 ==========');
-    console.log('[Admin Approve] 参数:', { entryId, approve, type, reason });
 
     // 验证必要参数
     if (!entryId) {
@@ -50,10 +48,9 @@ export async function POST(request: NextRequest) {
 
       if (error) {
         console.error('[Admin Approve] 知识库审核失败:', error);
-        return NextResponse.json({ error: '审核失败', details: error.message }, { status: 500 });
+        return NextResponse.json({ error: '审核失败' }, { status: 500 });
       }
 
-      console.log(`[Admin Approve] 知识库条目 ${entryId} ${approve ? '通过' : '拒绝'}`);
     }
 
     if (type === 'product') {
@@ -67,10 +64,9 @@ export async function POST(request: NextRequest) {
 
       if (error) {
         console.error('[Admin Approve] 产品审核失败:', error);
-        return NextResponse.json({ error: '审核失败', details: error.message }, { status: 500 });
+        return NextResponse.json({ error: '审核失败' }, { status: 500 });
       }
 
-      console.log(`[Admin Approve] 产品 ${entryId} ${approve ? '通过' : '拒绝'}`);
     }
 
     if (type === 'user') {
@@ -85,13 +81,11 @@ export async function POST(request: NextRequest) {
 
       if (error) {
         console.error('[Admin Approve] 用户审核失败:', error);
-        return NextResponse.json({ error: '审核失败', details: error.message }, { status: 500 });
+        return NextResponse.json({ error: '审核失败' }, { status: 500 });
       }
 
-      console.log(`[Admin Approve] 用户 ${entryId} ${approve ? '通过' : '拒绝'}`);
     }
 
-    console.log('[Admin Approve] ========== 审核完成 ==========');
 
     return NextResponse.json({
       success: true,
@@ -124,7 +118,6 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = (page - 1) * limit;
 
-    console.log('[Admin Approve] GET 请求', { type, page, limit });
 
     // 权限检查
     const userStr = request.cookies.get('user')?.value;

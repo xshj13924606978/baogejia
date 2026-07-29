@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 系统设置 API
@@ -9,6 +10,9 @@ import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
  */
 
 export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const category = request.nextUrl.searchParams.get('category');
     const db = getSupabaseServiceClient();
@@ -22,7 +26,6 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       // 表不存在时返回空数据
-      console.log('[Settings API] site_config 表不存在:', error.message);
       return NextResponse.json({ success: true, data: {}, raw: [] });
     }
 
@@ -49,6 +52,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const { settings } = body;

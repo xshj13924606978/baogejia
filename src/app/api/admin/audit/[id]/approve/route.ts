@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 审核通过 API
  * POST /api/admin/audit/[id]/approve
  */
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const params = await context.params;
     const db = getSupabaseServiceClient();

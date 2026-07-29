@@ -2,11 +2,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { orderService } from '@/lib/order-service';
+import { requireAuth } from '@/lib/auth-utils';
 
 /**
  * GET /api/orders/[id] - 查询订单详情
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const { id } = await params;
 
@@ -37,6 +41,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const { id } = await params;
 

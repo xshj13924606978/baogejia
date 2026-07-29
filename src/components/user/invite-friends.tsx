@@ -106,7 +106,7 @@ export default function InviteFriends({ user }: any) {
     <div className="space-y-4">
       {/* 邀请统计卡片 */}
       <div className="grid grid-cols-4 gap-2">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-2 rounded">
+        <div className="bg-gradient-to-br from-brand-primary to-brand-secondary text-white p-2 rounded">
           <div className="text-xs opacity-90">总邀请</div>
           <div className="text-xl font-bold">{stats.totalInvites}</div>
         </div>

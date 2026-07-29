@@ -120,8 +120,6 @@ export class StreamingLearningEngine {
     this.pendingUpdates = [];
     this.updateTimer = null;
 
-    console.log('[StreamingLearningEngine] 流式学习引擎初始化完成');
-    console.log('[StreamingLearningEngine] 配置:', this.config);
   }
 
   /**
@@ -143,7 +141,6 @@ export class StreamingLearningEngine {
       return;
     }
 
-    console.log('[StreamingLearningEngine] 启动流式学习');
 
     // 启动定时更新
     this.updateTimer = setInterval(() => {
@@ -168,7 +165,6 @@ export class StreamingLearningEngine {
       this.processUpdates();
     }
 
-    console.log('[StreamingLearningEngine] 流式学习已停止');
   }
 
   /**
@@ -194,7 +190,6 @@ export class StreamingLearningEngine {
       this.events.shift();
     }
 
-    console.log(`[StreamingLearningEngine] 记录事件: ${event.type} - ${event.query}`);
 
     // 记录到 ML 引擎
     if (event.feedback) {
@@ -217,11 +212,9 @@ export class StreamingLearningEngine {
    */
   private processUpdates(): void {
     if (this.pendingUpdates.length < this.config.minFeedbackForUpdate) {
-      console.log(`[StreamingLearningEngine] 待更新事件不足（${this.pendingUpdates.length}/${this.config.minFeedbackForUpdate}），跳过更新`);
       return;
     }
 
-    console.log(`[StreamingLearningEngine] 处理 ${this.pendingUpdates.length} 个更新`);
 
     // 分析事件
     const analysis = this.analyzeEvents(this.pendingUpdates);
@@ -273,7 +266,6 @@ export class StreamingLearningEngine {
    * 更新模型权重
    */
   private updateModelWeights(analysis: any): void {
-    console.log('[StreamingLearningEngine] 更新模型权重');
 
     // 计算学习率（自适应）
     const learningRate = this.config.adaptiveLearningRate
@@ -306,7 +298,6 @@ export class StreamingLearningEngine {
     // 更新配置
     this.mlEngine.updateConfig(newWeights);
 
-    console.log('[StreamingLearningEngine] 模型权重已更新:', newWeights);
   }
 
   /**
@@ -335,7 +326,6 @@ export class StreamingLearningEngine {
     const totalEvents = this.events.length;
 
     if (totalEvents >= this.config.retrainingThreshold + this.currentVersion * this.config.retrainingThreshold) {
-      console.log('[StreamingLearningEngine] 触发模型再训练');
       this.retrainModel();
     }
   }
@@ -344,7 +334,6 @@ export class StreamingLearningEngine {
    * 重新训练模型
    */
   private async retrainModel(): Promise<void> {
-    console.log('[StreamingLearningEngine] 开始重新训练模型');
 
     // 创建新版本
     this.currentVersion++;
@@ -371,8 +360,6 @@ export class StreamingLearningEngine {
       this.modelVersions.shift();
     }
 
-    console.log(`[StreamingLearningEngine] 模型再训练完成，版本: v${this.currentVersion}`);
-    console.log('[StreamingLearningEngine] 模型指标:', metrics);
   }
 
   /**
@@ -489,7 +476,6 @@ export class StreamingLearningEngine {
     this.mlEngine.updateConfig(versionInfo.weights);
     this.currentVersion = version;
 
-    console.log(`[StreamingLearningEngine] 已回滚到版本 v${version}`);
     return true;
   }
 
@@ -498,7 +484,6 @@ export class StreamingLearningEngine {
    */
   public updateConfig(config: Partial<LearningConfig>): void {
     this.config = { ...this.config, ...config };
-    console.log('[StreamingLearningEngine] 配置已更新');
   }
 
   /**
@@ -514,7 +499,6 @@ export class StreamingLearningEngine {
   public clearHistory(): void {
     this.events = [];
     this.pendingUpdates = [];
-    console.log('[StreamingLearningEngine] 历史记录已清空');
   }
 }
 

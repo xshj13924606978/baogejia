@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import bcrypt from 'bcrypt';
+import { signSessionToken } from '@/lib/session-token';
 
 // 登录用户
 export async function POST(request: NextRequest) {
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '用户名和密码不能为空' }, { status: 400 });
     }
 
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
 
     // 查询用户（支持用户名、邮箱、手机号登录）
     // 尝试匹配 username / email / metadata.phone 字段
@@ -83,7 +84,6 @@ export async function POST(request: NextRequest) {
             .from('users')
             .update({ password_hash: passwordHash, password: null })
             .eq('id', user.id);
-          console.log('[Login] 密码已自动迁移到bcrypt哈希:', user.username);
         } catch (migrateError) {
           console.error('[Login] 密码迁移失败:', migrateError);
         }
@@ -91,7 +91,6 @@ export async function POST(request: NextRequest) {
     }
     
     if (!isValid) {
-      console.log('[Login] 密码验证失败');
       return NextResponse.json({ error: '用户名或密码错误' }, { status: 401 });
     }
 
@@ -115,21 +114,12 @@ export async function POST(request: NextRequest) {
     // 返回用户信息（不包含密码）
     const { password: _, ...userWithoutPassword } = user;
 
-    console.log(
-      '【登录成功】用户ID:',
-      user.id,
-      '用户名:',
-      user.username,
-      '邮箱:',
-      user.email,
-      '角色:',
-      user.role,
-      '等级:',
-      levelData?.level || 1
-    );
+    // 签发 session token（HMAC签名，防伪造）
+    const sessionToken = signSessionToken(user.id, user.email || '', user.role || 'user', 7 * 24 * 3600);
 
     return NextResponse.json({
       success: true,
+      sessionToken,
       user: {
         ...userWithoutPassword,
         level: levelData?.level || 1,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userLevelService } from '@/lib/user-level-service';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 管理员角色列表
@@ -115,13 +115,8 @@ const DEFAULT_LEVELS = [
 export async function GET(request: NextRequest) {
   try {
     // 获取当前用户
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 }
-      );
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = getSupabaseClient();
     let role: string | null = null;
@@ -135,7 +130,6 @@ export async function GET(request: NextRequest) {
     
     if (!profileError && profile?.metadata?.role) {
       role = profile.metadata.role;
-      console.log('[AdminLevels API] 从 profiles 获取到角色:', role);
     }
     
     // 方法2：如果 profiles 没有，尝试从 users 表获取
@@ -148,26 +142,22 @@ export async function GET(request: NextRequest) {
       
       if (!userError && user?.metadata?.role) {
         role = user.metadata.role;
-        console.log('[AdminLevels API] 从 users 获取到角色:', role);
       }
     }
     
     // 方法3：开发环境默认给予管理员权限
     if (!role && process.env.NODE_ENV === 'development') {
       role = '超级管理员';
-      console.log('[AdminLevels API] 开发环境，默认角色:', role);
     }
 
     // 检查管理员权限
     if (!role || !ADMIN_ROLES.includes(role)) {
-      console.log('[AdminLevels API] 权限不足，当前角色:', role);
       return NextResponse.json(
         { error: '无权限，需要管理员权限' },
         { status: 403 }
       );
     }
 
-    console.log('[AdminLevels API] 获取所有等级配置, 用户角色:', role);
 
     // 获取所有等级配置（1-5级）
     const levels = [];
@@ -178,13 +168,11 @@ export async function GET(request: NextRequest) {
           levels.push(config);
         }
       } catch (err) {
-        console.log(`[AdminLevels API] 获取等级 ${i} 配置失败，使用默认值`);
       }
     }
 
     // 如果数据库没有配置，使用默认配置
     if (levels.length === 0) {
-      console.log('[AdminLevels API] 使用默认等级配置');
       return NextResponse.json({
         success: true,
         levels: DEFAULT_LEVELS,

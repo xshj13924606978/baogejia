@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: originalId } = await params;
-  console.log('[Conversations/[id]/reuse] POST 请求，原ID:', originalId);
 
   try {
-    const user = await getCurrentUser(request);
-    if (!user) {
-      console.error('[Conversations/[id]/reuse] 用户未认证');
-      return NextResponse.json({ error: '未认证' }, { status: 401 });
-    }
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,7 +53,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: '创建失败' }, { status: 500 });
     }
 
-    console.log('[Conversations/[id]/reuse] 复用成功, 新ID:', data.id, ', user_id:', user.id);
 
     return NextResponse.json({
       conversation: {

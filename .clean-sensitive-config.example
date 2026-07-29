@@ -1,0 +1,19 @@
+# .clean-sensitive-config — Git 敏感历史清除自定义配置
+# 放在项目根目录，脚本会自动读取
+#
+# 用法：
+#   1. 每行写一个要删除的文件路径（精确匹配）
+#   2. 以 # 开头的是注释
+#   3. 以 REPLACE: 开头的是内容替换规则（格式：文件路径:查找内容:替换内容）
+#
+# 示例：
+
+# ----- 要删除的文件 -----
+# src/lib/config-secrets.ts
+# nginx/ssl/private.key
+# scripts/deploy-prod.sh
+
+# ----- 内容替换规则 -----
+# 将文件中的敏感字符串替换为占位符（文件不会被删除）
+# REPLACE:.env.example:YOUR_API_KEY:YOUR_API_KEY
+# REPLACE:config.ts:password = 'YOUR_DATABASE_PASSWORD':password = 'YOUR_PASSWORD'

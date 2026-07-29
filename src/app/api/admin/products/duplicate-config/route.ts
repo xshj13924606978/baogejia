@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 // GET: 获取判重配置
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const db = getSupabaseServiceClient();
 
@@ -40,6 +44,9 @@ export async function GET() {
 
 // PUT: 更新判重配置
 export async function PUT(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const db = getSupabaseServiceClient();

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 import { hasPermission } from '@/lib/auth/roles';
 
 /**
@@ -15,10 +15,8 @@ import { hasPermission } from '@/lib/auth/roles';
 // GET - 获取规则列表
 export async function GET(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 });
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     if (!hasPermission(currentUser, 'admin.manage_points_rules')) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
@@ -88,10 +86,8 @@ export async function GET(request: NextRequest) {
 // POST - 创建新规则
 export async function POST(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 });
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     // 仅 super_admin 可创建规则
     if (!hasPermission(currentUser, 'admin.manage_points_rules')) {

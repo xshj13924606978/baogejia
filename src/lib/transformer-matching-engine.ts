@@ -92,8 +92,6 @@ export class TransformerMatchingEngine {
     this.trained = false;
     this.modelWeights = new Map();
 
-    console.log('[TransformerMatchingEngine] Transformer 匹配引擎初始化完成');
-    console.log('[TransformerMatchingEngine] 配置:', this.config);
   }
 
   /**
@@ -110,13 +108,11 @@ export class TransformerMatchingEngine {
    * 初始化模型
    */
   public async initialize(): Promise<void> {
-    console.log('[TransformerMatchingEngine] 初始化模型...');
 
     // 初始化模型权重
     this.initializeWeights();
 
     this.trained = true;
-    console.log('[TransformerMatchingEngine] 模型初始化完成');
   }
 
   /**
@@ -137,7 +133,6 @@ export class TransformerMatchingEngine {
       this.modelWeights.set(`layer${i}_ffw2`, ffw2);
     }
 
-    console.log('[TransformerMatchingEngine] 模型权重初始化完成');
   }
 
   /**
@@ -171,7 +166,6 @@ export class TransformerMatchingEngine {
       await this.initialize();
     }
 
-    console.log('[TransformerMatchingEngine] 执行 Transformer 匹配');
 
     // 获取所有产品特征
     const products = await this.featureIndex.getAllFeatures();
@@ -211,7 +205,6 @@ export class TransformerMatchingEngine {
     // 按分数排序
     scores.sort((a, b) => b.score - a.score);
 
-    console.log(`[TransformerMatchingEngine] 匹配完成，找到 ${scores.length} 个候选产品`);
 
     return scores;
   }
@@ -475,7 +468,6 @@ export class TransformerMatchingEngine {
    */
   public updateConfig(config: Partial<TransformerConfig>): void {
     this.config = { ...this.config, ...config };
-    console.log('[TransformerMatchingEngine] 配置已更新');
   }
 
   /**

@@ -177,7 +177,7 @@ export default function EnterprisePage() {
         <Card>
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-lg flex items-center justify-center">
                 <Building2 className="h-8 w-8 text-white" />
               </div>
             </div>

@@ -176,8 +176,6 @@ export class ABTestingFramework {
       }
     });
 
-    console.log('[ABTestingFramework] A/B 测试框架初始化完成');
-    console.log('[ABTestingFramework] 支持的算法:', this.config.algorithms.filter(a => a.enabled).map(a => a.name));
   }
 
   /**
@@ -272,7 +270,6 @@ export class ABTestingFramework {
 
       if (hash < cumulativeWeight) {
         this.userGroups.set(userId, algo.type);
-        console.log(`[ABTestingFramework] 用户 ${userId} 分配到 ${algo.name}`);
         return algo.type;
       }
     }
@@ -544,7 +541,6 @@ export class ABTestingFramework {
 
       if (result) {
         result.userFeedback = feedback;
-        console.log(`[ABTestingFramework] 记录反馈: ${algorithm} - ${feedback}`);
       }
     }
   }
@@ -616,7 +612,6 @@ export class ABTestingFramework {
       return currentScore > bestScore ? current : best;
     });
 
-    console.log(`[ABTestingFramework] 推荐算法: ${best.name} (匹配率: ${(best.matchRate * 100).toFixed(1)}%, NPS: ${(best.netPromoterScore * 100).toFixed(1)}%)`);
 
     return best.type;
   }
@@ -639,7 +634,6 @@ export class ABTestingFramework {
    */
   public updateConfig(config: Partial<ABTestConfig>): void {
     this.config = { ...this.config, ...config };
-    console.log('[ABTestingFramework] 配置已更新');
   }
 
   /**
@@ -664,7 +658,6 @@ export class ABTestingFramework {
       }
     });
 
-    console.log('[ABTestingFramework] 测试结果已清空');
   }
 }
 

@@ -239,6 +239,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (updatedDbUser && updatedDbUser.supabaseId !== data.user.id) {
           saveUserToDB({ ...updatedDbUser, supabaseId: data.user.id });
         }
+        // 保存 HMAC 签名的 session token（安全认证）
+        if (data.sessionToken) {
+          localStorage.setItem('session_token', data.sessionToken);
+        }
       }
     } catch (e) {
       console.error('[syncToSupabase] 同步失败（不影响主流程）:', e);
@@ -316,30 +320,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const users = localStorage.getItem(STORAGE_KEYS.USERS_DB);
     if (!users) {
-      const defaultUsers = [
-        {
-          id: 'default-user-1',
-          email: 'test@example.com',
-          phone: '13800138000',
-          password: 'password123',
-          name: '测试用户',
-          role: 'user',
-          emailVerified: true,
-          phoneVerified: true,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'admin-user',
-          email: 'admin@example.com',
-          phone: '13900139000',
-          password: 'admin123',
-          name: '系统管理员',
-          role: 'admin',
-          emailVerified: true,
-          phoneVerified: true,
-          createdAt: new Date().toISOString(),
-        },
-      ];
+      // 不预置任何带密码的用户，空数组即可
+      const defaultUsers: unknown[] = [];
       localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(defaultUsers));
     }
   }, []);
@@ -698,6 +680,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setUser(finalUser);
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(finalUser));
         localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
+        // 保存 HMAC 签名的 session token（安全认证）
+        if (data.sessionToken) {
+          localStorage.setItem('session_token', data.sessionToken);
+        }
 
         return { success: true, user: finalUser };
       }

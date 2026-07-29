@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withPermissionCheck } from '@/lib/permission-check';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 import fs from 'fs';
 import path from 'path';
 
@@ -14,7 +14,6 @@ export const POST = withPermissionCheck(
   { permissions: 'admin.migrate' },
   async (request: NextRequest, _context: any) => {
     try {
-      console.log('[Migration] 开始执行权限系统迁移');
 
       const supabase = getSupabaseClient();
 
@@ -36,7 +35,6 @@ export const POST = withPermissionCheck(
         .map((s) => s.trim())
         .filter((s) => s.length > 0 && !s.startsWith('--') && !s.startsWith('/*'));
 
-      console.log(`[Migration] 共 ${statements.length} 条 SQL 语句`);
 
       const results: Array<{ index: number; success: boolean; error?: string }> = [];
       let successCount = 0;
@@ -61,7 +59,6 @@ export const POST = withPermissionCheck(
               error: error.message});
             errorCount++;
           } else {
-            console.log(`[Migration] ✅ 语句 ${i + 1}/${statements.length}`);
             results.push({ index: i + 1, success: true });
             successCount++;
           }
@@ -80,7 +77,6 @@ export const POST = withPermissionCheck(
         }
       }
 
-      console.log(`[Migration] 完成: ${successCount} 成功, ${errorCount} 失败`);
 
       return NextResponse.json({
         success: errorCount === 0,
@@ -92,7 +88,7 @@ export const POST = withPermissionCheck(
       });
     } catch (error: any) {
       console.error('[Migration] 执行失败:', error);
-      return NextResponse.json({ error: '服务器错误', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '服务器错误' }, { status: 500 });
     }
   }
 );

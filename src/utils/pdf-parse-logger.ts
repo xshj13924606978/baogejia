@@ -94,7 +94,6 @@ class PdfParseLogger {
    */
   public separator(char: string = '=', length: number = 80): void {
     const line = char.repeat(length);
-    console.log(line);
     this.logs.push(line);
   }
 
@@ -103,9 +102,6 @@ class PdfParseLogger {
    */
   public section(title: string): void {
     const line = '='.repeat(80);
-    console.log(`\n${line}`);
-    console.log(`  ${title}`);
-    console.log(`${line}\n`);
     this.logs.push(title);
   }
 
@@ -121,13 +117,10 @@ class PdfParseLogger {
     const indent = '  '.repeat(this.indentLevel);
     const fullMessage = `${indent}${icon} ${message}`;
 
-    console.log(`${timestamp}${fullMessage}`);
 
     if (data && this.config.enableDetailedInfo) {
       if (typeof data === 'object') {
-        console.log(`${indent}  Data:`, JSON.stringify(data, null, 2));
       } else {
-        console.log(`${indent}  Data:`, data);
       }
     }
 

@@ -175,7 +175,6 @@ export class PointsService {
       // 记录积分流水
       await this.logPointRecord(userId, points, type, description || POINTS_RULES[type]?.description || '积分变动', newPoints);
 
-      console.log(`[PointsService] 用户 ${userId} ${points > 0 ? '增加' : '扣除'} ${Math.abs(points)} 积分, 当前: ${newPoints}`);
       return true;
     } catch (error) {
       console.error('[PointsService] 增加积分异常:', error);
@@ -407,10 +406,8 @@ export class PointsService {
 
       if (error) {
         // 表可能不存在，只记录日志
-        console.log(`[PointsService] Token消费: 用户=${userId}, tokens=${tokens}, 积分=${pointsConsumed}`);
       }
     } catch (error) {
-      console.log(`[PointsService] Token消费: 用户=${userId}, tokens=${tokens}, 积分=${pointsConsumed}`);
     }
   }
 
@@ -460,7 +457,6 @@ export class PointsService {
       const type = diff >= 0 ? 'admin_grant' : 'admin_deduct';
       await this.logPointRecord(userId, diff, type, `管理员操作: ${reason}`, points);
 
-      console.log(`[PointsService] 管理员 ${adminId} 设置用户 ${userId} 积分为 ${points}`);
       return { success: true };
     } catch (error) {
       console.error('[PointsService] 管理员设置积分异常:', error);

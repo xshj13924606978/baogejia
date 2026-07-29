@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userLevelService } from '@/lib/user-level-service';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 管理员角色列表
@@ -23,10 +23,8 @@ async function getUserRole(supabase: any, userId: any): Promise<string | null> {
  */
 export async function POST(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = getSupabaseClient();
     const role = await getUserRole(supabase, currentUser.id);
@@ -42,13 +40,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少参数：updates（必须是非空数组）' }, { status: 400 });
     }
 
-    console.log('[AdminLevelsBatch API] 批量更新等级:', updates.length, '个等级');
 
     let result: { success: boolean[]; failed: number[]; errors: string[] } = { success: [], failed: [], errors: [] };
     try {
       result = await userLevelService.batchUpdateLevels(updates, Number(currentUser.id));
     } catch (err) {
-      console.log('[AdminLevelsBatch API] 数据库更新失败（表可能不存在），返回成功');
       result = { success: updates.map(() => true), failed: [], errors: [] };
     }
 

@@ -1420,7 +1420,7 @@ export default function QuoteTable({
   return (
     <div className="export-container bg-white">
       {/* 页眉 - 公司信息 */}
-      <div className="bg-gradient-to-r from-[#0a4a7a] to-[#2c8c99] px-6 py-5">
+      <div className="bg-gradient-to-r from-brand-primary to-brand-secondary px-6 py-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             {actualSupplierInfo?.logoUrl ? (
@@ -1431,7 +1431,7 @@ export default function QuoteTable({
               />
             ) : (
               <div className="p-2 bg-white/20 rounded-lg">
-                <Building2 className="h-8 w-8 text-[#f9a825]" />
+                <Building2 className="h-8 w-8 text-brand-accent" />
               </div>
             )}
             <div>
@@ -1486,7 +1486,7 @@ export default function QuoteTable({
                       size="sm"
                       onClick={handleFillPrices}
                       disabled={fillPricesLoading}
-                      className="border-[#f9a825] text-[#f9a825] hover:bg-[#f9a825] hover:text-white"
+                      className="border-brand-accent text-brand-accent hover:bg-brand-accent hover:text-white"
                     >
                       {fillPricesLoading ? (
                         <>
@@ -1517,7 +1517,7 @@ export default function QuoteTable({
                     size="sm"
                     onClick={handleSearchAllMarketPrices}
                     disabled={isSearchingAll}
-                    className="border-[#2c8c99] text-[#2c8c99] hover:bg-[#2c8c99] hover:text-white"
+                    className="border-brand-secondary text-brand-secondary hover:bg-brand-secondary hover:text-white"
                   >
                     {isSearchingAll ? (
                       <>
@@ -1654,7 +1654,7 @@ export default function QuoteTable({
               />
             ) : (
               <div
-                className="text-sm font-medium cursor-pointer hover:text-[#0a4a7a] hover:underline flex items-center gap-1 group"
+                className="text-sm font-medium cursor-pointer hover:text-brand-primary hover:underline flex items-center gap-1 group"
                 onClick={() => handleProjectFieldEdit('name', quoteData?.customerInfo?.name || '')}
               >
                 {quoteData?.customerInfo?.name || '未填写'}
@@ -1677,7 +1677,7 @@ export default function QuoteTable({
               />
             ) : (
               <div
-                className="text-sm font-medium cursor-pointer hover:text-[#0a4a7a] hover:underline flex items-center gap-1 group"
+                className="text-sm font-medium cursor-pointer hover:text-brand-primary hover:underline flex items-center gap-1 group"
                 onClick={() =>
                   handleProjectFieldEdit('projectName', quoteData?.customerInfo?.projectName || '')
                 }
@@ -1705,7 +1705,7 @@ export default function QuoteTable({
                   />
                 ) : (
                   <div
-                    className="text-sm font-medium cursor-pointer hover:text-[#0a4a7a] hover:underline flex items-center gap-1 group"
+                    className="text-sm font-medium cursor-pointer hover:text-brand-primary hover:underline flex items-center gap-1 group"
                     onClick={() => handleCustomFieldEdit(fieldIndex, field.value)}
                   >
                     {field.value || '-'}
@@ -1760,7 +1760,7 @@ export default function QuoteTable({
           style={{ maxHeight: '600px' }}
         >
           <Table className="config-table" style={{ tableLayout: 'fixed', width: '100%' }}>
-            <TableHeader className="bg-[#0a4a7a] sticky top-0 z-10">
+            <TableHeader className="bg-brand-primary sticky top-0 z-10">
               <TableRow>
                 {columns
                   .filter((col) => selectedColumns.includes(col.key))
@@ -1894,7 +1894,7 @@ export default function QuoteTable({
                                   {(product.parameter_description?.length || 0) > 100 && (
                                     <button
                                       onClick={() => toggleRowExpand(safeIndex)}
-                                      className="text-[#2c8c99] hover:text-[#1e6a73] ml-1 flex-shrink-0"
+                                      className="text-brand-secondary hover:text-brand-secondary/70 ml-1 flex-shrink-0"
                                     >
                                       {isExpanded ? (
                                         <ChevronUp className="h-3.5 w-3.5" />
@@ -1962,14 +1962,14 @@ export default function QuoteTable({
                                     onChange={(e) => handleQuantityChange(e.target.value)}
                                     onBlur={() => handleQuantitySave(safeIndex)}
                                     onKeyDown={(e) => handleKeyDown(e, safeIndex, 'quantity')}
-                                    className="w-20 h-8 px-2 text-center text-sm cursor-pointer focus:ring-2 focus:ring-[#0a4a7a]"
+                                    className="w-20 h-8 px-2 text-center text-sm cursor-pointer focus:ring-2 focus:ring-brand-primary"
                                     autoFocus
                                     min="0.01"
                                     step="0.01"
                                   />
                                 ) : (
                                   <div
-                                    className="cursor-pointer hover:text-[#0a4a7a] hover:underline px-2 py-1 text-sm"
+                                    className="cursor-pointer hover:text-brand-primary hover:underline px-2 py-1 text-sm"
                                     onClick={() =>
                                       handleQuantityEdit(safeIndex, product.quantity || 1)
                                     }
@@ -1992,14 +1992,14 @@ export default function QuoteTable({
                                     onChange={(e) => handlePriceChange(e.target.value)}
                                     onBlur={() => handlePriceSave(safeIndex)}
                                     onKeyDown={(e) => handleKeyDown(e, safeIndex, 'price')}
-                                    className="w-24 h-8 px-2 text-right text-sm cursor-pointer focus:ring-2 focus:ring-[#0a4a7a]"
+                                    className="w-24 h-8 px-2 text-right text-sm cursor-pointer focus:ring-2 focus:ring-brand-primary"
                                     autoFocus
                                     min="0"
                                     step="0.01"
                                   />
                                 ) : (
                                   <div
-                                    className="cursor-pointer hover:text-[#0a4a7a] hover:underline px-2 py-1 font-bold text-[#d32f2f] text-sm"
+                                    className="cursor-pointer hover:text-brand-primary hover:underline px-2 py-1 font-bold text-brand-danger text-sm"
                                     onClick={() =>
                                       handlePriceEdit(safeIndex, product.unitPrice || 0)
                                     }
@@ -2025,14 +2025,14 @@ export default function QuoteTable({
                                 className="text-right py-3 px-4"
                               >
                                 {marketData?.loading ? (
-                                  <div className="flex items-center justify-end gap-2 text-[#2c8c99]">
+                                  <div className="flex items-center justify-end gap-2 text-brand-secondary">
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                     <span className="text-sm">搜索中</span>
                                   </div>
                                 ) : marketData?.data ? (
                                   <div className="text-right space-y-2">
                                     <div>
-                                      <div className="font-semibold text-[#2c8c99] text-sm">
+                                      <div className="font-semibold text-brand-secondary text-sm">
                                         {(() => {
                                           const data = marketData.data;
                                           const priceValue =
@@ -2091,7 +2091,7 @@ export default function QuoteTable({
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="h-8 w-8 p-0 text-[#2c8c99]"
+                                          className="h-8 w-8 p-0 text-brand-secondary"
                                           onClick={() => handleSearchMarketPrice(safeIndex)}
                                         >
                                           <Search className="h-4 w-4" />
@@ -2334,7 +2334,7 @@ export default function QuoteTable({
               <Separator className="my-2" />
               <div className="flex justify-between font-bold text-base">
                 <span>总计（含税）：</span>
-                <span className="text-[#d32f2f]">{formatCurrency(totalAmount)}</span>
+                <span className="text-brand-danger">{formatCurrency(totalAmount)}</span>
               </div>
               <div className="flex justify-between text-xs text-slate-500">
                 <span>大写金额：</span>

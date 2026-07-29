@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * GET - 获取报价单列表
  * 支持分页、状态筛选、搜索
  */
 export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const keyword = searchParams.get('keyword') || '';
@@ -92,6 +96,9 @@ export async function GET(request: NextRequest) {
  * POST - 创建报价单
  */
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const { quoteNumber, products, feeConfig, customerInfo, terms } = body;

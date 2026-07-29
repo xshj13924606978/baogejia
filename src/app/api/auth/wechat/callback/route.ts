@@ -3,32 +3,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { oauthService } from '@/lib/oauth-service';
 import { OAuthProvider } from '@/types/oauth';
-
-// 模拟用户数据
-const mockUsers = [
-  {
-    id: 1,
-    username: 'admin',
-    password: '123456',
-    email: 'admin@example.com',
-    nickname: '管理员',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
-    role: 'admin',
-    points: 10000,
-    created_at: new Date(),
-  },
-  {
-    id: 2,
-    username: 'user',
-    password: '123456',
-    email: 'user@example.com',
-    nickname: '普通用户',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=user',
-    role: 'user',
-    points: 100,
-    created_at: new Date(),
-  },
-];
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import bcrypt from 'bcrypt';
 
 /**
  * GET /api/auth/wechat/callback - 处理微信登录回调
@@ -59,7 +35,14 @@ export async function GET(request: NextRequest) {
 
     if (binding) {
       // 已绑定，直接登录
-      const user = mockUsers.find((u) => u.id === binding.user_id);
+      const db = getSupabaseServiceClient();
+      const { data: user } = await db
+        .from('users')
+        .select('id')
+        .eq('id', binding.user_id)
+        .eq('status', 'active')
+        .single();
+
       if (user) {
         return NextResponse.redirect(
           `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000'}/login?success=true&provider=wechat`

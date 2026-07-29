@@ -165,7 +165,6 @@ export default function CustomerListPanel({
   // 添加新客户
   const handleAddCustomer = async (customerData: Omit<Customer, 'id'>) => {
     try {
-      console.log('[CustomerListPanel] 添加客户:', customerData);
 
       const response = await fetch('/api/customers', {
         method: 'POST',
@@ -175,7 +174,6 @@ export default function CustomerListPanel({
 
       if (response.ok) {
         const data = await response.json();
-        console.log('[CustomerListPanel] 添加成功:', data);
         setCustomers([...customers, toCustomer(data.customer)]);
         setShowAddDialog(false);
         toast({

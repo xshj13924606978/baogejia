@@ -110,8 +110,6 @@ export class MLMatchingEngine {
     this.totalMatches = 0;
     this.successMatches = 0;
 
-    console.log('[MLMatchingEngine] 机器学习匹配引擎初始化完成');
-    console.log('[MLMatchingEngine] 配置:', this.config);
   }
 
   /**
@@ -133,7 +131,6 @@ export class MLMatchingEngine {
     model?: string,
     params?: string
   ): Promise<MatchPrediction[]> {
-    console.log(`[MLMatchingEngine] 开始匹配: "${query}"`);
 
     // 获取所有产品特征
     const products = await this.featureIndex.getAllFeatures();
@@ -177,7 +174,6 @@ export class MLMatchingEngine {
     // 按得分排序
     predictions.sort((a, b) => b.score - a.score);
 
-    console.log(`[MLMatchingEngine] 匹配完成，找到 ${predictions.length} 个候选产品`);
 
     return predictions;
   }
@@ -539,7 +535,6 @@ export class MLMatchingEngine {
       this.history.shift();
     }
 
-    console.log(`[MLMatchingEngine] 记录匹配: ${productName} - ${success ? '成功' : '失败'}`);
   }
 
   /**
@@ -564,7 +559,6 @@ export class MLMatchingEngine {
    */
   public updateConfig(config: Partial<ModelConfig>): void {
     this.config = { ...this.config, ...config };
-    console.log('[MLMatchingEngine] 配置已更新:', this.config);
   }
 
   /**
@@ -581,7 +575,6 @@ export class MLMatchingEngine {
     this.history = [];
     this.totalMatches = 0;
     this.successMatches = 0;
-    console.log('[MLMatchingEngine] 历史记录已清空');
   }
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { pointsService } from '@/lib/points-service';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 知识条目详情/审核/删除 API（管理员）
@@ -8,6 +9,9 @@ import { pointsService } from '@/lib/points-service';
 
 // GET: 获取单个知识条目详情
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const params = await context.params;
     const db = getSupabaseServiceClient();
@@ -74,6 +78,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
 // PATCH: 更新条目（审核/编辑）
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const params = await context.params;
     const body = await request.json();
@@ -149,6 +156,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
 // DELETE: 删除知识条目（同时删除 Storage 中的文件）
 export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const params = await context.params;
     const db = getSupabaseServiceClient();

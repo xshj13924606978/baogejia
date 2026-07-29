@@ -297,7 +297,7 @@ export default function AnalyticsPage() {
                     </div>
                     <div className="relative h-12 bg-gray-100 rounded-lg overflow-hidden">
                       <div
-                        className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
+                        className="absolute top-0 left-0 h-full bg-gradient-to-r from-brand-primary to-brand-secondary transition-all duration-500"
                         style={{ width: `${item.conversionRate}%` }}
                       />
                       <div className="absolute inset-0 flex items-center justify-center text-white font-medium">

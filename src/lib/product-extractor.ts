@@ -139,7 +139,6 @@ export class ProductExtractor {
           if (pattern.test(model)) {
             model = model.replace(pattern, replacement);
             volumeNormalized = true;
-            console.log('[ProductExtractor] LLM 提取的型号容量单位标准化:', result.model, '->', model);
             break;
           }
         }
@@ -151,7 +150,6 @@ export class ProductExtractor {
             const numberMatch = model.match(/(\d+(\.\d+)?)/);
             if (numberMatch) {
               model = numberMatch[1];
-              console.log('[ProductExtractor] LLM 提取的型号已标准化:', result.model, '->', model);
             }
           }
         }
@@ -260,7 +258,6 @@ export class ProductExtractor {
         cleaned = cleaned.replace(keyword, '');
       });
 
-      console.log('[ProductExtractor] 规则提取 - 移除查询词后:', cleaned);
 
       // 3. 提取型号（多种模式，按优先级）
       const patterns = [
@@ -286,7 +283,6 @@ export class ProductExtractor {
           // 提取整个匹配（包含单位），而不是仅数字部分
           // 例如 "5方" 取 "5方"，"100g/h" 取 "100g/h"，"HFC-13" 取 "HFC-13"
           model = modelMatch[0].trim();
-          console.log('[ProductExtractor] 规则提取 - 原始型号:', model);
 
           // 如果包含中文数字，转换为阿拉伯数字（如 "十方" → "10方"、"十五方" → "15方"）
           const chineseNumPattern = /[一二两三四五六七八九十百千万亿]+/;
@@ -294,7 +290,6 @@ export class ProductExtractor {
           if (chineseNumMatch) {
             const converted = this.convertChineseNumber(chineseNumMatch[0]);
             model = model.replace(chineseNumMatch[0], converted);
-            console.log('[ProductExtractor] 规则提取 - 中文数字转换:', model);
           }
 
           // 容量单位标准化：将各种容量单位统一为 "m³"
@@ -322,7 +317,6 @@ export class ProductExtractor {
               }
             }
           }
-          console.log('[ProductExtractor] 规则提取 - 最终型号:', model);
           break;
         }
       }
@@ -332,16 +326,13 @@ export class ProductExtractor {
       if (model && modelMatch) {
         // 移除匹配的整个模式，不仅仅是型号数字
         productName = cleaned.replace(modelMatch[0], '').trim();
-        console.log('[ProductExtractor] 规则提取 - 移除型号后:', productName);
       }
 
       // 5. 清理产品名称（使用增强的清理逻辑）
       productName = this.cleanProductName(productName);
-      console.log('[ProductExtractor] 规则提取 - 清理后产品名称:', productName);
 
       // 6. 验证结果
       if (!productName || productName.length < 2) {
-        console.log('[ProductExtractor] 规则提取失败 - 产品名称无效');
         return null;
       }
 
@@ -364,24 +355,19 @@ export class ProductExtractor {
    * 优先使用 LLM，失败时回退到规则匹配
    */
   static async extract(userInput: string): Promise<ExtractedProduct | null> {
-    console.log('[ProductExtractor] ========== 开始智能提取 ==========');
-    console.log('[ProductExtractor] 用户输入:', userInput);
 
     // 策略1: 使用 LLM 提取（最高优先级）
     const llmResult = await this.extractWithLLM(userInput);
     if (llmResult && llmResult.confidence > 60) {
-      console.log('[ProductExtractor] ✅ LLM 提取成功:', llmResult);
       return llmResult;
     }
 
     // 策略2: 使用规则匹配（回退方案）
     const ruleResult = this.extractWithRules(userInput);
     if (ruleResult) {
-      console.log('[ProductExtractor] ⚠️ 规则提取成功:', ruleResult);
       return ruleResult;
     }
 
-    console.log('[ProductExtractor] ❌ 提取失败');
     return null;
   }
 

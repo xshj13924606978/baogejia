@@ -311,7 +311,6 @@ export class IntentBasedSearch {
       return { products: [], searchStrategy: '无产品类型', confidence: 0, totalScanned: 0, matchLevel: 'none' };
     }
 
-    console.log('[IntentBasedSearch] 开始搜索:', { productType, brand, specs, budget, attributes });
 
     // ═══ SQL 层：宽松获取候选集 ═══
     let query = supabase
@@ -360,7 +359,6 @@ export class IntentBasedSearch {
     }
 
     let candidates = (products || []).map(toIntentProduct);
-    console.log(`[IntentBasedSearch] SQL 候选集: ${candidates.length} 款`);
 
     // ═══ 代码层：四层渐进匹配 ═══
     const { matchLevel, matched, missingInfo } = this.fourLayerMatch(candidates, specs);
@@ -387,10 +385,7 @@ export class IntentBasedSearch {
       ? (matchLevel === 'exact' ? 0.95 : matchLevel === 'partial' ? 0.85 : matchLevel === 'fuzzy' ? 0.75 : 0.6)
       : 0;
 
-    console.log(`[IntentBasedSearch] 最终结果: ${unique.length} 款, matchLevel=${matchLevel}, 策略: ${strategies.join('+')}`);
-    if (missingInfo) console.log(`[IntentBasedSearch] ${missingInfo}`);
     unique.forEach((p, i) => {
-      console.log(`[IntentBasedSearch]   #${i + 1} ${p.name} | ${p.model} | 价格=${p.price} | 参数=${p.parameterDescription?.substring(0, 60)}`);
     });
 
     return {
@@ -427,7 +422,6 @@ export class IntentBasedSearch {
 
     const { enums, numerics, generics, volume } = classifySpecs(specs);
 
-    console.log(`[FourLayer] 条件分类: 枚举${enums.length}项(${enums.map(e => e.key).join(',')}) + 数值${numerics.length}项(${numerics.map(n => n.key).join(',')}) + 通用${generics.length}项(${generics.map(g => g.key).join(',')}) + 容量${volume ? 1 : 0}项`);
 
     // 先应用枚举条件（始终保留）
     const enumFiltered = applyEnumConditions(products, enums);
@@ -438,7 +432,6 @@ export class IntentBasedSearch {
       layer1.forEach(p => { p.matchType = 'exact'; });
       return { matchLevel: 'exact', matched: layer1 };
     }
-    console.log('[FourLayer] 第1层(精确±5%) → 0款');
 
     // ═══ 第2层：部分匹配 — 逐一去掉数值条件 ═══
     // 合并所有数值条件到一个列表（方便逐一去掉）
@@ -471,7 +464,6 @@ export class IntentBasedSearch {
         return { matchLevel: 'partial', matched: layer2, missingInfo: `部分匹配：缺少 ${dropped.key}=${dropped.rawValue} 条件` };
       }
     }
-    console.log('[FourLayer] 第2层(部分匹配) → 0款');
 
     // ═══ 第3层：模糊匹配 — 所有数值条件 ±10% ═══
     const layer3 = applyAllNumericConditions(enumFiltered, numerics, generics, volume, RELAXED_TOLERANCE);
@@ -479,7 +471,6 @@ export class IntentBasedSearch {
       layer3.forEach(p => { p.matchType = 'fuzzy'; });
       return { matchLevel: 'fuzzy', matched: layer3, missingInfo: '模糊匹配：参数容差扩大到±10%' };
     }
-    console.log('[FourLayer] 第3层(模糊±10%) → 0款');
 
     // ═══ 第4层：推荐匹配 — 只保留枚举条件，按价格排序取前5款 ═══
     const layer4Base = enumFiltered.length > 0 ? enumFiltered : products;

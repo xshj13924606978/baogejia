@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * POST - 启用/禁用用户
  * body: { action: 'disable' | 'enable' }
  */
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const params = await context.params;
     const { action } = await request.json();

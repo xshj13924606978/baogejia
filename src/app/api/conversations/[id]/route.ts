@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  console.log('[Conversations/[id]] GET 请求，ID:', id);
 
   try {
-    const user = await getCurrentUser(request);
-    if (!user) {
-      console.error('[Conversations/[id]] 用户未认证');
-      return NextResponse.json({ error: '未认证' }, { status: 401 });
-    }
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,7 +43,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       console.error('[Conversations/[id]] 获取消息失败:', msgError);
     }
 
-    console.log('[Conversations/[id]] 获取到消息数量:', messages?.length || 0);
 
     // 格式化消息，确保包含文件数据
     const formattedMessages = (messages || []).map((msg) => {
@@ -56,7 +51,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
       // 如果有文件数据，打印日志
       if (fileData.length > 0) {
-        console.log(`[Conversations/[id]] 消息 ${msg.id} 包含 ${fileData.length} 个文件`);
       }
 
       return {
@@ -79,7 +73,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       console.error('[Conversations/[id]] 获取文件失败:', filesError);
     }
 
-    console.log('[Conversations/[id]] 总文件数:', files?.length || 0);
 
     // 构建返回数据
     return NextResponse.json({
@@ -103,14 +96,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  console.log('[Conversations/[id]] PATCH 请求，ID:', id);
 
   try {
-    const user = await getCurrentUser(request);
-    if (!user) {
-      console.error('[Conversations/[id]] 用户未认证');
-      return NextResponse.json({ error: '未认证' }, { status: 401 });
-    }
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -170,14 +159,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  console.log('[Conversations/[id]] DELETE 请求，ID:', id);
 
   try {
-    const user = await getCurrentUser(request);
-    if (!user) {
-      console.error('[Conversations/[id]] 用户未认证');
-      return NextResponse.json({ error: '未认证' }, { status: 401 });
-    }
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

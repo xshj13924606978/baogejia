@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userLevelService } from '@/lib/user-level-service';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 管理员角色列表
@@ -26,10 +26,8 @@ export async function GET(
   { params }: { params: Promise<{ level: string }> }
 ) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = getSupabaseClient();
     const role = await getUserRole(supabase, currentUser.id);
@@ -41,13 +39,11 @@ export async function GET(
     const { level } = await params;
     const levelNum = parseInt(level);
 
-    console.log('[AdminLevelHistory API] 获取等级权限修改历史:', levelNum);
 
     let history: any[] = [];
     try {
       history = await userLevelService.getLevelPermissionHistory(levelNum);
     } catch (err) {
-      console.log('[AdminLevelHistory API] 获取历史失败（表可能不存在），返回空数组');
       history = [];
     }
 

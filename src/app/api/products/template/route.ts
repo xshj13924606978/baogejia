@@ -3,7 +3,6 @@ import * as XLSX from 'xlsx';
 
 export async function GET(_request: NextRequest) {
   try {
-    console.log('[Product Template] ========== 下载模板 ==========');
 
     // 创建模板数据
     const data = [
@@ -42,7 +41,6 @@ export async function GET(_request: NextRequest) {
     // 生成Excel文件
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
-    console.log('[Product Template] 模板生成成功，大小:', buffer.length);
 
     // 返回文件
     return new NextResponse(buffer, {

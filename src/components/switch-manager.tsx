@@ -27,7 +27,6 @@ export function SwitchProvider({ children }: { children: ReactNode }) {
   const [generatedChoice, setGeneratedChoice] = useState<string | null>(null);
 
   const setActiveGroup = (groupId: string, files: any[], choice: string) => {
-    console.log('[SwitchContext] 设置活跃组:', groupId, '文件数:', files?.length, '选择:', choice);
     setFileGroupId(groupId);
     setFiles(files || []);
     setCurrentChoice(choice);
@@ -35,7 +34,6 @@ export function SwitchProvider({ children }: { children: ReactNode }) {
   };
 
   const setChoice = (choice: string) => {
-    console.log('[SwitchContext] 设置选择:', choice);
     setCurrentChoice(choice);
   };
 
@@ -44,7 +42,6 @@ export function SwitchProvider({ children }: { children: ReactNode }) {
   };
 
   const resetSwitch = () => {
-    console.log('[SwitchContext] 重置所有状态');
     setFileGroupId(null);
     setFiles([]);
     setCurrentChoice(null);

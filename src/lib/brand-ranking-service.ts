@@ -330,7 +330,6 @@ export class BrandRankingService {
     if (rules.enable_cache && cacheKey) {
       const cached = this.cache.get<RankedBrand[]>(cacheKey);
       if (cached) {
-        console.log('[BrandRanking] 使用缓存数据');
         return cached;
       }
     }

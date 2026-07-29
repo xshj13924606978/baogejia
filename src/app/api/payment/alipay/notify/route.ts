@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
       notifyData[key] = value;
     }
 
-    console.log('[Alipay Notify] 收到支付宝回调:', notifyData);
 
     // 处理支付回调
     const success = await paymentService.handleAlipayNotify(notifyData);
@@ -62,7 +61,6 @@ export async function GET(request: NextRequest) {
       notifyData[key] = value;
     }
 
-    console.log('[Alipay Return] 收到支付宝同步返回:', notifyData);
 
     // 处理支付回调
     const success = await paymentService.handleAlipayNotify(notifyData);

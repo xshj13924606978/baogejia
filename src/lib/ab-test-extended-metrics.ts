@@ -104,7 +104,6 @@ export class ABTestExtendedMetrics {
     this.statsCache = new Map();
     this.cacheExpiry = 300000;  // 5 分钟缓存
 
-    console.log('[ABTestExtendedMetrics] A/B 测试扩展指标引擎初始化完成');
   }
 
   /**
@@ -142,7 +141,6 @@ export class ABTestExtendedMetrics {
     // 清除缓存
     this.clearCache();
 
-    console.log(`[ABTestExtendedMetrics] 记录事件: ${event.type} - ${event.userId} - ${event.algorithm}`);
   }
 
   /**
@@ -489,7 +487,6 @@ export class ABTestExtendedMetrics {
     this.userSessions.clear();
     this.behaviorEvents = [];
     this.statsCache.clear();
-    console.log('[ABTestExtendedMetrics] 历史数据已清空');
   }
 }
 

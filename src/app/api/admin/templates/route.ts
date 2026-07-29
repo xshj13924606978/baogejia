@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withPermissionCheck } from '@/lib/permission-check';
 import { userLevelService } from '@/lib/user-level-service';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
@@ -106,10 +106,8 @@ export const GET = withPermissionCheck(
   async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
-      const currentUser = await getCurrentUser(request);
-      if (!currentUser || !currentUser.id) {
-        return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-      }
+      const { user: currentUser, errorResponse } = await requireAuth(request);
+      if (errorResponse) return errorResponse;
 
       // 查询用户角色
       const supabase = getSupabaseClient();
@@ -129,7 +127,6 @@ export const GET = withPermissionCheck(
         return NextResponse.json({ error: '无权限，需要超级管理员权限' }, { status: 403 });
       }
 
-      console.log('[Templates API] 获取所有权限模板');
 
       return NextResponse.json({
         success: true,
@@ -150,10 +147,8 @@ export const POST = withPermissionCheck(
   async (request: NextRequest, _context: any) => {
     try {
       // 获取当前用户
-      const currentUser = await getCurrentUser(request);
-      if (!currentUser || !currentUser.id) {
-        return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-      }
+      const { user: currentUser, errorResponse } = await requireAuth(request);
+      if (errorResponse) return errorResponse;
 
       // 查询用户角色
       const supabase = getSupabaseClient();
@@ -190,7 +185,6 @@ export const POST = withPermissionCheck(
         return NextResponse.json({ error: '模板不存在' }, { status: 404 });
       }
 
-      console.log('[Templates API] 应用权限模板:', templateName, targetLevels);
 
       // 构建更新列表
       const updates = targetLevels

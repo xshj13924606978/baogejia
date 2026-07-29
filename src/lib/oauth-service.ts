@@ -63,7 +63,6 @@ export class OAuthService {
 
       const qrCodeUrl = `https://open.weixin.qq.com/connect/qrconnect?${params.toString()}`;
 
-      console.log('[OAuthService] 创建微信扫码登录二维码');
 
       return {
         success: true,
@@ -134,7 +133,6 @@ export class OAuthService {
         raw: userData,
       };
 
-      console.log(`[OAuthService] 微信登录成功: ${oauthUser.nickname}`);
       return oauthUser;
     } catch (error) {
       console.error('[OAuthService] 处理微信登录回调失败:', error);
@@ -163,7 +161,6 @@ export class OAuthService {
 
       const authUrl = `https://graph.qq.com/oauth2.0/authorize?${params.toString()}`;
 
-      console.log('[OAuthService] 创建QQ登录授权URL');
 
       return {
         success: true,
@@ -249,7 +246,6 @@ export class OAuthService {
         raw: userData,
       };
 
-      console.log(`[OAuthService] QQ登录成功: ${oauthUser.nickname}`);
       return oauthUser;
     } catch (error) {
       console.error('[OAuthService] 处理QQ登录回调失败:', error);
@@ -287,7 +283,6 @@ export class OAuthService {
 
     this.bindings.set(binding.id, binding);
 
-    console.log(`[OAuthService] 创建OAuth绑定: ${oauthUser.provider} -> 用户${userId}`);
     return binding;
   }
 
@@ -312,7 +307,6 @@ export class OAuthService {
     }
 
     if (found) {
-      console.log(`[OAuthService] 解除OAuth绑定: ${provider} -> 用户${userId}`);
     }
 
     return found;
@@ -397,7 +391,6 @@ export class OAuthService {
    */
   private initMockBindings(): void {
     // 可以在这里初始化一些测试数据
-    console.log('[OAuthService] OAuth服务初始化完成');
   }
 }
 

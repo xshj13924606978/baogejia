@@ -22,15 +22,12 @@ export function cleanParameterDescription(text: string): string {
   const original = text;
   let cleaned = text;
 
-  console.log('🧹 [参数清洗] 开始清洗参数描述');
-  console.log('📥 原始内容:', original);
 
   // 1. 移除 "套X X" 模式（如 "套3 2"、"套 3 2"、"套：3 2"）
   const beforeSetRemoval = cleaned;
   cleaned = cleaned.replace(/\s*套[：:：]?\s*\d+\s*\d+/g, '');
   cleaned = cleaned.replace(/\s*套\d+\s*(?!\d)/g, '');
   if (beforeSetRemoval !== cleaned) {
-    console.log('🗑️ 移除套号信息:', beforeSetRemoval, '→', cleaned);
   }
 
   // 2. 提取所有尺寸规格（φ4000×3000、φ4000×3000mm 等），比较数值去除重复
@@ -50,7 +47,6 @@ export function cleanParameterDescription(text: string): string {
     });
   }
 
-  console.log('📏 发现尺寸规格:', allSizeMatches.map(m => `${m.text} (值: ${m.value})`).join(', '));
 
   // 如果有重复的尺寸值，移除后续重复的
   if (allSizeMatches.length > 1) {
@@ -60,7 +56,6 @@ export function cleanParameterDescription(text: string): string {
     for (const sizeMatch of allSizeMatches) {
       if (seenValues.has(sizeMatch.value)) {
         toRemove.push({ start: sizeMatch.start, end: sizeMatch.end });
-        console.log('⚠️ 发现重复尺寸:', sizeMatch.text, '(值:', sizeMatch.value + ') - 将移除');
       } else {
         seenValues.add(sizeMatch.value);
       }
@@ -70,7 +65,6 @@ export function cleanParameterDescription(text: string): string {
     for (const remove of toRemove.reverse()) {
       const before = cleaned;
       cleaned = cleaned.substring(0, remove.start) + cleaned.substring(remove.end);
-      console.log('🗑️ 移除重复:', before, '→', cleaned);
     }
   }
 
@@ -90,7 +84,6 @@ export function cleanParameterDescription(text: string): string {
     });
   }
 
-  console.log('⚡ 发现功率信息:', allPowerMatches.map(m => `${m.text} (值: ${m.value})`).join(', '));
 
   // 如果有重复的功率值，移除后续重复的
   if (allPowerMatches.length > 1) {
@@ -100,7 +93,6 @@ export function cleanParameterDescription(text: string): string {
     for (const powerMatch of allPowerMatches) {
       if (seenPowerValues.has(powerMatch.value)) {
         powerToRemove.push({ start: powerMatch.start, end: powerMatch.end });
-        console.log('⚠️ 发现重复功率:', powerMatch.text, '(值:', powerMatch.value + ') - 将移除');
       } else {
         seenPowerValues.add(powerMatch.value);
       }
@@ -110,7 +102,6 @@ export function cleanParameterDescription(text: string): string {
     for (const remove of powerToRemove.reverse()) {
       const before = cleaned;
       cleaned = cleaned.substring(0, remove.start) + cleaned.substring(remove.end);
-      console.log('🗑️ 移除重复功率:', before, '→', cleaned);
     }
   }
 
@@ -125,14 +116,6 @@ export function cleanParameterDescription(text: string): string {
 
   // 7. 移除重复的"套"字（如"套套3" → "套3"）
   cleaned = cleaned.replace(/套+/g, '套');
-
-  console.log('✨ 清洗后内容:', cleaned);
-  console.log('📊 清洗统计:', {
-    原长度: original.length,
-    新长度: cleaned.length,
-    减少字符: original.length - cleaned.length,
-    移除内容: original.length - cleaned.length > 0 ? original.replace(cleaned, '[已移除]') : '无'
-  });
 
   return cleaned;
 }

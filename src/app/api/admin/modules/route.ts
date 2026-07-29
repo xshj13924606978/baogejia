@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 // system_modules -> 旧字段映射（兼容 LevelEditor 等旧组件）
 const mapToFront = (row: Record<string, any>) => ({
@@ -22,7 +23,10 @@ const mapToDb = (body: Record<string, any>) => {
 /**
  * GET: 获取功能模块列表
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const db = getSupabaseServiceClient();
 
@@ -47,6 +51,9 @@ export async function GET() {
  * POST: 创建功能模块
  */
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const { module_code, module_name } = body;
@@ -87,6 +94,9 @@ export async function POST(request: NextRequest) {
  * PUT: 更新模块
  */
 export async function PUT(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
 
@@ -118,6 +128,9 @@ export async function PUT(request: NextRequest) {
  * DELETE: 删除模块
  */
 export async function DELETE(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

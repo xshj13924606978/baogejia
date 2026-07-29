@@ -44,7 +44,6 @@ export async function POST() {
 
     if (createError) {
       // 尝试直接用 DDL（rpc 不可用时）
-      console.log('[Migrate site-config] rpc 不可用，跳过建表（可能表已存在）');
     }
 
     // 插入默认配置

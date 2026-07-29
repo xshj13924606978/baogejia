@@ -76,7 +76,6 @@ export function NotificationToast() {
   const playNotificationSound = () => {
     try {
       // 模拟通知声音（不实际播放，避免浏览器限制）
-      console.log('[通知] 播放通知声音');
     } catch (error) {
       console.error('播放通知声音失败:', error);
     }

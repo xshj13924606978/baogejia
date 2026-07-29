@@ -135,7 +135,7 @@ export default function FloatingSwitcher() {
         {/* 圆形主按钮 */}
         <Button
           size="icon"
-          className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+          className="h-10 w-10 rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primary/90 hover:to-brand-secondary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
         >
           <span className="text-lg">{getCurrentIcon()}</span>
         </Button>

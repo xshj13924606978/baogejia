@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * GET - 获取报价单详情
  */
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const params = await context.params;
     const db = getSupabaseServiceClient();
@@ -55,6 +59,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
  * PUT - 更新报价单（状态、内容等）
  */
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const params = await context.params;
     const body = await request.json();
@@ -110,6 +117,9 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
  * DELETE - 删除报价单
  */
 export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const params = await context.params;
     const db = getSupabaseServiceClient();

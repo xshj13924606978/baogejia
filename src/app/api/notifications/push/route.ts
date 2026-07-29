@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
     // 由于 Next.js API 路由与 WebSocket 服务器是独立的，
     // 可以使用 Redis 或其他消息队列来协调
 
-    console.log('[API] 推送通知给用户:', userIds);
 
     return NextResponse.json({
       success: true,

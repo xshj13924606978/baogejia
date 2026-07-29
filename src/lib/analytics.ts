@@ -153,7 +153,6 @@ export class Analytics {
         break;
     }
 
-    console.log('[Analytics] 记录事件:', event.eventType, '用户:', event.userId);
   }
 
   /**
@@ -579,7 +578,6 @@ export class Analytics {
       }
     }
 
-    console.log('[Analytics] 初始化模拟数据完成');
   }
 }
 

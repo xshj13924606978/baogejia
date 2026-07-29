@@ -3,11 +3,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { orderService } from '@/lib/order-service';
 import { CreateOrderRequest, OrderType, PaymentMethod } from '@/types/payment';
+import { requireAuth } from '@/lib/auth-utils';
 
 /**
  * POST /api/orders - 创建订单
  */
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const {
@@ -70,6 +74,9 @@ export async function POST(request: NextRequest) {
  * GET /api/orders - 查询订单列表
  */
 export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const user_id = searchParams.get('user_id');

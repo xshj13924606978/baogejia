@@ -4,7 +4,6 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 // 获取判重配置（获取所有标记为判重的字段）
 export async function GET(_request: NextRequest) {
   try {
-    console.log('[Duplicate Check Config GET] 开始获取判重配置');
     const db = getSupabaseClient();
 
     // 检查表是否存在
@@ -23,7 +22,6 @@ export async function GET(_request: NextRequest) {
       }, { status: 200 });
     }
 
-    console.log('[Duplicate Check Config GET] 表存在，开始获取所有字段配置');
 
     // 获取所有字段配置
     const { data: allFields, error: allFieldsError } = await db
@@ -43,12 +41,10 @@ export async function GET(_request: NextRequest) {
       );
     }
 
-    console.log('[Duplicate Check Config GET] 获取到字段配置:', allFields?.length, '个字段');
 
     // 检查是否有 is_duplicate_check 列
     const hasDuplicateCheckColumn = allFields && allFields.length > 0 && 'is_duplicate_check' in allFields[0];
 
-    console.log('[Duplicate Check Config GET] 是否有 is_duplicate_check 列:', hasDuplicateCheckColumn);
 
     if (!hasDuplicateCheckColumn) {
       console.warn('[Duplicate Check Config GET] 缺少 is_duplicate_check 列，返回空配置');
@@ -83,7 +79,6 @@ export async function GET(_request: NextRequest) {
       );
     }
 
-    console.log('[Duplicate Check Config GET] 获取判重配置成功:', duplicateCheckFields?.length, '个字段');
 
     return NextResponse.json({
       success: true,
@@ -109,11 +104,9 @@ export async function GET(_request: NextRequest) {
 // 批量更新判重配置
 export async function PUT(request: NextRequest) {
   try {
-    console.log('[Duplicate Check Config PUT] 开始更新判重配置');
     const body = await request.json();
     const { duplicateCheckFields } = body;
 
-    console.log('[Duplicate Check Config PUT] 请求参数:', { duplicateCheckFields });
 
     // 验证：至少选择一个判重字段
     if (!duplicateCheckFields || !Array.isArray(duplicateCheckFields) || duplicateCheckFields.length === 0) {
@@ -146,7 +139,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.log('[Duplicate Check Config PUT] 表存在，检查是否有 is_duplicate_check 列');
 
     // 检查是否有 is_duplicate_check 列
     const { data: testData } = await db
@@ -168,10 +160,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.log('[Duplicate Check Config PUT] is_duplicate_check 列存在，开始更新配置');
 
     // 先将所有字段的 is_duplicate_check 设置为 false
-    console.log('[Duplicate Check Config PUT] 第一步：重置所有字段的 is_duplicate_check 为 false');
     const { error: resetError } = await db
       .from('product_field_configs')
       .update({ is_duplicate_check: false, updated_at: new Date().toISOString() })
@@ -188,12 +178,9 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.log('[Duplicate Check Config PUT] 重置成功，第二步：将选中的字段设置为 true');
-    console.log('[Duplicate Check Config PUT] 选中的字段:', duplicateCheckFields);
 
     // 将选中的字段设置为 true
     const promises = duplicateCheckFields.map((fieldKey: string) => {
-      console.log(`[Duplicate Check Config PUT] 更新字段: ${fieldKey} -> is_duplicate_check = true`);
       return db
         .from('product_field_configs')
         .update({
@@ -218,7 +205,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.log('[Duplicate Check Config PUT] 所有字段更新成功');
 
     // 获取更新后的配置
     const { data: updatedFields } = await db
@@ -226,7 +212,6 @@ export async function PUT(request: NextRequest) {
       .select('*')
       .eq('is_duplicate_check', true);
 
-    console.log('[Duplicate Check Config PUT] 获取更新后的配置成功:', updatedFields?.length, '个字段');
 
     return NextResponse.json({
       success: true,

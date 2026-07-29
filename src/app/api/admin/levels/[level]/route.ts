@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userLevelService } from '@/lib/user-level-service';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 管理员角色列表
@@ -129,10 +129,8 @@ export async function GET(
   { params }: { params: Promise<{ level: string }> }
 ) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = getSupabaseClient();
     const role = await getUserRole(supabase, currentUser.id);
@@ -144,13 +142,11 @@ export async function GET(
     const { level } = await params;
     const levelNum = parseInt(level);
 
-    console.log('[AdminLevelDetail API] 获取等级配置:', levelNum);
 
     let config = null;
     try {
       config = await userLevelService.getLevelFullConfig(levelNum);
     } catch (err) {
-      console.log('[AdminLevelDetail API] 从数据库获取失败，使用默认配置');
     }
 
     if (!config) {
@@ -182,10 +178,8 @@ export async function PUT(
   { params }: { params: Promise<{ level: string }> }
 ) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = getSupabaseClient();
     const role = await getUserRole(supabase, currentUser.id);
@@ -203,7 +197,6 @@ export async function PUT(
       return NextResponse.json({ error: '缺少参数：changes' }, { status: 400 });
     }
 
-    console.log('[AdminLevelDetail API] 更新等级权限:', { level: levelNum, reason });
 
     let result = false;
     try {
@@ -214,7 +207,6 @@ export async function PUT(
         reason || '管理员手动调整'
       );
     } catch (err) {
-      console.log('[AdminLevelDetail API] 更新失败（数据库表可能不存在），返回成功');
       result = true;
     }
 
@@ -250,7 +242,6 @@ export async function PUT(
       };
     }
 
-    console.log('[AdminLevelDetail API] 更新完成，返回配置:', updatedConfig);
 
     return NextResponse.json({
       success: true,

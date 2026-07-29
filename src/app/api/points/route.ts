@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAuth } from '@/lib/auth-utils';
 
 // 积分奖励规则
 const POINTS_RULES = {
@@ -16,6 +17,9 @@ const POINTS_RULES = {
 
 // 增加积分
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const { user_id, type, reference_id, description, custom_points } = body;
@@ -27,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 获取积分规则
     const points = custom_points || POINTS_RULES[type as keyof typeof POINTS_RULES] || 0;
@@ -112,6 +116,9 @@ export async function POST(request: NextRequest) {
 
 // 获取用户积分记录
 export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const user_id = searchParams.get('user_id');
@@ -123,7 +130,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 获取用户信息
     const { data: user, error: userError } = await db

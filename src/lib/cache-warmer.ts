@@ -105,7 +105,6 @@ export class CacheWarmer {
     this.isRunning = false;
     this.warmupInterval = null;
 
-    console.log('[CacheWarmer] 缓存预热器初始化完成');
   }
 
   /**
@@ -139,7 +138,6 @@ export class CacheWarmer {
     }
 
     this.isRunning = true;
-    console.log('[CacheWarmer] 启动预热器');
 
     // 启动时预热
     if (this.config.warmupOnStart) {
@@ -151,7 +149,6 @@ export class CacheWarmer {
       this.warmupInterval = setInterval(() => {
         this.autoWarmup();
       }, this.config.interval);
-      console.log(`[CacheWarmer] 自动预热已启动，间隔: ${this.config.interval / 1000} 秒`);
     }
   }
 
@@ -171,14 +168,12 @@ export class CacheWarmer {
       this.warmupInterval = null;
     }
 
-    console.log('[CacheWarmer] 预热器已停止');
   }
 
   /**
    * 启动时预热
    */
   private async warmupOnStartup(): Promise<void> {
-    console.log('[CacheWarmer] 开始启动时预热...');
 
     // 1. 预热热门产品
     await this.warmupPopularProducts();
@@ -189,14 +184,12 @@ export class CacheWarmer {
     // 3. 预热所有产品分类
     await this.warmupAllCategories();
 
-    console.log('[CacheWarmer] 启动时预热完成');
   }
 
   /**
    * 预热热门产品
    */
   private async warmupPopularProducts(): Promise<void> {
-    console.log('[CacheWarmer] 预热热门产品...');
 
     try {
       const products = await this.featureIndex.getAllFeatures();
@@ -215,7 +208,6 @@ export class CacheWarmer {
 
       await this.executeTasks(tasks);
 
-      console.log(`[CacheWarmer] 热门产品预热完成: ${tasks.length} 个产品`);
     } catch (error) {
       console.error('[CacheWarmer] 热门产品预热失败:', error);
     }
@@ -225,7 +217,6 @@ export class CacheWarmer {
    * 预热热门查询
    */
   private async warmupPopularQueries(): Promise<void> {
-    console.log('[CacheWarmer] 预热热门查询...');
 
     try {
       // 获取 Top-K 热门查询
@@ -242,7 +233,6 @@ export class CacheWarmer {
 
       await this.executeTasks(tasks);
 
-      console.log(`[CacheWarmer] 热门查询预热完成: ${tasks.length} 个查询`);
     } catch (error) {
       console.error('[CacheWarmer] 热门查询预热失败:', error);
     }
@@ -252,7 +242,6 @@ export class CacheWarmer {
    * 预热所有产品分类
    */
   private async warmupAllCategories(): Promise<void> {
-    console.log('[CacheWarmer] 预热所有产品分类...');
 
     try {
       const products = await this.featureIndex.getAllFeatures();
@@ -277,7 +266,6 @@ export class CacheWarmer {
 
       await this.executeTasks(tasks);
 
-      console.log(`[CacheWarmer] 产品分类预热完成: ${tasks.length} 个分类`);
     } catch (error) {
       console.error('[CacheWarmer] 产品分类预热失败:', error);
     }
@@ -287,7 +275,6 @@ export class CacheWarmer {
    * 自动预热（定期执行）
    */
   private async autoWarmup(): Promise<void> {
-    console.log('[CacheWarmer] 执行自动预热...');
 
     // 1. 分析查询趋势
     const trendingQueries = this.getTrendingQueries();
@@ -304,7 +291,6 @@ export class CacheWarmer {
 
     await this.executeTasks(tasks);
 
-    console.log(`[CacheWarmer] 自动预热完成: ${tasks.length} 个查询`);
   }
 
   /**
@@ -326,7 +312,6 @@ export class CacheWarmer {
     }
 
     const duration = Date.now() - startTime;
-    console.log(`[CacheWarmer] 任务执行完成: ${tasks.length} 个任务，耗时 ${duration}ms`);
   }
 
   /**
@@ -461,7 +446,6 @@ export class CacheWarmer {
     };
 
     this.tasks.set(task.id, task);
-    console.log(`[CacheWarmer] 添加手动预热任务: ${query}`);
   }
 
   /**
@@ -504,7 +488,6 @@ export class CacheWarmer {
    */
   public updateConfig(config: Partial<WarmupConfig>): void {
     this.config = { ...this.config, ...config };
-    console.log('[CacheWarmer] 配置已更新:', this.config);
 
     // 如果修改了自动预热间隔，重启定时器
     if (config.interval && this.isRunning && this.config.autoWarmup) {
@@ -516,7 +499,6 @@ export class CacheWarmer {
         this.autoWarmup();
       }, this.config.interval);
 
-      console.log(`[CacheWarmer] 自动预热间隔已更新: ${this.config.interval / 1000} 秒`);
     }
   }
 
@@ -534,7 +516,6 @@ export class CacheWarmer {
     this.history = [];
     this.queryFrequency.clear();
     this.tasks.clear();
-    console.log('[CacheWarmer] 历史记录已清空');
   }
 }
 

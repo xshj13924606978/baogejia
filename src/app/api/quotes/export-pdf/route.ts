@@ -108,12 +108,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const data = await request.json();
-    console.log('[ExportPDF] ==========================================');
-    console.log('[ExportPDF] 收到原始数据');
-    console.log('[ExportPDF] 报价单号:', data.quoteNumber);
-    console.log('[ExportPDF] 产品数量:', data.products?.length || 0);
-    console.log('[ExportPDF] 总金额:', data.totalAmount);
-    console.log('[ExportPDF] ==========================================');
 
     const {
       quoteNumber,
@@ -137,7 +131,6 @@ export async function POST(request: NextRequest) {
       throw new Error('产品清单不能为空');
     }
 
-    console.log('[ExportPDF] 数据验证通过');
 
     // 获取联系人信息
     const contactPerson =
@@ -148,7 +141,6 @@ export async function POST(request: NextRequest) {
       projectFields?.find((f: any) => f.name === '电话')?.value || customerInfo.phone || '';
 
     // 预处理产品数据
-    console.log('[ExportPDF] 开始预处理产品数据...');
     const processedProducts = products.map((product: any, index: number) => {
       const processed = {
         ...product,
@@ -159,14 +151,11 @@ export async function POST(request: NextRequest) {
         quantity: product.quantity || 0,
         unitPrice: product.unitPrice || 0,
         totalPrice: product.totalPrice || 0};
-      console.log(`[ExportPDF] 产品${index + 1}:`, processed.name.substring(0, 50));
       return processed;
     });
 
-    console.log('[ExportPDF] 产品数据预处理完成');
 
     // 生成优化的 HTML 模板
-    console.log('[ExportPDF] 开始生成HTML模板...');
     const htmlTemplate = `
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -722,12 +711,8 @@ export async function POST(request: NextRequest) {
 </html>
     `;
 
-    console.log('[ExportPDF] HTML模板生成完成');
-    console.log('[ExportPDF] HTML长度:', htmlTemplate.length, '字符');
 
     // 使用 Puppeteer 生成 PDF
-    console.log('[ExportPDF] ==========================================');
-    console.log('[ExportPDF] 启动Puppeteer浏览器...');
     const browserLaunchStart = Date.now();
 
     const browser = await puppeteer.launch({
@@ -745,23 +730,18 @@ export async function POST(request: NextRequest) {
       ]});
 
     const browserLaunchTime = Date.now() - browserLaunchStart;
-    console.log('[ExportPDF] 浏览器启动耗时:', browserLaunchTime, 'ms');
 
-    console.log('[ExportPDF] 创建新页面...');
     const page = await browser.newPage();
 
     // 设置视口
     await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 2 });
 
-    console.log('[ExportPDF] 设置HTML内容...');
     const setContentStart = Date.now();
     await page.setContent(htmlTemplate, {
       waitUntil: 'networkidle0',
       timeout: 30000});
     const setContentTime = Date.now() - setContentStart;
-    console.log('[ExportPDF] HTML内容设置耗时:', setContentTime, 'ms');
 
-    console.log('[ExportPDF] 开始生成PDF...');
     const pdfStart = Date.now();
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -774,24 +754,13 @@ export async function POST(request: NextRequest) {
         left: '15mm'},
       preferCSSPageSize: true});
     const pdfTime = Date.now() - pdfStart;
-    console.log('[ExportPDF] PDF生成耗时:', pdfTime, 'ms');
 
-    console.log('[ExportPDF] 关闭浏览器...');
     await browser.close();
 
     const totalTime = Date.now() - startTime;
-    console.log('[ExportPDF] ==========================================');
-    console.log('[ExportPDF] PDF生成成功！');
-    console.log('[ExportPDF] PDF大小:', pdfBuffer.length, '字节');
-    console.log('[ExportPDF] 总耗时:', totalTime, 'ms');
-    console.log('[ExportPDF] 浏览器启动:', browserLaunchTime, 'ms');
-    console.log('[ExportPDF] HTML设置:', setContentTime, 'ms');
-    console.log('[ExportPDF] PDF生成:', pdfTime, 'ms');
-    console.log('[ExportPDF] ==========================================');
 
     const fileName = `报价单_${formatText(quoteNumber)}_${new Date().getTime()}.pdf`;
 
-    console.log('[ExportPDF] 准备返回响应，文件名:', fileName);
 
     // 返回PDF文件
     const response = new NextResponse(Buffer.from(pdfBuffer), {
@@ -804,7 +773,6 @@ export async function POST(request: NextRequest) {
         Pragma: 'no-cache',
         Expires: '0'}});
 
-    console.log('[ExportPDF] 响应已准备就绪');
     return response;
   } catch (error) {
     const errorTime = Date.now() - startTime;
@@ -818,8 +786,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'PDF生成失败',
-        message: error instanceof Error ? error.message : '未知错误',
-        details: error instanceof Error ? error.stack : ''},
+        message: error instanceof Error ? error.message : '未知错误'},
       { status: 500 }
     );
   }

@@ -28,7 +28,6 @@ const supabase = createClient(
  * - status: string - 按支付状态筛选（可选）
  */
 export async function GET(request: NextRequest) {
-  console.log('[PaymentRecords] GET 获取付费记录列表');
 
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -54,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[PaymentRecords] 查询失败:', error);
-      return NextResponse.json({ error: '查询失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '查询失败' }, { status: 500 });
     }
 
     return NextResponse.json({ records: data || [] });
@@ -80,7 +79,6 @@ export async function GET(request: NextRequest) {
  * - receipt_url: string - 支付凭证URL（可选）
  */
 export async function POST(request: NextRequest) {
-  console.log('[PaymentRecords] POST 创建新付费记录');
 
   try {
     const body = await request.json();
@@ -123,10 +121,9 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[PaymentRecords] 插入失败:', error);
-      return NextResponse.json({ error: '创建失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '创建失败' }, { status: 500 });
     }
 
-    console.log('[PaymentRecords] ✅ 付费记录创建成功');
     return NextResponse.json({
       success: true,
       record: data,

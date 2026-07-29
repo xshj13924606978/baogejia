@@ -74,7 +74,6 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
   // 当用户数据更新时，设置姓名
   React.useEffect(() => {
-    console.log('[ProfileDialog] 用户数据更新:', user);
     if (user?.name) {
       setName(user.name);
     }

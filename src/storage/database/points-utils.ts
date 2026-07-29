@@ -13,7 +13,7 @@ const POINTS_RULES = {
   redeem: -1 // 兑换消耗
 };
 
-// 增加或减少积分
+// 增加积分（原子操作，使用 exec_sql RPC 执行原子 SQL 避免竞态条件）
 export async function awardPoints(
   userId: number,
   type: string,
@@ -22,6 +22,19 @@ export async function awardPoints(
   description?: string
 ) {
   const db = getSupabaseClient();
+
+  // 原子更新积分（SQL 表达式 points = points + delta，避免 read-then-write 竞态）
+  await db.rpc('exec_sql', {
+    sql: `UPDATE users SET points = GREATEST(COALESCE(points, 0) + ${points}, 0) WHERE id = ${userId};`,
+    params: [],
+  });
+
+  // 读取更新后的值
+  const { data: user } = await db
+    .from('users')
+    .select('points')
+    .eq('id', userId)
+    .single();
 
   // 创建积分记录
   const { data: record, error: recordError } = await db
@@ -40,32 +53,10 @@ export async function awardPoints(
     throw recordError;
   }
 
-  // 更新用户总积分
-  const { data: user, error: userError } = await db
-    .from('users')
-    .select('points')
-    .eq('id', userId)
-    .single();
-
-  if (userError) {
-    throw userError;
-  }
-
-  const newPoints = (user.points || 0) + points;
-
-  const { error: updateError } = await db
-    .from('users')
-    .update({ points: newPoints })
-    .eq('id', userId);
-
-  if (updateError) {
-    throw updateError;
-  }
-
-  return { success: true, newPoints, record };
+  return { success: true, newPoints: user?.points || 0, record };
 }
 
-// 消耗积分（减少积分）
+// 消耗积分（原子操作，同时检查余额是否足够）
 export async function consumePoints(
   userId: number,
   points: number,
@@ -75,22 +66,35 @@ export async function consumePoints(
 ) {
   const db = getSupabaseClient();
 
-  // 检查用户积分是否足够
-  const { data: user, error: userError } = await db
-    .from('users')
-    .select('points')
-    .eq('id', userId)
-    .single();
+  // 原子操作：仅当 points >= 需要消耗的值时才扣减
+  const absPoints = Math.abs(points);
+  const { data: result, error: rpcError } = await db.rpc('exec_sql', {
+    sql: `UPDATE users SET points = points - ${absPoints} WHERE id = ${userId} AND points >= ${absPoints} RETURNING points;`,
+    params: [],
+  });
 
-  if (userError) {
-    throw userError;
-  }
-
-  if ((user.points || 0) < points) {
+  if (rpcError || !result || result.length === 0) {
     throw new Error('积分不足');
   }
 
-  return awardPoints(userId, type, -points, referenceId, description);
+  // 创建积分记录
+  const { data: record, error: recordError } = await db
+    .from('point_records')
+    .insert({
+      user_id: userId,
+      points: -absPoints,
+      type,
+      reference_id: referenceId,
+      description: description || `积分消耗：${type}`
+    })
+    .select()
+    .single();
+
+  if (recordError) {
+    throw recordError;
+  }
+
+  return { success: true, newPoints: (result[0] as any)?.points || 0, record };
 }
 
 // 获取用户当前积分

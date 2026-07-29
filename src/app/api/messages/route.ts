@@ -1,38 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Logger } from '@/lib/logger';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 
 export async function POST(request: NextRequest) {
   Logger.info('[Messages] POST 保存消息');
 
   try {
-    const user = await getCurrentUser(request);
-    if (!user) {
-      Logger.error('[Messages] 用户未认证');
-      return NextResponse.json({ error: '未认证' }, { status: 401 });
-    }
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const body = await request.json();
-    Logger.debug('[Messages] 收到数据', {
-      conversationId: body.conversationId,
-      role: body.role,
-      contentLength: body.content?.length || 0,
-      hasQuoteData: !!body.quoteData,
-      fileCount: body.files?.length || 0,
-    });
-
     const { conversationId, role, content, quoteData, files } = body;
 
     if (!conversationId || !role) {
       Logger.error('[Messages] 缺少必要参数', { conversationId, role });
       return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     // 先检查对话是否存在，不存在则自动创建
     const { data: conversationData, error: checkError } = await supabase
@@ -115,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       Logger.error('[Messages] 插入失败', error);
-      return NextResponse.json({ error: '保存失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '保存失败' }, { status: 500 });
     }
 
     Logger.info('[Messages] 保存成功', { messageId: data.id });
@@ -126,7 +115,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     Logger.error('[Messages] 异常', error);
-    return NextResponse.json({ error: '服务器错误', details: String(error) }, { status: 500 });
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
 
@@ -140,11 +129,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const user = await getCurrentUser(request);
-    if (!user) {
-      Logger.error('[Messages] 用户未认证');
-      return NextResponse.json({ error: '未认证' }, { status: 401 });
-    }
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -195,11 +181,8 @@ export async function PATCH(request: NextRequest) {
   Logger.info('[Messages] PATCH 更新消息');
 
   try {
-    const user = await getCurrentUser(request);
-    if (!user) {
-      Logger.error('[Messages] 用户未认证');
-      return NextResponse.json({ error: '未认证' }, { status: 401 });
-    }
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

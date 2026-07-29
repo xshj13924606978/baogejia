@@ -10,7 +10,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
 
-    console.log('[Wechat Notify] 收到微信支付回调:', body);
 
     // 解析回调数据
     let notifyData;

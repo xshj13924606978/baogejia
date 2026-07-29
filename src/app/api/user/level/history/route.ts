@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userLevelService } from '@/lib/user-level-service';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 
 /**
  * 升级历史API
@@ -11,15 +11,9 @@ import { getCurrentUser } from '@/lib/auth-utils';
 export async function GET(request: NextRequest) {
   try {
     // 获取当前用户
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
-      );
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
-    console.log('[UpgradeHistory API] 获取升级历史:', currentUser.id);
 
     // 获取升级历史
     const history = await userLevelService.getUpgradeHistory(currentUser.id);

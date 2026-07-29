@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
   try {
     // 解析前端发送的数据
     const data = await request.json();
-    console.log('[ExportHTML] 收到数据:', JSON.stringify(data, null, 2));
 
     const {
       quoteNumber,
@@ -445,7 +444,6 @@ export async function POST(request: NextRequest) {
 </html>
     `;
 
-    console.log('[ExportHTML] HTML生成成功，长度:', htmlContent.length);
 
     // 返回 HTML 页面
     return new NextResponse(htmlContent, {

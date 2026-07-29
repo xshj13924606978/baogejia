@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 报价条款详情/更新/删除 API（管理员）
@@ -7,6 +8,9 @@ import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 // PUT: 更新条款
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const params = await context.params;
     const body = await request.json();
@@ -52,6 +56,9 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
 // DELETE: 删除条款
 export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const params = await context.params;
     const db = getSupabaseServiceClient();

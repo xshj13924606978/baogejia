@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 审核管理 API
@@ -13,6 +14,9 @@ import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
  */
 
 export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const { searchParams } = new URL(request.url);
     const auditType = searchParams.get('type') || '';
@@ -103,7 +107,6 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.log('[Audit API] 表不存在或查询失败:', error.message);
       return NextResponse.json({ success: true, data: [], total: 0, page, limit });
     }
 
@@ -139,6 +142,9 @@ export async function GET(request: NextRequest) {
 
 // POST: 处理用户注册审核 / 产品上传审核
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const { target_id, type, action, reason } = body;

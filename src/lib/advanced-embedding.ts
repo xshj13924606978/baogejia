@@ -195,7 +195,6 @@ export class AdvancedEmbedding {
     this.vectorSimilarity = VectorSimilarityCalculator.getInstance();
     this.cache = new Map();
 
-    console.log(`[AdvancedEmbedding] 初始化完成，当前模型: ${this.currentModel}`);
   }
 
   /**
@@ -222,7 +221,6 @@ export class AdvancedEmbedding {
     // 检查缓存
     if (this.config.enableCache && this.cache.has(text)) {
       const cached = this.cache.get(text)!;
-      console.log(`[AdvancedEmbedding] 缓存命中: "${text.substring(0, 30)}..."`);
       return cached;
     }
 
@@ -484,7 +482,6 @@ export class AdvancedEmbedding {
    */
   public clearCache(): void {
     this.cache.clear();
-    console.log('[AdvancedEmbedding] 缓存已清空');
   }
 
   /**
@@ -503,7 +500,6 @@ export class AdvancedEmbedding {
    */
   public switchModel(model: EmbeddingModelType): void {
     this.currentModel = model;
-    console.log(`[AdvancedEmbedding] 切换模型: ${model}`);
   }
 
   /**

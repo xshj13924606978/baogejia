@@ -40,7 +40,7 @@ export const GET = withPermissionCheck(
   } catch (error: any) {
     console.error('[Users Demo API] 获取用户列表失败:', error);
     return NextResponse.json(
-      { error: '获取用户列表失败', details: error.message },
+      { error: '获取用户列表失败' },
       { status: 500 }
     );
   }
@@ -76,7 +76,7 @@ export const POST = withUserCreate(async (request: NextRequest, _context: any) =
         role: role || 'user'}});
   } catch (error: any) {
     console.error('[Users Demo API] 创建用户失败:', error);
-    return NextResponse.json({ error: '创建用户失败', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: '创建用户失败' }, { status: 500 });
   }
 });
 
@@ -117,7 +117,7 @@ export const PUT = withPermissionCheck(
         data});
     } catch (error: any) {
       console.error('[Users Demo API] 更新用户失败:', error);
-      return NextResponse.json({ error: '更新用户失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '更新用户失败' }, { status: 500 });
     }
   }
 );
@@ -153,7 +153,7 @@ export const DELETE = withPermissionCheck(
         message: '用户删除成功'});
     } catch (error: any) {
       console.error('[Users Demo API] 删除用户失败:', error);
-      return NextResponse.json({ error: '删除用户失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '删除用户失败' }, { status: 500 });
     }
   }
 );

@@ -106,7 +106,6 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
         
         if (data.success && data.data) {
           setUserPoints(data.data.pointsBalance || 0);
-          console.log(`[UserMenu] 加载用户积分成功: ${data.data.pointsBalance}`);
         }
       } catch (error) {
         console.error('[UserMenu] 获取用户积分失败:', error);
@@ -117,7 +116,6 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     
     // 监听积分更新事件（防抖机制已在 loadUserPoints 中实现）
     const handlePointsUpdate = () => {
-      console.log('[UserMenu] 收到积分更新事件，刷新积分');
       // 重置最后请求时间，允许立即请求
       setLastPointsRequestTime(0);
       loadUserPoints();
@@ -730,7 +728,6 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   // 监听用户更新事件
   useEffect(() => {
     const handleUserUpdated = (event: CustomEvent) => {
-      console.log('[UserMenu] 收到用户更新事件:', event.detail);
     };
 
     window.addEventListener('user-updated', handleUserUpdated as EventListener);
@@ -797,7 +794,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       <Button
         variant="default"
         size="sm"
-        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+        className="bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primary/90 hover:to-brand-secondary/90 text-white"
         onClick={() => handleNavigation('/login')}
       >
         登录

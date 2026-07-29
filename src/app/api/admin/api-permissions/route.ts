@@ -19,7 +19,6 @@ export const GET = withPermissionCheck(
   { requiresAuth: true, permissions: 'admin.permissions.view' },
   async (_request: NextRequest, _user: any) => {
     try {
-      console.log('[AdminApiPermissions API] 获取所有API权限配置');
 
       const supabase = getSupabaseClient();
       const { data: permissions, error } = await supabase
@@ -57,7 +56,6 @@ export const POST = withPermissionCheck(
         return NextResponse.json({ error: '缺少必要参数：api_path 和 method' }, { status: 400 });
       }
 
-      console.log('[AdminApiPermissions API] 创建API权限规则:', api_path, method);
 
       const supabase = getSupabaseClient();
       const { data, error } = await supabase
@@ -106,7 +104,6 @@ export const PUT = withPermissionCheck(
         return NextResponse.json({ error: '缺少参数：id' }, { status: 400 });
       }
 
-      console.log('[AdminApiPermissions API] 更新API权限规则:', id);
 
       const supabase = getSupabaseClient();
       const { data, error } = await supabase
@@ -154,7 +151,6 @@ export const DELETE = withPermissionCheck(
         return NextResponse.json({ error: '缺少参数：id' }, { status: 400 });
       }
 
-      console.log('[AdminApiPermissions API] 删除API权限规则:', id);
 
       const supabase = getSupabaseClient();
       const { error } = await supabase.from('api_permissions').delete().eq('id', id);

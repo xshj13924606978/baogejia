@@ -3,30 +3,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { oauthService } from '@/lib/oauth-service';
 import { OAuthProvider } from '@/types/oauth';
-
-// 模拟用户数据
-const mockUsers = [
-  {
-    id: 1,
-    username: 'admin',
-    password: '123456',
-    email: 'admin@example.com',
-    nickname: '管理员',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
-    role: 'admin',
-    points: 10000,
-  },
-  {
-    id: 2,
-    username: 'user',
-    password: '123456',
-    email: 'user@example.com',
-    nickname: '普通用户',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=user',
-    role: 'user',
-    points: 100,
-  },
-];
+import { getCurrentUser, AuthDatabaseError } from '@/lib/auth-utils';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import bcrypt from 'bcrypt';
 
 /**
  * POST /api/auth/bind - 绑定第三方账号
@@ -46,10 +25,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '不支持的登录提供商' }, { status: 400 });
     }
 
-    // 验证用户名和密码
-    const user = mockUsers.find((u) => u.username === username && u.password === password);
+    // 从数据库验证用户名和密码
+    const db = getSupabaseServiceClient();
+    const { data: dbUser, error: queryError } = await db
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .eq('status', 'active')
+      .single();
 
-    if (!user) {
+    if (queryError || !dbUser) {
+      return NextResponse.json({ success: false, error: '用户名或密码错误' }, { status: 401 });
+    }
+
+    // 使用 bcrypt 验证密码
+    const passwordMatch = await bcrypt.compare(password, dbUser.password_hash);
+    if (!passwordMatch) {
       return NextResponse.json({ success: false, error: '用户名或密码错误' }, { status: 401 });
     }
 
@@ -61,30 +52,21 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建绑定
-    await oauthService.createBinding(user.id, {
+    await oauthService.createBinding(dbUser.id, {
       provider: provider as OAuthProvider,
       openid,
-      nickname: nickname || user.nickname,
-      avatar: avatar || user.avatar,
+      nickname: nickname || dbUser.username,
+      avatar: avatar || '',
     });
-
-    console.log(`[Auth] 用户 ${username} 绑定 ${provider} 成功`);
-
-    // 更新用户信息（头像和昵称）
-    if (nickname || avatar) {
-      if (nickname) user.nickname = nickname;
-      if (avatar) user.avatar = avatar;
-    }
 
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        username: user.username,
-        nickname: user.nickname,
-        avatar: user.avatar,
-        role: user.role,
-        points: user.points,
+        id: dbUser.id,
+        username: dbUser.username,
+        nickname: nickname || dbUser.username,
+        avatar: avatar || '',
+        role: dbUser.role,
       },
     });
   } catch (error) {
@@ -98,23 +80,24 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    // 从Authorization header获取用户信息
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    // 从认证中获取用户身份
+    const authUser = await getCurrentUser(request);
+
+    if (!authUser) {
       return NextResponse.json({ success: false, error: '未登录' }, { status: 401 });
     }
 
-    // 简化处理：从localStorage获取（实际应该从token解析）
-    const userId = 1; // 模拟
-
     // 查询用户的绑定列表
-    const bindings = await oauthService.getUserBindings(userId);
+    const bindings = await oauthService.getUserBindings(authUser.id);
 
     return NextResponse.json({
       success: true,
       bindings,
     });
   } catch (error) {
+    if (error instanceof AuthDatabaseError) {
+      return NextResponse.json({ success: false, error: '服务暂不可用' }, { status: 503 });
+    }
     console.error('[Auth] 查询绑定列表失败:', error);
     return NextResponse.json({ success: false, error: '查询绑定列表失败' }, { status: 500 });
   }
@@ -138,27 +121,44 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: '不支持的登录提供商' }, { status: 400 });
     }
 
-    // 验证密码
-    const userId = 1; // 模拟
-    const user = mockUsers.find((u) => u.id === userId);
+    // 从认证中获取用户身份
+    const authUser = await getCurrentUser(request);
 
-    if (!user || user.password !== password) {
+    if (!authUser) {
+      return NextResponse.json({ success: false, error: '未登录' }, { status: 401 });
+    }
+
+    // 从数据库验证密码
+    const db = getSupabaseServiceClient();
+    const { data: dbUser } = await db
+      .from('users')
+      .select('password_hash')
+      .eq('id', authUser.id)
+      .single();
+
+    if (!dbUser || !dbUser.password_hash) {
+      return NextResponse.json({ success: false, error: '密码错误' }, { status: 401 });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, dbUser.password_hash);
+    if (!passwordMatch) {
       return NextResponse.json({ success: false, error: '密码错误' }, { status: 401 });
     }
 
     // 解绑账号
-    const success = await oauthService.unbindAccount(userId, provider as OAuthProvider);
+    const success = await oauthService.unbindAccount(authUser.id, provider as OAuthProvider);
 
     if (!success) {
       return NextResponse.json({ success: false, error: '未找到绑定记录' }, { status: 404 });
     }
 
-    console.log(`[Auth] 用户 ${userId} 解绑 ${provider} 成功`);
-
     return NextResponse.json({
       success: true,
     });
   } catch (error) {
+    if (error instanceof AuthDatabaseError) {
+      return NextResponse.json({ success: false, error: '服务暂不可用' }, { status: 503 });
+    }
     console.error('[Auth] 解绑账号失败:', error);
     return NextResponse.json({ success: false, error: '解绑账号失败' }, { status: 500 });
   }

@@ -30,7 +30,6 @@ export async function generateImage(
 ): Promise<GenerateImageResult> {
   const model = options.model || DEFAULT_MODEL;
 
-  console.log(`[ImageGen] 生成图片: model=${model}, prompt="${options.prompt.substring(0, 50)}..."`);
 
   const response = await client.images.generate({
     model,
@@ -45,7 +44,6 @@ export async function generateImage(
     throw new Error('未生成图片数据');
   }
 
-  console.log('[ImageGen] 图片生成成功');
 
   return {
     b64Json: imageData.b64_json,

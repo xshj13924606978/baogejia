@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 获取导入日志列表（管理员）
  * 修复：count 查询也应用 status 筛选
  */
 export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -26,7 +30,6 @@ export async function GET(request: NextRequest) {
     const { count: totalCount, error: countError } = await countQuery;
 
     if (countError) {
-      console.log('[Import Logs API] 表不存在，返回空列表');
       return NextResponse.json({ success: true, data: [], count: 0, total: 0 });
     }
 

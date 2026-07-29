@@ -218,7 +218,7 @@ export default function InfoPanel() {
       <ScrollArea className="h-full">
         <div className="p-4 space-y-6">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center">
               <Settings className="h-4 w-4 text-white" />
             </div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">信息管理</h2>
@@ -380,7 +380,7 @@ export default function InfoPanel() {
                   </div>
                   <Button
                     onClick={handleSaveSupplier}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md shadow-blue-500/20 transition-all duration-200"
+                    className="w-full bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primary/90 hover:to-brand-secondary/90 text-white shadow-md shadow-brand-primary/20 transition-all duration-200"
                   >
                     <Save className="h-4 w-4 mr-2" />
                     保存供应方信息

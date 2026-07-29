@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 知识库管理 API（管理员）
@@ -8,6 +9,9 @@ import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
  */
 
 export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const db = getSupabaseServiceClient();
     const { searchParams } = new URL(request.url);
@@ -57,7 +61,6 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.log('[Admin Knowledge API] 表不存在或查询失败:', error.message);
       return NextResponse.json({ success: true, data: [], total: 0, page, limit });
     }
 

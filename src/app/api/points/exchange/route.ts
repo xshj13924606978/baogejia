@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { consumePoints, getUserPoints } from '@/storage/database/points-utils';
+import { requireAuth } from '@/lib/auth-utils';
 
 // 积分兑换
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const { user_id, item_id, item_type, item_name, points_cost, duration } = body;
@@ -15,7 +19,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 检查用户积分是否足够
     const currentPoints = await getUserPoints(parseInt(user_id));

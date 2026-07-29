@@ -127,7 +127,6 @@ async function runMigration() {
     `COMMENT ON TABLE users.tokens IS '用户Token余额';`,
   ];
 
-  console.log(`=== 开始迁移 (${statements.length} 条语句) ===\n`);
 
   let success = 0;
   let failed = 0;
@@ -144,30 +143,23 @@ async function runMigration() {
         const msg = error.message || String(error);
         const isDuplicate = msg.includes('already exists') || msg.includes('duplicate') || msg.includes('conflict');
         if (isDuplicate) {
-          console.log('跳过(已存在)');
           success++;
         } else {
-          console.log(`失败: ${msg}`);
           failed++;
         }
       } else {
-        console.log('成功');
         success++;
       }
     } catch (err) {
-      console.log(`异常: ${err.message}`);
       failed++;
     }
   }
 
   // 刷新 schema
-  console.log('\n刷新 schema 缓存...');
   try {
     await supabase.rpc('exec_sql', { sql: "NOTIFY pgrst, 'reload schema';" });
-    console.log('Schema 缓存已刷新');
   } catch { /* ignore */ }
 
-  console.log(`\n=== 迁移完成: ${success} 成功, ${failed} 失败 ===`);
   process.exit(failed > 0 ? 1 : 0);
 }
 

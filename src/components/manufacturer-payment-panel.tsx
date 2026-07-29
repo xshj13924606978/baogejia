@@ -63,7 +63,6 @@ export default function ManufacturerPaymentPanel({
         url.searchParams.set('category', category);
       }
 
-      console.log('[Manufacturer] 加载数据:', url.toString());
 
       const response = await fetch(url.toString());
       const result: ManufacturerPaymentResponse = await response.json();

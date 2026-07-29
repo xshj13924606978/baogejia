@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { getCurrentUser, requireAuth } from '@/lib/auth-utils';
 
 export async function GET(request: NextRequest) {
-  console.log('[Conversations] GET 所有对话');
 
   try {
     const user = await getCurrentUser(request);
@@ -24,10 +23,8 @@ export async function GET(request: NextRequest) {
     // 根据用户角色过滤对话
     if (user.role === 'super_admin' || user.role === 'admin') {
       // 超管和管理员：查看所有对话
-      console.log(`[Conversations] ${user.role} 查看所有对话`);
     } else {
       // 普通用户：只查看自己的对话
-      console.log('[Conversations] 普通用户过滤，user_id:', user.id);
       query = query.eq('user_id', user.id);
     }
 
@@ -53,13 +50,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('[Conversations] POST 创建新对话');
 
   try {
-    const user = await getCurrentUser(request);
-    if (!user) {
-      console.error('[Conversations] 用户未认证');
-      return NextResponse.json({ error: '未认证' }, { status: 401 });
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) {
+      console.error('[Conversations] 认证失败:', errorResponse.status);
+      return errorResponse;
     }
 
     const supabase = createClient(
@@ -91,7 +87,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '创建失败' }, { status: 500 });
     }
 
-    console.log('[Conversations] 创建对话成功, user_id:', user.id, ', conversation_id:', data.id);
 
     return NextResponse.json({
       conversation: {
@@ -108,11 +103,8 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await getCurrentUser(request);
-    if (!user) {
-      console.error('[Conversations] 用户未认证');
-      return NextResponse.json({ error: '未认证' }, { status: 401 });
-    }
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     // 只有超管可以清空所有对话
     if (user.role !== 'super_admin') {

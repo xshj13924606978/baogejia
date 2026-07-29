@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 导入配置管理（接口框架）
@@ -24,7 +25,10 @@ const DEFAULT_CONFIG = {
   email_default_type: 'document',
 };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   return NextResponse.json({
     success: true,
     data: DEFAULT_CONFIG,
@@ -32,9 +36,11 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
-    console.log('[Import Config] 更新配置:', Object.keys(body));
 
     // TODO: 验证配置值
     // TODO: 保存到数据库

@@ -71,34 +71,28 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
       const result = await response.json();
 
       if (result.status === 'needs_rebuild') {
-        console.log('[Diagnose] 检测到需要重建表');
         setNeedsRebuild(true);
         setRebuildSql(result.rebuildSql);
         setError(result.error);
       } else if (result.status === 'needs_rename') {
-        console.log('[Diagnose] 检测到需要重命名字段');
         setNeedsFieldRename(true);
         setFixSql(result.fixSql);
         setError(result.error);
       } else if (result.status === 'needs_data') {
-        console.log('[Diagnose] 检测到需要插入数据');
         setNeedsFieldRename(true);
         setFixSql(result.insertSql);
         setError(result.error);
       } else if (result.status === 'needs_duplicate_fix') {
-        console.log('[Diagnose] 检测到需要修复判重配置');
         setNeedsFieldRename(true);
         setFixSql(result.fixSql);
         setError(result.error);
       } else if (result.status === 'healthy_old_structure') {
-        console.log('[Diagnose] 旧表结构但已适配，不需要修复');
         setNeedsRebuild(false);
         setNeedsFieldRename(false);
         setRebuildSql(null);
         setFixSql(null);
         setError(result.message || '旧表结构但已适配');
       } else if (result.success) {
-        console.log('[Diagnose] 字段配置正常');
         setNeedsRebuild(false);
         setNeedsFieldRename(false);
         setRebuildSql(null);
@@ -131,7 +125,6 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
 
         // 检查是否需要初始化
         if (result.needInit) {
-          console.log('检测到需要初始化数据库');
           setNeedsInit(true);
           
           // 尝试获取初始化SQL
@@ -150,7 +143,6 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
         }
         // 检查是否是表不存在
         else if (result.error && result.error.includes('product_field_configs') && result.error.includes('does not exist')) {
-          console.log('检测到 product_field_configs 表不存在');
           setNeedsInit(true);
           try {
             const initResponse = await fetch('/api/admin/init-duplicate-check', {
@@ -171,7 +163,6 @@ export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
         }
         // 检查是否需要初始化判重字段
         else if (result.error && result.error.includes('is_duplicate_check')) {
-          console.log('检测到需要初始化判重字段');
           setNeedsInit(true);
           try {
             const initResponse = await fetch('/api/admin/init-duplicate-check', {

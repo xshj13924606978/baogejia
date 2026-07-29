@@ -87,7 +87,6 @@ export class ProductMatcher {
 
       ...config
     };
-    console.log('[ProductMatcher] 匹配引擎初始化完成（已启用语义匹配）');
   }
 
   /**
@@ -97,7 +96,6 @@ export class ProductMatcher {
     query: ParsedParameters,
     products: ProductFeature[]
   ): MatchResult[] {
-    console.log(`[ProductMatcher] 开始匹配 ${products.length} 个产品...`);
 
     const results: MatchResult[] = [];
 
@@ -113,7 +111,6 @@ export class ProductMatcher {
     // 过滤掉得分过低的结果
     const filtered = results.filter(r => r.score >= this.config.approximateThreshold);
 
-    console.log(`[ProductMatcher] 匹配完成，返回 ${filtered.length} 个结果`);
 
     return filtered;
   }
@@ -573,7 +570,6 @@ ${mismatches.length > 0 ? `不匹配参数: ${mismatches.join(', ')}` : '所有�
    */
   public updateConfig(config: Partial<MatchConfig>): void {
     this.config = { ...this.config, ...config };
-    console.log('[ProductMatcher] 配置已更新:', this.config);
   }
 
   /**

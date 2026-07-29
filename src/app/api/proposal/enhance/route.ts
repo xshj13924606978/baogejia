@@ -14,7 +14,7 @@ import {
   EnhancedProposal,
 } from '@/lib/proposal-enhancer';
 import { Logger } from '@/lib/logger';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 import { pointsService } from '@/lib/points-service';
 
 // 方案增强积分消耗（基础消耗 + 上下文Token估算)
@@ -28,15 +28,9 @@ const POINTS_PER_1000_TOKEN = 10; // 每1000 tokens 额外消耗 10 积分
 export async function POST(request: NextRequest) {
   try {
     // 获取当前用户
-    const currentUser = await getCurrentUser(request);
-    const userId = currentUser?.id;
-
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: '未登录' },
-        { status: 401 }
-      );
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
+    const userId = currentUser.id;
 
     const body = await request.json();
     const { action, } = body;
@@ -215,7 +209,6 @@ async function handleEnhance(body: any, userId: string) {
       {
         success: false,
         error: error.message || '方案增强失败',
-        details: error.stack,
       },
       { status: 500 }
     );

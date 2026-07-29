@@ -96,7 +96,6 @@ function getKeyParameters(productType: string, products: IntentProduct[]): strin
     return 0;
   });
 
-  console.log(`[Comparison] 动态参数维度(${productType || '未知'}): ${sortedKeys.join(', ')}`);
   return sortedKeys;
 }
 
@@ -219,7 +218,6 @@ function generateComparisonGeneric(products: IntentProduct[], productType?: stri
     return aOrder - bOrder;
   });
 
-  console.log(`[Comparison] 参数差异: ${differences.map(d => d.field).join(', ')}`);
 
   const recommendation = generateRecommendation(products, differences, commonPoints);
   return { commonPoints, differences, recommendation };

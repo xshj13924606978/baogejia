@@ -150,7 +150,6 @@ export class LevelConfigStore {
       try {
         const configs = Array.from(this.configs.values());
         localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
-        console.log('[LevelConfigStore] 配置已持久化');
       } catch (e) {
         console.error('[LevelConfigStore] 持久化失败:', e);
       }
@@ -203,7 +202,6 @@ export class LevelConfigStore {
     this.configs.set(level, updated);
     this.persist();
 
-    console.log('[LevelConfigStore] 等级配置已更新:', level, updated);
     return updated;
   }
 
@@ -216,7 +214,6 @@ export class LevelConfigStore {
       this.configs.set(config.level, config);
     });
     this.persist();
-    console.log('[LevelConfigStore] 已重置为默认配置');
   }
 }
 

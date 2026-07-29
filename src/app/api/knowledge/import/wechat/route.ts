@@ -16,7 +16,6 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log('[WeChat Import] 收到 webhook 请求:', body.type || 'unknown');
 
     // TODO: 验证 webhook secret
     // TODO: 解析微信消息（文本/文件/图片）

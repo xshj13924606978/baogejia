@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * GET - 获取用户列表
  * 支持分页、搜索、角色筛选、状态筛选
  */
 export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const keyword = searchParams.get('keyword') || '';
@@ -75,6 +79,9 @@ export async function GET(request: NextRequest) {
  * POST - 创建新用户
  */
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const { email, username, password, fullName, role, phone } = body;

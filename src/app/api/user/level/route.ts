@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userLevelService } from '@/lib/user-level-service';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
@@ -17,15 +17,9 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 export async function GET(request: NextRequest) {
   try {
     // 获取当前用户
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 }
-      );
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
-    console.log('[UserLevel API] 获取用户等级:', currentUser.id);
 
     // 获取用户等级信息
     const levelInfo = await userLevelService.getUserLevel(currentUser.id);
@@ -57,13 +51,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // 获取当前用户
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录' },
-        { status: 401 }
-      );
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     // 查询用户角色
     const supabase = getSupabaseClient();
@@ -106,7 +95,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[UserLevel API] 设置用户等级:', { userId, level, operator: currentUser.id });
 
     // 设置用户等级
     const success = await userLevelService.setUserLevel(userId, level);

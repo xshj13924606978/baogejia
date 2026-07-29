@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { POST as _awardPoints } from '../../points/route';
 import bcrypt from 'bcrypt';
 
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // 密码加密
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 检查用户名是否已存在
     const { data: existingUser, error: _checkError } = await db

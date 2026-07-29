@@ -27,7 +27,6 @@ const supabase = createClient(
  * - active: boolean - 是否只获取启用的规则（可选）
  */
 export async function GET(request: NextRequest) {
-  console.log('[DisplayRules] GET 获取展示规则列表');
 
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -47,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[DisplayRules] 查询失败:', error);
-      return NextResponse.json({ error: '查询失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '查询失败' }, { status: 500 });
     }
 
     return NextResponse.json({ rules: data || [] });
@@ -78,7 +77,6 @@ export async function GET(request: NextRequest) {
  * - cache_ttl: number - 缓存过期时间（默认300）
  */
 export async function POST(request: NextRequest) {
-  console.log('[DisplayRules] POST 创建新的展示规则');
 
   try {
     const body = await request.json();
@@ -141,10 +139,9 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[DisplayRules] 插入失败:', error);
-      return NextResponse.json({ error: '创建失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '创建失败' }, { status: 500 });
     }
 
-    console.log('[DisplayRules] ✅ 展示规则创建成功:', data.rule_name);
     return NextResponse.json({
       success: true,
       rule: data,

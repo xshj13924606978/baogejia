@@ -6,8 +6,6 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient();
     const { name, model, category, limit = 20 } = await request.json();
 
-    console.log('[Product Search] ========== 搜索产品 ==========');
-    console.log('[Product Search] 关键词:', { name, model, category });
 
     let query = supabase.from('products').select('*');
 
@@ -37,7 +35,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to search products' }, { status: 500 });
     }
 
-    console.log(`[Product Search] 找到 ${products?.length || 0} 个产品`);
 
     return NextResponse.json({
       success: true,

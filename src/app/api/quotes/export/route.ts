@@ -8,7 +8,6 @@ export async function POST(request: NextRequest) {
   try {
     const { data, format } = await request.json();
 
-    console.log('[Export] Received request:', { format, quoteNumber: data?.quoteNumber });
 
     if (format === 'excel') {
       return generateExcel(data);
@@ -25,8 +24,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to export quote',
-        details: error instanceof Error ? error.message : 'Unknown error'},
-      { status: 500 }
+      },      { status: 500 }
     );
   }
 }
@@ -170,7 +168,6 @@ function formatAmountToChinese(amount: number): string {
 
 function generateExcel(data: any) {
   try {
-    console.log('[Export] Generating Excel...');
 
     const workbook = XLSX.utils.book_new();
     const quoteTitle = getQuoteTitle(data);
@@ -290,7 +287,6 @@ function generateExcel(data: any) {
     const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
     const uint8Array = new Uint8Array(buffer);
 
-    console.log('[Export] Excel generated successfully, size:', uint8Array.length);
 
     return new Response(uint8Array, {
       headers: {
@@ -304,7 +300,6 @@ function generateExcel(data: any) {
 
 function _generatePDF(data: any): Response {
   try {
-    console.log('[Export] Generating PDF with jsPDF...');
 
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -804,7 +799,6 @@ function _generatePDF(data: any): Response {
     const pdfBytes = doc.output('arraybuffer');
     const buffer = Buffer.from(pdfBytes);
 
-    console.log('[Export] PDF generated successfully, size:', buffer.length);
 
     return new Response(buffer, {
       headers: {

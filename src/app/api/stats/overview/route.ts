@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { hasPermission } from '@/lib/auth/roles';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
 
-    console.log('[Stats Overview] ========== 查询概览统计 ==========');
 
     // 权限检查
     const userStr = request.cookies.get('user')?.value;
@@ -164,7 +163,6 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    console.log('[Stats Overview] 统计结果:', stats);
 
     return NextResponse.json({
       success: true,

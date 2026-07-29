@@ -199,7 +199,7 @@ export default function Sidebar() {
         {/* 头部 - 只保留logo和标题 */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">报</span>
             </div>
             <span className="font-semibold text-lg">报个价</span>
@@ -358,7 +358,7 @@ export default function Sidebar() {
         {/* 底部 - 新建对话按钮 */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-800">
           <Button
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+            className="w-full bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primary/90 hover:to-brand-secondary/90 text-white"
             onClick={handleNewChat}
           >
             <Plus className="h-4 w-4 mr-2" />

@@ -93,15 +93,15 @@ export default function PointsPanel({ userId }: PointsPanelProps) {
   return (
     <div className="space-y-6">
       {/* 积分概览 */}
-      <Card className="border-2 border-[#2c8c99]">
-        <CardHeader className="bg-gradient-to-r from-[#0a4a7a] to-[#2c8c99] text-white">
+      <Card className="border-2 border-brand-secondary">
+        <CardHeader className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white">
           <CardTitle>我的积分</CardTitle>
           <CardDescription className="text-white/80">
             积分可用于兑换会员、下载资源等
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="text-5xl font-bold text-[#2c8c99] mb-4">
+          <div className="text-5xl font-bold text-brand-secondary mb-4">
             {loading ? '...' : points.toLocaleString()}
           </div>
           <div className="flex gap-2">
@@ -141,7 +141,7 @@ export default function PointsPanel({ userId }: PointsPanelProps) {
                     <TableRow key={rule.type}>
                       <TableCell className="font-medium">{rule.type}</TableCell>
                       <TableCell>
-                        <span className="text-[#f9a825] font-bold">+{rule.points}</span>
+                        <span className="text-brand-accent font-bold">+{rule.points}</span>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{rule.description}</TableCell>
                     </TableRow>
@@ -193,7 +193,7 @@ export default function PointsPanel({ userId }: PointsPanelProps) {
                           {new Date(record.created_at).toLocaleString('zh-CN')}
                         </TableCell>
                         <TableCell className="text-right font-bold">
-                          <span className={record.points > 0 ? 'text-[#2c8c99]' : 'text-red-500'}>
+                          <span className={record.points > 0 ? 'text-brand-secondary' : 'text-red-500'}>
                             {record.points > 0 ? '+' : ''}{record.points}
                           </span>
                         </TableCell>

@@ -73,7 +73,6 @@ export class ProductFeatureIndex {
       refreshInterval: 300000, // 5分钟
       ...config
     };
-    console.log('[ProductFeatureIndex] 特征索引初始化完成');
   }
 
   /**
@@ -120,7 +119,6 @@ export class ProductFeatureIndex {
         return [];
       }
 
-      console.log(`[ProductFeatureIndex] 从数据库加载 ${data?.length || 0} 个产品`);
       return data || [];
     } catch (error) {
       console.error('[ProductFeatureIndex] 加载产品数据异常:', error);
@@ -268,12 +266,10 @@ export class ProductFeatureIndex {
    */
   public async buildIndex(): Promise<void> {
     try {
-      console.log('[ProductFeatureIndex] 开始构建特征索引...');
 
       // 检查缓存
       const now = Date.now();
       if (this.indexed && this.config.cacheEnabled && (now - this.cacheTime) < (this.config.refreshInterval || 300000)) {
-        console.log('[ProductFeatureIndex] 使用缓存的索引');
         return;
       }
 
@@ -296,7 +292,6 @@ export class ProductFeatureIndex {
       this.indexed = true;
       this.cacheTime = now;
 
-      console.log(`[ProductFeatureIndex] 特征索引构建完成，共 ${this.features.size} 个产品`);
 
     } catch (error) {
       console.error('[ProductFeatureIndex] 构建索引异常:', error);

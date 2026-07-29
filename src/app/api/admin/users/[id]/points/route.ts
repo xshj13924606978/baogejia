@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 获取用户积分余额
@@ -8,9 +9,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const { id } = await params;
-    console.log('[UserPoints API] 获取用户积分, ID:', id);
     
     // 支持 UUID 格式的用户 ID
     if (!id || typeof id !== 'string') {
@@ -29,7 +32,6 @@ export async function GET(
       .eq('id', id)
       .single();
     
-    console.log('[UserPoints API] 查询结果:', { user, error });
 
     if (error || !user) {
       // 表不存在或用户不存在时返回默认值
@@ -58,7 +60,6 @@ export async function GET(
         points = balance.points_balance;
       }
     } catch {}
-    console.log('[UserPoints API] 用户积分:', points);
 
     return NextResponse.json({
       success: true,
@@ -87,6 +88,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const { id } = await params;
     const body = await request.json();

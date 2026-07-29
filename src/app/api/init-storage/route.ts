@@ -1,10 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 初始化存储桶的 API
  * 使用 service role key 创建 quote-files bucket
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -56,7 +60,6 @@ export async function POST() {
     }
 
     // 创建 bucket
-    console.log('[InitStorage] 正在创建 quote-files 存储桶...');
     const { data: bucket, error: createError } = await serviceClient.storage.createBucket(
       'quote-files',
       {
@@ -89,7 +92,6 @@ export async function POST() {
       );
     }
 
-    console.log('[InitStorage] 存储桶创建成功:', bucket);
 
     return NextResponse.json({
       success: true,
@@ -103,7 +105,6 @@ export async function POST() {
         success: false,
         error: '初始化存储失败',
         message: error.message,
-        stack: error.stack,
       },
       { status: 500 }
     );

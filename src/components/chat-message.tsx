@@ -1004,7 +1004,7 @@ const MermaidDiagram = ({ code }: { code: string }) => {
     <div
       ref={svgContainerRef}
       className="bg-white border border-slate-200 rounded-lg p-4 overflow-x-auto my-4"
-      dangerouslySetInnerHTML={{ __html: svg }}
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(svg) }}
     />
   );
 };
@@ -1012,6 +1012,8 @@ const MermaidDiagram = ({ code }: { code: string }) => {
 // ============================================================================
 // 简单的Markdown渲染组件（使用 markdown-it + mermaid）
 // ============================================================================
+
+import DOMPurify from 'isomorphic-dompurify';
 
 const SimpleMarkdown = ({ content, isStreaming }: { content: string; isStreaming?: boolean }) => {
   const [html, setHtml] = useState<string>('');
@@ -1104,7 +1106,7 @@ const SimpleMarkdown = ({ content, isStreaming }: { content: string; isStreaming
     <div className="relative">
       <div
         className="prose prose-slate max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-table:w-full"
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }}
       />
       {/* 打字机光标效果 - 仅在流式输出时显示 */}
       {isStreaming && (
@@ -2473,7 +2475,6 @@ export default function ChatMessage({
           {message.metadata?.imageUrl && (
             <div className="mt-2 space-y-2">
               <div className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={message.metadata.imageUrl}
                   alt={message.metadata.imagePrompt || '生成的图片'}

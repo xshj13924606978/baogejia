@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 计费配置管理API
@@ -34,7 +35,10 @@ function mergeConfig(saved: Partial<typeof DEFAULT_CONFIG>): typeof DEFAULT_CONF
   return { ...DEFAULT_CONFIG, ...saved };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const db = getSupabaseServiceClient();
     const { data, error } = await db
@@ -56,6 +60,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
 
@@ -99,7 +106,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '保存失败' }, { status: 500 });
     }
 
-    console.log('[BillingConfig API] 计费配置已更新');
     return NextResponse.json({ success: true, message: '配置保存成功', data: mergeConfig(merged) });
   } catch (error) {
     console.error('[BillingConfig API] 更新异常:', error);

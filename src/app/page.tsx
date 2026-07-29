@@ -82,7 +82,6 @@ export default function Home() {
       setIsCollapsed(savedState === 'true');
     }
 
-    console.log('[Home] 组件初始化，isCollapsed:', isCollapsed);
   }, []);
 
   // 保存侧边栏状态到本地存储
@@ -90,11 +89,9 @@ export default function Home() {
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     localStorage.setItem('sidebar-collapsed', String(newState));
-    console.log('[Home] 切换侧边栏状态:', newState);
   };
 
   const handleNewConversation = () => {
-    console.log('[Home] 开始新建对话（只清空容器，不创建记录）');
     setSelectedConversationId(null);
     setCurrentConversationTitle('新对话');
     window.dispatchEvent(new CustomEvent('new-conversation'));
@@ -102,7 +99,6 @@ export default function Home() {
   };
 
   const handleSelectConversation = (id: string | null) => {
-    console.log('[Home] 选择对话:', id);
     setSelectedConversationId(id);
     setSidebarOpen(false);
   };
@@ -126,7 +122,7 @@ export default function Home() {
               <div className="h-16 flex items-center border-b border-gray-200 dark:border-gray-800 px-4 flex-shrink-0">
                 <div className="flex items-center justify-between w-full gap-2">
                   <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
-                    <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center flex-shrink-0">
+                    <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center flex-shrink-0">
                       <span className="text-white font-bold text-lg">报</span>
                     </div>
                     {!isCollapsed && (
@@ -181,7 +177,7 @@ export default function Home() {
               <SheetContent side="left" className="w-80 p-0 lg:hidden">
                 <div className="flex h-full flex-col bg-gray-50/50 dark:bg-gray-900/50">
                   <div className="flex h-16 items-center gap-3 border-b border-gray-200 dark:border-gray-800 px-4 flex-shrink-0">
-                    <div className="relative h-10 w-10 overflow-hidden rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center flex-shrink-0">
+                    <div className="relative h-10 w-10 overflow-hidden rounded-lg bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center flex-shrink-0">
                       <span className="text-white font-bold text-xl">报</span>
                     </div>
                     <span className="text-xl font-bold text-gray-900 dark:text-gray-100 truncate">
@@ -231,7 +227,7 @@ export default function Home() {
                   <Menu className="h-5 w-5" />
                 </Button>
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center flex-shrink-0">
+                  <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-bold text-sm">报</span>
                   </div>
                   <span className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">

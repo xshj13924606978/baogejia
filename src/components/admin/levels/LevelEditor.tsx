@@ -292,7 +292,6 @@ export const LevelEditor: React.FC<LevelEditorProps> = ({ level, onSave, onCance
 
       const data = await res.json();
 
-      console.log('[LevelEditor] 预览响应数据:', data);
 
       if (data.success) {
         setPreviewData(data.preview);

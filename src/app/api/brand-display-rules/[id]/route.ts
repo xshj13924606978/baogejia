@@ -27,7 +27,6 @@ const supabase = createClient(
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  console.log('[DisplayRules] GET 获取规则详情:', id);
 
   try {
     const { data, error } = await supabase
@@ -53,7 +52,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
  */
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  console.log('[DisplayRules] PUT 更新规则配置:', id);
 
   try {
     const body = await request.json();
@@ -98,13 +96,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     if (error) {
       console.error('[DisplayRules] 更新失败:', error);
-      return NextResponse.json({ error: '更新失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '更新失败' }, { status: 500 });
     }
 
     // 清除缓存，使新规则生效
     brandRankingService.clearCache();
 
-    console.log('[DisplayRules] ✅ 规则更新成功:', data.rule_name);
     return NextResponse.json({
       success: true,
       rule: data,
@@ -123,20 +120,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  console.log('[DisplayRules] DELETE 删除规则:', id);
 
   try {
     const { error } = await supabase.from('brand_display_rules').delete().eq('id', id);
 
     if (error) {
       console.error('[DisplayRules] 删除失败:', error);
-      return NextResponse.json({ error: '删除失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '删除失败' }, { status: 500 });
     }
 
     // 清除缓存
     brandRankingService.clearCache();
 
-    console.log('[DisplayRules] ✅ 规则删除成功');
     return NextResponse.json({
       success: true,
       message: '规则删除成功',

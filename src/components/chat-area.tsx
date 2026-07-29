@@ -778,7 +778,7 @@ export default function ChatArea({
   const createNewConversation = async (
     title: string = '新对话',
     hasContent: boolean = false
-  ): Promise<any | null> => {
+  ): Promise<{ conversation: any; error?: string } | null> => {
     if (!shouldAllowCreation.current && !hasContent) {
       warnOnce('ChatArea', '安全锁未开启，禁止创建新对话');
       return null;
@@ -797,45 +797,52 @@ export default function ChatArea({
 
       if (response.ok) {
         const data = await response.json();
-        return data.conversation;
+        return { conversation: data.conversation };
       } else {
-        const error = await response.json();
-        return null;
+        let errorMsg = '创建对话失败';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
+          console.error('[ChatArea] 创建对话失败:', response.status, errorMsg);
+        } catch (_e) {
+          console.error('[ChatArea] 创建对话失败:', response.status);
+        }
+        return { conversation: null, error: errorMsg };
       }
     } catch (error) {
       console.error('[ChatArea] 创建对话失败:', error);
+      return { conversation: null, error: '网络错误，请检查连接' };
     }
-    return null;
   };
 
-  const ensureConversationId = async (hasContent: boolean = false): Promise<string | null> => {
+  const ensureConversationId = async (hasContent: boolean = false): Promise<{ id: string | null; error?: string }> => {
     if (currentConversationId) {
-      return currentConversationId;
+      return { id: currentConversationId };
     }
 
     if (conversationId) {
       setCurrentConversationId(conversationId);
-      return conversationId;
+      return { id: conversationId };
     }
 
     if (!hasContent) {
-      return null;
+      return { id: null };
     }
 
-    const newConversation = await createNewConversation('新对话', true);
-    if (newConversation) {
-      setCurrentConversationId(newConversation.id);
+    const result = await createNewConversation('新对话', true);
+    if (result?.conversation) {
+      setCurrentConversationId(result.conversation.id);
 
       window.dispatchEvent(
         new CustomEvent('conversation-created', {
-          detail: { conversationId: newConversation.id },
+          detail: { conversationId: result.conversation.id },
         })
       );
 
-      return newConversation.id;
+      return { id: result.conversation.id };
     }
 
-    return null;
+    return { id: null, error: result?.error || '无法创建对话' };
   };
 
   // 编辑消息处理函数
@@ -1287,11 +1294,17 @@ export default function ChatArea({
 
     if (loading) return;
 
-    const activeConversationId = await ensureConversationId(true);
-    if (!activeConversationId) {
-      console.error('[ChatArea] 无法获取或创建对话');
+    const result = await ensureConversationId(true);
+    if (!result.id) {
+      console.error('[ChatArea] 无法获取或创建对话:', result.error);
+      toast({
+        title: '发送失败',
+        description: result.error || '无法创建对话，请检查登录状态后重试',
+        variant: 'destructive',
+      });
       return;
     }
+    const activeConversationId = result.id;
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -1819,11 +1832,17 @@ export default function ChatArea({
     fileData: any[],
     uploadedFiles: any[]
   ) => {
-    const activeConversationId = await ensureConversationId(true);
-    if (!activeConversationId) {
-      console.error('[ChatArea] 无法获取或创建对话');
+    const result = await ensureConversationId(true);
+    if (!result.id) {
+      console.error('[ChatArea] 无法获取或创建对话:', result.error);
+      toast({
+        title: '操作失败',
+        description: result.error || '无法创建对话，请检查登录状态后重试',
+        variant: 'destructive',
+      });
       return;
     }
+    const activeConversationId = result.id;
 
     try {
       const fileGroupId = `group-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -2091,8 +2110,17 @@ export default function ChatArea({
 
     if (isGeneratingImage || loading) return;
 
-    const activeConversationId = await ensureConversationId(true);
-    if (!activeConversationId) return;
+    const result = await ensureConversationId(true);
+    if (!result.id) {
+      console.error('[ChatArea] 无法获取或创建对话:', result.error);
+      toast({
+        title: '生成失败',
+        description: result.error || '无法创建对话，请检查登录状态后重试',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const activeConversationId = result.id;
 
     setIsGeneratingImage(true);
     setInput('');
@@ -2542,7 +2570,7 @@ export default function ChatArea({
                           disabled={!input.trim() && files.length === 0}
                           className={`h-10 w-10 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 ${
                             input.trim() || files.length > 0
-                              ? 'bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 text-white shadow-xl shadow-blue-500/30'
+                              ? 'bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primary/90 hover:to-brand-secondary/90 text-white shadow-xl shadow-brand-primary/30'
                               : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
                           }`}
                         >

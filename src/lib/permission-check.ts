@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { permissionService } from './permission-service';
-import { getCurrentUser } from './auth-utils';
+import { getCurrentUser, AuthDatabaseError } from './auth-utils';
 
 export interface PermissionCheckOptions {
   permissions?: string | string[]; // 需要的权限
@@ -100,7 +100,16 @@ export async function checkPermission(
 ): Promise<PermissionCheckResult> {
   try {
     // 1. 获取当前用户
-    const user = await getCurrentUser(request);
+    let user;
+    try {
+      user = await getCurrentUser(request);
+    } catch (e) {
+      // 数据库连接失败 → 503，而非 401/500
+      if (e instanceof AuthDatabaseError) {
+        return { allowed: false, reason: e.message, status: 503 };
+      }
+      throw e;
+    }
     if (!user) {
       // requiresAuth=false 时，未登录也放行（以匿名身份继续）
       if (options.requiresAuth === false) {

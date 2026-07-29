@@ -179,7 +179,7 @@ export default function PointsRuleConditionsEditor({ value, onChange }: PointsRu
         setConditions([]);
       }
     }
-  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [value]);
 
   // 当条件变化时通知父组件（避免循环：跳过与父组件传入值相同的更新）
   useEffect(() => {

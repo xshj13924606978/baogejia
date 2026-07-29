@@ -113,7 +113,6 @@ export class CrossLanguageMatcher {
 
     this.initializeSynonymMappings();
 
-    console.log('[CrossLanguageMatcher] 跨语言匹配引擎初始化完成');
   }
 
   /**
@@ -452,7 +451,6 @@ export class CrossLanguageMatcher {
    */
   public addSynonymMapping(mapping: MultilingualSynonymMapping): void {
     this.synonymMappings.set(mapping.canonical, mapping);
-    console.log(`[CrossLanguageMatcher] 添加同义词映射: ${mapping.canonical}`);
   }
 
   /**
@@ -468,7 +466,6 @@ export class CrossLanguageMatcher {
   public clearCache(): void {
     this.translationCache.clear();
     this.detectionCache.clear();
-    console.log('[CrossLanguageMatcher] 缓存已清空');
   }
 
   /**

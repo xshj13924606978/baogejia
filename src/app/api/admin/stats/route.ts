@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
 
 /**
  * 基础统计 API（管理员）
  * 总用户、今日活跃、报价单数、今日报价单、产品数量、总积分
  */
 export async function GET(_request: NextRequest) {
+  const { user, errorResponse } = await requireAdmin(_request);
+  if (errorResponse) return errorResponse;
+
   try {
     const db = getSupabaseServiceClient();
 

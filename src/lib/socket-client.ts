@@ -109,7 +109,6 @@ class SocketClient {
           process.env.NEXT_PUBLIC_APP_URL ||
           (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
 
-        console.log('[SocketClient] Connecting to:', socketUrl);
 
         this.socket = io(socketUrl, {
           path: '/api/socket',
@@ -124,7 +123,6 @@ class SocketClient {
 
         // 设置连接成功处理
         this.socket.on('connect', () => {
-          console.log('[SocketClient] Connected to server, ID:', this.socket?.id);
           this.reconnectAttempts = 0;
 
           // 发送认证信息
@@ -144,7 +142,6 @@ class SocketClient {
           this.reconnectAttempts++;
 
           if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            console.log('[SocketClient] Max reconnection attempts reached');
             this.disconnect();
             reject(error);
           }
@@ -152,7 +149,6 @@ class SocketClient {
 
         // 设置断开连接处理
         this.socket.on('disconnect', (reason) => {
-          console.log('[SocketClient] Disconnected:', reason);
           this.connectionPromise = null;
 
           if (reason === 'io server disconnect') {

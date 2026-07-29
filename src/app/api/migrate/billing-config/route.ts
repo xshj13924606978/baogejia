@@ -14,11 +14,9 @@ export async function GET() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
   try {
-    console.log('[Migrate billing-config] 开始迁移...');
 
     // 1. 启用 RLS
     await pool.query('ALTER TABLE token_pricing_config ENABLE ROW LEVEL SECURITY');
-    console.log('[Migrate billing-config] RLS 已启用');
 
     // 2. 允许 service role 完全访问
     await pool.query(`
@@ -29,7 +27,6 @@ export async function GET() {
         USING (true)
         WITH CHECK (true);
     `);
-    console.log('[Migrate billing-config] service_role 策略已创建');
 
     // 3. 允许匿名读取（可选，供前端查询）
     await pool.query(`
@@ -39,7 +36,6 @@ export async function GET() {
         TO anon
         USING (true);
     `);
-    console.log('[Migrate billing-config] anon 读取策略已创建');
 
     // 4. 允许认证用户读取
     await pool.query(`
@@ -49,7 +45,6 @@ export async function GET() {
         TO authenticated
         USING (true);
     `);
-    console.log('[Migrate billing-config] authenticated 读取策略已创建');
 
     // 5. 允许认证用户更新
     await pool.query(`
@@ -60,7 +55,6 @@ export async function GET() {
         USING (true)
         WITH CHECK (true);
     `);
-    console.log('[Migrate billing-config] authenticated 更新策略已创建');
 
     // 6. 允许认证用户插入
     await pool.query(`
@@ -70,11 +64,9 @@ export async function GET() {
         TO authenticated
         WITH CHECK (true);
     `);
-    console.log('[Migrate billing-config] authenticated 插入策略已创建');
 
     // 7. 刷新 PostgREST schema cache
     await pool.query("NOTIFY pgrst, 'reload schema';");
-    console.log('[Migrate billing-config] PostgREST schema cache 已刷新');
 
     await pool.end();
 

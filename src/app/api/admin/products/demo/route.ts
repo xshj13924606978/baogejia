@@ -5,7 +5,7 @@ import {
   withLevel,
   withPoints,
   withAllPermissions} from '@/lib/permission-check';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 
 /**
  * 产品管理示例 API
@@ -47,7 +47,7 @@ export const GET = withProductView(async (request: NextRequest, _context: any) =
   } catch (error: any) {
     console.error('[Products Demo API] 获取产品列表失败:', error);
     return NextResponse.json(
-      { error: '获取产品列表失败', details: error.message },
+      { error: '获取产品列表失败' },
       { status: 500 }
     );
   }
@@ -68,10 +68,8 @@ export const POST = withLevel(2, async (request: NextRequest, _context: any) => 
     }
 
     // 获取当前用户
-    const user = await getCurrentUser(request);
-    if (!user) {
-      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-    }
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     // 创建产品（业务逻辑）
     const { getSupabaseClient } = await import('@/storage/database/supabase-client');
@@ -97,7 +95,7 @@ export const POST = withLevel(2, async (request: NextRequest, _context: any) => 
       data});
   } catch (error: any) {
     console.error('[Products Demo API] 创建产品失败:', error);
-    return NextResponse.json({ error: '创建产品失败', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: '创建产品失败' }, { status: 500 });
   }
 });
 
@@ -116,10 +114,8 @@ export const PUT = withProductEdit(async (request: NextRequest, _context: any) =
     }
 
     // 获取当前用户
-    const user = await getCurrentUser(request);
-    if (!user) {
-      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-    }
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     // 更新产品（业务逻辑）
     const { getSupabaseClient } = await import('@/storage/database/supabase-client');
@@ -144,7 +140,7 @@ export const PUT = withProductEdit(async (request: NextRequest, _context: any) =
       data});
   } catch (error: any) {
     console.error('[Products Demo API] 更新产品失败:', error);
-    return NextResponse.json({ error: '更新产品失败', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: '更新产品失败' }, { status: 500 });
   }
 });
 
@@ -177,7 +173,7 @@ export const DELETE = withPoints(500, async (request: NextRequest, _context: any
       message: '产品删除成功'});
   } catch (error: any) {
     console.error('[Products Demo API] 删除产品失败:', error);
-    return NextResponse.json({ error: '删除产品失败', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: '删除产品失败' }, { status: 500 });
   }
 });
 
@@ -216,7 +212,7 @@ export async function PATCH(request: NextRequest) {
       } catch (error: any) {
         console.error('[Products Demo API] 批量操作失败:', error);
         return NextResponse.json(
-          { error: '批量操作失败', details: error.message },
+          { error: '批量操作失败' },
           { status: 500 }
         );
       }

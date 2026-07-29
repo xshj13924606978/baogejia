@@ -156,13 +156,11 @@ export default function PointsRulesManager({ userId, userRole }: PointsRulesMana
     }
 
     try {
-      console.log('[PointsRules] 删除规则:', ruleId, ruleName);
       const response = await fetch(`/api/admin/points/rules/${ruleId}`, {
         method: 'DELETE',
       });
 
       const data = await response.json();
-      console.log('[PointsRules] 删除结果:', data);
 
       if (data.success) {
         toast.success('规则删除成功');

@@ -26,7 +26,6 @@ const supabase = createClient(
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  console.log('[BrandVendors] GET 获取品牌详情:', id);
 
   try {
     const { data, error } = await supabase.from('brand_vendors').select('*').eq('id', id).single();
@@ -48,7 +47,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
  */
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  console.log('[BrandVendors] PUT 更新品牌信息:', id);
 
   try {
     const body = await request.json();
@@ -92,10 +90,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     if (error) {
       console.error('[BrandVendors] 更新失败:', error);
-      return NextResponse.json({ error: '更新失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '更新失败' }, { status: 500 });
     }
 
-    console.log('[BrandVendors] ✅ 品牌更新成功:', data.brand_name);
     return NextResponse.json({
       success: true,
       brand: data,
@@ -114,17 +111,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  console.log('[BrandVendors] DELETE 删除品牌:', id);
 
   try {
     const { error } = await supabase.from('brand_vendors').delete().eq('id', id);
 
     if (error) {
       console.error('[BrandVendors] 删除失败:', error);
-      return NextResponse.json({ error: '删除失败', details: error.message }, { status: 500 });
+      return NextResponse.json({ error: '删除失败' }, { status: 500 });
     }
 
-    console.log('[BrandVendors] ✅ 品牌删除成功');
     return NextResponse.json({
       success: true,
       message: '品牌删除成功',

@@ -220,7 +220,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
     }
     return '管理后台';
-  }, [menuModules, pathname]);
+  }, [menuItems, pathname]);
 
   // ====== 分组折叠 ======
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -276,7 +276,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* 侧边栏头部 */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">报</span>
             </div>
             <span className="font-semibold text-lg">管理后台</span>

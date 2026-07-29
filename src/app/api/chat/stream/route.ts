@@ -40,14 +40,32 @@ async function loadConversationHistory(conversationId: string) {
 }
 
 // 全局对话记忆（用于维持上下文）
+// 添加 TTL 机制：每个对话 30 分钟无活动自动清理，防止内存泄漏
+const MEMORY_TTL_MS = 30 * 60 * 1000; // 30 分钟
+
 const globalConversationMemory = {
-  histories: new Map<string, Array<{ role: 'user' | 'assistant'; content: string }>>(),
+  histories: new Map<string, { role: 'user' | 'assistant'; content: string }[]>(),
+  lastAccess: new Map<string, number>(),
+
+  _cleanup() {
+    const now = Date.now();
+    for (const [id, ts] of this.lastAccess) {
+      if (now - ts > MEMORY_TTL_MS) {
+        this.histories.delete(id);
+        this.lastAccess.delete(id);
+      }
+    }
+  },
 
   addToHistory(conversationId: string, role: 'user' | 'assistant', content: string) {
+    // 每100次操作执行一次清理
+    if (Math.random() < 0.01) this._cleanup();
+
     if (!this.histories.has(conversationId)) {
       this.histories.set(conversationId, []);
     }
     this.histories.get(conversationId)!.push({ role, content });
+    this.lastAccess.set(conversationId, Date.now());
 
     // 限制历史长度
     const history = this.histories.get(conversationId)!;
@@ -57,6 +75,7 @@ const globalConversationMemory = {
   },
 
   getHistory(conversationId: string) {
+    this.lastAccess.set(conversationId, Date.now());
     return this.histories.get(conversationId) || [];
   }
 };

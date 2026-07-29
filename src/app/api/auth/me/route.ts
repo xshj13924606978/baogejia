@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getCurrentUser, AuthDatabaseError } from '@/lib/auth-utils';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser(request);
+    let user;
+    try {
+      user = await getCurrentUser(request);
+    } catch (e) {
+      if (e instanceof AuthDatabaseError) {
+        return NextResponse.json({ error: '服务暂不可用，请稍后重试' }, { status: 503 });
+      }
+      throw e;
+    }
 
     if (!user) {
       return NextResponse.json({ error: '未认证' }, { status: 401 });
     }
 
     // 查询完整用户信息
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
     const { data: fullUser, error: queryError } = await db
       .from('users')
       .select('*')

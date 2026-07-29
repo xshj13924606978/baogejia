@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { permissionService } from '@/lib/permission-service';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 /**
  * 权限检查 API
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: PermissionCheckBody = await request.json();
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
 
     // 获取用户角色
     const { data: userRole } = await supabase

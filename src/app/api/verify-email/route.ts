@@ -204,7 +204,6 @@ export async function GET(request: NextRequest) {
                   timestamp: Date.now()
                 };
                 localStorage.setItem('verified_emails', JSON.stringify(verifiedEmails));
-                console.log('验证状态已保存');
               } catch (e) {
                 console.error('保存验证状态失败:', e);
               }
@@ -217,12 +216,10 @@ export async function GET(request: NextRequest) {
                     email: '${safeEmail}',
                     code: '${safeCode}'
                   }, window.location.origin);
-                  console.log('已通知父窗口');
                 } catch (e) {
                   console.error('通知父窗口失败:', e);
                 }
               } else {
-                console.log('没有父窗口或父窗口已关闭');
               }
               
               // 强制关闭窗口的函数

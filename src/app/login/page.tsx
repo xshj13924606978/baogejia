@@ -264,7 +264,7 @@ function LoginPage() {
         <Card className="w-[450px]">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-2xl">报</span>
               </div>
             </div>
@@ -304,7 +304,7 @@ function LoginPage() {
       <Card className="w-[450px]">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-2xl">报</span>
             </div>
           </div>

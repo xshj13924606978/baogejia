@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 // 检查用户是否有可用配额
 export async function GET(request: NextRequest) {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     const { data: user, error } = await db
       .from('users')
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 先检查是否有足够配额
     const { data: user, error } = await db

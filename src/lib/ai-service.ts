@@ -111,12 +111,10 @@ export async function getTextInTableResponse(fileId: string): Promise<any> {
     
     const data = await response.json();
     
-    console.log('[TextIn调试] 原始返回数据:', JSON.stringify(data, null, 2));
     
     // 情况1: 如果返回的是 HTML 格式的表格数据
     if (data && (data.html || data.result?.html || data.result?.tables?.[0]?.html)) {
       const htmlContent = data.html || data.result?.html || data.result?.tables?.[0]?.html;
-      console.log('[TextIn调试] 检测到HTML格式，开始解析');
       
       return parseHTMLTable(htmlContent);
     }
@@ -139,11 +137,9 @@ export async function getTextInTableResponse(fileId: string): Promise<any> {
         products.push(product);
       }
       
-      console.log('[TextIn调试] 检测到JSON格式，解析完成，产品数:', products.length);
       return { products };
     }
     
-    console.log('[TextIn调试] 未检测到有效表格数据');
     return { products: [] };
   } catch (error) {
     console.error('[TextIn错误] API调用失败:', error);
@@ -162,11 +158,9 @@ function parseHTMLTable(htmlContent: string): any {
     const tables = root.querySelectorAll('table');
     
     if (tables.length === 0) {
-      console.log('[TextIn调试] HTML中未找到表格');
       return { products: [] };
     }
     
-    console.log(`[TextIn调试] HTML中找到 ${tables.length} 个表格`);
     
     const products = [];
     
@@ -174,7 +168,6 @@ function parseHTMLTable(htmlContent: string): any {
       const table = tables[tableIndex];
       const rows = table.querySelectorAll('tr');
       
-      console.log(`[TextIn调试] 表格 ${tableIndex + 1} 中找到 ${rows.length} 行`);
       
       // 尝试识别表头行（通常第一行或第一列包含"序号"、"名称"等关键词）
       let headerRow = null;
@@ -187,7 +180,6 @@ function parseHTMLTable(htmlContent: string): any {
           if (/序号|名称|产品|名称|型号/.test(text)) {
             headerRow = rows[i];
             startIndex = i + 1;
-            console.log(`[TextIn调试] 识别表头在第 ${i + 1} 行`);
             break;
           }
         }
@@ -203,7 +195,6 @@ function parseHTMLTable(htmlContent: string): any {
         
         // 提取单元格文本
         const cellTexts = cells.map(cell => cell.text.trim());
-        console.log(`[TextIn调试] 第 ${i + 1} 行单元格内容:`, cellTexts);
         
         // 尝试智能映射字段
         const product = mapCellsToProduct(cellTexts);
@@ -211,14 +202,11 @@ function parseHTMLTable(htmlContent: string): any {
         // 只添加有名称的产品
         if (product.name) {
           products.push(product);
-          console.log(`[TextIn调试] 添加产品:`, product);
         } else {
-          console.log(`[TextIn调试] 跳过无名称产品行`);
         }
       }
     }
     
-    console.log(`[TextIn调试] HTML解析完成，共提取 ${products.length} 个产品`);
     return { products };
   } catch (error) {
     console.error('[TextIn错误] HTML解析失败:', error);
@@ -247,20 +235,17 @@ function mapCellsToProduct(cells: string[]): any {
   
   if (cells.length === 0) return product;
   
-  console.log(`[字段映射] 原始单元格:`, cells);
   
   // 策略1: 检查第一列是否为序号
   let startIndex = 0;
   if (/^\d+$/.test(cells[0]) || cells[0] === '序号') {
     startIndex = 1;
-    console.log(`[字段映射] 检测到序号列，从第2列开始`);
   }
   
   // 策略2: 根据列的数量进行字段映射
   const remainingCells = cells.slice(startIndex);
   const cellCount = remainingCells.length;
   
-  console.log(`[字段映射] 有效单元格数: ${cellCount}`);
   
   // 根据列数智能映射
   if (cellCount === 1) {
@@ -345,7 +330,6 @@ function mapCellsToProduct(cells: string[]): any {
     }
   }
   
-  console.log(`[字段映射] 映射结果:`, product);
   
   return product;
 }

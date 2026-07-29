@@ -4,7 +4,6 @@ import * as XLSX from 'xlsx';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Product Batch] ========== 开始批量导入 ==========');
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -14,8 +13,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '请上传文件' }, { status: 400 });
     }
 
-    console.log('[Product Batch] 文件名:', file.name);
-    console.log('[Product Batch] 文件大小:', file.size);
 
     // 验证文件类型
     const fileExt = file.name.split('.').pop()?.toLowerCase();
@@ -30,7 +27,6 @@ export async function POST(request: NextRequest) {
     // 保存临时文件（可选，用于调试）
     const tempFile = ServerFileUtils.createTempPath('import', `.${fileExt}`);
     ServerFileUtils.writeFile(tempFile, buffer);
-    console.log('[Product Batch] 临时文件:', tempFile);
 
     // 解析Excel
     let workbook;
@@ -51,7 +47,6 @@ export async function POST(request: NextRequest) {
 
     // 识别表头
     const headers = data[0];
-    console.log('[Product Batch] 表头:', headers);
 
     // 映射字段索引
     let nameIndex = -1;
@@ -157,7 +152,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('[Product Batch] 解析完成，有效产品:', products.length, '错误:', errors.length);
 
     if (products.length === 0) {
       return NextResponse.json(
@@ -180,7 +174,6 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: '数据库插入失败',
-          details: error.message,
         },
         { status: 500 }
       );
@@ -189,8 +182,6 @@ export async function POST(request: NextRequest) {
     // 清理临时文件
     ServerFileUtils.deleteFile(tempFile);
 
-    console.log('[Product Batch] ========== 导入完成 ==========');
-    console.log('[Product Batch] 成功导入:', inserted?.length || 0, '个产品');
 
     return NextResponse.json({
       success: true,

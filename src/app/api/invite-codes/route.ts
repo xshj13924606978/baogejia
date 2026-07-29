@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAuth } from '@/lib/auth-utils';
 
 // 生成邀请码
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const { user_id, type = 'link' } = body;
@@ -42,6 +46,9 @@ export async function POST(request: NextRequest) {
 
 // 获取用户邀请码列表
 export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const user_id = searchParams.get('user_id');
@@ -73,6 +80,9 @@ export async function GET(request: NextRequest) {
 
 // 验证邀请码
 export async function PUT(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const { code } = body;

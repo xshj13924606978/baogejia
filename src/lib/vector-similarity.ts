@@ -54,7 +54,6 @@ export class VectorSimilarityCalculator {
       normalize: true,
       ...config
     };
-    console.log('[VectorSimilarityCalculator] 向量相似度计算器初始化完成');
   }
 
   /**
@@ -71,7 +70,6 @@ export class VectorSimilarityCalculator {
    * 初始化词汇表
    */
   public initializeVocabulary(texts: string[]): void {
-    console.log('[VectorSimilarityCalculator] 开始初始化词汇表...');
 
     const termFrequency = new Map<string, number>();
     const docFrequency = new Map<string, number>();
@@ -109,7 +107,6 @@ export class VectorSimilarityCalculator {
     });
 
     this.isInitialized = true;
-    console.log(`[VectorSimilarityCalculator] 词汇表初始化完成，共 ${this.vocabulary.size} 个词汇`);
   }
 
   /**
@@ -384,7 +381,6 @@ export class VectorSimilarityCalculator {
     this.vocabulary.clear();
     this.idfCache.clear();
     this.isInitialized = false;
-    console.log('[VectorSimilarityCalculator] 缓存已清除');
   }
 }
 

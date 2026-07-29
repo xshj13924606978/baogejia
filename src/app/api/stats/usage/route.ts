@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { hasPermission } from '@/lib/auth/roles';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
     const { searchParams } = new URL(request.url);
 
     const userId = searchParams.get('userId');
@@ -12,8 +12,6 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const period = searchParams.get('period') || 'day'; // day, week, month, year
 
-    console.log('[Stats Usage] ========== 查询使用统计 ==========');
-    console.log('[Stats Usage] 参数:', { userId, startDate, endDate, period });
 
     // 权限检查
     const userStr = request.cookies.get('user')?.value;
@@ -130,7 +128,6 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    console.log('[Stats Usage] 统计结果:', stats.overview);
 
     return NextResponse.json({
       success: true,

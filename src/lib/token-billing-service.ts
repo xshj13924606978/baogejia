@@ -418,7 +418,7 @@ export class TokenBillingService {
   }
 
   /**
-   * 扣除用户积分
+   * 扣除用户积分（原子操作，避免竞态条件）
    */
   async deductPoints(
     userId: number,
@@ -428,29 +428,20 @@ export class TokenBillingService {
     serviceType?: string
   ): Promise<boolean> {
     try {
-      const balance = await this.getUserBalance(userId);
-      if (!balance) {
-        console.error('[TokenBillingService] 用户余额不存在');
-        return false;
-      }
+      // 原子操作：使用 exec_sql RPC 同时检查余额并扣减
+      await this.supabase.rpc('exec_sql', {
+        sql: `UPDATE user_token_balance SET points_balance = points_balance - ${points}, total_consumed_points = COALESCE(total_consumed_points, 0) + ${points}, last_updated = NOW() WHERE user_id = ${userId} AND points_balance >= ${points};`,
+        params: [],
+      });
 
-      if (balance.pointsBalance < points) {
-        console.error('[TokenBillingService] 积分不足');
-        return false;
-      }
-
-      // 更新余额
-      const { error: updateError } = await this.supabase
+      // 读取更新后的余额
+      const { data: updatedBalance } = await this.supabase
         .from('user_token_balance')
-        .update({
-          points_balance: balance.pointsBalance - points,
-          total_consumed_points: balance.totalConsumedPoints + points,
-          last_updated: new Date(),
-        })
-        .eq('user_id', userId);
+        .select('points_balance')
+        .eq('user_id', userId)
+        .single();
 
-      if (updateError) {
-        console.error('[TokenBillingService] 更新用户余额失败:', updateError);
+      if (!updatedBalance) {
         return false;
       }
 
@@ -556,7 +547,6 @@ export class TokenBillingService {
         return false;
       }
 
-      console.log(`[TokenBillingService] 用户 ${userId} 充值成功: +${points} 积分`);
       return true;
     } catch (error) {
       console.error('[TokenBillingService] 充值积分异常:', error);
@@ -594,7 +584,6 @@ export class TokenBillingService {
         return false;
       }
 
-      console.log(`[TokenBillingService] 用户 ${userId} 积分已设置为: ${points}`);
       return true;
     } catch (error) {
       console.error('[TokenBillingService] 设置用户积分异常:', error);

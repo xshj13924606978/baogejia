@@ -168,7 +168,6 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (response.ok) {
-        console.log('[QuoteContext] 供应商信息保存成功');
         // 同步到 localStorage
         localStorage.setItem('supplierInfo', JSON.stringify(info));
         // 通知其他组件刷新
@@ -204,7 +203,6 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (response.ok) {
-        console.log('[QuoteContext] 客户信息保存成功');
       } else {
         console.warn('[QuoteContext] 客户信息保存失败，API 返回错误');
       }
@@ -231,7 +229,6 @@ export function QuoteProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const _result = await response.json();
-        console.log('[QuoteContext] 商务条款保存成功');
       } else {
         console.warn('[QuoteContext] 商务条款保存失败，API 返回错误');
       }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { userLevelService } from '@/lib/user-level-service';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 
 /**
  * 智能推荐升级API
@@ -12,15 +12,9 @@ import { getCurrentUser } from '@/lib/auth-utils';
 export async function GET(request: NextRequest) {
   try {
     // 获取当前用户
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json(
-        { error: '未登录或用户信息无效' },
-        { status: 401 }
-      );
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
-    console.log('[Recommendation API] 获取升级推荐:', currentUser.id);
 
     // 获取升级推荐
     const recommendation = await userLevelService.recommendLevelUpgrade(

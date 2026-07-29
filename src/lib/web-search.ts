@@ -59,11 +59,9 @@ export async function searchWeb(query: string): Promise<WebSearchResult | null> 
     // 1. 查缓存
     const cached = getCached(query);
     if (cached) {
-      console.log(`[WebSearch] 缓存命中: ${query.substring(0, 40)}...`);
       return cached;
     }
 
-    console.log(`[WebSearch] grok-4 搜索: ${query.substring(0, 60)}...`);
 
     // 2. 调用 LaoZhang.ai (grok-4 + 联网搜索)
     const response = await searchClient.chat.completions.create({
@@ -86,7 +84,6 @@ export async function searchWeb(query: string): Promise<WebSearchResult | null> 
     const content = response.choices[0]?.message?.content || '';
 
     if (!content.trim()) {
-      console.log('[WebSearch] grok-4 返回空内容');
       return null;
     }
 
@@ -127,7 +124,6 @@ export async function searchWeb(query: string): Promise<WebSearchResult | null> 
     };
 
     setCache(query, result);
-    console.log(`[WebSearch] 返回 ${result.items.length} 条结果, ${content.length} 字`);
 
     return result;
   } catch (error: any) {

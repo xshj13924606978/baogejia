@@ -89,8 +89,6 @@ const testCases: TestCase[] = [
   }
 ];
 
-console.log('🧪 开始测试参数描述清洗功能\n');
-console.log('='.repeat(80));
 
 let passed = 0;
 let failed = 0;
@@ -99,35 +97,17 @@ testCases.forEach((testCase, index) => {
   const result = cleanParameterDescription(testCase.input);
   const isPassed = result === testCase.expected;
 
-  console.log(`\n📋 测试用例 ${index + 1}: ${testCase.name}`);
-  console.log('-'.repeat(80));
-  console.log(`输入: "${testCase.input}"`);
-  console.log(`期望: "${testCase.expected}"`);
-  console.log(`实际: "${result}"`);
-  console.log(`结果: ${isPassed ? '✅ 通过' : '❌ 失败'}`);
 
   if (isPassed) {
     passed++;
   } else {
     failed++;
-    console.log(`\n❌ 失败原因:`);
-    console.log(`   期望长度: ${testCase.expected.length}`);
-    console.log(`   实际长度: ${result.length}`);
-    console.log(`   差异: ${testCase.expected.length - result.length} 字符`);
   }
 });
 
-console.log('\n' + '='.repeat(80));
-console.log(`\n📊 测试统计:`);
-console.log(`   总计: ${testCases.length}`);
-console.log(`   通过: ${passed} ✅`);
-console.log(`   失败: ${failed} ${failed > 0 ? '❌' : ''}`);
-console.log(`   通过率: ${((passed / testCases.length) * 100).toFixed(1)}%`);
 
 if (failed === 0) {
-  console.log('\n🎉 所有测试通过！');
 } else {
-  console.log('\n⚠️  有测试失败，请检查清洗逻辑');
 }
 
 export {};

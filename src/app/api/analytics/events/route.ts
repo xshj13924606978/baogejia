@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analytics, EventType } from '@/lib/analytics';
+import { requireAuth } from '@/lib/auth-utils';
 
 /**
  * 记录事件API
  */
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const { userId, eventType, page, properties } = body;
@@ -38,6 +42,9 @@ export async function POST(request: NextRequest) {
  * 获取事件列表API
  */
 export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');

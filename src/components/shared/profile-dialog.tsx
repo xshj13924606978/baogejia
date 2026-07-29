@@ -67,7 +67,6 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   // 当user变化时更新表单（跳过已被主动清空的字段）
   useEffect(() => {
     if (user) {
-      console.log('[ProfileDialog] 用户数据更新:', user);
       setFormData(prev => ({
         name: user.name || prev.name || '',
         email: clearedFieldsRef.current.has('email') ? '' : (user.email || prev.email || ''),

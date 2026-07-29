@@ -4,7 +4,6 @@ export async function POST(request: NextRequest) {
   try {
     const { data } = await request.json();
 
-    console.log('[Proposal] Received request:', { quoteNumber: data?.quoteNumber });
 
     // 生成方案成功，返回成功响应
     return NextResponse.json({
@@ -25,7 +24,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to generate proposal',
-        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

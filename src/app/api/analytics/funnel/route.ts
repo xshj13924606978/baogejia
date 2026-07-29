@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analytics } from '@/lib/analytics';
+import { requireAuth } from '@/lib/auth-utils';
 
 /**
  * 获取转化漏斗数据API
  */
 export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const startDate = searchParams.get('startDate');

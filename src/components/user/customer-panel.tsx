@@ -81,7 +81,6 @@ export default function CustomerPanel() {
   // 保存客户信息到报价单 + 数据库持久化
   const handleSave = async () => {
     try {
-      console.log('[CustomerPanel] 保存客户信息:', formData);
 
       // 1. 保存到内存（QuoteContext）
       updateCustomerInfo({
@@ -120,7 +119,6 @@ export default function CustomerPanel() {
           }),
         });
         if (res.ok) {
-          console.log('[CustomerPanel] 客户信息已持久化到数据库');
         } else {
           console.warn('[CustomerPanel] 数据库保存失败（内存已保存）:', res.status);
         }
@@ -131,7 +129,6 @@ export default function CustomerPanel() {
         description: '客户信息已保存（刷新页面不会丢失）',
       });
 
-      console.log('[CustomerPanel] 保存成功');
     } catch (error) {
       console.error('[CustomerPanel] 保存失败:', error);
       toast({

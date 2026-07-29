@@ -67,7 +67,6 @@ export class RedisCacheManager {
       ...config
     };
 
-    console.log('[RedisCacheManager] 缓存管理器初始化完成，Redis 状态:', this.config.enableRedis ? '已启用' : '已禁用');
   }
 
   /**
@@ -86,7 +85,6 @@ export class RedisCacheManager {
   public async connect(): Promise<boolean> {
     // 检查是否已尝试过连接
     if (this.connectAttempted) {
-      console.log('[RedisCacheManager] 已尝试过连接，跳过重复连接');
       return this.redisAvailable;
     }
 
@@ -95,7 +93,6 @@ export class RedisCacheManager {
 
     // 检查是否启用 Redis
     if (!this.config.enableRedis) {
-      console.log('[RedisCacheManager] Redis 已禁用，使用内存缓存');
       return false;
     }
 
@@ -107,7 +104,6 @@ export class RedisCacheManager {
     }
 
     this.globalRetryCount++;
-    console.log(`[RedisCacheManager] 尝试连接 Redis (第 ${this.globalRetryCount}/${this.MAX_GLOBAL_RETRIES} 次)...`);
 
     try {
       this.redis = new Redis({
@@ -136,7 +132,6 @@ export class RedisCacheManager {
       ]);
 
       this.redisAvailable = true;
-      console.log('[RedisCacheManager] Redis 连接成功');
 
       // 设置错误监听
       this.redis.on('error', (error: Error) => {
@@ -177,7 +172,6 @@ export class RedisCacheManager {
       }
 
       if (this.config.fallbackToMemory) {
-        console.log('[RedisCacheManager] 降级到内存缓存');
       }
 
       return false;
@@ -335,11 +329,9 @@ export class RedisCacheManager {
         if (keys.length > 0) {
           await this.redis.del(keys);
         }
-        console.log(`[RedisCacheManager] 清除了 ${keys.length} 个 Redis 缓存`);
       }
 
       this.memoryCache.clear();
-      console.log('[RedisCacheManager] 清除了所有内存缓存');
 
       return true;
 
@@ -407,7 +399,6 @@ export class RedisCacheManager {
       }
       this.redis = null;
       this.redisAvailable = false;
-      console.log('[RedisCacheManager] Redis 连接已关闭');
     }
 
     // 重置连接尝试标志，允许重新连接

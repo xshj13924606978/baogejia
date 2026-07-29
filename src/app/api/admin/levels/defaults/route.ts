@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 
 // 管理员角色列表
 const ADMIN_ROLES = ['admin', 'super_admin', '管理员', '超级管理员', '系统管理员'];
@@ -32,10 +32,8 @@ async function getUserRole(supabase: any, userId: any): Promise<string | null> {
  */
 export async function GET(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 });
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = getSupabaseClient();
     const role = await getUserRole(supabase, currentUser.id);
@@ -44,12 +42,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '权限不足' }, { status: 403 });
     }
 
-    console.log('[Defaults API] 获取系统默认配置');
 
     const { data: defaultConfigs, error } = await supabase.from('level_definitions').select('*').order('level');
 
     if (error || !defaultConfigs || defaultConfigs.length === 0) {
-      console.log('[Defaults API] 使用内置默认配置');
       return NextResponse.json(DEFAULT_LEVELS);
     }
 

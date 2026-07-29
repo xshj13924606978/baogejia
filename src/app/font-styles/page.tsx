@@ -112,7 +112,7 @@ export default function FontStylesPage() {
                   </div>
 
                   {/* 实时预览 */}
-                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-4">
+                  <div className="bg-gradient-to-r from-brand-primary to-brand-secondary rounded-lg p-4">
                     <p className="text-xs text-blue-100 mb-2 opacity-75">实时预览（当前应用）：</p>
                     <h1 className={`text-3xl text-white ${style.cssClass}`}>报个价</h1>
                   </div>

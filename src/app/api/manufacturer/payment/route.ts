@@ -5,7 +5,6 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get('category') || '';
 
-    console.log('[Manufacturer] 查询参数:', { category });
 
     // 模拟数据 - 不依赖数据库
     const mockData = {

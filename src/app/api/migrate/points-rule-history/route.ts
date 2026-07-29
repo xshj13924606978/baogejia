@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 
 /**
  * 迁移 API: 创建 points_rule_history 表
@@ -99,10 +99,8 @@ const MIGRATION_STATEMENTS: { sql: string; description: string }[] = [
 export async function POST(request: NextRequest) {
   try {
     // 验证管理员权限
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 });
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const adminRoles = ['admin', 'super_admin', 'Admin', 'SUPER_ADMIN', '管理员', '超级管理员'];
     const role = currentUser.role || '';

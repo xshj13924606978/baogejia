@@ -76,7 +76,6 @@ export async function PUT(request: NextRequest) {
 
       // 如果错误是列不存在，尝试添加列
       if (error.message && error.message.includes('column') && error.message.includes('does not exist')) {
-        console.log('尝试添加 is_duplicate_check 列...');
 
         // 使用 SQL 添加列
         const { error: alterError } = await db.rpc('exec_sql', {

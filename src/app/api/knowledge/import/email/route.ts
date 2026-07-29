@@ -18,7 +18,6 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log('[Email Import] 收到 webhook 请求:', body.subject || 'unknown');
 
     // TODO: 验证 webhook secret
     // TODO: 解析邮件主题和正文

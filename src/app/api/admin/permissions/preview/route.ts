@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 管理员角色列表
@@ -22,10 +22,8 @@ async function getUserRole(supabase: any, userId: any): Promise<string | null> {
  */
 export async function POST(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录或用户信息无效' }, { status: 401 });
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     const supabase = getSupabaseClient();
     const role = await getUserRole(supabase, currentUser.id);
@@ -37,7 +35,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { level, changes } = body;
 
-    console.log('[PermissionsPreview API] 预览权限变更', { level, changes });
 
     // 查询该等级下的用户（限制数量）
     const { data: users } = await supabase

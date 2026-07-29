@@ -23,7 +23,6 @@ export function getWebSocketServer() {
 
     // 处理连接
     io.on('connection', async (socket) => {
-      console.log('[WebSocket] 客户端连接:', socket.id);
 
       const userId = socket.handshake.query.userId as string;
 
@@ -51,7 +50,6 @@ export function getWebSocketServer() {
       socket.on('message:read', async (data: { messageType: string; messageId: string }) => {
         try {
           const { messageType, messageId } = data;
-          console.log(`[WebSocket] 消息已读: ${messageType}:${messageId}`);
 
           // 通知其他用户（如聊天场景）
           socket.broadcast.emit('message:read', {
@@ -68,7 +66,6 @@ export function getWebSocketServer() {
       socket.on('notification:read', async (data: { notificationId: number }) => {
         try {
           const { notificationId } = data;
-          console.log(`[WebSocket] 通知已读: ${notificationId}`);
           // 这里可以更新数据库中的通知已读状态
         } catch (error) {
           console.error('[WebSocket] 通知已读处理失败:', error);
@@ -78,12 +75,10 @@ export function getWebSocketServer() {
       // 监听心跳
       socket.on('ping', () => {
         socket.emit('pong');
-        console.log(`[WebSocket] 心跳: ${userId}`);
       });
 
       // 监听断开连接
       socket.on('disconnect', async () => {
-        console.log('[WebSocket] 客户端断开:', socket.id, 'userId:', userId);
 
         // 移除在线状态
         onlineUsers.delete(parseInt(userId));
@@ -101,7 +96,6 @@ export function getWebSocketServer() {
     // 启动 HTTP 服务器（WebSocket 会绑定到这个服务器）
     const wsPort = process.env.WS_PORT || 6000;
     httpServer.listen(wsPort, () => {
-      console.log(`[WebSocket] 服务器运行在端口 ${wsPort}`);
     });
   }
 

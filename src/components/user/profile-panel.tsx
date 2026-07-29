@@ -23,7 +23,7 @@ export default function ProfilePanel() {
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16 ring-2 ring-blue-100">
               <AvatarImage src={user?.avatar} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-lg">
+              <AvatarFallback className="bg-gradient-to-br from-brand-primary to-brand-secondary text-white text-lg">
                 {user?.name?.[0] || 'U'}
               </AvatarFallback>
             </Avatar>
@@ -68,7 +68,7 @@ export default function ProfilePanel() {
             </div>
           </div>
 
-          <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700">保存修改</Button>
+          <Button className="w-full bg-gradient-to-r from-brand-primary to-brand-secondary">保存修改</Button>
         </CardContent>
       </Card>
     </div>

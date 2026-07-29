@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { requireAuth } from '@/lib/auth-utils';
 import { hasPermission } from '@/lib/auth/roles';
 import { PointsRuleHistory, ExecutionStatus } from '@/types/points-rules';
 
@@ -69,10 +69,8 @@ function buildQueryConditions(params: HistoryQueryParams, query: any) {
 export async function GET(request: NextRequest) {
   try {
     // 验证管理员权限
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !currentUser.id) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 });
-    }
+    const { user: currentUser, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
 
     if (!hasPermission(currentUser, 'admin.manage_points_rules')) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });

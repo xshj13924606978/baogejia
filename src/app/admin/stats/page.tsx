@@ -155,11 +155,10 @@ export default function StatsPage() {
     else if (activeTab === 'revenue') loadRevenue();
     else if (activeTab === 'levels') loadLevels();
     else if (activeTab === 'heatmap') loadHeatmap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // 初始加载概览
-  useEffect(() => { loadBasic(); }, []); // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadBasic(); }, []);
 
   const LoadingSkeleton = () => (
     <div className="flex items-center justify-center py-16">

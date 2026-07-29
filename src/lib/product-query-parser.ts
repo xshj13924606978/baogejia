@@ -61,7 +61,6 @@ export class ProductQueryParser {
 
   constructor() {
     this.initExtractionRules();
-    console.log('[ProductQueryParser] 查询解析器初始化完成');
   }
 
   /**
@@ -254,7 +253,6 @@ export class ProductQueryParser {
               
               // 添加关键词
               result.extractedKeywords.push(match[0]);
-              console.log(`[ProductQueryParser] 提取 ${key}: ${value}`);
               break;
             }
           }
