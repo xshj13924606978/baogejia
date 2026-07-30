@@ -535,6 +535,14 @@ export default function ChatArea({
     };
   }, []);
 
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+  };
+
   const {
     getRootProps: getRootPropsForInput,
     getInputProps,
@@ -556,14 +564,6 @@ export default function ChatArea({
 
   const dropzoneProps = getRootPropsForInput();
   const { onKeyDown: _dropzoneKeyDown, ...dropzonePropsWithoutKeyboard } = dropzoneProps;
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-  };
 
   useEffect(() => {
     setIsReady(true);
@@ -605,42 +605,6 @@ export default function ChatArea({
       };
     }
   }, []);
-
-  useEffect(() => {
-    const handleIntentSelect = async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { fileGroupId, choice } = customEvent.detail;
-
-      const files = parsedFilesMapRef.current[fileGroupId];
-
-      if (files) {
-        setActiveGroup(fileGroupId, files, choice);
-      } else {
-        console.error('[Chat] 未找到文件组数据, fileGroupId:', fileGroupId);
-      }
-
-      await handleIntentSelectionForSwitch(fileGroupId, choice);
-    };
-
-    window.addEventListener('intent-select', handleIntentSelect);
-    return () => {
-      window.removeEventListener('intent-select', handleIntentSelect);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleSwitchChange = async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { fileGroupId, choice } = customEvent.detail;
-
-      await handleIntentSelectionForSwitch(fileGroupId, choice);
-    };
-
-    window.addEventListener('switch-change', handleSwitchChange);
-    return () => {
-      window.removeEventListener('switch-change', handleSwitchChange);
-    };
-  }, [parsedFilesMap, switchIsLoading]);
 
   useEffect(() => {
     const handleFillPricesComplete = (event: Event) => {
@@ -1607,7 +1571,7 @@ export default function ChatArea({
   const handleUpdateProductPrice = (messageId: number, productIndex: number, newPrice: number) => {
     setMessages((prev) =>
       prev.map((msg) => {
-        if (msg.id === messageId && msg.quoteData) {
+        if (msg.id === messageId && msg.quoteData && msg.quoteData.products) {
           const updatedProducts = [...msg.quoteData.products];
           const product = updatedProducts[productIndex];
           if (product) {
@@ -1615,7 +1579,8 @@ export default function ChatArea({
             const quantity = product.quantity || 1;
             product.totalPrice = newPrice * quantity;
             const newSubtotal = updatedProducts.reduce((sum, p) => sum + (p.totalPrice || 0), 0);
-            const newTaxAmount = newSubtotal * (msg.quoteData.taxRate / 100);
+            const taxRate = msg.quoteData.taxRate ?? 0;
+            const newTaxAmount = newSubtotal * (taxRate / 100);
             const newTotalAmount = newSubtotal + newTaxAmount;
 
             return {
@@ -1642,7 +1607,7 @@ export default function ChatArea({
   ) => {
     setMessages((prev) =>
       prev.map((msg) => {
-        if (msg.id === messageId && msg.quoteData) {
+        if (msg.id === messageId && msg.quoteData && msg.quoteData.products) {
           const updatedProducts = [...msg.quoteData.products];
           const product = updatedProducts[productIndex];
           if (product) {
@@ -1650,7 +1615,8 @@ export default function ChatArea({
             const price = product.unitPrice || 0;
             product.totalPrice = price * newQuantity;
             const newSubtotal = updatedProducts.reduce((sum, p) => sum + (p.totalPrice || 0), 0);
-            const newTaxAmount = newSubtotal * (msg.quoteData.taxRate / 100);
+            const taxRate = msg.quoteData.taxRate ?? 0;
+            const newTaxAmount = newSubtotal * (taxRate / 100);
             const newTotalAmount = newSubtotal + newTaxAmount;
 
             return {
@@ -2097,6 +2063,42 @@ export default function ChatArea({
     },
     [conversationId, scrollToBottom]
   );
+
+  useEffect(() => {
+    const handleIntentSelect = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { fileGroupId, choice } = customEvent.detail;
+
+      const files = parsedFilesMapRef.current[fileGroupId];
+
+      if (files) {
+        setActiveGroup(fileGroupId, files, choice);
+      } else {
+        console.error('[Chat] 未找到文件组数据, fileGroupId:', fileGroupId);
+      }
+
+      await handleIntentSelectionForSwitch(fileGroupId, choice);
+    };
+
+    window.addEventListener('intent-select', handleIntentSelect);
+    return () => {
+      window.removeEventListener('intent-select', handleIntentSelect);
+    };
+  }, [handleIntentSelectionForSwitch]);
+
+  useEffect(() => {
+    const handleSwitchChange = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { fileGroupId, choice } = customEvent.detail;
+
+      await handleIntentSelectionForSwitch(fileGroupId, choice);
+    };
+
+    window.addEventListener('switch-change', handleSwitchChange);
+    return () => {
+      window.removeEventListener('switch-change', handleSwitchChange);
+    };
+  }, [parsedFilesMap, switchIsLoading, handleIntentSelectionForSwitch]);
 
   /**
    * 生图功能
