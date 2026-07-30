@@ -1,14 +1,17 @@
 #!/bin/bash
 # ============================================================================
 # 一键部署脚本 — 腾讯云轻量服务器
-# 用法: bash deploy-server.sh [--init] [--deploy] [--update] [--ssl DOMAIN]
-#   --init      : 初始化服务器环境（只需执行一次）
-#   --deploy    : 首次部署（克隆代码 + Docker 构建 + Nginx 配置）
-#   --update    : 更新部署（拉取最新代码 + 重新构建）
-#   --rollback  : 回滚到上一个版本
-#   --logs      : 查看应用实时日志（Ctrl+C 退出）
-#   --status    : 查看服务状态
-#   --ssl DOMAIN: 配置 HTTPS（需要已备案域名）
+# 用法: bash deploy-server.sh [--init] [--deploy] [--update] [--rollback] [--ssl DOMAIN]
+#   --init          : 初始化服务器环境（只需执行一次）
+#   --deploy        : 首次部署（克隆代码 + Docker 构建 + Nginx 配置）
+#   --update        : 更新部署（拉取最新代码 + 重新构建）
+#   --rollback      : 回滚到上一个版本
+#   --backup        : 手动执行一次备份
+#   --backup-cron   : 配置/禁用定时自动备份（默认每天凌晨 3 点）
+#   --restore <dir> : 从备份恢复（不带参数则列出可用备份）
+#   --logs          : 查看应用实时日志（Ctrl+C 退出）
+#   --status        : 查看服务状态
+#   --ssl DOMAIN    : 配置 HTTPS（需要已备案域名）
 # ============================================================================
 
 set -eo pipefail
@@ -433,6 +436,222 @@ do_health_check() {
 }
 
 # ============================================================================
+# --backup : 手动执行一次备份
+# ============================================================================
+do_backup() {
+  check_root
+  cd "$APP_DIR"
+
+  local BACKUP_BASE="$APP_DIR/backups"
+  local TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+  local BACKUP_DIR="$BACKUP_BASE/$TIMESTAMP"
+  local COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+  local MAX_BACKUPS=10
+
+  echo "=========================================="
+  echo "  报个价 — 手动备份"
+  echo "=========================================="
+
+  mkdir -p "$BACKUP_DIR"
+
+  info "备份版本: $COMMIT"
+  info "备份目录: $BACKUP_DIR"
+
+  # 1. 备份源代码（仅项目文件，排除 .git 和 node_modules）
+  info "备份源代码..."
+  tar -cf "$BACKUP_DIR/code.tar" \
+    --exclude='.git' \
+    --exclude='node_modules' \
+    --exclude='.next' \
+    --exclude='.husky' \
+    --exclude='backups' \
+    --exclude='tmp' \
+    --exclude='logs' \
+    -C "$APP_DIR" \
+    . 2>/dev/null
+
+  # 2. 备份环境变量
+  if [ -f .env.production ]; then
+    cp .env.production "$BACKUP_DIR/env.production"
+    ok "环境变量已备份"
+  fi
+
+  # 3. 备份 Docker 镜像（导出为 tar）
+  info "导出 Docker 镜像..."
+  local IMAGE_ID=$(docker compose images -q app 2>/dev/null | head -1)
+  if [ -n "$IMAGE_ID" ]; then
+    docker save "$IMAGE_ID" -o "$BACKUP_DIR/image.tar" 2>/dev/null
+    ok "Docker 镜像已导出"
+  else
+    warn "未找到运行中的镜像，跳过镜像备份"
+  fi
+
+  # 4. 备份数据库（Supabase 远程 pg_dump）
+  info "备份数据库..."
+  if [ -n "$DATABASE_URL" ] && command -v pg_dump &> /dev/null; then
+    pg_dump "$DATABASE_URL" -f "$BACKUP_DIR/db.sql" 2>/dev/null && ok "数据库已备份" || warn "数据库备份失败（pg_dump 不可用或 DATABASE_URL 未配置）"
+  else
+    warn "跳过数据库备份（需要安装 postgresql-client 并配置 DATABASE_URL）"
+  fi
+
+  # 写入备份元信息
+  cat > "$BACKUP_DIR/backup-info.txt" << EOF
+commit=$COMMIT
+timestamp=$TIMESTAMP
+image=$IMAGE_ID
+size=$(du -sh "$BACKUP_DIR" 2>/dev/null | cut -f1)
+EOF
+
+  local SIZE=$(du -sh "$BACKUP_DIR" 2>/dev/null | cut -f1)
+  ok "备份完成: $BACKUP_DIR ($SIZE)"
+
+  # 清理旧备份，保留最近 N 个
+  local BACKUP_COUNT=$(ls -1d "$BACKUP_BASE"/[0-9]* 2>/dev/null | wc -l)
+  if [ "$BACKUP_COUNT" -gt "$MAX_BACKUPS" ]; then
+    local TO_DELETE=$((BACKUP_COUNT - MAX_BACKUPS))
+    info "清理 $TO_DELETE 个旧备份..."
+    ls -1d "$BACKUP_BASE"/[0-9]* | sort | head -n "$TO_DELETE" | while read dir; do
+      rm -rf "$dir"
+      info "已删除: $dir"
+    done
+  fi
+}
+
+# ============================================================================
+# --backup-cron : 配置定时自动备份
+# ============================================================================
+do_backup_cron() {
+  check_root
+  local CRON_SCHEDULE="${2:-0 3 * * *}"  # 默认每天凌晨 3 点
+  local ACTION="${1:-}"
+
+  if [ "$ACTION" = "off" ] || [ "$ACTION" = "disable" ] || [ "$ACTION" = "remove" ]; then
+    info "移除定时备份任务..."
+    crontab -l 2>/dev/null | grep -v "deploy-server.sh --backup" | crontab - 2>/dev/null
+    ok "定时备份已禁用"
+    return 0
+  fi
+
+  echo "=========================================="
+  echo "  报个价 — 定时备份配置"
+  echo "=========================================="
+  echo ""
+
+  local SCRIPT_PATH="$APP_DIR/deploy-server.sh"
+
+  # 检查是否已存在
+  if crontab -l 2>/dev/null | grep -q "deploy-server.sh --backup"; then
+    warn "定时备份任务已存在，将替换为: $CRON_SCHEDULE"
+    crontab -l 2>/dev/null | grep -v "deploy-server.sh --backup" | crontab - 2>/dev/null
+  fi
+
+  # 添加 crontab 条目
+  (crontab -l 2>/dev/null; echo "$CRON_SCHEDULE $SCRIPT_PATH --backup >> /var/log/quote-backup.log 2>&1") | crontab -
+
+  ok "定时备份已配置"
+  echo ""
+  echo "当前 crontab 任务："
+  crontab -l | grep -v "^#" | grep -v "^$" | nl -ba -v 0
+  echo ""
+  echo "备份计划: 每天凌晨 3:00 自动执行"
+  echo "备份位置: $APP_DIR/backups/"
+  echo "保留数量: 最近 10 份"
+  echo ""
+  echo "其他操作："
+  echo "  手动备份: sudo bash $0 --backup"
+  echo "  禁用定时: sudo bash $0 --backup-cron off"
+  echo "  查看备份: ls -la $APP_DIR/backups/"
+  echo "  恢复备份: sudo bash $0 --restore <备份目录名>"
+}
+
+# ============================================================================
+# --restore <dir> : 从备份恢复
+# ============================================================================
+do_restore() {
+  check_root
+  local BACKUP_NAME="$2"
+  local BACKUP_BASE="$APP_DIR/backups"
+
+  if [ -z "$BACKUP_NAME" ]; then
+    # 列出可用的备份
+    if [ ! -d "$BACKUP_BASE" ] || [ -z "$(ls -A "$BACKUP_BASE" 2>/dev/null)" ]; then
+      fail "没有可用的备份"
+    fi
+    echo "=========================================="
+    echo "  报个价 — 可用备份"
+    echo "=========================================="
+    echo ""
+    for dir in $(ls -1d "$BACKUP_BASE"/[0-9]* 2>/dev/null | sort -r); do
+      local INFO="$dir/backup-info.txt"
+      local COMMIT="?"
+      local SIZE=$(du -sh "$dir" 2>/dev/null | cut -f1)
+      if [ -f "$INFO" ]; then
+        COMMIT=$(grep '^commit=' "$INFO" | cut -d= -f2)
+      fi
+      printf "  %-25s  commit: %-10s  size: %s\n" "$(basename "$dir")" "$COMMIT" "$SIZE"
+    done
+    echo ""
+    fail "用法: sudo bash $0 --restore <备份目录名>"
+  fi
+
+  local RESTORE_DIR="$BACKUP_BASE/$BACKUP_NAME"
+  if [ ! -d "$RESTORE_DIR" ]; then
+    fail "备份不存在: $RESTORE_DIR"
+  fi
+
+  echo "=========================================="
+  echo "  报个价 — 恢复备份"
+  echo "=========================================="
+
+  if [ -f "$RESTORE_DIR/backup-info.txt" ]; then
+    echo "备份信息:"
+    cat "$RESTORE_DIR/backup-info.txt"
+    echo ""
+  fi
+
+  read -p "确认恢复此备份？当前应用将被替换 (y/N): " CONFIRM
+  if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
+    info "已取消"
+    return 0
+  fi
+
+  # 停止当前服务
+  info "停止当前服务..."
+  cd "$APP_DIR"
+  docker compose down 2>/dev/null || true
+
+  # 恢复源代码
+  if [ -f "$RESTORE_DIR/code.tar" ]; then
+    info "恢复源代码..."
+    tar -xf "$RESTORE_DIR/code.tar" -C "$APP_DIR"
+    ok "源代码已恢复"
+  fi
+
+  # 恢复环境变量
+  if [ -f "$RESTORE_DIR/env.production" ]; then
+    info "恢复环境变量..."
+    cp "$RESTORE_DIR/env.production" "$APP_DIR/.env.production"
+    ok "环境变量已恢复"
+  fi
+
+  # 恢复 Docker 镜像
+  if [ -f "$RESTORE_DIR/image.tar" ]; then
+    info "导入 Docker 镜像..."
+    docker load -i "$RESTORE_DIR/image.tar" 2>/dev/null
+    ok "Docker 镜像已导入"
+  fi
+
+  # 重新启动
+  info "重新启动服务..."
+  docker compose up -d
+
+  sleep 10
+  do_health_check
+
+  ok "恢复完成！"
+}
+
+# ============================================================================
 # 内部：配置 Nginx HTTP 反向代理
 # ============================================================================
 do_nginx_http() {
@@ -470,38 +689,53 @@ NGINX
 # 入口
 # ============================================================================
 case "${1:-}" in
-  --init)     do_init     ;;
-  --deploy)   do_deploy   ;;
-  --update)   do_update   ;;
-  --rollback) do_rollback ;;
-  --logs)     do_logs     "$2" ;;
-  --status)   do_status   ;;
-  --ssl)      do_ssl "$2" ;;
+  --init)         do_init         ;;
+  --deploy)       do_deploy       ;;
+  --update)       do_update       ;;
+  --rollback)     do_rollback     ;;
+  --backup)       do_backup       ;;
+  --backup-cron)  do_backup_cron  "$2" "$3" ;;
+  --restore)      do_restore      "$2" ;;
+  --logs)         do_logs         "$2" ;;
+  --status)       do_status       ;;
+  --ssl)          do_ssl          "$2" ;;
   *)
     echo ""
     echo "报个价 — 自动化部署脚本"
     echo ""
     echo "用法: sudo bash $0 <command>"
     echo ""
-    echo "命令:"
-    echo "  --init            初始化服务器环境（只需一次）"
-    echo "  --deploy          首次部署（克隆代码 + 构建 + Nginx）"
-    echo "  --update          更新部署（拉取代码 + 重新构建，自动备份）"
-    echo "  --rollback        回滚到上一个版本"
-    echo "  --logs [N]        查看实时日志（默认最近 100 行）"
-    echo "  --status          查看服务状态（资源/容器/健康）"
-    echo "  --ssl <domain>    配置 HTTPS（需要已备案域名）"
+    echo "部署命令:"
+    echo "  --init              初始化服务器环境（只需一次）"
+    echo "  --deploy            首次部署（克隆代码 + 构建 + Nginx）"
+    echo "  --update            更新部署（拉取代码 + 重新构建，自动备份）"
+    echo "  --rollback          回滚到上一个版本"
+    echo ""
+    echo "备份命令:"
+    echo "  --backup            手动执行一次备份"
+    echo "  --backup-cron       配置定时自动备份（默认每天凌晨 3 点）"
+    echo "  --backup-cron off   禁用定时备份"
+    echo "  --restore           列出可恢复的备份"
+    echo "  --restore <名称>    恢复指定备份"
+    echo ""
+    echo "运维命令:"
+    echo "  --logs [N]          查看实时日志（默认最近 100 行）"
+    echo "  --status            查看服务状态（资源/容器/健康）"
+    echo "  --ssl <domain>      配置 HTTPS（需要已备案域名）"
     echo ""
     echo "示例（首次完整流程）:"
     echo "  sudo bash $0 --init"
     echo "  sudo bash $0 --deploy"
+    echo "  sudo bash $0 --backup-cron     # 启用定时备份"
     echo "  sudo bash $0 --ssl xs-bj.com"
     echo ""
     echo "日常运维:"
-    echo "  sudo bash $0 --update        # 更新代码"
-    echo "  sudo bash $0 --rollback      # 出问题时回滚"
-    echo "  sudo bash $0 --logs           # 看实时日志"
-    echo "  sudo bash $0 --logs 500       # 看最近 500 行日志"
-    echo "  sudo bash $0 --status         # 查看服务状态"
+    echo "  sudo bash $0 --update            # 更新代码"
+    echo "  sudo bash $0 --rollback          # 出问题时回滚"
+    echo "  sudo bash $0 --backup            # 手动备份"
+    echo "  sudo bash $0 --restore           # 查看备份列表"
+    echo "  sudo bash $0 --restore 20260730 # 恢复指定备份"
+    echo "  sudo bash $0 --logs              # 看实时日志"
+    echo "  sudo bash $0 --status            # 查看服务状态"
     ;;
 esac
