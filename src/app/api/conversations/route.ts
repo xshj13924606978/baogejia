@@ -67,7 +67,9 @@ export async function POST(request: NextRequest) {
     try {
       const body = await request.json();
       title = body.title || '新对话';
-    } catch (_e) {}
+    } catch {
+      // title 解析失败时使用默认值
+    }
 
     const now = new Date().toISOString();
     const { data, error } = await supabase

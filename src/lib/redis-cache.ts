@@ -267,9 +267,13 @@ export class RedisCacheManager {
         // 从 Redis 获取
         const value = await this.redis.get(cacheKey);
         if (value) {
-          const cacheValue: CacheValue = JSON.parse(value);
-          this.stats.hits++;
-          return cacheValue.data;
+          const cacheValue = JSON.parse(value) as CacheValue;
+          if (cacheValue && cacheValue.data !== undefined) {
+            this.stats.hits++;
+            return cacheValue.data;
+          }
+          this.stats.misses++;
+          return null;
         }
         this.stats.misses++;
         return null;

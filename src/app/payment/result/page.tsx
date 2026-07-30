@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ function PaymentResultContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'fail' | 'error'>('loading');
   const [order, setOrder] = useState<any>(null);
   const [error, setError] = useState<string>('');
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const checkPaymentStatus = async () => {
@@ -50,6 +51,12 @@ function PaymentResultContent() {
     };
 
     checkPaymentStatus();
+
+    return () => {
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+      }
+    };
   }, [searchParams]);
 
   const fetchOrder = async (orderNo: string) => {
@@ -86,7 +93,7 @@ function PaymentResultContent() {
         setError('支付状态查询超时，请稍后查看订单列表');
       } else {
         attempts++;
-        setTimeout(poll, 2000); // 2秒后重试
+        pollTimerRef.current = setTimeout(poll, 2000);
       }
     };
 

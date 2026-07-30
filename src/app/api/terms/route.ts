@@ -15,7 +15,7 @@ export async function GET(_request: NextRequest) {
       throw error;
     }
 
-    const terms = data.map((term: any) => ({
+    const terms = (data || []).map((term: any) => ({
       id: term.id,
       name: term.name,
       paymentTerms: term.payment_terms,

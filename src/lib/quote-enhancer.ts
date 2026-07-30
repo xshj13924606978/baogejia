@@ -395,6 +395,11 @@ export class QuoteEnhancer {
           suggestions = JSON.parse(response.text);
         }
 
+        // 确保解析结果是数组
+        if (!Array.isArray(suggestions)) {
+          suggestions = [];
+        }
+
         // 验证数据格式
         suggestions = suggestions.filter(
           (s: any) =>

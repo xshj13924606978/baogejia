@@ -384,7 +384,7 @@ ${proposal}
 
       if (jsonMatch) {
         const params = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-        return params.filter((p: any) => p.name && p.value);
+        return Array.isArray(params) ? params.filter((p: any) => p.name && p.value) : [];
       }
 
       return [];
@@ -462,7 +462,7 @@ ${proposal}
 
       if (jsonMatch) {
         const steps = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-        return steps.filter((s: any) => s.step && s.name);
+        return Array.isArray(steps) ? steps.filter((s: any) => s.step && s.name) : [];
       }
 
       return [];
@@ -552,7 +552,7 @@ ${proposal}
 
       if (jsonMatch) {
         const equipment = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-        return equipment.filter((e: any) => e.id && e.name && e.quantity > 0);
+        return Array.isArray(equipment) ? equipment.filter((e: any) => e.id && e.name && e.quantity > 0) : [];
       }
 
       return [];
@@ -881,7 +881,7 @@ ${proposal}
 
       if (jsonMatch) {
         const suggestions = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-        return suggestions.filter((s: any) => s.category && s.description);
+        return Array.isArray(suggestions) ? suggestions.filter((s: any) => s.category && s.description) : [];
       }
 
       return [];

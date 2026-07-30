@@ -96,10 +96,14 @@ export class OcrHelper {
       // 清理临时文件
       try {
         fs.unlinkSync(tempPdf);
-      } catch (_e) {}
+      } catch {
+        // 临时文件可能已被清理，忽略删除失败
+      }
       try {
         fs.unlinkSync(tempTxt);
-      } catch (_e) {}
+      } catch {
+        // 临时文件可能已被清理，忽略删除失败
+      }
     }
   }
 
@@ -149,8 +153,8 @@ export class OcrHelper {
         Logger.error('[OCR] 系统 tesseract 失败', error);
       } finally {
         // 清理临时文件
-        try { fs.unlinkSync(tempImage); } catch (_e) {}
-        try { fs.unlinkSync(tempTxt); } catch (_e) {}
+        try { fs.unlinkSync(tempImage); } catch { /* 临时文件清理 */ }
+        try { fs.unlinkSync(tempTxt); } catch { /* 临时文件清理 */ }
       }
     } catch (_error) {
       Logger.warn('[OCR] 系统 tesseract 不可用');

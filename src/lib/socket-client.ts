@@ -370,7 +370,7 @@ export function useSocket(userId?: string) {
     // 设置在线用户监听
     const unsubscribeUsersOnline = client.on('users:online', (data) => {
       // 将字符串数组转换为对象数组
-      const users = data.userIds.map((id: string) => ({
+      const users = (data.userIds || []).map((id: string) => ({
         userId: id,
         status: 'online' as const,
       }));
