@@ -334,6 +334,11 @@ export async function POST(request: NextRequest) {
 
     const stream = new ReadableStream({
       async start(controller) {
+        const onAbort = () => {
+          try { controller.close(); } catch {}
+        };
+        request.signal.addEventListener('abort', onAbort, { once: true });
+
         try {
           // 发送开始标记
           const startEvent = `data: ${JSON.stringify({ type: 'start' })}\n\n`;
@@ -341,7 +346,7 @@ export async function POST(request: NextRequest) {
 
           // === 联网搜索阶段 ===
           let webSearchUsed = false;
-          if (needsWebSearch) {
+          if (needsWebSearch && !request.signal.aborted) {
             const searchingEvent = `data: ${JSON.stringify({
               type: 'searching',
               message: '正在联网搜索相关信息...'
@@ -382,7 +387,9 @@ export async function POST(request: NextRequest) {
             temperature: 0.7,
             maxTokens: 8192,
             model: model || 'deepseek',
+            signal: request.signal,
           })) {
+            if (request.signal.aborted) break;
             fullContent += chunk;
 
             // 发送内容块
@@ -489,6 +496,7 @@ export async function POST(request: NextRequest) {
           })}\n\n`;
           controller.enqueue(encoder.encode(errorEvent));
         } finally {
+          request.signal.removeEventListener('abort', onAbort);
           controller.close();
         }
       }

@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
           num_predict: 2048,
         },
       }),
+      signal: req.signal, // 响应客户端断开
     });
 
     // 创建流式响应
@@ -29,26 +30,39 @@ export async function POST(req: NextRequest) {
           return;
         }
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          
-          const text = new TextDecoder().decode(value);
-          const lines = text.split('\n');
-          
-          for (const line of lines) {
-            if (line.trim() === '') continue;
-            try {
-              const data = JSON.parse(line);
-              if (data.response) {
-                controller.enqueue(encoder.encode(data.response));
+        // 响应客户端断开
+        const onAbort = () => {
+          reader.cancel();
+          try { controller.close(); } catch {}
+        };
+        req.signal.addEventListener('abort', onAbort, { once: true });
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const text = new TextDecoder().decode(value);
+            const lines = text.split('\n');
+
+            for (const line of lines) {
+              if (line.trim() === '') continue;
+              try {
+                const data = JSON.parse(line);
+                if (data.response) {
+                  controller.enqueue(encoder.encode(data.response));
+                }
+              } catch (e) {
+                // 忽略解析错误
               }
-            } catch (e) {
-              // 忽略解析错误
             }
           }
+        } catch (e) {
+          // 客户端断开或读取错误，不再继续
+        } finally {
+          req.signal.removeEventListener('abort', onAbort);
+          controller.close();
         }
-        controller.close();
       },
     });
 

@@ -251,9 +251,17 @@ export class OrderService {
 
     // TODO: 调用第三方退款接口（微信/支付宝）
 
-    // 模拟退款成功
+    // 标记退款为处理中，避免 setTimeout 未完成时被重复触发
+    refund.status = RefundStatus.PROCESSING;
+    this.refunds.set(refund.id, refund);
+
+    // 模拟退款成功（生产环境应替换为第三方退款API回调）
     setTimeout(async () => {
-      await this.completeRefund(refund.id, 'REFUND_' + order.order_no);
+      const current = this.refunds.get(refund.id);
+      // 幂等性检查：仅在仍为 PROCESSING 时才完成
+      if (current && current.status === RefundStatus.PROCESSING) {
+        await this.completeRefund(refund.id, 'REFUND_' + order.order_no);
+      }
     }, 2000);
 
     return refund;

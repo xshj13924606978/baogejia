@@ -93,7 +93,7 @@ export default function PermissionOverrides() {
             })));
           }
         })
-        .catch(() => {});
+        .catch((err) => console.error('[config-permissions] 加载用户列表失败:', err));
     }
   }, [targetType, searchUser]);
 

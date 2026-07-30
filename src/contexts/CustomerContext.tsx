@@ -29,7 +29,9 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
     try {
       const saved = localStorage.getItem('currentCustomer');
       if (saved) setCurrentCustomerState(JSON.parse(saved));
-    } catch {}
+    } catch (err) {
+      console.error('[CustomerContext] 读取 localStorage currentCustomer 失败:', err);
+    }
   }, []);
 
   const setCurrentCustomer = useCallback((customer: CustomerInfo | null) => {

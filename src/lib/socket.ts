@@ -360,6 +360,8 @@ class SocketServer {
       this.heartbeatInterval = null;
     }
 
+    this.onlineUsers.clear();
+
     if (this.io) {
       this.io.close();
       this.io = null;

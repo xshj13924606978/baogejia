@@ -16,6 +16,7 @@ export interface ChatCompletionParams {
   stream?: boolean;
   conversationId?: string;
   model?: AIModel;
+  signal?: AbortSignal;
 }
 
 // AI响应接口
@@ -35,6 +36,7 @@ export class AIClient {
   private deepseekClient: OpenAI;
   private geminiClient: OpenAI | null = null;
   private cozeClient: any;
+  private gemmaClient: OpenAI | null = null;
 
   constructor() {
     // 初始化DeepSeek客户端
@@ -66,9 +68,6 @@ export class AIClient {
     }
 
     this.cozeClient = null;
-    const models = [];
-    if (apiKey) models.push('deepseek');
-    if (laoZhangApiKey) models.push('gemini');
   }
 
   /**
@@ -256,6 +255,7 @@ export class AIClient {
    */
   async *streamChat(params: ChatCompletionParams): AsyncGenerator<string, void, unknown> {
     const model = params.model || 'deepseek';
+    const signal = params.signal;
 
     try {
       if (model === 'gemma') {
@@ -268,9 +268,9 @@ export class AIClient {
     } catch (error: any) {
       // 降级：gemma 失败切 deepseek，gemini 失败切 deepseek，deepseek 失败切 gemini
       if ((model === 'gemma' || model === 'gemini') && process.env.DEEPSEEK_API_KEY) {
-        yield* this.streamDeepSeek(params);
+        yield* this.streamDeepSeek({ ...params, signal });
       } else if (model === 'deepseek' && this.geminiClient) {
-        yield* this.streamGemini(params);
+        yield* this.streamGemini({ ...params, signal });
       } else {
         console.error(`[AIClient] ${model}流式调用失败:`, error);
         yield `[错误] ${error.message}`;
@@ -287,6 +287,8 @@ export class AIClient {
     }
 
     try {
+      if (params.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
       const stream = (await this.deepseekClient.chat.completions.create({
         model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
         messages: params.messages,
@@ -296,6 +298,7 @@ export class AIClient {
       })) as Stream<ChatCompletionChunk>;
 
       for await (const chunk of stream) {
+        if (params.signal?.aborted) break;
         const content = chunk.choices[0]?.delta?.content || '';
         if (content) {
           yield content;
@@ -311,13 +314,17 @@ export class AIClient {
    * 流式调用 Gemma 本地模型（通过 Ollama）
    */
   private async *streamGemma(params: ChatCompletionParams): AsyncGenerator<string, void, unknown> {
-    const gemmaClient = new OpenAI({
-      baseURL: process.env.GEMMA_API_URL || 'http://localhost:11434/v1',
-      apiKey: 'ollama',
-    });
+    if (!this.gemmaClient) {
+      this.gemmaClient = new OpenAI({
+        baseURL: process.env.GEMMA_API_URL || 'http://localhost:11434/v1',
+        apiKey: 'ollama',
+      });
+    }
 
     try {
-      const stream = await gemmaClient.chat.completions.create({
+      if (params.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
+      const stream = await this.gemmaClient.chat.completions.create({
         model: process.env.GEMMA_MODEL || 'gemma4:e4b',
         messages: params.messages,
         temperature: params.temperature ?? 0.7,
@@ -326,6 +333,7 @@ export class AIClient {
       }) as Stream<ChatCompletionChunk>;
 
       for await (const chunk of stream) {
+        if (params.signal?.aborted) break;
         const content = chunk.choices[0]?.delta?.content || '';
         if (content) {
           yield content;
@@ -346,6 +354,8 @@ export class AIClient {
     }
 
     try {
+      if (params.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
       const stream = (await this.geminiClient.chat.completions.create({
         model: process.env.LAOZHANG_MODEL || 'gemini-2.5-flash',
         messages: params.messages,
@@ -355,6 +365,7 @@ export class AIClient {
       })) as Stream<ChatCompletionChunk>;
 
       for await (const chunk of stream) {
+        if (params.signal?.aborted) break;
         const content = chunk.choices[0]?.delta?.content || '';
         if (content) {
           yield content;

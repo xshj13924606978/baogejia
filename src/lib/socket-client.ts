@@ -228,7 +228,7 @@ class SocketClient {
     }
     this.connectionPromise = null;
     this.userId = null;
-    this.listeners.clear();
+    this.reconnectAttempts = 0;
   }
 
   // 获取 Socket 实例

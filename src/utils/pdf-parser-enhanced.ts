@@ -152,11 +152,12 @@ export class EnhancedPdfParser {
   }
 
   private async parseWithOCR(fileInfo: any): Promise<ParseResult> {
-    try {
-      const tempDir = os.tmpdir();
-      const tempPdf = path.join(tempDir, `ocr-${Date.now()}.pdf`);
-      const tempImage = path.join(tempDir, `ocr-${Date.now()}.png`);
+    const tempDir = os.tmpdir();
+    const timestamp = Date.now();
+    const tempPdf = path.join(tempDir, `ocr-${timestamp}.pdf`);
+    const tempImage = path.join(tempDir, `ocr-${timestamp}.png`);
 
+    try {
       fs.writeFileSync(tempPdf, fileInfo.buffer);
 
       try {
@@ -211,12 +212,6 @@ export class EnhancedPdfParser {
         { temperature: 0.3 }
       );
 
-      // 清理临时文件
-      try {
-        fs.unlinkSync(tempPdf);
-        fs.unlinkSync(tempImage);
-      } catch (_e) {}
-
       const jsonMatch = response.content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const data = JSON.parse(jsonMatch[0]);
@@ -231,6 +226,10 @@ export class EnhancedPdfParser {
       }
     } catch (error) {
       console.error('[PDF] OCR失败:', error);
+    } finally {
+      // 确保临时文件在任何情况下都被清理
+      try { fs.unlinkSync(tempPdf); } catch {}
+      try { fs.unlinkSync(tempImage); } catch {}
     }
 
     return {

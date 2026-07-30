@@ -198,7 +198,9 @@ export async function PUT(request: NextRequest) {
             // 这里通过 metadata 更新实现，其他组件会重新加载
           }
         }
-      } catch {}
+      } catch (err) {
+        console.warn('[suppliers] 重新加载供应方列表失败:', err);
+      }
     }
 
     return NextResponse.json({ supplier });

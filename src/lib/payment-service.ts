@@ -177,7 +177,12 @@ export class PaymentService {
    */
   async handleWechatNotify(notifyData: any): Promise<boolean> {
     try {
-      // TODO: 验证签名
+      // 安全检查：未配置真实支付密钥时拒绝所有回调，防止伪造
+      if (!this.wechatConfig.api_key || !this.wechatConfig.app_id) {
+        console.error('[PaymentService] 微信支付未配置，拒绝处理回调（防止伪造攻击）');
+        return false;
+      }
+
       const sign = notifyData.sign;
       const calculatedSign = this.calculateWechatSign(notifyData);
 
@@ -189,7 +194,13 @@ export class PaymentService {
       // 提取订单信息
       const orderNo = notifyData.out_trade_no;
       const transactionId = notifyData.transaction_id;
-      const amount = notifyData.total_fee / 100; // 分转元
+      const amount = Number(notifyData.total_fee) / 100; // 分转元
+
+      // 验证金额是有效数字
+      if (!orderNo || isNaN(amount) || amount <= 0) {
+        console.error('[PaymentService] 微信支付回调参数无效:', { orderNo, amount });
+        return false;
+      }
 
       // 更新订单状态
       await this.processPaymentSuccess(orderNo, transactionId, amount, notifyData);
@@ -206,7 +217,12 @@ export class PaymentService {
    */
   async handleAlipayNotify(notifyData: any): Promise<boolean> {
     try {
-      // TODO: 验证签名
+      // 安全检查：未配置真实支付密钥时拒绝所有回调，防止伪造
+      if (!this.alipayConfig.private_key || !this.alipayConfig.app_id) {
+        console.error('[PaymentService] 支付宝未配置，拒绝处理回调（防止伪造攻击）');
+        return false;
+      }
+
       const sign = notifyData.sign;
       const calculatedSign = this.calculateAlipaySign(notifyData);
 
@@ -219,6 +235,12 @@ export class PaymentService {
       const orderNo = notifyData.out_trade_no;
       const transactionId = notifyData.trade_no;
       const amount = parseFloat(notifyData.total_amount);
+
+      // 验证金额是有效数字
+      if (!orderNo || isNaN(amount) || amount <= 0) {
+        console.error('[PaymentService] 支付宝回调参数无效:', { orderNo, amount });
+        return false;
+      }
 
       // 更新订单状态
       await this.processPaymentSuccess(orderNo, transactionId, amount, notifyData);
@@ -239,11 +261,15 @@ export class PaymentService {
     amount: number,
     _notifyDatanotifyData: any
   ): Promise<void> {
-    // 更新订单和支付记录
-    // 这里需要调用订单服务的方法
+    console.warn('[PaymentService] processPaymentSuccess 被调用但支付回调处理尚未完整实现');
+    console.warn(`[PaymentService] 订单号=${orderNo}, 交易号=${transactionId}, 金额=${amount}`);
 
-
-    // TODO: 实际实现需要调用订单服务更新订单状态
+    // TODO: 完整实现需要以下步骤：
+    // 1. 从数据库查询并验证订单（替换 mock getOrderById）
+    // 2. 更新订单状态为已支付
+    // 3. 记录支付流水
+    // 4. 调用 pointsService.rechargePoints() 充值积分
+    // 5. 通知用户支付成功
   }
 
   /**

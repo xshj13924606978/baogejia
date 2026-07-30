@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>积分并发压力测试报告</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; line-height: 1.6; }
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+  h1 { font-size: 28px; font-weight: 700; color: #f8fafc; margin-bottom: 8px; }
+  .subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 32px; }
+  .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  .meta-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px 20px; }
+  .meta-card .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+  .meta-card .value { font-size: 22px; font-weight: 700; color: #f1f5f9; margin-top: 4px; }
+
+  .section { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .section-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .section-title { font-size: 16px; font-weight: 600; color: #f1f5f9; }
+  .section-badge { margin-left: auto; font-size: 12px; padding: 4px 12px; border-radius: 20px; font-weight: 600; }
+
+  .badge-pass { background: #064e3b; color: #4ade80; }
+  .badge-fail { background: #450a0a; color: #f87171; }
+
+  .result-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #1e293b; }
+  .result-row:last-child { border-bottom: none; }
+  .result-status { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; margin-right: 12px; flex-shrink: 0; }
+  .status-pass { background: #065f46; color: #4ade80; }
+  .status-fail { background: #7f1d1d; color: #f87171; }
+  .result-name { font-size: 14px; color: #cbd5e1; flex: 1; }
+  .result-detail { font-size: 13px; color: #64748b; margin-left: 16px; text-align: right; max-width: 400px; }
+
+  .stat-bar { display: flex; gap: 24px; margin-top: 16px; padding: 16px 0 0; }
+  .stat-item { font-size: 13px; color: #94a3b8; }
+  .stat-item strong { color: #f1f5f9; font-size: 18px; display: block; }
+
+  .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .compare-card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 20px; text-align: center; }
+  .compare-card .title { font-size: 13px; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .compare-card .method { font-size: 15px; font-weight: 600; color: #f1f5f9; margin-bottom: 12px; }
+  .compare-card .big-number { font-size: 42px; font-weight: 800; line-height: 1; }
+  .compare-card .big-label { font-size: 12px; color: #64748b; margin-top: 4px; }
+  .compare-card .loss { color: #f87171; }
+  .compare-card .perfect { color: #4ade80; }
+  .compare-card .time { font-size: 13px; color: #64748b; margin-top: 12px; }
+  .compare-card .time strong { color: #94a3b8; }
+  .vs-label { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: #334155; color: #94a3b8; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+
+  .summary-bar { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px 24px; margin-top: 24px; display: flex; align-items: center; justify-content: space-between; }
+  .summary-bar .total { font-size: 14px; color: #94a3b8; }
+  .summary-bar .total strong { color: #f1f5f9; font-size: 20px; }
+  .summary-bar .score { font-size: 28px; font-weight: 800; }
+  .score-perfect { color: #4ade80; }
+  .score-partial { color: #fbbf24; }
+
+  .footer { text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #1e293b; color: #475569; font-size: 12px; }
+
+  .compare-wrapper { position: relative; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>积分并发压力测试报告</h1>
+  <div class="subtitle">验证 add_points_atomic / deduct_points_atomic 原子操作正确性</div>
+
+  <div class="meta-grid">
+    <div class="meta-card">
+      <div class="label">测试时间</div>
+      <div class="value">2026-07-30</div>
+    </div>
+    <div class="meta-card">
+      <div class="label">并发数</div>
+      <div class="value">50</div>
+    </div>
+    <div class="meta-card">
+      <div class="label">测试用户</div>
+      <div class="value">admin2@test.com</div>
+    </div>
+    <div class="meta-card">
+      <div class="label">原始积分</div>
+      <div class="value">7,530</div>
+    </div>
+    <div class="meta-card">
+      <div class="label">测试通过率</div>
+      <div class="value" style="color: #4ade80;">100%</div>
+    </div>
+  </div>
+
+  <!-- 测试1: 并发加分 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background: #1e3a5f;">➕</div>
+      <div class="section-title">测试1: 并发加分</div>
+      <span class="section-badge badge-pass">PASS</span>
+    </div>
+    <p style="color: #94a3b8; font-size: 13px; margin-bottom: 16px;">50 个请求同时各加 1 分，验证积分是否正确累加</p>
+    <div class="result-row">
+      <div class="result-status status-pass">✓</div>
+      <div class="result-name">积分一致性</div>
+      <div class="result-detail">50 次并发 +1 → 最终 50 (期望 50)</div>
+    </div>
+    <div class="result-row">
+      <div class="result-status status-pass">✓</div>
+      <div class="result-name">无失败请求</div>
+      <div class="result-detail">0 个请求失败</div>
+    </div>
+    <div class="stat-bar">
+      <div class="stat-item"><strong>50</strong>并发请求</div>
+      <div class="stat-item"><strong>50</strong>成功</div>
+      <div class="stat-item"><strong>0</strong>失败</div>
+      <div class="stat-item"><strong>931ms</strong>耗时</div>
+    </div>
+  </div>
+
+  <!-- 测试2: 并发扣分 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background: #3b1f1f;">➖</div>
+      <div class="section-title">测试2: 并发扣分</div>
+      <span class="section-badge badge-pass">PASS</span>
+    </div>
+    <p style="color: #94a3b8; font-size: 13px; margin-bottom: 16px;">50 个请求同时各扣 1 分，验证积分是否正确减少</p>
+    <div class="result-row">
+      <div class="result-status status-pass">✓</div>
+      <div class="result-name">积分一致性</div>
+      <div class="result-detail">50 次并发 -1 → 最终 0 (期望 0)</div>
+    </div>
+    <div class="result-row">
+      <div class="result-status status-pass">✓</div>
+      <div class="result-name">不会透支</div>
+      <div class="result-detail">最终积分 0 ≥ 0</div>
+    </div>
+    <div class="stat-bar">
+      <div class="stat-item"><strong>50</strong>并发请求</div>
+      <div class="stat-item"><strong>50</strong>扣减成功</div>
+      <div class="stat-item"><strong>0</strong>余额不足</div>
+      <div class="stat-item"><strong>343ms</strong>耗时</div>
+    </div>
+  </div>
+
+  <!-- 测试3: 并发混合 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background: #1e3a5f;">⚡</div>
+      <div class="section-title">测试3: 并发混合 (加 + 扣同时)</div>
+      <span class="section-badge badge-pass">PASS</span>
+    </div>
+    <p style="color: #94a3b8; font-size: 13px; margin-bottom: 16px;">25 个加分 + 25 个扣分同时执行，验证净额正确</p>
+    <div class="result-row">
+      <div class="result-status status-pass">✓</div>
+      <div class="result-name">混合一致性</div>
+      <div class="result-detail">25 次加1 + 25 次扣1 → 最终 25 (期望 25)</div>
+    </div>
+    <div class="result-row">
+      <div class="result-status status-pass">✓</div>
+      <div class="result-name">不会透支</div>
+      <div class="result-detail">最终积分 25 ≥ 0</div>
+    </div>
+    <div class="stat-bar">
+      <div class="stat-item"><strong>50</strong>总请求</div>
+      <div class="stat-item"><strong>25</strong>加分</div>
+      <div class="stat-item"><strong>25</strong>扣分</div>
+      <div class="stat-item"><strong>360ms</strong>耗时</div>
+    </div>
+  </div>
+
+  <!-- 测试4: 透支保护 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background: #3b2e1f;">🛡️</div>
+      <div class="section-title">测试4: 透支保护</div>
+      <span class="section-badge badge-pass">PASS</span>
+    </div>
+    <p style="color: #94a3b8; font-size: 13px; margin-bottom: 16px;">余额仅 10 分，50 个请求同时扣 1 分，验证不会透支</p>
+    <div class="result-row">
+      <div class="result-status status-pass">✓</div>
+      <div class="result-name">不会透支</div>
+      <div class="result-detail">最终积分 0 ≥ 0</div>
+    </div>
+    <div class="result-row">
+      <div class="result-status status-pass">✓</div>
+      <div class="result-name">成功扣减不超过余额</div>
+      <div class="result-detail">10 次成功扣减 (余额仅 10)</div>
+    </div>
+    <div class="result-row">
+      <div class="result-status status-pass">✓</div>
+      <div class="result-name">所有请求都有明确结果</div>
+      <div class="result-detail">成功 10 + 拒绝 40 = 50</div>
+    </div>
+    <div class="stat-bar">
+      <div class="stat-item"><strong>50</strong>并发请求</div>
+      <div class="stat-item"><strong>10</strong>扣减成功</div>
+      <div class="stat-item"><strong>40</strong>余额不足</div>
+      <div class="stat-item"><strong>325ms</strong>耗时</div>
+    </div>
+  </div>
+
+  <!-- 测试5: 原子 vs 非原子对比 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background: #1e3a5f;">📊</div>
+      <div class="section-title">测试5: 原子 vs 非原子对比</div>
+      <span class="section-badge badge-pass">PASS</span>
+    </div>
+    <p style="color: #94a3b8; font-size: 13px; margin-bottom: 16px;">50 个并发请求各加 1 分，对比 read-modify-write 与原子 RPC 的差异</p>
+    <div class="compare-wrapper">
+      <div class="comparison">
+        <div class="compare-card">
+          <div class="title">旧方案 (非原子)</div>
+          <div class="method">read-modify-write</div>
+          <div class="big-number loss">2</div>
+          <div class="big-label">最终积分 (期望 50)</div>
+          <div class="time">耗时 <strong>727ms</strong></div>
+        </div>
+        <div class="compare-card">
+          <div class="title">新方案 (原子 RPC)</div>
+          <div class="method">add_points_atomic</div>
+          <div class="big-number perfect">50</div>
+          <div class="big-label">最终积分 (期望 50)</div>
+          <div class="time">耗时 <strong>333ms</strong></div>
+        </div>
+      </div>
+    </div>
+    <div class="result-row" style="margin-top: 16px;">
+      <div class="result-status status-pass">✓</div>
+      <div class="result-name">非原子操作存在丢失更新</div>
+      <div class="result-detail">非原子结果 2 &lt; 50，丢失 48 次</div>
+    </div>
+    <div class="result-row">
+      <div class="result-status status-pass">✓</div>
+      <div class="result-name">原子操作无丢失更新</div>
+      <div class="result-detail">原子结果 50 = 50，零丢失</div>
+    </div>
+  </div>
+
+  <!-- 汇总 -->
+  <div class="summary-bar">
+    <div>
+      <div class="total">测试项 <strong>11</strong></div>
+    </div>
+    <div class="score score-perfect">11 / 11 通过</div>
+  </div>
+
+  <div class="footer">
+    <p>项目：报个价智能报价系统 — 积分竞态条件修复验证</p>
+    <p>数据库迁移：database/migrations/042_add_points_atomic.sql</p>
+    <p>测试脚本：scripts/test-points-concurrency.ts</p>
+  </div>
+
+</div>
+</body>
+</html>

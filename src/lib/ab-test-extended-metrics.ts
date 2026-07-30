@@ -96,6 +96,8 @@ export class ABTestExtendedMetrics {
   private behaviorEvents: UserBehaviorEvent[];
   private statsCache: Map<string, ExtendedAlgorithmStats>;
   private cacheExpiry: number;
+  private readonly MAX_BEHAVIOR_EVENTS = 50000;
+  private readonly MAX_USER_SESSIONS = 10000;
 
   private constructor() {
     this.streamingLearning = StreamingLearningEngine.getInstance();
@@ -120,6 +122,10 @@ export class ABTestExtendedMetrics {
    * 记录用户行为事件
    */
   public recordEvent(event: UserBehaviorEvent): void {
+    // 防止 behaviorEvents 数组无限增长
+    if (this.behaviorEvents.length >= this.MAX_BEHAVIOR_EVENTS) {
+      this.behaviorEvents.splice(0, Math.floor(this.behaviorEvents.length * 0.2));
+    }
     this.behaviorEvents.push(event);
 
     // 更新用户会话
@@ -150,6 +156,15 @@ export class ABTestExtendedMetrics {
     const sessionKey = `${event.userId}_${event.algorithm}`;
 
     if (!this.userSessions.has(sessionKey)) {
+      // 防止 userSessions Map 无限增长
+      if (this.userSessions.size >= this.MAX_USER_SESSIONS) {
+        const keys = Array.from(this.userSessions.keys());
+        const entriesToDelete = Math.floor(this.userSessions.size * 0.2);
+        for (let i = 0; i < entriesToDelete; i++) {
+          this.userSessions.delete(keys[i]);
+        }
+      }
+
       // 创建新会话
       const session: UserSession = {
         userId: event.userId,

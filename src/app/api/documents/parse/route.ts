@@ -98,13 +98,18 @@ function calculateParsePoints(fileSize: number, productCount: number = 0): numbe
 }
 
 export async function POST(request: NextRequest) {
+  // 在 try 外声明，确保 catch 块可以访问
+  let userId = '';
+  let estimatedPoints = 0;
+  let fileName = '';
+
   try {
     const currentUser = await getCurrentUser(request);
     if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = currentUser.id;
+    userId = currentUser.id;
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const parseType = formData.get('parseType') as string || 'auto';
@@ -113,12 +118,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // 计算预估积分消耗（先按文件大小估算）
-    const estimatedPoints = calculateParsePoints(file.size);
-    
-    // 积分预检查
-    const hasEnough = await pointsService.checkPointsBalance(userId, estimatedPoints);
-    if (!hasEnough) {
+    // 验证 parseType 白名单
+    const VALID_PARSE_TYPES = ['auto', 'textin', 'coze'];
+    if (!VALID_PARSE_TYPES.includes(parseType)) {
+      return NextResponse.json({ error: 'Invalid parseType' }, { status: 400 });
+    }
+
+    // 文件大小限制（50MB）
+    const MAX_FILE_SIZE = 50 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: 'File too large (max 50MB)' }, { status: 400 });
+    }
+
+    // 文件大小下限（1KB）
+    if (file.size < 1024) {
+      return NextResponse.json({ error: 'File too small' }, { status: 400 });
+    }
+
+    fileName = file.name;
+
+    // 计算预估积分消耗（按文件大小估算）
+    estimatedPoints = calculateParsePoints(file.size);
+
+    // 预扣积分（原子操作，防止 TOCTOU 竞态）
+    const preDeductResult = await pointsService.deductPoints(
+      userId,
+      estimatedPoints,
+      'parse_document',
+      `文档解析预扣: ${file.name}`
+    );
+
+    if (!preDeductResult.success) {
       const pointsInfo = await pointsService.getUserPoints(userId);
       return NextResponse.json(
         {
@@ -182,37 +212,59 @@ export async function POST(request: NextRequest) {
     // 计算实际积分消耗（根据产品数量重新计算）
     const productCount = result?.products?.length || 0;
     const actualPoints = calculateParsePoints(file.size, productCount);
-    
-    // 扣除积分
-    try {
-      const deductResult = await pointsService.deductPoints(
+
+    // 结算差额：实际 > 预估则补扣，实际 < 预估则退还
+    const pointsDiff = actualPoints - estimatedPoints;
+    let finalConsumed = estimatedPoints;
+
+    if (pointsDiff > 0) {
+      // 实际消耗更多，补扣差额
+      const extraResult = await pointsService.deductPoints(
         userId,
-        actualPoints,
+        pointsDiff,
         'parse_document',
-        `文档解析: ${file.name} (${productCount}个产品)`
+        `文档解析补扣: ${file.name} (多${pointsDiff}积分)`
       );
-      
-      if (deductResult.success) {
-        
-        // 获取更新后的积分
-        const newPointsInfo = await pointsService.getUserPoints(userId);
-        
-        // 在结果中添加积分信息
-        return NextResponse.json({
-          ...result,
-          pointsConsumed: actualPoints,
-          newBalance: newPointsInfo?.points || 0
-        });
+      if (extraResult.success) {
+        finalConsumed = actualPoints;
       } else {
-        console.error('[文档解析] 扣除积分失败:', deductResult.reason);
+        console.error('[文档解析] 补扣积分失败:', extraResult.reason);
+        // 预扣已足够，不再返回错误
       }
-    } catch (error) {
-      console.error('[文档解析] 扣除积分异常:', error);
+    } else if (pointsDiff < 0) {
+      // 预估多了，退还差额
+      await pointsService.addPoints(
+        userId,
+        Math.abs(pointsDiff),
+        'parse_document',
+        `文档解析退还: ${file.name} (多预扣${Math.abs(pointsDiff)}积分)`
+      );
+      finalConsumed = actualPoints;
     }
 
-    return NextResponse.json(result);
+    // 获取更新后的积分
+    const newPointsInfo = await pointsService.getUserPoints(userId);
+
+    return NextResponse.json({
+      ...result,
+      pointsConsumed: finalConsumed,
+      newBalance: newPointsInfo?.points || 0
+    });
   } catch (error) {
     console.error('Document parse error:', error);
+    // 解析失败，退还预扣积分
+    if (estimatedPoints > 0 && userId) {
+      try {
+        await pointsService.addPoints(
+          userId,
+          estimatedPoints,
+          'parse_document',
+          `文档解析失败退还: 预扣${estimatedPoints}积分`
+        );
+      } catch (refundError) {
+        console.error('[文档解析] 退还预扣积分失败:', refundError);
+      }
+    }
     return NextResponse.json(
       { error: 'Failed to parse document' },
       { status: 500 }

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-utils';
 
 export async function POST(request: NextRequest) {
   try {
+    // 认证检查
+    const authResult = await requireAuth(request);
+    if (authResult.errorResponse) return authResult.errorResponse;
+
     const { products } = await request.json();
 
 

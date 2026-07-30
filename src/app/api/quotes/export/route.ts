@@ -3,9 +3,14 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import * as fs from 'fs';
 import * as path from 'path';
+import { requireAuth } from '@/lib/auth-utils';
 
 export async function POST(request: NextRequest) {
   try {
+    // 认证检查
+    const authResult = await requireAuth(request);
+    if (authResult.errorResponse) return authResult.errorResponse;
+
     const { data, format } = await request.json();
 
 

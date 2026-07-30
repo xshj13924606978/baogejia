@@ -54,6 +54,7 @@ export enum OrderType {
  */
 export enum RefundStatus {
   PENDING = 'pending', // 退款中
+  PROCESSING = 'processing', // 退款处理中（第三方API处理）
   SUCCESS = 'success', // 退款成功
   FAILED = 'failed', // 退款失败
   REJECTED = 'rejected', // 退款拒绝

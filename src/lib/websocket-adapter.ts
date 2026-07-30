@@ -24,6 +24,8 @@ export class WebSocketAdapter {
   connect(userId?: string) {
     socketClient.connect(userId).then(() => {
       this.connected = true;
+    }).catch(() => {
+      console.warn('[WebSocketAdapter] Connection failed');
     });
   }
 
