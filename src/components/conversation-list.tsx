@@ -123,9 +123,9 @@ export default function ConversationList({
       });
       if (response.ok) {
         const data = await response.json();
-        const savedPins = localStorage.getItem('pinned-conversations');
+        const savedPins = (() => { try { return localStorage.getItem('pinned-conversations'); } catch { return null; } })();
         if (savedPins) {
-          setPinnedConversations(new Set(JSON.parse(savedPins)));
+          try { setPinnedConversations(new Set(JSON.parse(savedPins))); } catch { /* ignore */ }
         }
 
         // 基于 title 判断是否有内容
@@ -157,16 +157,17 @@ export default function ConversationList({
       });
       if (response.ok) {
         const data = await response.json();
-        window.dispatchEvent(
-          new CustomEvent('load-conversation', {
-            detail: {
-              conversationId: data.conversation.id,
-              messages: data.conversation.messages || [],
-              files: data.conversation.files || [],
-            },
-          })
-        );
-
+        if (data.conversation) {
+          window.dispatchEvent(
+            new CustomEvent('load-conversation', {
+              detail: {
+                conversationId: data.conversation.id,
+                messages: data.conversation.messages || [],
+                files: data.conversation.files || [],
+              },
+            })
+          );
+        }
         return data;
       }
     } catch (error) {
@@ -186,7 +187,7 @@ export default function ConversationList({
     }
 
     setPinnedConversations(newPins);
-    localStorage.setItem('pinned-conversations', JSON.stringify(Array.from(newPins)));
+    try { localStorage.setItem('pinned-conversations', JSON.stringify(Array.from(newPins))); } catch { /* ignore */ }
     setOpenDropdownId(null);
   };
 
