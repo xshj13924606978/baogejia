@@ -65,7 +65,7 @@ const SPEC_FIELD_MAP: Record<string, string> = {
 
 // ═══════════════════════ 容差配置 ═══════════════════════
 
-const EXACT_TOLERANCE = 0.05;
+const EXACT_TOLERANCE = 0.03;
 const RELAXED_TOLERANCE = 0.10;
 
 // ═══════════════════════ 属性映射 ═══════════════════════
@@ -96,11 +96,11 @@ const ATTRIBUTE_FILTERS: Record<string, {
 export function matchNumericParam(
   userValue: number,
   productValue: number
-): { matched: boolean; type: 'exact' | 'relaxed' | 'none'; errorPercent: number } {
-  if (userValue <= 0) return { matched: false, type: 'none', errorPercent: 100 };
+): { matched: boolean; type: 'exact' | 'close' | 'none'; errorPercent: number } {
+  if (!userValue || !productValue || userValue <= 0 || !Number.isFinite(userValue) || !Number.isFinite(productValue)) return { matched: false, type: 'none', errorPercent: 100 };
   const diff = Math.abs(userValue - productValue) / userValue;
   if (diff < EXACT_TOLERANCE) return { matched: true, type: 'exact', errorPercent: Math.round(diff * 100) };
-  if (diff < RELAXED_TOLERANCE) return { matched: true, type: 'relaxed', errorPercent: Math.round(diff * 100) };
+  if (diff < RELAXED_TOLERANCE) return { matched: true, type: 'close', errorPercent: Math.round(diff * 100) };
   return { matched: false, type: 'none', errorPercent: Math.round(diff * 100) };
 }
 
@@ -115,14 +115,66 @@ export function extractNumericFromText(text: string, paramLabel: string): number
 export function extractAllParamsFromText(text: string): Map<string, string> {
   const params = new Map<string, string>();
   if (!text) return params;
-  const kvRegex = /([^，,、\n]+?)\s*[：:：]\s*([^，,、\n]+)/g;
-  let match;
-  while ((match = kvRegex.exec(text)) !== null) {
-    const key = match[1].trim();
-    const value = match[2].trim();
-    if (key && value) params.set(key, value);
+
+  // 用正则找到所有 key: 位置，然后手动解析值（支持引号配对）
+  const keyRegex = /([^，,、\n\s：:："'\"《》]+?)\s*[：:：]/g;
+  const matches: { key: string; colonEnd: number }[] = [];
+  let m;
+  while ((m = keyRegex.exec(text)) !== null) {
+    matches.push({ key: m[1].trim(), colonEnd: m.index + m[0].length });
   }
+
+  // 解析值，跳过落在已解析值范围内的匹配
+  let valueEnd = 0;
+  for (let j = 0; j < matches.length; j++) {
+    const { key, colonEnd } = matches[j];
+
+    // 跳过落在已解析值范围内的匹配
+    if (colonEnd <= valueEnd) continue;
+
+    let pos = colonEnd;
+
+    // 跳过冒号后最多 1 个空格
+    if (pos < text.length && text[pos] === ' ') pos++;
+
+    if (pos >= text.length) continue;
+
+    const result = extractQuotedValue(text, pos);
+    if (result) {
+      params.set(key, result.value);
+      valueEnd = result.end;
+    }
+  }
+
   return params;
+}
+
+/** 从 pos 开始提取值，支持引号配对和转义。返回值内容和结束位置 */
+function extractQuotedValue(text: string, pos: number): { value: string; end: number } | null {
+  const QUOTES = ['"', "'", '\u201c', '\u201d'];
+  const TERMINATORS = new Set([' ', '\t', '\n', '，', ',', '、']);
+
+  const ch = text[pos];
+  if (QUOTES.includes(ch)) {
+    // 引号配对模式：找到对应的闭合引号
+    const openQuote = ch;
+    const closeQuote = ch === '\u201c' ? '\u201d' : ch;
+    let end = pos + 1;
+    while (end < text.length) {
+      if (text[end] === '\\') { end += 2; continue; } // 跳过转义
+      if (text[end] === closeQuote) { end++; break; }
+      end++;
+    }
+    return end > pos ? { value: text.slice(pos, end), end } : null;
+  }
+
+  // 非引号模式：扫描到终止符
+  let end = pos;
+  while (end < text.length && !TERMINATORS.has(text[end])) {
+    end++;
+  }
+  const value = text.slice(pos, end);
+  return value.length > 0 ? { value, end } : null;
 }
 
 function extractPrice(price: any): number {

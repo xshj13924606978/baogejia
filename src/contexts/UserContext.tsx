@@ -249,7 +249,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // 保存用户到数据库
+  // 保存用户到数据库（不存储密码明文到 localStorage）
   const saveUserToDB = (userData: any) => {
     try {
       const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS_DB) || '[]');
@@ -262,6 +262,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             cleanData[key] = value;
           }
         }
+        // 安全：不将密码明文写入 localStorage
+        delete cleanData.password;
+        delete cleanData.password_hash;
         users[index] = { ...users[index], ...cleanData };
         // 显式删除被设为 undefined 的字段（如解绑后需要移除 email）
         for (const [key, value] of Object.entries(userData)) {
@@ -270,7 +273,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } else {
-        users.push(userData);
+        // 新用户：同样过滤密码
+        const { password, password_hash, ...safeData } = userData;
+        users.push(safeData);
       }
       localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(users));
       return true;

@@ -51,6 +51,7 @@ export class PermissionService {
   private static instance: PermissionService;
   private permissionCache: Map<string, { result: boolean; expiresAt: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
+  private readonly MAX_CACHE_SIZE = 5000;
 
   private constructor() {}
 
@@ -94,6 +95,15 @@ export class PermissionService {
    * 设置缓存
    */
   private setCache(userId: number | string, permission: string, result: boolean): void {
+    // 缓存超限时批量清理过期条目
+    if (this.permissionCache.size >= this.MAX_CACHE_SIZE) {
+      const now = Date.now();
+      for (const [key, val] of this.permissionCache) {
+        if (val.expiresAt <= now) {
+          this.permissionCache.delete(key);
+        }
+      }
+    }
     const key = this.getCacheKey(userId, permission);
     this.permissionCache.set(key, {
       result,

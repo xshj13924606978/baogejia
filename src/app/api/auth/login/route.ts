@@ -12,6 +12,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '用户名和密码不能为空' }, { status: 400 });
     }
 
+    // 清理输入：去除前后空格
+    const trimmedUsername = username.trim();
+
     const supabase = getSupabaseServiceClient();
 
     // 查询用户（支持用户名、邮箱、手机号登录）
@@ -19,27 +22,40 @@ export async function POST(request: NextRequest) {
     let users: any[] | null = null;
     let queryError: any = null;
 
-    // 第一轮查询：匹配 username 和 email
+    // 第一轮查询：匹配 username 和 email（使用独立查询防止过滤器注入）
     const { data: usersByName, error: err1 } = await supabase
       .from('users')
       .select('*')
-      .or(`username.eq.${username},email.eq.${username}`)
+      .eq('username', trimmedUsername)
       .eq('status', 'active');
 
-    if (!err1 && usersByName && usersByName.length > 0) {
-      users = usersByName;
+    const { data: usersByEmail, error: err1b } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', trimmedUsername)
+      .eq('status', 'active');
+
+    // 合并两个查询结果并去重
+    const usersByNameSet = new Set((usersByName || []).map((u: any) => u.id));
+    const mergedUsers = [
+      ...(usersByName || []),
+      ...(usersByEmail || []).filter((u: any) => !usersByNameSet.has(u.id)),
+    ];
+
+    if (!err1 && !err1b && mergedUsers.length > 0) {
+      users = mergedUsers;
     } else {
       // 第二轮查询：在 metadata JSONB 中查找 phone
       const { data: usersByMeta, error: err2 } = await supabase
         .from('users')
         .select('*')
         .eq('status', 'active')
-        .filter('metadata->>phone', 'eq', username);
+        .filter('metadata->>phone', 'eq', trimmedUsername);
 
       if (!err2 && usersByMeta && usersByMeta.length > 0) {
         users = usersByMeta;
       } else {
-        queryError = err1 || err2;
+        queryError = err1 || err1b || err2;
       }
     }
 
@@ -111,8 +127,8 @@ export async function POST(request: NextRequest) {
       console.error('[Login] 更新登录时间失败:', updateError);
     }
 
-    // 返回用户信息（不包含密码）
-    const { password: _, ...userWithoutPassword } = user;
+    // 返回用户信息（不包含密码和密码哈希）
+    const { password: _, password_hash: __, ...userWithoutSensitive } = user;
 
     // 签发 session token（HMAC签名，防伪造）
     const sessionToken = signSessionToken(user.id, user.email || '', user.role || 'user', 7 * 24 * 3600);
@@ -121,7 +137,7 @@ export async function POST(request: NextRequest) {
       success: true,
       sessionToken,
       user: {
-        ...userWithoutPassword,
+        ...userWithoutSensitive,
         level: levelData?.level || 1,
         currentPoints: levelData?.current_points || 0,
         nextLevelPoints: levelData?.next_level_points || 1000,

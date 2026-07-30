@@ -4,8 +4,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { getCurrentUser, AuthDatabaseError } from '@/lib/auth-utils';
 import { permissionService } from '@/lib/permission-service';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
  * 权限检查配置
@@ -25,7 +26,7 @@ export interface PermissionCheckResult {
   allowed: boolean;
   error?: string;
   statusCode?: number;
-  userId?: number;
+  userId?: string;
   userRole?: string;
   userPermissions?: string[];
 }
@@ -50,7 +51,6 @@ export async function checkPermission(
     }
 
     // 2. 获取用户角色
-    const { getSupabaseClient } = await import('@/storage/database/supabase-client');
     const supabase = getSupabaseClient();
 
     const { data: userRole, error: roleError } = await supabase
@@ -60,10 +60,16 @@ export async function checkPermission(
       .single();
 
     if (roleError || !userRole) {
+      // 区分"角色记录不存在"和"数据库不可用"
+      const isDbError = roleError && (
+        /fetch failed|ENOTFOUND|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|NXDOMAIN|network|timeout/i.test(
+          roleError instanceof Error ? roleError.message : String(roleError)
+        )
+      );
       return {
         allowed: false,
-        error: '获取用户角色失败',
-        statusCode: 500,
+        error: isDbError ? '服务暂不可用' : '获取用户角色失败',
+        statusCode: isDbError ? 503 : 403,
       };
     }
 
@@ -80,15 +86,33 @@ export async function checkPermission(
       }
     }
 
-    // 4. 检查最低等级要求
-    if (config.minLevel !== undefined) {
-      const { data: userLevel } = await supabase
+    // 4. 检查最低等级和积分要求（合并为单次查询）
+    if (config.minLevel !== undefined || config.minPoints !== undefined) {
+      const fields: string[] = [];
+      if (config.minLevel !== undefined) fields.push('level');
+      if (config.minPoints !== undefined) fields.push('points');
+
+      const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('level')
+        .select(fields.join(','))
         .eq('id', user.id)
         .single();
 
-      if (!userLevel || userLevel.level < config.minLevel) {
+      if (userError || !userData) {
+        // 用户数据查询失败，可能是权限条件就是要拒绝的
+        if (config.minLevel !== undefined) {
+          return {
+            allowed: false,
+            error: `需要等级 ${config.minLevel} 及以上`,
+            statusCode: 403,
+            userId: user.id,
+            userRole: userRole.role,
+          };
+        }
+      }
+
+      const ud = userData as any;
+      if (config.minLevel !== undefined && ud.level < config.minLevel) {
         return {
           allowed: false,
           error: `需要等级 ${config.minLevel} 及以上`,
@@ -97,17 +121,8 @@ export async function checkPermission(
           userRole: userRole.role,
         };
       }
-    }
 
-    // 5. 检查最低积分要求
-    if (config.minPoints !== undefined) {
-      const { data: userPoints } = await supabase
-        .from('users')
-        .select('points')
-        .eq('id', user.id)
-        .single();
-
-      if (!userPoints || userPoints.points < config.minPoints) {
+      if (config.minPoints !== undefined && ud.points < config.minPoints) {
         return {
           allowed: false,
           error: `需要积分 ${config.minPoints} 及以上`,

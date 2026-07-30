@@ -42,14 +42,20 @@ export function usePermission() {
       } catch { /* ignore */ }
 
       const res = await fetch('/api/user/permissions', { headers });
+      if (!res.ok) {
+        // 服务端错误时拒绝所有权限，而非默认允许
+        setPermissions({ modules: {}, pages: {}, fields: {}, actions: {}, userMenus: {}, userMenuPages: {}, userMenuFields: {}, userMenuActions: {} });
+        setLoading(false);
+        return;
+      }
       const data = await res.json();
       if (data.success) {
         setPermissions(data.data);
       } else {
-        // 无权限接口时使用默认（全部允许）
         setPermissions({ modules: {}, pages: {}, fields: {}, actions: {}, userMenus: {}, userMenuPages: {}, userMenuFields: {}, userMenuActions: {} });
       }
     } catch {
+      // 网络错误时拒绝所有权限，而非默认允许
       setPermissions({ modules: {}, pages: {}, fields: {}, actions: {}, userMenus: {}, userMenuPages: {}, userMenuFields: {}, userMenuActions: {} });
     } finally {
       setLoading(false);
@@ -60,51 +66,51 @@ export function usePermission() {
     loadPermissions();
   }, [loadPermissions]);
 
-  /** 检查模块访问权限（无规则时默认允许） */
+  /** 检查模块访问权限（无规则或加载失败时默认拒绝） */
   const canAccessModule = useCallback((moduleKey: string): boolean => {
-    if (!permissions) return true;
+    if (!permissions) return false;
     return permissions.modules[moduleKey] !== false;
   }, [permissions]);
 
-  /** 检查页面访问权限（无规则时默认允许） */
+  /** 检查页面访问权限（无规则或加载失败时默认拒绝） */
   const canAccessPage = useCallback((pageKey: string): boolean => {
-    if (!permissions) return true;
+    if (!permissions) return false;
     return permissions.pages[pageKey] !== false;
   }, [permissions]);
 
-  /** 获取字段权限（无规则时默认可见可编辑） */
+  /** 获取字段权限（无规则或加载失败时默认不可见不可编辑） */
   const getFieldPermission = useCallback((fieldKey: string): FieldPermission => {
-    if (!permissions) return { visible: true, editable: true };
-    return permissions.fields[fieldKey] || { visible: true, editable: true };
+    if (!permissions) return { visible: false, editable: false };
+    return permissions.fields[fieldKey] || { visible: false, editable: false };
   }, [permissions]);
 
-  /** 检查按钮权限（无规则时默认允许） */
+  /** 检查按钮权限（无规则或加载失败时默认拒绝） */
   const canUseAction = useCallback((actionKey: string): boolean => {
-    if (!permissions) return true;
+    if (!permissions) return false;
     return permissions.actions[actionKey] !== false;
   }, [permissions]);
 
-  /** 检查用户菜单分组访问权限 */
+  /** 检查用户菜单分组访问权限（无规则时默认拒绝） */
   const canAccessUserMenu = useCallback((menuKey: string): boolean => {
-    if (!permissions) return true;
+    if (!permissions) return false;
     return permissions.userMenus[menuKey] !== false;
   }, [permissions]);
 
-  /** 检查用户菜单项访问权限 */
+  /** 检查用户菜单项访问权限（无规则时默认拒绝） */
   const canAccessUserMenuPage = useCallback((pageKey: string): boolean => {
-    if (!permissions) return true;
+    if (!permissions) return false;
     return permissions.userMenuPages[pageKey] !== false;
   }, [permissions]);
 
-  /** 获取用户菜单字段权限 */
+  /** 获取用户菜单字段权限（无规则时默认不可见不可编辑） */
   const getUserMenuFieldPermission = useCallback((fieldKey: string): FieldPermission => {
-    if (!permissions) return { visible: true, editable: true };
-    return permissions.userMenuFields[fieldKey] || { visible: true, editable: true };
+    if (!permissions) return { visible: false, editable: false };
+    return permissions.userMenuFields[fieldKey] || { visible: false, editable: false };
   }, [permissions]);
 
-  /** 检查用户菜单按钮权限 */
+  /** 检查用户菜单按钮权限（无规则时默认拒绝） */
   const canUseUserMenuAction = useCallback((actionKey: string): boolean => {
-    if (!permissions) return true;
+    if (!permissions) return false;
     return permissions.userMenuActions[actionKey] !== false;
   }, [permissions]);
 
