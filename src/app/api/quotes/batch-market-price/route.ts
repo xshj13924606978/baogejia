@@ -1,6 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-utils';
 
+// 并发限制：最多同时 5 个请求
+async function parallelLimit<T>(
+  items: T[],
+  fn: (item: T) => Promise<any>,
+  concurrency: number = 5
+): Promise<any[]> {
+  const results: any[] = [];
+  const executing: Promise<void>[] = [];
+
+  for (const item of items) {
+    const p = fn(item).then(result => {
+      results.push(result);
+    });
+    executing.push(p);
+
+    if (executing.length >= concurrency) {
+      await Promise.race(executing);
+      // 移除已完成的 Promise
+      for (let i = executing.length - 1; i >= 0; i--) {
+        if (results.length > 0) {
+          executing.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  await Promise.all(executing);
+  return results;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // 认证检查
@@ -14,8 +44,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Products array is required' }, { status: 400 });
     }
 
-    // 并行查询所有产品的市场价格
-    const promises = products.map(async (product: any) => {
+    // 并行查询所有产品的市场价格（限制并发 5 个）
+    const results = await parallelLimit(products, async (product: any) => {
       try {
         // 安全地获取 origin
         const origin =
@@ -62,9 +92,6 @@ export async function POST(request: NextRequest) {
         };
       }
     });
-
-    // 等待所有查询完成
-    const results = await Promise.all(promises);
 
     // 统计成功和失败的数量
     const successCount = results.filter((r) => r.success).length;

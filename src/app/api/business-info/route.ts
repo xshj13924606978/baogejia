@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
+import { requireAuth } from '@/lib/auth-utils';
 
 // 从环境变量获取数据库连接信息
-const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres'});
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error('[business-info] 环境变量 DATABASE_URL 未配置');
+}
+const pool = new Pool({ connectionString: databaseUrl });
 
 // ============================================================================
 // GET - 获取商务信息
 // ============================================================================
 export async function GET(request: NextRequest) {
+  // 认证检查
+  const auth = await requireAuth(request);
+  if (auth.user === null) {
+    return NextResponse.json({ success: false, error: '未授权' }, { status: auth.errorResponse?.status || 401 });
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type') || 'all';
@@ -97,6 +106,12 @@ export async function GET(request: NextRequest) {
 // POST - 保存商务信息
 // ============================================================================
 export async function POST(request: NextRequest) {
+  // 认证检查
+  const auth = await requireAuth(request);
+  if (auth.user === null) {
+    return NextResponse.json({ success: false, error: '未授权' }, { status: auth.errorResponse?.status || 401 });
+  }
+
   try {
     const body = await request.json();
     const { type, data } = body;

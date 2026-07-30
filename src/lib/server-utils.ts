@@ -6,11 +6,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
-export const execAsync = promisify(exec);
+export const execFileAsync = promisify(execFile);
 
 /**
  * 文件操作工具类
@@ -113,17 +113,17 @@ export class ServerFileUtils {
  */
 export class ServerProcessUtils {
   /**
-   * 执行系统命令
+   * 执行系统命令（使用 execFile，不经过 shell，防止命令注入）
    */
-  static async execCommand(command: string): Promise<{ stdout: string; stderr: string }> {
+  static async execCommand(cmd: string, args: string[] = []): Promise<{ stdout: string; stderr: string }> {
     try {
-      const { stdout, stderr } = await execAsync(command);
+      const { stdout, stderr } = await execFileAsync(cmd, args, { timeout: 30000 });
       if (stderr) {
         console.warn(`[ServerProcess] 命令 stderr: ${stderr}`);
       }
       return { stdout, stderr };
     } catch (error) {
-      console.error(`[ServerProcess] 命令执行失败: ${command}`, error);
+      console.error(`[ServerProcess] 命令执行失败: ${cmd} ${args.join(' ')}`, error);
       throw error;
     }
   }
@@ -133,7 +133,7 @@ export class ServerProcessUtils {
    */
   static async checkCommand(command: string): Promise<boolean> {
     try {
-      await execAsync(`which ${command}`);
+      await execFileAsync('which', [command]);
       return true;
     } catch {
       return false;
@@ -149,7 +149,7 @@ export class ServerProcessUtils {
       throw new Error('pdftotext 未安装，请执行: sudo apt-get install poppler-utils');
     }
 
-    await this.execCommand(`pdftotext -layout "${pdfPath}" "${outputPath}"`);
+    await this.execCommand('pdftotext', ['-layout', pdfPath, outputPath]);
 
     if (fs.existsSync(outputPath)) {
       return fs.readFileSync(outputPath, 'utf-8');
@@ -168,7 +168,7 @@ export class ServerProcessUtils {
       );
     }
 
-    await this.execCommand(`tesseract "${imagePath}" "${outputPath}" -l chi_sim+eng`);
+    await this.execCommand('tesseract', [imagePath, outputPath, '-l', 'chi_sim+eng']);
 
     const resultFile = `${outputPath}.txt`;
     if (fs.existsSync(resultFile)) {

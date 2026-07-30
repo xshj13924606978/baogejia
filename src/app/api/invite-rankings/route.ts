@@ -44,18 +44,18 @@ async function updateRankings(period: string = 'week') {
     .sort((a, b) => b[1].inviteCount - a[1].inviteCount)
     .slice(0, 100); // 取前100名
 
-  // 更新或创建排行榜记录
-  for (let i = 0; i < sortedUsers.length; i++) {
-    const [userId, stats] = sortedUsers[i];
+  // 批量 upsert 排行榜记录
+  const records = sortedUsers.map(([userId, stats], i) => ({
+    user_id: userId,
+    period,
+    invite_count: stats.inviteCount,
+    points_earned: stats.pointsEarned,
+    rank: i + 1,
+    update_time: new Date(),
+  }));
 
-    const { error: upsertError } = await db.from('invite_rankings').upsert({
-      user_id: userId,
-      period,
-      invite_count: stats.inviteCount,
-      points_earned: stats.pointsEarned,
-      rank: i + 1,
-      update_time: new Date(),
-    });
+  if (records.length > 0) {
+    const { error: upsertError } = await db.from('invite_rankings').upsert(records);
 
     if (upsertError) throw upsertError;
   }

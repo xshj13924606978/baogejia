@@ -108,8 +108,9 @@ export async function POST(request: NextRequest) {
       duplicateChecker = new DuplicateChecker({ fields: ['name', 'model'], matchRule: 'and' }, db);
     }
 
+    // ═══ 第一阶段：批量处理字段映射和验证（纯逻辑，无 DB 查询） ═══
+    const validProducts: { index: number; dbProduct: Record<string, any> }[] = [];
 
-    // 批量插入产品
     for (let i = 0; i < productData.length; i++) {
       const item = productData[i];
 
@@ -169,8 +170,6 @@ export async function POST(request: NextRequest) {
         );
         if (missingFields.length > 0) {
           const errorMsg = `产品 "${product.product_name || product.name || '未知'}" 缺少必填字段: ${missingFields.join('、')}`;
-          console.error(`[Import API] ❌ ${errorMsg}`);
-          console.error('[Import API] 产品数据:', JSON.stringify(product, null, 2));
           errorCount++;
           errors.push(errorMsg);
           continue;
@@ -179,7 +178,6 @@ export async function POST(request: NextRequest) {
         // 验证价格
         if (product.price <= 0) {
           const errorMsg = `产品 "${product.product_name || product.name || '未知'}" 价格必须大于0`;
-          console.error(`[Import API] ❌ ${errorMsg}`);
           errorCount++;
           errors.push(errorMsg);
           continue;
@@ -222,11 +220,25 @@ export async function POST(request: NextRequest) {
           );
           if (matchedCategory) {
             dbProduct.category = matchedCategory;
-          } else {
           }
         }
 
+        validProducts.push({ index: i, dbProduct });
+      } catch (error) {
+        const errorMsg = `处理失败: ${error instanceof Error ? error.message : '未知错误'}`;
+        console.error('[Import API] ❌', errorMsg);
+        errorCount++;
+        errors.push(errorMsg);
+      }
+    }
 
+    // ═══ 第二阶段：批量查重 + 批量插入 ═══
+    // 按分批处理，每批 50 个
+    const BATCH_SIZE = 50;
+    for (let batchStart = 0; batchStart < validProducts.length; batchStart += BATCH_SIZE) {
+      const batch = validProducts.slice(batchStart, batchStart + BATCH_SIZE);
+
+      for (const { index, dbProduct } of batch) {
         // 使用判重检查器进行查重
         const checkResult = await duplicateChecker.checkDuplicate(dbProduct);
 
@@ -242,7 +254,6 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-
         // 插入数据库
         const { data: insertedData, error: insertError } = await db
           .from('products')
@@ -251,19 +262,12 @@ export async function POST(request: NextRequest) {
 
         if (insertError) {
           console.error('[Import API] ❌ 插入失败:', insertError);
-          console.error('[Import API] 错误详情:', JSON.stringify(insertError, null, 2));
           errorCount++;
           errors.push(`插入失败 "${dbProduct.name}": ${insertError.message}`);
         } else {
           successCount++;
           insertedProducts.push(insertedData?.[0]);
         }
-      } catch (error) {
-        const errorMsg = `处理失败: ${error instanceof Error ? error.message : '未知错误'}`;
-        console.error('[Import API] ❌', errorMsg);
-        console.error('[Import API] 错误堆栈:', error instanceof Error ? error.stack : error);
-        errorCount++;
-        errors.push(errorMsg);
       }
     }
 

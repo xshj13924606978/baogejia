@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -8,7 +8,7 @@ import { Logger } from '@/lib/logger';
 import { callDeepSeekChat } from '@/lib/deepseek-client';
 import { cleanParameterDescriptionEnhanced } from '@/utils/string-cleaner-enhanced';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export interface ExtractedProduct {
   name: string;
@@ -35,7 +35,7 @@ export class OcrHelper {
     }
 
     try {
-      await execAsync('which pdftotext');
+      await execFileAsync('which', ['pdftotext']);
       Logger.info('[OCR] pdftotext 可用');
       this.toolsAvailable = true;
       return true;
@@ -74,7 +74,7 @@ export class OcrHelper {
         Logger.info('[OCR] 使用pdftotext提取文本...');
 
         // 使用-layout参数保留原始布局
-        await execAsync(`pdftotext -layout ${tempPdf} ${tempTxt}`);
+        await execFileAsync('pdftotext', ['-layout', tempPdf, tempTxt]);
 
         if (fs.existsSync(tempTxt)) {
           const text = fs.readFileSync(tempTxt, 'utf-8');
@@ -114,7 +114,7 @@ export class OcrHelper {
 
     // 方案1: 优先使用系统 tesseract 命令（速度极快）
     try {
-      await execAsync('which tesseract');
+      await execFileAsync('which', ['tesseract']);
       Logger.info('[OCR] 使用系统 tesseract 命令识别图片...');
 
       const tempDir = os.tmpdir();
@@ -128,7 +128,7 @@ export class OcrHelper {
         Logger.debug(`[OCR] 临时图片文件: ${tempImage}`);
 
         // 使用 tesseract 识别
-        await execAsync(`tesseract ${tempImage} ${tempTxt.replace('.txt', '')} -l chi_sim+eng`);
+        await execFileAsync('tesseract', [tempImage, tempTxt.replace('.txt', ''), '-l', 'chi_sim+eng']);
 
         if (fs.existsSync(tempTxt)) {
           const text = fs.readFileSync(tempTxt, 'utf-8');

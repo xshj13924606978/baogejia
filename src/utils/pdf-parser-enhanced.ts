@@ -2,14 +2,14 @@ import { LLMClient } from 'coze-coding-dev-sdk';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { cleanParameterDescription } from '@/utils/string-cleaner';
 import { cleanParameterDescriptionEnhanced, extractParameterSummary } from '@/utils/string-cleaner-enhanced';
 import { PdfTableEnhancer } from '@/utils/pdf-table-enhancer';
 import { pdfLogger, createTimer, parseContext, LogLevel } from '@/utils/pdf-parse-logger';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 interface Product {
   name: string;
@@ -161,9 +161,7 @@ export class EnhancedPdfParser {
       fs.writeFileSync(tempPdf, fileInfo.buffer);
 
       try {
-        await execAsync(
-          `pdftoppm -png -f 1 -singlefile ${tempPdf} ${tempImage.replace('.png', '')}`
-        );
+        await execFileAsync('pdftoppm', ['-png', '-f', '1', '-singlefile', tempPdf, tempImage.replace('.png', '')]);
       } catch (_e) {
         return {
           products: [],
