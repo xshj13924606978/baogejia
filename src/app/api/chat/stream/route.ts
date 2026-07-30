@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
     const smartProcessor = smartChatProcessor;
 
     // 6. 构建系统提示词和消息
-    let systemPrompt = (smartChatProcessor as any).buildSystemPrompt(processedInput);
+    let systemPrompt = smartChatProcessor.buildSystemPrompt(processedInput);
 
     // 6.1 注入商务信息（供应方）和客户信息（采购方）到 system prompt
     try {
@@ -451,7 +451,7 @@ export async function POST(request: NextRequest) {
           }
 
           // 解析完整响应
-          const parsedResponse = (smartProcessor as any).parseLLMResponse(fullContent);
+          const parsedResponse = smartProcessor.parseLLMResponse(fullContent);
 
           // 发送结束标记
           const endEvent = `data: ${JSON.stringify({

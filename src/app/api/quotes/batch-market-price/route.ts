@@ -1,33 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-utils';
 
-// 并发限制：最多同时 5 个请求
+// 并发限制：最多同时 concurrency 个请求
 async function parallelLimit<T>(
   items: T[],
   fn: (item: T) => Promise<any>,
   concurrency: number = 5
 ): Promise<any[]> {
   const results: any[] = [];
-  const executing: Promise<void>[] = [];
+  let index = 0;
 
-  for (const item of items) {
-    const p = fn(item).then(result => {
-      results.push(result);
-    });
-    executing.push(p);
-
-    if (executing.length >= concurrency) {
-      await Promise.race(executing);
-      // 移除已完成的 Promise
-      for (let i = executing.length - 1; i >= 0; i--) {
-        if (results.length > 0) {
-          executing.splice(i, 1);
-        }
+  async function worker(): Promise<void> {
+    while (index < items.length) {
+      const i = index++;
+      try {
+        results[i] = await fn(items[i]);
+      } catch (err) {
+        results[i] = { success: false, error: 'Worker error' };
       }
     }
   }
 
-  await Promise.all(executing);
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  await Promise.all(workers);
   return results;
 }
 

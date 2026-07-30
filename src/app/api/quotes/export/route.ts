@@ -483,9 +483,8 @@ function _generatePDF(data: any): Response {
         );
       }});
 
-    // 由于autoTable已注释，这里也注释掉lastAutoTable的使用
-    // PDF导出已移至前端组件
-    yPos = (doc as any).lastAutoTable.finalY + 10;
+    // 由于autoTable已注释，使用安全默认值
+    yPos = ((doc as any).lastAutoTable?.finalY || yPos) + 10;
 
     // 检查是否需要新页面
     if (yPos > pageHeight - 80) {

@@ -89,12 +89,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: '缺少用户ID' }, { status: 400 });
     }
 
+    // 验证 status 参数（如果提供）
+    const VALID_STATUSES = ['pending', 'paid', 'cancelled', 'refunded', 'expired'];
+    const validatedStatus = status && VALID_STATUSES.includes(status) ? status : undefined;
+
     // 查询订单列表
     const result = await orderService.getUserOrders(
       parseInt(user_id, 10),
       page,
       pageSize,
-      status as any
+      validatedStatus as any
     );
 
     return NextResponse.json({

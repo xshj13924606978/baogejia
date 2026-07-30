@@ -300,7 +300,7 @@ export class SmartChatProcessor {
   /**
    * 构建系统提示词
    */
-  private buildSystemPrompt(processedInput?: ProcessedInput): string {
+  buildSystemPrompt(processedInput?: ProcessedInput): string {
     const now = new Date();
     const currentDate = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日`;
     const currentWeekday = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
@@ -934,7 +934,7 @@ export class SmartChatProcessor {
   /**
    * 解析 LLM 响应
    */
-  private parseLLMResponse(llmResponse: string): {
+  parseLLMResponse(llmResponse: string): {
     content: string;
     intent?: string;
     suggestions?: string[];

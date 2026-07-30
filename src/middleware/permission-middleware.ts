@@ -111,7 +111,16 @@ export async function checkPermission(
         }
       }
 
-      const ud = userData as any;
+      const ud = userData as Record<string, any> | null;
+      if (!ud) {
+        return {
+          allowed: false,
+          error: '用户数据不存在',
+          statusCode: 403,
+          userId: user.id,
+          userRole: userRole.role,
+        };
+      }
       if (config.minLevel !== undefined && ud.level < config.minLevel) {
         return {
           allowed: false,
