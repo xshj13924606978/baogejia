@@ -580,24 +580,6 @@ export default function ChatArea({
   }, []);
 
   useEffect(() => {
-    if (!isReady) return;
-
-    if (conversationId) {
-      setCurrentConversationId(conversationId);
-      loadConversation(conversationId);
-    } else {
-      setMessages([]);
-      setCurrentConversationId(null);
-      window.dispatchEvent(new CustomEvent('clear-quote-table'));
-      if (onTitleChange) {
-        onTitleChange('新对话');
-      }
-      setTimeout(scrollToBottom, 100);
-    }
-    // @ts-expect-error loadConversation is declared later via useCallback
-  }, [conversationId, isReady, loadConversation]);
-
-  useEffect(() => {
     const inputElement = document.querySelector('textarea');
     if (inputElement) {
       const handleFocus = () => {
@@ -775,6 +757,23 @@ export default function ChatArea({
       console.error('Failed to load conversation:', error);
     }
   }, [onTitleChange]);
+
+  useEffect(() => {
+    if (!isReady) return;
+
+    if (conversationId) {
+      setCurrentConversationId(conversationId);
+      loadConversation(conversationId);
+    } else {
+      setMessages([]);
+      setCurrentConversationId(null);
+      window.dispatchEvent(new CustomEvent('clear-quote-table'));
+      if (onTitleChange) {
+        onTitleChange('新对话');
+      }
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [conversationId, isReady, loadConversation]);
 
   const createNewConversation = async (
     title: string = '新对话',
