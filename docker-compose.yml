@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: quote-app
     ports:
-      - "3000:3000"
+      - "5000:5000"
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
