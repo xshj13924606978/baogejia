@@ -548,7 +548,7 @@ export default function ChatArea({
         type: file.type,
         file: file,
       }));
-      setFiles([...files, ...newFiles]);
+      setFiles(prev => [...prev, ...newFiles]);
     },
     noClick: true,
     multiple: true,
@@ -594,7 +594,8 @@ export default function ChatArea({
       }
       setTimeout(scrollToBottom, 100);
     }
-  }, [conversationId, isReady]);
+    // @ts-expect-error loadConversation is declared later via useCallback
+  }, [conversationId, isReady, loadConversation]);
 
   useEffect(() => {
     const inputElement = document.querySelector('textarea');
@@ -692,7 +693,7 @@ export default function ChatArea({
     };
   }, []);
 
-  const loadConversation = async (id: string) => {
+  const loadConversation = useCallback(async (id: string) => {
     try {
       const response = await fetch(`/api/conversations/${id}`, {
         headers: getClientAuthHeaders(),
@@ -773,7 +774,7 @@ export default function ChatArea({
     } catch (error) {
       console.error('Failed to load conversation:', error);
     }
-  };
+  }, [onTitleChange]);
 
   const createNewConversation = async (
     title: string = '新对话',
@@ -1318,7 +1319,7 @@ export default function ChatArea({
       files: [...files],
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
 
     await saveMessageToDatabase(activeConversationId, 'user', input);
@@ -1601,7 +1602,7 @@ export default function ChatArea({
   };
 
   const handleRemoveFile = (fileId: string) => {
-    setFiles(files.filter((f) => f.id !== fileId));
+    setFiles(prev => prev.filter((f) => f.id !== fileId));
   };
 
   const handleUpdateProductPrice = (messageId: number, productIndex: number, newPrice: number) => {
@@ -2358,7 +2359,7 @@ export default function ChatArea({
                                 type: file.type,
                                 file: file,
                               }));
-                              setFiles([...files, ...newFiles]);
+                              setFiles(prev => [...prev, ...newFiles]);
                             }
                           };
                           input.click();

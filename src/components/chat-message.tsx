@@ -58,7 +58,7 @@ if (typeof window !== 'undefined') {
     mermaid.initialize({
       startOnLoad: false,
       theme: 'default',
-      securityLevel: 'loose',
+      securityLevel: 'strict',
       flowchart: {
         useMaxWidth: true,
         htmlLabels: true,
@@ -596,13 +596,15 @@ const parseMarkdownToHtml = (text: string): string => {
     // 保护HTML标签（避免删除标签内的星号）
     .replace(/(<[^>]+>)/g, (match) => {
       // 将HTML标签中的内容进行base64编码保护
-      return '<<<HTML_TAG>>>' + Buffer.from(match).toString('base64') + '<<<HTML_TAG_END>>>';
+      // 使用 btoa/atob 替代 Node.js Buffer，确保浏览器兼容
+      const encoded = typeof btoa !== 'undefined' ? btoa(match) : Buffer.from(match).toString('base64');
+      return '<<<HTML_TAG>>>' + encoded + '<<<HTML_TAG_END>>>';
     })
     // 删除所有剩余的星号
     .replace(/\*/g, '')
     // 恢复HTML标签
     .replace(/<<<HTML_TAG>>>(.+?)<<<HTML_TAG_END>>>/g, (match, encoded) => {
-      return Buffer.from(encoded, 'base64').toString('utf-8');
+      return typeof atob !== 'undefined' ? atob(encoded) : Buffer.from(encoded, 'base64').toString('utf-8');
     });
 
   return html;
@@ -798,7 +800,7 @@ const IframeHTMLContainer = ({ htmlContent }: { htmlContent: string }) => {
           </style>
         </head>
         <body>
-          ${contentRef.current.replace(/<style[\s\S]*?<\/style>/g, '')}
+          ${DOMPurify.sanitize(contentRef.current.replace(/<style[\s\S]*?<\/style>/g, ''))}
         </body>
       </html>
     `);
@@ -958,7 +960,7 @@ const MermaidDiagram = ({ code }: { code: string }) => {
           mermaid.initialize({
             startOnLoad: false,
             theme: 'default',
-            securityLevel: 'loose',
+            securityLevel: 'strict',
           });
         }
 
@@ -1325,9 +1327,14 @@ export default function ChatMessage({
     });
 
     const defaultTitle = getDocType();
+    // HTML转义函数，防止用户输入中的HTML/JS注入到导出文档
+    const escapeHtml = (str: string) =>
+      str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
     // 提取项目标题（第一个 h1 标签）
     const titleMatch = parsedContent.match(/<h1[^>]*>(.+?)<\/h1>/);
-    let projectTitle = titleMatch ? titleMatch[1] : defaultTitle;
+    let projectTitle = escapeHtml(titleMatch ? titleMatch[1] : defaultTitle);
 
     // 提取竖排文字（智能关键词提取）
     const rawTitle = projectTitle.replace(/<[^>]*>/g, '');
@@ -1363,11 +1370,11 @@ export default function ChatMessage({
     // 生成竖排文字（每个字符一行）- Word兼容性更好
     const verticalTextWithBreak = verticalText.split('').join('<br>');
 
-    // 获取供应方信息
-    const supplierName = supplierInfo?.companyName || '未填写';
-    const contactPerson = supplierInfo?.contactPerson || '未填写';
-    const contactPhone = supplierInfo?.phone || '未填写';
-    const contactEmail = supplierInfo?.email || '未填写';
+    // 获取供应方信息（转义后使用）
+    const supplierName = escapeHtml(supplierInfo?.companyName || '未填写');
+    const contactPerson = escapeHtml(supplierInfo?.contactPerson || '未填写');
+    const contactPhone = escapeHtml(supplierInfo?.phone || '未填写');
+    const contactEmail = escapeHtml(supplierInfo?.email || '未填写');
 
     // 将Markdown转换为更美观的HTML
     const htmlContent = `
@@ -1807,11 +1814,16 @@ export default function ChatMessage({
 
     const pdfVerticalText = defaultTitle;
 
-    // 获取供应方信息
-    const supplierName = supplierInfo?.companyName || '未填写';
-    const contactPerson = supplierInfo?.contactPerson || '未填写';
-    const contactPhone = supplierInfo?.phone || '未填写';
-    const contactEmail = supplierInfo?.email || '未填写';
+    // HTML转义函数，防止用户输入中的HTML/JS注入到导出文档
+    const escapeHtml = (str: string) =>
+      str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+    // 获取供应方信息（转义后使用）
+    const supplierName = escapeHtml(supplierInfo?.companyName || '未填写');
+    const contactPerson = escapeHtml(supplierInfo?.contactPerson || '未填写');
+    const contactPhone = escapeHtml(supplierInfo?.phone || '未填写');
+    const contactEmail = escapeHtml(supplierInfo?.email || '未填写');
 
     // 竖排文字直接使用writing-mode，不需要手动添加<br>
     const pdfVerticalTextWithBreak = pdfVerticalText;
