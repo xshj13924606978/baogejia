@@ -57,6 +57,16 @@ export class VectorSimilarityCalculator {
   }
 
   /**
+   * 重置单例（仅用于测试）
+   */
+  public static resetInstance(): void {
+    if (VectorSimilarityCalculator.instance) {
+      VectorSimilarityCalculator.instance.clearCache();
+    }
+    VectorSimilarityCalculator.instance = null as unknown as VectorSimilarityCalculator;
+  }
+
+  /**
    * 获取单例实例
    */
   public static getInstance(config?: VectorizationConfig): VectorSimilarityCalculator {
@@ -124,7 +134,8 @@ export class VectorSimilarityCalculator {
     tokens.push(...englishWords.map(word => word.toLowerCase()));
 
     // 添加二元组（bigram）
-    for (let i = 0; i < tokens.length - 1; i++) {
+    const tokenCount = tokens.length;
+    for (let i = 0; i < tokenCount - 1; i++) {
       tokens.push(`${tokens[i]}_${tokens[i + 1]}`);
     }
 
