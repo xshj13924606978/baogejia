@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +26,7 @@ import {
   Users as UsersIcon, Building2, Star, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getRoleDisplayName } from '@/lib/auth/roles';
+import { getRoleDisplayName, getUserStatusDisplayName, ROLE_OPTIONS, USER_STATUS_OPTIONS } from '@/lib/auth/roles';
 import { usePageConfig } from '@/hooks/usePageConfig';
 import { DynamicTable, DynamicPagination } from '@/components/admin/dynamic-table';
 
@@ -41,6 +42,7 @@ interface User {
   points: number;
   createdAt: string;
   lastLogin?: string;
+  level?: number;
   metadata?: Record<string, any>;
 }
 
@@ -48,10 +50,15 @@ export default function UsersPage() {
   const { fields, getField, actionsByPosition } = usePageConfig('user_list');
   const router = useRouter();
 
-  // 从动态配置中提取 select 字段的选项列表（不再硬编码）
+  // 从动态配置中提取 select 字段的选项列表，未配置时使用系统默认选项兜底
   const getSelectOptions = (fieldKey: string): { value: string; label: string; color?: string }[] => {
     const field = getField(fieldKey);
-    if (!field?.options_config) return [];
+    if (!field?.options_config) {
+      // 当后台未配置角色/状态选项时，使用系统默认选项兜底
+      if (fieldKey === 'role') return ROLE_OPTIONS;
+      if (fieldKey === 'status') return USER_STATUS_OPTIONS;
+      return [];
+    }
     const opts = (field.options_config as any).options || field.options_config;
     if (!Array.isArray(opts)) return [];
     return opts.map((o: any) => ({ value: o.value, label: o.label, color: o.color }));
@@ -80,6 +87,11 @@ export default function UsersPage() {
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // 批量选择
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBatchDeleteDialog, setShowBatchDeleteDialog] = useState(false);
+  const [batchDeleting, setBatchDeleting] = useState(false);
+
   // 添加用户表单
   const [addForm, setAddForm] = useState({ name: '', email: '', username: '', password: '', role: 'free', phone: '' });
   // 编辑用户表单
@@ -87,6 +99,7 @@ export default function UsersPage() {
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
+    setSelectedIds(new Set()); // 翻页/搜索/筛选时清除选择
     try {
       const params = new URLSearchParams({
         page: String(page),
@@ -134,7 +147,7 @@ export default function UsersPage() {
   };
 
   const getStatusLabel = (status: string) => {
-    return statusOptions.find((opt) => opt.value === status)?.label || status;
+    return getUserStatusDisplayName(status);
   };
 
   // 添加用户
@@ -230,6 +243,45 @@ export default function UsersPage() {
       toast.error('网络错误');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // 批量选择
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === users.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(users.map(u => u.id)));
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    setBatchDeleting(true);
+    try {
+      const response = await fetch('/api/admin/users/batch-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success(data.message || `成功删除 ${data.deletedCount} 个用户`);
+        setShowBatchDeleteDialog(false);
+        setSelectedIds(new Set());
+        loadUsers();
+      } else {
+        toast.error(data.error || '批量删除失败');
+      }
+    } catch {
+      toast.error('网络错误');
+    } finally {
+      setBatchDeleting(false);
     }
   };
 
@@ -472,6 +524,33 @@ export default function UsersPage() {
       {/* 用户列表 */}
       <Card>
         <CardContent className="p-0">
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 px-4 py-2.5 bg-muted/50 border-b">
+              <Checkbox
+                checked={users.length > 0 && selectedIds.size === users.length}
+                onCheckedChange={toggleSelectAll}
+              />
+              <span className="text-sm font-medium">
+                已选 <span className="text-primary">{selectedIds.size}</span> 项
+              </span>
+              <div className="flex-1" />
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowBatchDeleteDialog(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                批量删除
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                取消选择
+              </Button>
+            </div>
+          )}
           <DynamicTable
             data={users}
             fields={fields}
@@ -481,24 +560,55 @@ export default function UsersPage() {
                 case 'edit': openEditDialog(row); break;
                 case 'delete': openDeleteDialog(row); break;
                 case 'toggle_status': handleToggleStatus(row); break;
+                case 'grant_points': router.push(`/admin/users/${row.id}/grant`); break;
               }
             }}
             onRowClick={(row) => router.push(`/admin/users/${row.id}`)}
             renderCell={(row, field) => {
-              // 用户列：头像 + 姓名 + 邮箱
+              // 邮箱列：选择框 + 邮箱
               if (field.field_key === 'email') {
                 return (
                   <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={selectedIds.has(row.id)}
+                      onCheckedChange={() => toggleSelect(row.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <span>{row.email}</span>
+                  </div>
+                );
+              }
+              // 姓名列：头像 + 姓名
+              if (field.field_key === 'full_name') {
+                return (
+                  <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8">
                       {row.avatar ? <AvatarImage src={row.avatar} /> : null}
                       <AvatarFallback>{row.name?.[0] || '?'}</AvatarFallback>
                     </Avatar>
-                    <div>
-                      <p className="font-medium">{row.name}</p>
-                      <p className="text-sm text-gray-500">{row.email}</p>
-                    </div>
+                    <span>{row.name}</span>
                   </div>
                 );
+              }
+              // 用户名列
+              if (field.field_key === 'username') {
+                return <span>{row.username || '-'}</span>;
+              }
+              // 手机号列
+              if (field.field_key === 'phone') {
+                return <span>{row.phone || '-'}</span>;
+              }
+              // 等级列
+              if (field.field_key === 'level') {
+                return <span>{row.level ?? '-'}</span>;
+              }
+              // 注册时间列
+              if (field.field_key === 'created_at') {
+                return <span>{row.createdAt ? new Date(row.createdAt).toLocaleString('zh-CN') : '-'}</span>;
+              }
+              // 最后登录列
+              if (field.field_key === 'last_login') {
+                return <span>{row.lastLogin ? new Date(row.lastLogin).toLocaleString('zh-CN') : '-'}</span>;
               }
               // 角色列：彩色 Badge
               if (field.field_key === 'role') {
@@ -661,6 +771,25 @@ export default function UsersPage() {
             <Button onClick={handleEditUser} disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               保存修改
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 批量删除确认对话框 */}
+      <Dialog open={showBatchDeleteDialog} onOpenChange={setShowBatchDeleteDialog}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>确认批量删除</DialogTitle>
+            <DialogDescription>
+              确定要删除选中的 {selectedIds.size} 个用户吗？此操作不可撤销，将同时清除这些用户的相关数据（积分、订单、使用记录等）。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBatchDeleteDialog(false)}>取消</Button>
+            <Button variant="destructive" onClick={handleBatchDelete} disabled={batchDeleting}>
+              {batchDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              删除 {selectedIds.size} 个用户
             </Button>
           </DialogFooter>
         </DialogContent>
