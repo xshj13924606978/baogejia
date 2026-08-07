@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
       .select('user_id, level, level_up_at, created_at');
 
     if (levelsError) {
-      return NextResponse.json(emptyDistribution());
+      console.error('[LevelDistribution API] 查询 user_levels 失败:', levelsError);
+      userLevels = [];
     }
 
     // 获取用户基本信息
@@ -32,8 +33,11 @@ export async function GET(request: NextRequest) {
       .select('id, created_at');
 
     if (usersError) {
+      console.error('[LevelDistribution API] 查询 users 失败:', usersError);
       return NextResponse.json(emptyDistribution());
     }
+
+    console.log('[LevelDistribution API] userLevels count:', userLevels?.length, 'users count:', _users?.length);
 
     // 合并数据：users 表中所有用户都纳入统计，没有等级记录的用户默认等级为1
     const levelMap = new Map((userLevels || []).map((u: any) => [u.user_id, u]));
