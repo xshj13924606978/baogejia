@@ -95,6 +95,14 @@ export const GET = withAdmin(async (_req, user) => {
       return true;
     });
 
+    const logModules = remappedTree.map((m: any) => ({
+      key: m.module_key,
+      name: m.name_zh,
+      group: m.group_label,
+      children: (m.children || []).map((c: any) => c.page_key || c.name_zh),
+    }));
+    console.log('[Menu API] remappedTree:', JSON.stringify(logModules, null, 2));
+
     return NextResponse.json({ success: true, data: remappedTree });
   } catch (error) {
     console.error('[QueryMenuAPI] 失败:', error);
