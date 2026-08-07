@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * 菜单树查询
  * GET /api/admin/config/query/menu
@@ -68,7 +70,32 @@ export const GET = withAdmin(async (_req, user) => {
     // 6. 过滤非菜单可见的顶级模块（超级管理员跳过此过滤）
     const visibleTree = isSuperAdmin ? tree : tree.filter(m => m.is_visible_in_menu !== false);
 
-    return NextResponse.json({ success: true, data: visibleTree });
+    // 7. 调整菜单结构（数据层面仍保留原模块，仅在前端聚合展示）
+    const product = visibleTree.find((m: any) => m.module_key === 'product');
+    const knowledgeCenter = visibleTree.find((m: any) => m.module_key === 'knowledge_center');
+
+    const remappedTree = visibleTree.filter((m: any) => {
+      if (m.module_key === 'import_log') {
+        if (product) {
+          product.children = [...product.children, ...m.children];
+          product.sub_modules = [...product.sub_modules, ...m.sub_modules];
+        }
+        return false;
+      }
+      if (m.module_key === 'knowledge') {
+        if (knowledgeCenter) {
+          knowledgeCenter.children = [...knowledgeCenter.children, ...m.children];
+          knowledgeCenter.sub_modules = [...knowledgeCenter.sub_modules, ...m.sub_modules];
+        }
+        return false;
+      }
+      if (m.module_key === 'customer' && m.group_label === '其他') {
+        m.group_label = '核心业务';
+      }
+      return true;
+    });
+
+    return NextResponse.json({ success: true, data: remappedTree });
   } catch (error) {
     console.error('[QueryMenuAPI] 失败:', error);
     return NextResponse.json({ success: false, error: '服务器错误' }, { status: 500 });
