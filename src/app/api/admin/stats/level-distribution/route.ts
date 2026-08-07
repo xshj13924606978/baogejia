@@ -37,8 +37,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(emptyDistribution());
     }
 
-    console.log('[LevelDistribution API] userLevels count:', userLevels?.length, 'users count:', _users?.length);
-
     // 合并数据：users 表中所有用户都纳入统计，没有等级记录的用户默认等级为1
     const levelMap = new Map((userLevels || []).map((u: any) => [u.user_id, u]));
     userLevels = (_users || []).map((u: any) => {
