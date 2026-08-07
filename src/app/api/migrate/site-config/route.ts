@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
@@ -49,11 +51,22 @@ export async function POST() {
     // 插入默认配置
     const defaults = [
       // 基本设置
-      { config_key: 'site_name', config_value: '智能报价系统', config_type: 'string', category: 'general', label: '站点名称', description: '系统显示名称', is_public: true },
-      { config_key: 'site_description', config_value: '专业的在线报价管理平台', config_type: 'string', category: 'general', label: '站点描述', description: '系统描述信息', is_public: true },
-      { config_key: 'site_icp', config_value: '', config_type: 'string', category: 'general', label: '备案号', description: 'ICP备案号', is_public: true },
-      { config_key: 'contact_email', config_value: '', config_type: 'string', category: 'general', label: '联系邮箱', description: '管理员联系邮箱' },
-      { config_key: 'contact_phone', config_value: '', config_type: 'string', category: 'general', label: '联系电话', description: '管理员联系电话' },
+      { config_key: 'site_name', config_value: '智能报价系统', config_type: 'string', category: 'general', label: '站点名称', description: '系统显示名称，用于后台、前台及导出文档', is_public: true },
+      { config_key: 'site_short_name', config_value: '报个价', config_type: 'string', category: 'general', label: '站点简称', description: '前台 Logo 等位置使用的简称', is_public: true },
+      { config_key: 'site_description', config_value: '专业的在线报价管理平台', config_type: 'string', category: 'general', label: '站点描述', description: '系统 Slogan 与 SEO 描述', is_public: true },
+      { config_key: 'site_logo', config_value: '', config_type: 'string', category: 'general', label: '站点 Logo URL', description: '前台/后台 Logo 图片地址，为空时使用文字 Logo', is_public: true },
+      { config_key: 'site_favicon', config_value: '/favicon.ico', config_type: 'string', category: 'general', label: '站点 Favicon', description: '浏览器标签页图标地址', is_public: true },
+      { config_key: 'site_theme_color', config_value: '#0a4a7a', config_type: 'string', category: 'general', label: '主题色', description: '系统主色调，用于前台与后台品牌展示', is_public: true },
+      { config_key: 'site_icp', config_value: '', config_type: 'string', category: 'general', label: '备案号', description: 'ICP 备案号，显示在页面底部', is_public: true },
+      { config_key: 'site_copyright', config_value: '© 2026 智能报价系统 版权所有', config_type: 'string', category: 'general', label: '版权信息', description: '页面底部版权文案', is_public: true },
+      { config_key: 'contact_email', config_value: '', config_type: 'string', category: 'general', label: '联系邮箱', description: '管理员/客服联系邮箱' },
+      { config_key: 'contact_phone', config_value: '', config_type: 'string', category: 'general', label: '联系电话', description: '客服联系电话' },
+      { config_key: 'contact_address', config_value: '', config_type: 'string', category: 'general', label: '公司地址', description: '企业办公地址' },
+      { config_key: 'service_hours', config_value: '工作日 9:00-18:00', config_type: 'string', category: 'general', label: '客服工作时间', description: '客服在线服务时间说明' },
+      { config_key: 'default_company_name', config_value: '', config_type: 'string', category: 'general', label: '默认供应商/公司名', description: '报价单中默认显示的公司名称' },
+      { config_key: 'default_quote_currency', config_value: 'CNY', config_type: 'string', category: 'general', label: '默认报价币种', description: '报价单默认币种，如 CNY/USD' },
+      { config_key: 'default_quote_valid_days', config_value: '15', config_type: 'number', category: 'general', label: '报价单默认有效期(天)', description: '新建报价单时的默认有效天数' },
+      { config_key: 'default_tax_rate', config_value: '13', config_type: 'number', category: 'general', label: '默认税率(%)', description: '新建报价单时的默认税率' },
       // 积分设置
       { config_key: 'register_points', config_value: '100', config_type: 'number', category: 'points', label: '注册赠送积分', description: '新用户注册赠送的积分数' },
       { config_key: 'daily_sign_points', config_value: '10', config_type: 'number', category: 'points', label: '每日签到积分', description: '每日签到获得的积分数' },
