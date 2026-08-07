@@ -94,24 +94,32 @@ export async function POST() {
       { config_key: 'max_quote_attachments', config_value: '5', config_type: 'number', category: 'storage', label: '报价最大附件数', description: '每个报价单最多上传的附件数量' },
     ];
 
-    let inserted = 0;
-    let skipped = 0;
-    for (const item of defaults) {
-      const { error, count } = await db
-        .from('site_config')
-        .upsert(item, { onConflict: 'config_key', ignoreDuplicates: true });
-      if (!error) {
-        if (count === 0) {
-          skipped++;
-        } else {
-          inserted++;
+    // 查询已有的 config_key，只插入不存在的项（不覆盖已有配置）
+    const { data: existingRows } = await db.from('site_config').select('config_key');
+    const existingKeys = new Set((existingRows || []).map((r: any) => r.config_key));
+
+    const newItems = defaults.filter((item) => !existingKeys.has(item.config_key));
+    const skipped = defaults.length - newItems.length;
+
+    if (newItems.length > 0) {
+      // 分批插入，每批 20 条
+      const batchSize = 20;
+      for (let i = 0; i < newItems.length; i += batchSize) {
+        const batch = newItems.slice(i, i + batchSize);
+        const { error } = await db.from('site_config').insert(batch);
+        if (error) {
+          console.error('[Migrate site-config] 批量插入失败:', error);
+          return NextResponse.json(
+            { success: false, error: '批量插入失败: ' + error.message },
+            { status: 500 }
+          );
         }
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: `迁移完成：${inserted} 项新增，${skipped} 项已存在跳过`,
+      message: `迁移完成：${newItems.length} 项新增，${skipped} 项已存在跳过`,
     });
   } catch (error: any) {
     console.error('[Migrate site-config] 异常:', error);
