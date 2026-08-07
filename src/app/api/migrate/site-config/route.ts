@@ -11,41 +11,37 @@ export async function POST() {
   try {
     const db = getSupabaseServiceClient();
 
-    // 创建表
-    const { error: createError } = await db.rpc('exec_sql', {
-      sql: `
-        CREATE TABLE IF NOT EXISTS site_config (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          config_key VARCHAR(100) UNIQUE NOT NULL,
-          config_value TEXT,
-          config_type VARCHAR(20) DEFAULT 'string',
-          category VARCHAR(50) DEFAULT 'general',
-          label VARCHAR(100),
-          description TEXT,
-          is_public BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMPTZ DEFAULT NOW(),
-          updated_at TIMESTAMPTZ DEFAULT NOW()
-        );
+    // 创建表（RPC 不可用时静默跳过）
+    try {
+      await db.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS site_config (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            config_key VARCHAR(100) UNIQUE NOT NULL,
+            config_value TEXT,
+            config_type VARCHAR(20) DEFAULT 'string',
+            category VARCHAR(50) DEFAULT 'general',
+            label VARCHAR(100),
+            description TEXT,
+            is_public BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+          );
 
-        -- 索引
-        CREATE INDEX IF NOT EXISTS idx_site_config_category ON site_config(category);
-        CREATE INDEX IF NOT EXISTS idx_site_config_key ON site_config(config_key);
+          CREATE INDEX IF NOT EXISTS idx_site_config_category ON site_config(category);
+          CREATE INDEX IF NOT EXISTS idx_site_config_key ON site_config(config_key);
 
-        -- RLS（关闭，由应用层控制权限）
-        ALTER TABLE site_config ENABLE ROW LEVEL SECURITY;
+          ALTER TABLE site_config ENABLE ROW LEVEL SECURITY;
 
-        -- 允许匿名读取公开配置
-        CREATE POLICY "Public read public config" ON site_config
-          FOR SELECT USING (is_public = true);
+          CREATE POLICY "Public read public config" ON site_config
+            FOR SELECT USING (is_public = true);
 
-        -- 允许认证用户读取所有配置
-        CREATE POLICY "Authenticated read all config" ON site_config
-          FOR SELECT USING (auth.role() = 'authenticated');
-      `
-    });
-
-    if (createError) {
-      // 尝试直接用 DDL（rpc 不可用时）
+          CREATE POLICY "Authenticated read all config" ON site_config
+            FOR SELECT USING (auth.role() = 'authenticated');
+        `
+      });
+    } catch {
+      // RPC 不可用，表可能已存在，继续执行
     }
 
     // 插入默认配置
@@ -95,25 +91,34 @@ export async function POST() {
     ];
 
     // 查询已有的 config_key，只插入不存在的项（不覆盖已有配置）
-    const { data: existingRows } = await db.from('site_config').select('config_key');
-    const existingKeys = new Set((existingRows || []).map((r: any) => r.config_key));
+    const { data: existingRows, error: selectError } = await db.from('site_config').select('config_key');
 
+    if (selectError) {
+      // select 失败时回退到 upsert 模式（更新已有 + 插入新增）
+      console.warn('[Migrate site-config] select 失败，回退 upsert:', selectError.message);
+      let inserted = 0;
+      for (const item of defaults) {
+        const { error } = await db.from('site_config').upsert(item, { onConflict: 'config_key' });
+        if (!error) inserted++;
+      }
+      return NextResponse.json({
+        success: true,
+        message: `迁移完成（恢复模式）：${inserted}/${defaults.length} 项配置已写入`,
+      });
+    }
+
+    const existingKeys = new Set((existingRows || []).map((r: any) => r.config_key));
     const newItems = defaults.filter((item) => !existingKeys.has(item.config_key));
     const skipped = defaults.length - newItems.length;
 
     if (newItems.length > 0) {
-      // 分批插入，每批 20 条
-      const batchSize = 20;
-      for (let i = 0; i < newItems.length; i += batchSize) {
-        const batch = newItems.slice(i, i + batchSize);
-        const { error } = await db.from('site_config').insert(batch);
-        if (error) {
-          console.error('[Migrate site-config] 批量插入失败:', error);
-          return NextResponse.json(
-            { success: false, error: '批量插入失败: ' + error.message },
-            { status: 500 }
-          );
-        }
+      const { error: insertError } = await db.from('site_config').insert(newItems);
+      if (insertError) {
+        console.error('[Migrate site-config] 插入失败:', insertError);
+        return NextResponse.json(
+          { success: false, error: '配置写入失败: ' + insertError.message },
+          { status: 500 }
+        );
       }
     }
 
