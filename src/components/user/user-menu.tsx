@@ -262,40 +262,64 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   ]);
 
   // 最近记录数据
-  const [recentRecords, _setRecentRecords] = useState([
-    {
-      id: 1,
-      name: '搅拌设备报价单.pdf',
-      type: 'pdf',
-      action: 'download',
-      time: '2024-02-26 14:30',
-      size: '2.3 MB',
-    },
-    {
-      id: 2,
-      name: '泵类采购方案.docx',
-      type: 'docx',
-      action: 'preview',
-      time: '2024-02-25 09:15',
-      size: '1.1 MB',
-    },
-    {
-      id: 3,
-      name: '产品目录.xlsx',
-      type: 'xlsx',
-      action: 'upload',
-      time: '2024-02-24 16:45',
-      size: '3.2 MB',
-    },
-    {
-      id: 4,
-      name: '技术规范.pdf',
-      type: 'pdf',
-      action: 'share',
-      time: '2024-02-23 11:20',
-      size: '4.5 MB',
-    },
-  ]);
+  const [allUploadRecords, setAllUploadRecords] = useState<Array<{
+    id: number;
+    name: string;
+    type: string;
+    action: string;
+    time: string;
+    size: string;
+  }>>([]);
+  const [showAllRecords, setShowAllRecords] = useState(false);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+
+  const recentRecords = showAllRecords ? allUploadRecords : allUploadRecords.slice(0, 5);
+
+  const getUploadTypeLabel = (uploadType: string) => {
+    const map: Record<string, string> = {
+      upload_price: '产品价格',
+      upload_doc: '技术文档',
+      upload_case: '成功案例',
+      upload_drawing: '工程图纸',
+    };
+    return map[uploadType] || uploadType;
+  };
+
+  const getUploadTypeIcon = (uploadType: string) => {
+    if (uploadType === 'upload_price') return 'xlsx';
+    if (uploadType === 'upload_drawing') return 'pdf';
+    return 'docx';
+  };
+
+  const loadRecentRecords = async (userId: string) => {
+    try {
+      setRecordsLoading(true);
+      const res = await fetch(`/api/user/uploads?user_id=${userId}`);
+      const data = await res.json();
+      if (data.success && data.records) {
+        const mapped = data.records.map((r: any) => ({
+          id: r.id,
+          name: r.title,
+          type: getUploadTypeIcon(r.type),
+          action: 'upload',
+          time: new Date(r.created_at).toLocaleString('zh-CN'),
+          size: getUploadTypeLabel(r.type),
+        }));
+        setAllUploadRecords(mapped);
+      }
+    } catch (err) {
+      console.error('[Records] 加载记录失败:', err);
+    } finally {
+      setRecordsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showRecordsDialog && user?.id) {
+      loadRecentRecords(user.id);
+      setShowAllRecords(false);
+    }
+  }, [showRecordsDialog, user?.id]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -1633,11 +1657,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <Button
                 variant="outline"
                 className="w-full mt-2"
-                onClick={() =>
-                  toast({ title: '查看全部', description: '正在加载更多记录...', duration: 2000 })
-                }
+                onClick={() => setShowAllRecords(!showAllRecords)}
               >
-                查看全部记录
+                {showAllRecords ? '收起' : '查看全部记录'}
               </Button>
             </div>
           </DialogContent>
