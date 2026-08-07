@@ -398,6 +398,7 @@ export default function ChatArea({
           setCustomerList((data.customers || []).map((c: any) => ({ id: c.id, company_name: c.company_name || c.companyName || '' })));
         }
         // 加载供应商信息并保存到 localStorage 供 QuoteTable 使用
+        if (!headers['x-user-id']) return;
         const bizRes = await fetch('/api/user/business-profile', { headers });
         if (bizRes.ok) {
           const bizResult = await bizRes.json();
@@ -2338,8 +2339,8 @@ export default function ChatArea({
             />
 
             <TooltipProvider>
-              <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2 px-2 sm:px-4 py-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2 overflow-x-auto sm:overflow-visible flex-nowrap -mx-1 px-1 [&>*]:flex-shrink-0">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -2424,10 +2425,10 @@ export default function ChatArea({
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowKnowledgeCenter(true)}
-                        className="h-9 px-3 rounded-full bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 gap-1.5"
+                        className="h-9 px-2 sm:px-3 rounded-full bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 gap-1.5"
                       >
                         <span className="text-base">📚</span>
-                        <span className="text-sm font-medium">管理资料</span>
+                        <span className="hidden sm:inline text-sm font-medium">管理资料</span>
                         <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">
                           7
                         </span>
@@ -2444,7 +2445,7 @@ export default function ChatArea({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Select value={selectedModel} onValueChange={setSelectedModel}>
-                        <SelectTrigger className="h-9 w-auto min-w-[120px] rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs">
+                        <SelectTrigger className="h-9 w-auto min-w-[80px] sm:min-w-[120px] rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs">
                           <Brain className="h-3.5 w-3.5 mr-1 text-violet-500" />
                           <SelectValue />
                         </SelectTrigger>
@@ -2472,7 +2473,7 @@ export default function ChatArea({
                           className="h-9 w-auto min-w-[90px] max-w-[160px] rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs justify-start gap-1"
                         >
                           <Users className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                            <span className="truncate">
+                            <span className="hidden sm:inline truncate">
                             {currentCustomer?.companyName || '选择客户'}
                           </span>
                           <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50" />
