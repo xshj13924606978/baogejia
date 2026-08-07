@@ -579,19 +579,25 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     });
 
     setTimeout(() => {
-      const dataStr = JSON.stringify({ user, settings, notifications, recentRecords }, null, 2);
       const exportFileDefaultName = `baogejia-export-${new Date().toISOString().slice(0, 10)}.json`;
 
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const linkElement = document.createElement('a');
-      linkElement.href = url;
-      linkElement.download = exportFileDefaultName;
-      linkElement.style.display = 'none';
-      document.body.appendChild(linkElement);
-      linkElement.click();
-      document.body.removeChild(linkElement);
-      URL.revokeObjectURL(url);
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/api/user/export-data';
+      form.style.display = 'none';
+      const dataInput = document.createElement('input');
+      dataInput.type = 'hidden';
+      dataInput.name = 'data';
+      dataInput.value = JSON.stringify({ user, settings, notifications, recentRecords });
+      form.appendChild(dataInput);
+      const filenameInput = document.createElement('input');
+      filenameInput.type = 'hidden';
+      filenameInput.name = 'filename';
+      filenameInput.value = exportFileDefaultName;
+      form.appendChild(filenameInput);
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
 
       toast({
         title: '导出成功',
