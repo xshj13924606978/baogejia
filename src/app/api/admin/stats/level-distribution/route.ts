@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { requireAdmin } from '@/lib/auth-utils';
@@ -45,7 +47,7 @@ export async function GET(request: NextRequest) {
         conversion: {} as Record<string, { rate: number; count: number }>,
         upgradeTime: {} as Record<number, { avgDays: number; minDays: number; maxDays: number }>,
         summary: {
-          totalUsers: userLevels?.length || 0,
+          totalUsers: _users?.length || 0,
           averageLevel: 0,
           mostCommonLevel: 1,
           upgradeRate: 0}};
