@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { requireAdmin } from '@/lib/auth-utils';
@@ -75,7 +77,16 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     }
 
     if (term.is_default) {
-      return NextResponse.json({ success: false, error: '不能删除默认条款，请先设置其他条款为默认' }, { status: 400 });
+      // 删除默认条款前，自动将默认标记转移给其他条款
+      const { data: otherTerms } = await db
+        .from('quote_terms')
+        .select('id')
+        .neq('id', params.id)
+        .limit(1);
+
+      if (otherTerms && otherTerms.length > 0) {
+        await db.from('quote_terms').update({ is_default: true }).eq('id', otherTerms[0].id);
+      }
     }
 
     const { error } = await db.from('quote_terms').delete().eq('id', params.id);
