@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from 'next/server';
-import { withPermissionCheck } from '@/lib/permission-check';
+import { requireAdmin } from '@/lib/auth-utils';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 /**
@@ -9,13 +9,14 @@ import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
  *
  * 功能：
  * - GET: 获取权限使用热力图数据，包括每日使用量、权限使用统计、API拒绝统计
- * 权限：仅超级管理员
+ * 权限：需要管理员权限
  */
 
-export const GET = withPermissionCheck(
-  { requiresAuth: true, permissions: ['admin.stats.view'] },
-  async (request: NextRequest, _context: any) => {
-    try {
+export async function GET(request: NextRequest) {
+  const { errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
+
+  try {
       const supabase = getSupabaseServiceClient();
 
       // 获取查询参数
@@ -106,5 +107,4 @@ export const GET = withPermissionCheck(
       console.error('[Heatmap API] 获取热力图失败:', error);
       return NextResponse.json({ error: '获取失败' }, { status: 500 });
     }
-  }
-);
+}
