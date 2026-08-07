@@ -13,22 +13,22 @@ import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 export async function POST() {
   const db = getSupabaseServiceClient();
 
-  // 1. 检查 exec_sql 函数是否存在
+  // 1. 检查 exec_sql 函数是否存在（直接试调 rpc，不查 information_schema，因为 PostgREST 无法访问它）
+  let hasExecSql = false;
   try {
-    const { data: execSqlRoutines, error: routineError } = await db
-      .from('information_schema.routines')
-      .select('routine_name')
-      .eq('routine_name', 'exec_sql');
+    const { error } = await db.rpc('exec_sql', { sql_query: 'SELECT 1 AS test' });
+    hasExecSql = !error;
+  } catch {
+    // exec_sql 不存在
+  }
 
-    const hasExecSql = !routineError && Array.isArray(execSqlRoutines) && execSqlRoutines.length > 0;
-
-    if (!hasExecSql) {
-      // exec_sql 不存在 → 提供手动 SQL 脚本，让用户在 Supabase Dashboard 先执行
-      return NextResponse.json({
-        success: false,
-        message: '数据库中未找到 exec_sql 函数。请在 Supabase Dashboard > SQL Editor 中执行以下 SQL 创建函数后，重新点击初始化。',
-        requiresManual: true,
-        sql: `CREATE OR REPLACE FUNCTION exec_sql(sql_query text)
+  if (!hasExecSql) {
+    // 提供手动 SQL 脚本
+    return NextResponse.json({
+      success: false,
+      message: '数据库中未找到 exec_sql 函数。请在 Supabase Dashboard > SQL Editor 中执行以下 SQL 创建函数后，重新点击初始化。',
+      requiresManual: true,
+      sql: `CREATE OR REPLACE FUNCTION exec_sql(sql_query text)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -42,14 +42,7 @@ EXCEPTION WHEN OTHERS THEN
   RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END;
 $$;`,
-      }, { status: 200 });
-    }
-  } catch (dbError: any) {
-    console.error('[Migrate site-config] 检查 exec_sql 失败:', dbError.message);
-    return NextResponse.json({
-      success: false,
-      error: '数据库查询失败，无法检查 exec_sql 函数: ' + (dbError.message || '未知错误'),
-    }, { status: 500 });
+    }, { status: 200 });
   }
 
   // 2. 建表
