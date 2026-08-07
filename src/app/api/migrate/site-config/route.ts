@@ -7,23 +7,41 @@ import { Pool } from 'pg';
  * 迁移：创建 site_config 表并初始化默认配置
  * POST /api/migrate/site-config
  *
- * 使用 pg Pool 直接操作 PostgreSQL（与 billing-config migrate 一致），
- * 避免 Supabase JS 客户端在服务端的各种限制（RLS/PostgREST/权限等）。
+ * 使用 pg Pool 直接操作 PostgreSQL，从 Supabase 项目 URL + service_role key
+ * 构造连接串（生产环境没有 DATABASE_URL 变量）。
  */
 export async function POST() {
-  // 1. 获取数据库连接
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
+  // 用 Supabase 项目凭证构造 pg Pool（不依赖 DATABASE_URL）
+  const supabaseUrl = process.env.COZE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+  if (!supabaseUrl || !serviceKey) {
     return NextResponse.json({
       success: false,
-      error: '数据库连接未配置 (DATABASE_URL)，请在服务器 .env 或 docker-compose 中添加该变量',
+      error: '缺少 Supabase 连接配置 (SUPABASE_URL 或 SERVICE_ROLE_KEY)',
     }, { status: 500 });
   }
 
-  const pool = new Pool({ connectionString });
+  const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+
+  // 优先用 DATABASE_URL（如果有），否则用 Supabase Pooler（支持 service_role key 认证）
+  let pool: Pool;
+  if (process.env.DATABASE_URL) {
+    pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  } else {
+    // Supabase Session Pooler (port 6543), service_role key JWT 作为密码
+    pool = new Pool({
+      host: `db.${projectRef}.supabase.co`,
+      port: 6543,
+      database: 'postgres',
+      user: `postgres.${projectRef}`,
+      password: serviceKey,
+      ssl: { rejectUnauthorized: false },
+    });
+  }
 
   try {
-    // 2. 建表
+    // 建表
     await pool.query(`
       CREATE TABLE IF NOT EXISTS site_config (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
