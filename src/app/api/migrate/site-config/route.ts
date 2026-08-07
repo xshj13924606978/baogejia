@@ -1,17 +1,49 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from 'next/server';
-import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { Pool } from 'pg';
 
 /**
  * 迁移：创建 site_config 表并初始化默认配置
  * POST /api/migrate/site-config
+ *
+ * 使用 pg Pool 直接操作 PostgreSQL（与 billing-config migrate 一致），
+ * 避免 Supabase JS 客户端在服务端的各种限制（RLS/PostgREST/权限等）。
  */
 export async function POST() {
-  const db = getSupabaseServiceClient();
+  // 1. 获取数据库连接
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    return NextResponse.json({
+      success: false,
+      error: '数据库连接未配置 (DATABASE_URL)，请在服务器 .env 或 docker-compose 中添加该变量',
+    }, { status: 500 });
+  }
 
-  // 默认配置
-  const defaults = [
+  const pool = new Pool({ connectionString });
+
+  try {
+    // 2. 建表
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS site_config (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        config_key VARCHAR(100) UNIQUE NOT NULL,
+        config_value TEXT,
+        config_type VARCHAR(20) DEFAULT 'string',
+        category VARCHAR(50) DEFAULT 'general',
+        label VARCHAR(100),
+        description TEXT,
+        is_public BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_site_config_category ON site_config(category)').catch(() => {});
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_site_config_key ON site_config(config_key)').catch(() => {});
+
+    // 3. 默认配置
+    const defaults = [
     // 基本设置
     { config_key: 'site_name', config_value: '智能报价系统', config_type: 'string', category: 'general', label: '站点名称', description: '系统显示名称，用于后台、前台及导出文档', is_public: true },
     { config_key: 'site_short_name', config_value: '报个价', config_type: 'string', category: 'general', label: '站点简称', description: '前台 Logo 等位置使用的简称', is_public: true },
@@ -56,35 +88,47 @@ export async function POST() {
     { config_key: 'max_quote_attachments', config_value: '5', config_type: 'number', category: 'storage', label: '报价最大附件数', description: '每个报价单最多上传的附件数量' },
   ];
 
-  // 查询已有 key，只插入不存在的（不覆盖已有配置）
-  let existingKeys = new Set<string>();
-  try {
-    const { data } = await db.from('site_config').select('config_key');
-    if (data) {
-      data.forEach((r: any) => existingKeys.add(r.config_key));
+    // 4. 批量插入（ON CONFLICT 跳过已存在的）
+    const placeholders = defaults.map((_, i) => {
+      const base = i * 7;
+      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7})`;
+    }).join(', ');
+
+    const params: any[] = [];
+    for (const item of defaults) {
+      params.push(
+        item.config_key,
+        item.config_value,
+        item.config_type,
+        item.category,
+        item.label,
+        item.description,
+        item.is_public === true,
+      );
     }
-  } catch {
-    // select 失败，跳过过滤，后续逐条 upsert 兜底
+
+    const result = await pool.query(
+      `INSERT INTO site_config (config_key, config_value, config_type, category, label, description, is_public)
+       VALUES ${placeholders}
+       ON CONFLICT (config_key) DO NOTHING
+       RETURNING config_key`,
+      params,
+    );
+
+    const inserted = result.rowCount || 0;
+    const skipped = defaults.length - inserted;
+
+    return NextResponse.json({
+      success: true,
+      message: `迁移完成：${inserted} 项新增，${skipped} 项已存在跳过`,
+    });
+  } catch (error: any) {
+    console.error('[Migrate site-config] 异常:', error.message);
+    return NextResponse.json({
+      success: false,
+      error: '迁移失败: ' + error.message,
+    }, { status: 500 });
+  } finally {
+    await pool.end().catch(() => {});
   }
-
-  let inserted = 0;
-  let skipped = 0;
-
-  for (const item of defaults) {
-    if (existingKeys.has(item.config_key)) {
-      skipped++;
-      continue;
-    }
-    const { error } = await db.from('site_config').upsert(item, { onConflict: 'config_key' });
-    if (error) {
-      console.error('[Migrate site-config] 写入失败:', item.config_key, error.message);
-    } else {
-      inserted++;
-    }
-  }
-
-  return NextResponse.json({
-    success: true,
-    message: `迁移完成：${inserted} 项新增，${skipped} 项已存在跳过`,
-  });
 }
