@@ -288,8 +288,8 @@ export class Analytics {
 
       const previousCount =
         index === 0 ? count : this.getFunnelStepCount(steps[index - 1], filteredUsers);
-      const conversionRate = index === 0 ? 100 : (count / previousCount) * 100;
-      const dropOffRate = index === 0 ? 0 : 100 - conversionRate;
+      const conversionRate = index === 0 ? 100 : (previousCount > 0 ? (count / previousCount) * 100 : 0);
+      const dropOffRate = index === 0 ? 0 : (previousCount > 0 ? 100 - conversionRate : 0);
 
       return {
         step,

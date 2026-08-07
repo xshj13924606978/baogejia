@@ -220,7 +220,9 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="text-2xl font-bold">{data.stats.activeUsers.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {((data.stats.activeUsers / data.stats.totalUsers) * 100).toFixed(1)}% 活跃率
+              {data.stats.totalUsers > 0
+                ? ((data.stats.activeUsers / data.stats.totalUsers) * 100).toFixed(1)
+                : '0.0'}% 活跃率
             </p>
           </CardContent>
         </Card>
