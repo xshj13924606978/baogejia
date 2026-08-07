@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseServiceClient();
 
     // 获取用户等级数据
-    const { data: userLevels, error: levelsError } = await supabase
+    let { data: userLevels, error: levelsError } = await supabase
       .from('user_levels')
       .select('user_id, level, level_up_at, created_at');
 
@@ -34,6 +34,18 @@ export async function GET(request: NextRequest) {
     if (usersError) {
       return NextResponse.json(emptyDistribution());
     }
+
+    // 合并数据：users 表中所有用户都纳入统计，没有等级记录的用户默认等级为1
+    const levelMap = new Map((userLevels || []).map((u: any) => [u.user_id, u]));
+    userLevels = (_users || []).map((u: any) => {
+      const record = levelMap.get(u.id);
+      return {
+        user_id: u.id,
+        level: record?.level || 1,
+        level_up_at: record?.level_up_at || null,
+        created_at: record?.created_at || u.created_at,
+      };
+    });
 
       // 合并数据
       const distribution = {
