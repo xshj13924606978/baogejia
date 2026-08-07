@@ -585,9 +585,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', url);
-      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.href = url;
+      linkElement.download = exportFileDefaultName;
+      linkElement.style.display = 'none';
+      document.body.appendChild(linkElement);
       linkElement.click();
+      document.body.removeChild(linkElement);
       URL.revokeObjectURL(url);
 
       toast({
