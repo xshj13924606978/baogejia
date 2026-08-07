@@ -52,7 +52,12 @@ export const GET = withPermissionCheck(
         .filter((m) => m.menu_key !== 'system_mgmt')
         .map((m) => ({
           ...m,
-          items: pagesByMenu.get(m.id) || [],
+          items: (pagesByMenu.get(m.id) || []).map((p) => {
+            if (p.page_key === 'settings' && p.route_path === '/settings') {
+              return { ...p, route_path: '/admin/settings' };
+            }
+            return p;
+          }),
         }));
 
       return NextResponse.json({ success: true, data: tree });
