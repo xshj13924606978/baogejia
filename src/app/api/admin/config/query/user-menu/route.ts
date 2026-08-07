@@ -53,8 +53,12 @@ export const GET = withPermissionCheck(
         .map((m) => ({
           ...m,
           items: (pagesByMenu.get(m.id) || []).map((p) => {
-            if (p.page_key === 'settings' && p.route_path === '/settings') {
-              return { ...p, route_path: '/admin/settings' };
+            if (p.page_key === 'settings') {
+              return {
+                ...p,
+                action_type: 'dialog',
+                config: { ...p.config, dialogKey: 'settings' },
+              };
             }
             return p;
           }),
