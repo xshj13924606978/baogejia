@@ -85,14 +85,23 @@ export async function POST() {
     ];
 
     let inserted = 0;
+    let skipped = 0;
     for (const item of defaults) {
-      const { error } = await db.from('site_config').upsert(item, { onConflict: 'config_key' });
-      if (!error) inserted++;
+      const { error, count } = await db
+        .from('site_config')
+        .upsert(item, { onConflict: 'config_key', ignoreDuplicates: true });
+      if (!error) {
+        if (count === 0) {
+          skipped++;
+        } else {
+          inserted++;
+        }
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: `迁移完成：${inserted}/${defaults.length} 项默认配置已写入`,
+      message: `迁移完成：${inserted} 项新增，${skipped} 项已存在跳过`,
     });
   } catch (error: any) {
     console.error('[Migrate site-config] 异常:', error);
