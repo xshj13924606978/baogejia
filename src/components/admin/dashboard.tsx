@@ -307,7 +307,7 @@ export default function AdminDashboard() {
               <Package className="h-5 w-5" />
               <span>新增产品</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => window.location.href = '/admin/import-logs'}>
+            <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => window.location.href = '/admin/products/import'}>
               <Upload className="h-5 w-5" />
               <span>批量导入</span>
             </Button>
