@@ -130,17 +130,8 @@ export default function AnalyticsPage() {
     }
   };
 
-  const handleExport = async () => {
-    try {
-      const response = await fetch('/api/analytics/export');
-      const text = await response.text();
-      const a = document.createElement('a');
-      a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(text);
-      a.download = `analytics-${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-    } catch (error) {
-      console.error('导出数据失败:', error);
-    }
+  const handleExport = () => {
+    window.open('/api/analytics/export', '_blank');
   };
 
   const stepNames = {
