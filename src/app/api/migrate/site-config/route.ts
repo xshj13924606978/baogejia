@@ -1,68 +1,69 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from 'next/server';
-import { Pool } from 'pg';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 /**
  * 迁移：创建 site_config 表并初始化默认配置
  * POST /api/migrate/site-config
  *
- * 使用 pg Pool 直接操作 PostgreSQL，从 Supabase 项目 URL + service_role key
- * 构造连接串（生产环境没有 DATABASE_URL 变量）。
+ * 使用 Supabase RPC exec_sql 执行原生 SQL（与 unified-points-rules migrate 一致），
+ * 避免 pg Pool 需要数据库密码和 IPv6-only DNS 的问题。
  */
 export async function POST() {
-  // 用 Supabase 项目凭证构造 pg Pool（不依赖 DATABASE_URL）
-  const supabaseUrl = process.env.COZE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const db = getSupabaseServiceClient();
 
-  if (!supabaseUrl || !serviceKey) {
+  // 1. 确保 exec_sql 函数存在
+  try {
+    await db.rpc('exec_sql', {
+      sql_query: `CREATE OR REPLACE FUNCTION exec_sql(sql_query text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result jsonb;
+BEGIN
+  EXECUTE 'SELECT jsonb_agg(t) FROM (' || sql_query || ') t' INTO result;
+  RETURN COALESCE(result, '[]'::jsonb);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END;
+$$;`,
+    });
+  } catch {
+    // exec_sql 函数可能已存在，忽略错误
+  }
+
+  // 2. 建表
+  const createTableSQL = `CREATE TABLE IF NOT EXISTS site_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  config_key VARCHAR(100) UNIQUE NOT NULL,
+  config_value TEXT,
+  config_type VARCHAR(20) DEFAULT 'string',
+  category VARCHAR(50) DEFAULT 'general',
+  label VARCHAR(100),
+  description TEXT,
+  is_public BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+)`;
+  try {
+    const { error } = await db.rpc('exec_sql', { sql_query: createTableSQL });
+    if (error) throw new Error(error.message || String(error));
+  } catch (e: any) {
     return NextResponse.json({
       success: false,
-      error: '缺少 Supabase 连接配置 (SUPABASE_URL 或 SERVICE_ROLE_KEY)',
+      error: '建表失败: ' + (e.message || String(e)),
     }, { status: 500 });
   }
 
-  const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+  // 创建索引（忽略失败）
+  try { await db.rpc('exec_sql', { sql_query: 'CREATE INDEX IF NOT EXISTS idx_site_config_category ON site_config(category)' }); } catch {}
+  try { await db.rpc('exec_sql', { sql_query: 'CREATE INDEX IF NOT EXISTS idx_site_config_key ON site_config(config_key)' }); } catch {}
 
-  // 优先用 DATABASE_URL（如果有），否则用 Supabase Pooler
-  // 注意：db.xxx.supabase.co 只有 IPv6，国内服务器可能无 IPv6 导致连接失败，
-  // 使用区域 pooler（IPv4 可达）绕过此问题
-  let pool: Pool;
-  if (process.env.DATABASE_URL) {
-    pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  } else {
-    pool = new Pool({
-      host: `aws-0-ap-southeast-1.pooler.supabase.com`,
-      port: 6543,
-      database: 'postgres',
-      user: `postgres.${projectRef}`,
-      password: serviceKey,
-      ssl: { rejectUnauthorized: false },
-    });
-  }
-
-  try {
-    // 建表
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS site_config (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        config_key VARCHAR(100) UNIQUE NOT NULL,
-        config_value TEXT,
-        config_type VARCHAR(20) DEFAULT 'string',
-        category VARCHAR(50) DEFAULT 'general',
-        label VARCHAR(100),
-        description TEXT,
-        is_public BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-
-    await pool.query('CREATE INDEX IF NOT EXISTS idx_site_config_category ON site_config(category)').catch(() => {});
-    await pool.query('CREATE INDEX IF NOT EXISTS idx_site_config_key ON site_config(config_key)').catch(() => {});
-
-    // 3. 默认配置
-    const defaults = [
+  // 3. 默认配置
+  const defaults = [
     // 基本设置
     { config_key: 'site_name', config_value: '智能报价系统', config_type: 'string', category: 'general', label: '站点名称', description: '系统显示名称，用于后台、前台及导出文档', is_public: true },
     { config_key: 'site_short_name', config_value: '报个价', config_type: 'string', category: 'general', label: '站点简称', description: '前台 Logo 等位置使用的简称', is_public: true },
@@ -107,47 +108,44 @@ export async function POST() {
     { config_key: 'max_quote_attachments', config_value: '5', config_type: 'number', category: 'storage', label: '报价最大附件数', description: '每个报价单最多上传的附件数量' },
   ];
 
-    // 4. 批量插入（ON CONFLICT 跳过已存在的）
-    const placeholders = defaults.map((_, i) => {
-      const base = i * 7;
-      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7})`;
-    }).join(', ');
+  // 4. 逐条 INSERT ... ON CONFLICT
+  let inserted = 0;
+  let skipped = 0;
+  const errors: string[] = [];
 
-    const params: any[] = [];
-    for (const item of defaults) {
-      params.push(
-        item.config_key,
-        item.config_value,
-        item.config_type,
-        item.category,
-        item.label,
-        item.description,
-        item.is_public === true,
-      );
+  for (const item of defaults) {
+    const isPublic = item.is_public === true;
+    const sql = `INSERT INTO site_config (config_key, config_value, config_type, category, label, description, is_public)
+VALUES (
+  '${item.config_key.replace(/'/g, "''")}',
+  '${(item.config_value || '').replace(/'/g, "''")}',
+  '${item.config_type}',
+  '${item.category}',
+  '${(item.label || '').replace(/'/g, "''")}',
+  '${(item.description || '').replace(/'/g, "''")}',
+  ${isPublic}
+) ON CONFLICT (config_key) DO NOTHING`;
+
+    try {
+      const { error } = await db.rpc('exec_sql', { sql_query: sql });
+      if (error) {
+        errors.push(`${item.config_key}: ${error.message || error}`);
+        skipped++;
+      } else {
+        inserted++;
+      }
+    } catch (e: any) {
+      errors.push(`${item.config_key}: ${e.message || e}`);
+      skipped++;
     }
-
-    const result = await pool.query(
-      `INSERT INTO site_config (config_key, config_value, config_type, category, label, description, is_public)
-       VALUES ${placeholders}
-       ON CONFLICT (config_key) DO NOTHING
-       RETURNING config_key`,
-      params,
-    );
-
-    const inserted = result.rowCount || 0;
-    const skipped = defaults.length - inserted;
-
-    return NextResponse.json({
-      success: true,
-      message: `迁移完成：${inserted} 项新增，${skipped} 项已存在跳过`,
-    });
-  } catch (error: any) {
-    console.error('[Migrate site-config] 异常:', error.message);
-    return NextResponse.json({
-      success: false,
-      error: '迁移失败: ' + error.message,
-    }, { status: 500 });
-  } finally {
-    await pool.end().catch(() => {});
   }
+
+  // 刷新 PostgREST schema 缓存
+  try { await db.rpc('exec_sql', { sql_query: "SELECT pg_notify('pgrst', 'reload schema');" }); } catch {}
+
+  return NextResponse.json({
+    success: true,
+    message: `迁移完成：${inserted} 项新增，${skipped} 项已存在/跳过`,
+    errors: errors.length > 0 ? errors : undefined,
+  });
 }
