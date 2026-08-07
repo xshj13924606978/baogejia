@@ -12,8 +12,8 @@ export async function POST(request: NextRequest) {
 
     return new NextResponse(JSON.stringify(data, null, 2), {
       headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
       },
     });
   } catch (error: any) {

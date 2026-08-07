@@ -581,9 +581,15 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     setTimeout(() => {
       const exportFileDefaultName = `baogejia-export-${new Date().toISOString().slice(0, 10)}.json`;
 
+      const iframe = document.createElement('iframe');
+      iframe.name = 'export-frame';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = '/api/user/export-data';
+      form.target = 'export-frame';
       form.style.display = 'none';
       const dataInput = document.createElement('input');
       dataInput.type = 'hidden';
@@ -598,6 +604,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       document.body.appendChild(form);
       form.submit();
       document.body.removeChild(form);
+      setTimeout(() => document.body.removeChild(iframe), 5000);
 
       toast({
         title: '导出成功',
