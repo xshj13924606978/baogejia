@@ -19,24 +19,22 @@ export async function GET(request: NextRequest) {
     const category = request.nextUrl.searchParams.get('category');
     const db = getSupabaseServiceClient();
 
-    let query = db.from('site_config').select('*').order('category', { ascending: true });
-    if (category) {
-      query = query.eq('category', category);
-    }
+    // 通过 exec_sql 直读（PostgREST 看不到 exec_sql 建的表）
+    const sqlOrder = 'ORDER BY category, config_key';
+    const sqlWhere = category ? ` WHERE category = '${category.replace(/'/g, "''")}'` : '';
+    const { data: rows, error: sqlErr } = await db.rpc('exec_sql', {
+      sql_query: `SELECT * FROM site_config${sqlWhere} ${sqlOrder}`,
+    });
 
-    // 刷新 PostgREST schema 缓存（通过 exec_sql 建的表 PostgREST 可能不识别）
-    try { await db.rpc('exec_sql', { sql_query: "NOTIFY pgrst, 'reload schema'" }); } catch {}
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('[Settings API] 查询 site_config 失败:', error);
-      return NextResponse.json({ success: true, data: {}, raw: [] });
+    if (sqlErr) {
+      console.error('[Settings API] exec_sql 查询失败:', sqlErr);
+      return NextResponse.json({ success: true, data: {} });
     }
 
     // 按 category 分组
     const grouped: Record<string, any[]> = {};
-    (data || []).forEach((item: any) => {
+    const list = Array.isArray(rows) ? rows : [];
+    list.forEach((item: any) => {
       const cat = item.category || 'general';
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push({
@@ -49,7 +47,7 @@ export async function GET(request: NextRequest) {
       });
     });
 
-    return NextResponse.json({ success: true, data: grouped, raw: data });
+    return NextResponse.json({ success: true, data: grouped });
   } catch (error: any) {
     console.error('[Settings API] 异常:', error);
     return NextResponse.json({ success: false, error: '获取设置失败' }, { status: 500 });
@@ -77,33 +75,24 @@ export async function PUT(request: NextRequest) {
       if (!key) continue;
 
       const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      const safeKey = key.replace(/'/g, "''");
+      const configType = typeof value === 'boolean' ? 'boolean' : typeof value === 'number' ? 'number' : 'string';
 
-      // 尝试更新
-      const { data: existing } = await db
-        .from('site_config')
-        .select('id')
-        .eq('config_key', key)
-        .single();
+      // 检查是否存在
+      const { data: checkRows } = await db.rpc('exec_sql', {
+        sql_query: `SELECT id FROM site_config WHERE config_key = '${safeKey}'`,
+      });
+      const existingId = Array.isArray(checkRows) && checkRows.length > 0 ? checkRows[0].id : null;
 
-      if (existing) {
-        const updatePayload: Record<string, any> = {
-          config_value: stringValue,
-          updated_at: now,
-        };
-        if (description !== undefined) updatePayload.description = description;
-
-        const { error } = await db.from('site_config').update(updatePayload).eq('id', existing.id);
+      if (existingId) {
+        const descSql = description !== undefined ? `, description = '${(description || '').replace(/'/g, "''")}'` : '';
+        const { error } = await db.rpc('exec_sql', {
+          sql_query: `UPDATE site_config SET config_value = '${stringValue.replace(/'/g, "''")}', updated_at = '${now}'${descSql} WHERE id = '${existingId}'`,
+        });
         if (!error) updated++;
       } else {
-        // 不存在则创建
-        const { error } = await db.from('site_config').insert({
-          config_key: key,
-          config_value: stringValue,
-          config_type: typeof value === 'boolean' ? 'boolean' : typeof value === 'number' ? 'number' : 'string',
-          category: guessCategory(key),
-          label: key,
-          description: description || '',
-          updated_at: now,
+        const { error } = await db.rpc('exec_sql', {
+          sql_query: `INSERT INTO site_config (config_key, config_value, config_type, category, label, description, updated_at) VALUES ('${safeKey}', '${stringValue.replace(/'/g, "''")}', '${configType}', '${guessCategory(key)}', '${safeKey}', '${(description || '').replace(/'/g, "''")}', '${now}')`,
         });
         if (!error) updated++;
       }
