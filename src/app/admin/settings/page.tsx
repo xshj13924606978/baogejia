@@ -52,13 +52,17 @@ export default function SettingsPage() {
     try {
       const res = await fetch('/api/admin/settings');
       const data = await res.json();
+      console.log('[loadSettings] raw data keys:', data.data ? Object.keys(data.data) : 'null');
       if (data.success) {
         setConfig(data.data || {});
+        console.log('[loadSettings] config set, categories:', Object.keys(data.data || {}));
       } else {
         toast.error(data.error || '加载设置失败');
+        console.error('[loadSettings] API error:', data);
       }
-    } catch {
+    } catch (e) {
       toast.error('网络错误');
+      console.error('[loadSettings] exception:', e);
     } finally {
       setLoading(false);
     }
