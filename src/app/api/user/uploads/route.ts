@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
@@ -16,7 +18,7 @@ export async function GET(request: NextRequest) {
     const { data: records, error } = await db
       .from('user_uploads')
       .select('*')
-      .eq('user_id', parseInt(userId))
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(50);
 
