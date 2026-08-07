@@ -24,14 +24,15 @@ export async function POST() {
 
   const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
 
-  // 优先用 DATABASE_URL（如果有），否则用 Supabase Pooler（支持 service_role key 认证）
+  // 优先用 DATABASE_URL（如果有），否则用 Supabase Pooler
+  // 注意：db.xxx.supabase.co 只有 IPv6，国内服务器可能无 IPv6 导致连接失败，
+  // 使用区域 pooler（IPv4 可达）绕过此问题
   let pool: Pool;
   if (process.env.DATABASE_URL) {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
   } else {
-    // Supabase Session Pooler (port 6543), service_role key JWT 作为密码
     pool = new Pool({
-      host: `db.${projectRef}.supabase.co`,
+      host: `aws-0-ap-southeast-1.pooler.supabase.com`,
       port: 6543,
       database: 'postgres',
       user: `postgres.${projectRef}`,
