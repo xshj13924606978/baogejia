@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
       sql_query: `SELECT * FROM site_config${sqlWhere} ${sqlOrder}`,
     });
 
+    console.log('[Settings API] exec_sql rows type:', typeof rows, ', isArray:', Array.isArray(rows), ', length:', rows?.length, ', first 200 chars:', JSON.stringify(rows).substring(0, 200));
+
     if (sqlErr) {
       console.error('[Settings API] exec_sql 查询失败:', sqlErr);
       return NextResponse.json({ success: true, data: {} });
@@ -34,6 +36,7 @@ export async function GET(request: NextRequest) {
     // 按 category 分组
     const grouped: Record<string, any[]> = {};
     const list = Array.isArray(rows) ? rows : [];
+    console.log('[Settings API] grouped keys:', Object.keys(grouped), ', list length:', list.length);
     list.forEach((item: any) => {
       const cat = item.category || 'general';
       if (!grouped[cat]) grouped[cat] = [];
