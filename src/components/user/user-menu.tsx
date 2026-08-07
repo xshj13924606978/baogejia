@@ -580,13 +580,15 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
     setTimeout(() => {
       const dataStr = JSON.stringify({ user, settings, notifications, recentRecords }, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
       const exportFileDefaultName = `baogejia-export-${new Date().toISOString().slice(0, 10)}.json`;
 
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
       const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('href', url);
       linkElement.setAttribute('download', exportFileDefaultName);
       linkElement.click();
+      URL.revokeObjectURL(url);
 
       toast({
         title: '导出成功',
@@ -1100,7 +1102,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 修改密码弹窗 - 使用key防止自动填充 */}
         <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-          <DialogContent className="sm:max-w-[500px]" key={passwordFormKey}>
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]" key={passwordFormKey}>
             <DialogHeader>
               <DialogTitle>修改密码</DialogTitle>
               <DialogDescription>请输入新密码，密码长度至少6位</DialogDescription>
@@ -1170,7 +1172,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
         {/* 厂商支付面板 */}
         {showPaymentPanel && (
           <Dialog open={showPaymentPanel} onOpenChange={setShowPaymentPanel}>
-            <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>厂商支付排行</DialogTitle>
                 <DialogDescription>按支付金额排序的厂商排行榜</DialogDescription>
@@ -1184,7 +1186,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 积分明细弹窗 */}
         <Dialog open={showPointsDialog} onOpenChange={setShowPointsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>积分明细</DialogTitle>
               <DialogDescription>查看您的积分获取和消费记录</DialogDescription>
@@ -1262,7 +1264,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 邀请好友弹窗 */}
         <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>邀请好友</DialogTitle>
               <DialogDescription>邀请好友注册，双方都可获得积分奖励</DialogDescription>
@@ -1373,7 +1375,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 邀请记录弹窗 */}
         <Dialog open={showInviteRecordsDialog} onOpenChange={setShowInviteRecordsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>邀请记录</DialogTitle>
               <DialogDescription>您邀请的好友列表</DialogDescription>
@@ -1419,7 +1421,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 通知中心弹窗 */}
         <Dialog open={showNotificationsDialog} onOpenChange={setShowNotificationsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>通知中心</DialogTitle>
               <DialogDescription>查看系统通知和消息</DialogDescription>
@@ -1466,7 +1468,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 数据统计弹窗 */}
         <Dialog open={showStatsDialog} onOpenChange={setShowStatsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>数据统计</DialogTitle>
               <DialogDescription>查看您的使用数据统计</DialogDescription>
@@ -1520,7 +1522,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 最近记录弹窗 */}
         <Dialog open={showRecordsDialog} onOpenChange={setShowRecordsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>最近记录</DialogTitle>
               <DialogDescription>查看您的操作历史</DialogDescription>
@@ -1627,7 +1629,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 供应商信息弹窗 */}
         <Dialog open={showSupplierDialog} onOpenChange={setShowSupplierDialog}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>供应方信息</DialogTitle>
               <DialogDescription>管理您的公司信息和账户</DialogDescription>
@@ -1759,7 +1761,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 客户管理弹窗 */}
         <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-green-500" />
@@ -1773,7 +1775,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 商务条款弹窗 */}
         <Dialog open={showTermsDialog} onOpenChange={setShowTermsDialog}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>商务条款</DialogTitle>
               <DialogDescription>设置报价条款和费用</DialogDescription>
@@ -1905,7 +1907,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 设置弹窗 */}
         <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>设置</DialogTitle>
               <DialogDescription>配置系统参数和偏好</DialogDescription>
