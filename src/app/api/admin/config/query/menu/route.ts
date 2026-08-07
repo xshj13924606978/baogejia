@@ -71,37 +71,32 @@ export const GET = withAdmin(async (_req, user) => {
     const visibleTree = isSuperAdmin ? tree : tree.filter(m => m.is_visible_in_menu !== false);
 
     // 7. 调整菜单结构（数据层面仍保留原模块，仅在前端聚合展示）
-    const product = visibleTree.find((m: any) => m.module_key === 'product');
-    const knowledgeCenter = visibleTree.find((m: any) => m.module_key === 'knowledge_center');
+    const productModule = visibleTree.find((m: any) => m.module_key === 'products');
+    const knowledgeCenterModule = visibleTree.find((m: any) => m.module_key === 'knowledge-center');
 
     const remappedTree = visibleTree.filter((m: any) => {
-      if (m.module_key === 'import_log') {
-        if (product) {
-          product.children = [...product.children, ...m.children];
-          product.sub_modules = [...product.sub_modules, ...m.sub_modules];
+      // 将导入日志合并到产品管理
+      if (m.module_key === 'import-logs') {
+        if (productModule) {
+          productModule.children = [...productModule.children, ...m.children];
+          productModule.sub_modules = [...productModule.sub_modules, ...m.sub_modules];
         }
         return false;
       }
+      // 将知识库管理合并到资料中心
       if (m.module_key === 'knowledge') {
-        if (knowledgeCenter) {
-          knowledgeCenter.children = [...knowledgeCenter.children, ...m.children];
-          knowledgeCenter.sub_modules = [...knowledgeCenter.sub_modules, ...m.sub_modules];
+        if (knowledgeCenterModule) {
+          knowledgeCenterModule.children = [...knowledgeCenterModule.children, ...m.children];
+          knowledgeCenterModule.sub_modules = [...knowledgeCenterModule.sub_modules, ...m.sub_modules];
         }
         return false;
       }
-      if (m.module_key === 'customer' && m.group_label === '其他') {
+      // 客户管理移到核心业务分组
+      if (m.module_key === 'customer_management') {
         m.group_label = '核心业务';
       }
       return true;
     });
-
-    const logModules = remappedTree.map((m: any) => ({
-      key: m.module_key,
-      name: m.name_zh,
-      group: m.group_label,
-      children: (m.children || []).map((c: any) => c.page_key || c.name_zh),
-    }));
-    console.log('[Menu API] remappedTree:', JSON.stringify(logModules, null, 2));
 
     return NextResponse.json({ success: true, data: remappedTree });
   } catch (error) {
