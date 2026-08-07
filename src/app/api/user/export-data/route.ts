@@ -4,9 +4,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const data = body.data;
-    const filename = body.filename || 'export.json';
+    const formData = await request.formData();
+    const dataStr = formData.get('data') as string;
+    const filename = (formData.get('filename') as string) || 'export.json';
+
+    const data = JSON.parse(dataStr);
 
     return new NextResponse(JSON.stringify(data, null, 2), {
       headers: {
