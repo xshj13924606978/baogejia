@@ -1,27 +1,94 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from 'next/server';
-import { Pool } from 'pg';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 /**
  * 迁移：创建 site_config 表并初始化默认配置
  * POST /api/migrate/site-config
  *
- * 策略：
- * 1. 有 DATABASE_URL → pg Pool 直连（绕过 exec_sql 依赖）
- * 2. 无 DATABASE_URL → 回退到 Supabase RPC exec_sql
+ * 使用 Supabase service role client 通过 RPC exec_sql 执行 SQL
  */
 export async function POST() {
-  const databaseUrl = process.env.DATABASE_URL;
+  const db = getSupabaseServiceClient();
 
-  // ==================== 策略 1：pg Pool 直连 ====================
-  if (databaseUrl) {
-    return await migrateViaPgPool(databaseUrl);
+  // 先检查 exec_sql 是否可用
+  let hasExecSql = false;
+  try {
+    const { error } = await db.rpc('exec_sql', { sql_query: 'SELECT 1 AS test' });
+    hasExecSql = !error;
+  } catch {
+    hasExecSql = false;
   }
 
-  // ==================== 策略 2：Supabase RPC exec_sql ====================
-  return await migrateViaExecSql();
+  if (!hasExecSql) {
+    const createExecSqlSQL = `CREATE OR REPLACE FUNCTION exec_sql(sql_query text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result jsonb;
+BEGIN
+  EXECUTE 'SELECT jsonb_agg(t) FROM (' || sql_query || ') t' INTO result;
+  RETURN COALESCE(result, '[]'::jsonb);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END;
+$$;`;
+
+    return NextResponse.json({
+      success: false,
+      error: '需要先创建 exec_sql 函数',
+      detail: '请前往 Supabase Dashboard > SQL Editor 执行以下 SQL，然后重新点击「初始化默认配置」',
+      sql: createExecSqlSQL,
+    }, { status: 200 });
+  }
+
+  // exec_sql 可用，执行迁移
+  try {
+    await db.rpc('exec_sql', {
+      sql_query: `CREATE TABLE IF NOT EXISTS site_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  config_key VARCHAR(100) UNIQUE NOT NULL,
+  config_value TEXT,
+  config_type VARCHAR(20) DEFAULT 'string',
+  category VARCHAR(50) DEFAULT 'general',
+  label VARCHAR(100),
+  description TEXT,
+  is_public BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+)`,
+    });
+
+    await db.rpc('exec_sql', { sql_query: 'CREATE INDEX IF NOT EXISTS idx_site_config_category ON site_config(category)' });
+    await db.rpc('exec_sql', { sql_query: 'CREATE INDEX IF NOT EXISTS idx_site_config_key ON site_config(config_key)' });
+
+    let inserted = 0;
+    let skipped = 0;
+    for (const item of defaults) {
+      const { data } = await db.rpc('exec_sql', {
+        sql_query: `INSERT INTO site_config (config_key, config_value, config_type, category, label, description, is_public)
+         VALUES ('${item.config_key.replace(/'/g, "''")}', '${item.config_value.replace(/'/g, "''")}', '${item.config_type}', '${item.category}', '${item.label.replace(/'/g, "''")}', '${item.description.replace(/'/g, "''")}', ${item.is_public ? 'TRUE' : 'FALSE'})
+         ON CONFLICT (config_key) DO NOTHING`,
+      });
+      if (Array.isArray(data) && data.length > 0) inserted++; else skipped++;
+    }
+
+    try { await db.rpc('exec_sql', { sql_query: "NOTIFY pgrst, 'reload schema'" }); } catch {}
+
+    return NextResponse.json({
+      success: true,
+      message: `迁移完成：${inserted} 项新增，${skipped} 项已存在/跳过`,
+    });
+  } catch (error: any) {
+    console.error('[Migrate site-config] 执行失败:', error.message);
+    return NextResponse.json({
+      success: false,
+      error: '迁移执行失败: ' + (error.message || '未知错误'),
+    }, { status: 500 });
+  }
 }
 
 interface ConfigItem { config_key: string; config_value: string; config_type: string; category: string; label: string; description: string; is_public: boolean; }
@@ -66,145 +133,3 @@ const defaults: ConfigItem[] = [
   { config_key: 'max_product_images', config_value: '10', config_type: 'number', category: 'storage', label: '产品最大图片数', description: '每个产品最多上传的图片数量', is_public: false },
   { config_key: 'max_quote_attachments', config_value: '5', config_type: 'number', category: 'storage', label: '报价最大附件数', description: '每个报价单最多上传的附件数量', is_public: false },
 ];
-
-/** 策略 1：pg Pool 直连 PostgreSQL */
-async function migrateViaPgPool(databaseUrl: string) {
-  const pool = new Pool({ connectionString: databaseUrl, ssl: { rejectUnauthorized: false } });
-
-  try {
-    // 建表
-    await pool.query(`CREATE TABLE IF NOT EXISTS site_config (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  config_key VARCHAR(100) UNIQUE NOT NULL,
-  config_value TEXT,
-  config_type VARCHAR(20) DEFAULT 'string',
-  category VARCHAR(50) DEFAULT 'general',
-  label VARCHAR(100),
-  description TEXT,
-  is_public BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-)`);
-
-    // 索引
-    try { await pool.query('CREATE INDEX IF NOT EXISTS idx_site_config_category ON site_config(category)'); } catch {}
-    try { await pool.query('CREATE INDEX IF NOT EXISTS idx_site_config_key ON site_config(config_key)'); } catch {}
-
-    // 批量插入
-    let inserted = 0;
-    let skipped = 0;
-    for (const item of defaults) {
-      const result = await pool.query(
-        `INSERT INTO site_config (config_key, config_value, config_type, category, label, description, is_public)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (config_key) DO NOTHING`,
-        [item.config_key, item.config_value, item.config_type, item.category, item.label, item.description, item.is_public]
-      );
-      if ((result.rowCount ?? 0) > 0) inserted++; else skipped++;
-    }
-
-    // 刷新 schema cache
-    try { await pool.query("NOTIFY pgrst, 'reload schema';"); } catch {}
-
-    await pool.end();
-
-    return NextResponse.json({
-      success: true,
-      message: `迁移完成：${inserted} 项新增，${skipped} 项已存在/跳过`,
-    });
-  } catch (error: any) {
-    console.error('[Migrate site-config] pg Pool 失败:', error.message);
-    await pool.end().catch(() => {});
-    return NextResponse.json({
-      success: false,
-      error: '数据库连接失败: ' + (error.message || '未知错误'),
-    }, { status: 500 });
-  }
-}
-
-/** 策略 2：Supabase RPC exec_sql */
-async function migrateViaExecSql() {
-  const db = getSupabaseServiceClient();
-
-  // 检查 exec_sql 是否存在
-  let hasExecSql = false;
-  try {
-    const { error } = await db.rpc('exec_sql', { sql_query: 'SELECT 1 AS test' });
-    hasExecSql = !error;
-  } catch {
-    // exec_sql 不存在
-  }
-
-  if (!hasExecSql) {
-    return NextResponse.json({
-      success: false,
-      error: '数据库中未找到 exec_sql 函数，也无法通过 DATABASE_URL 直连数据库（DATABASE_URL 未配置）。请先在 Supabase Dashboard > SQL Editor 执行下方的 SQL 创建 exec_sql 函数后重试，或在服务器环境变量中配置 DATABASE_URL。',
-      sql: `CREATE OR REPLACE FUNCTION exec_sql(sql_query text)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  result jsonb;
-BEGIN
-  EXECUTE 'SELECT jsonb_agg(t) FROM (' || sql_query || ') t' INTO result;
-  RETURN COALESCE(result, '[]'::jsonb);
-EXCEPTION WHEN OTHERS THEN
-  RETURN jsonb_build_object('success', false, 'error', SQLERRM);
-END;
-$$;`,
-    }, { status: 200 });
-  }
-
-  // 用 exec_sql 执行迁移
-  try {
-    // 建表
-    const { error: createErr } = await db.rpc('exec_sql', {
-      sql_query: `CREATE TABLE IF NOT EXISTS site_config (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  config_key VARCHAR(100) UNIQUE NOT NULL,
-  config_value TEXT,
-  config_type VARCHAR(20) DEFAULT 'string',
-  category VARCHAR(50) DEFAULT 'general',
-  label VARCHAR(100),
-  description TEXT,
-  is_public BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-)`,
-    });
-    if (createErr) {
-      return NextResponse.json({ success: false, error: '建表失败: ' + createErr.message }, { status: 500 });
-    }
-
-    // 索引
-    await db.rpc('exec_sql', { sql_query: 'CREATE INDEX IF NOT EXISTS idx_site_config_category ON site_config(category)' });
-    await db.rpc('exec_sql', { sql_query: 'CREATE INDEX IF NOT EXISTS idx_site_config_key ON site_config(config_key)' });
-
-    // 批量插入
-    let inserted = 0;
-    let skipped = 0;
-    for (const item of defaults) {
-      const { data } = await db.rpc('exec_sql', {
-        sql_query: `INSERT INTO site_config (config_key, config_value, config_type, category, label, description, is_public)
-         VALUES ('${item.config_key.replace(/'/g, "''")}', '${item.config_value.replace(/'/g, "''")}', '${item.config_type}', '${item.category}', '${item.label.replace(/'/g, "''")}', '${item.description.replace(/'/g, "''")}', ${item.is_public ? 'TRUE' : 'FALSE'})
-         ON CONFLICT (config_key) DO NOTHING`,
-      });
-      if (Array.isArray(data) && data.length > 0) inserted++; else skipped++;
-    }
-
-    // 刷新 schema
-    await db.rpc('exec_sql', { sql_query: "NOTIFY pgrst, 'reload schema'" });
-
-    return NextResponse.json({
-      success: true,
-      message: `迁移完成：${inserted} 项新增，${skipped} 项已存在/跳过`,
-    });
-  } catch (error: any) {
-    console.error('[Migrate site-config] exec_sql 失败:', error.message);
-    return NextResponse.json({
-      success: false,
-      error: error.message || '迁移执行失败',
-    }, { status: 500 });
-  }
-}

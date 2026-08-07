@@ -141,14 +141,17 @@ export default function SettingsPage() {
     try {
       const res = await fetch('/api/migrate/site-config', { method: 'POST' });
       const data = await res.json();
+      console.log('[runMigration] res.status:', res.status, 'data:', data);
       if (data.success) {
-        toast.success(data.message);
+        toast.success(data.message, { duration: 6000 });
         loadSettings();
       } else {
-        toast.error(data.error || '迁移失败');
+        toast.error(data.error || '迁移失败', { duration: Infinity, closeButton: true });
+        console.error('[runMigration] 失败:', data.error);
       }
-    } catch {
-      toast.error('网络错误');
+    } catch (e) {
+      console.error('[runMigration] 异常:', e);
+      toast.error('网络错误', { duration: 6000 });
     }
   };
 
