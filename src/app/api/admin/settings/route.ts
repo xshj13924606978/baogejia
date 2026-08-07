@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { requireAdmin } from '@/lib/auth-utils';
@@ -22,10 +24,13 @@ export async function GET(request: NextRequest) {
       query = query.eq('category', category);
     }
 
+    // 刷新 PostgREST schema 缓存（通过 exec_sql 建的表 PostgREST 可能不识别）
+    try { await db.rpc('exec_sql', { sql_query: "NOTIFY pgrst, 'reload schema'" }); } catch {}
+
     const { data, error } = await query;
 
     if (error) {
-      // 表不存在时返回空数据
+      console.error('[Settings API] 查询 site_config 失败:', error);
       return NextResponse.json({ success: true, data: {}, raw: [] });
     }
 
