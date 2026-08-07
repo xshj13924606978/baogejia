@@ -1,10 +1,13 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { v4 as _uuidv4 } from 'uuid';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { pointsService } from '@/lib/points-service';
+import { getSiteConfigValues } from '@/lib/site-config';
 
-// 上传文件扣减积分（按文件大小计算）
+// 上传文件扣减积分默认值（按文件大小计算）
 const UPLOAD_POINTS_PER_KB = 0.1; // 每KB扣减0.1积分，最少1积分
 const MIN_UPLOAD_POINTS = 1; // 最少扣减1积分
 
@@ -24,54 +27,61 @@ export async function POST(request: NextRequest) {
     }
 
 
-    // 验证文件大小（最小1KB，最大10MB）
+    // 读取存储设置配置
+    const storageConfig = await getSiteConfigValues([
+      'max_upload_size_mb',
+      'allowed_file_types',
+    ]);
+    const maxUploadSizeMB = Math.max(1, parseInt(storageConfig.max_upload_size_mb || '10', 10));
+    const maxUploadSizeBytes = maxUploadSizeMB * 1024 * 1024;
+    const configuredExts = (storageConfig.allowed_file_types || 'pdf,xlsx,xls,csv,doc,docx,jpg,png')
+      .split(',')
+      .map((ext) => ext.trim().toLowerCase())
+      .filter(Boolean);
+
+    // 扩展名到 MIME 类型的映射
+    const mimeTypeMap: Record<string, string[]> = {
+      pdf: ['application/pdf'],
+      xls: ['application/vnd.ms-excel'],
+      xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+      doc: ['application/msword'],
+      docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      txt: ['text/plain'],
+      csv: ['text/csv'],
+      jpg: ['image/jpeg'],
+      jpeg: ['image/jpeg'],
+      png: ['image/png'],
+      gif: ['image/gif'],
+    };
+
+    const allowedTypes = configuredExts.flatMap((ext) => mimeTypeMap[ext] || []);
+
+    // 验证文件大小（最小10字节，最大配置限制）
     if (file.size < 10) {
       console.error('[Upload] 文件太小:', file.size);
       return NextResponse.json({ error: 'File is too small or empty' }, { status: 400 });
     }
 
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > maxUploadSizeBytes) {
       console.error('[Upload] 文件太大:', file.size);
-      return NextResponse.json({ error: 'File size exceeds 10MB limit' }, { status: 400 });
+      return NextResponse.json({ error: `File size exceeds ${maxUploadSizeMB}MB limit` }, { status: 400 });
     }
 
     // 验证文件类型
-    const allowedTypes = [
-      'application/pdf',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain',
-      'text/csv',
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-    ];
-
     const fileExt = file.name.split('.').pop()?.toLowerCase();
-    const allowedExts = [
-      'pdf',
-      'xls',
-      'xlsx',
-      'doc',
-      'docx',
-      'txt',
-      'csv',
-      'jpg',
-      'jpeg',
-      'png',
-      'gif',
-    ];
 
-    if (!allowedTypes.includes(file.type) && !allowedExts.includes(fileExt || '')) {
+    if (!allowedTypes.includes(file.type) && !configuredExts.includes(fileExt || '')) {
       console.error('[Upload] 不允许的文件类型:', file.type, fileExt);
       return NextResponse.json({ error: 'File type not allowed' }, { status: 400 });
     }
 
-    // 计算积分消耗（按文件大小）
+    // 计算积分消耗：优先使用 site_config 的 upload_file_points，否则按文件大小计算
     const fileSizeKB = Math.ceil(file.size / 1024);
-    const requiredPoints = Math.max(MIN_UPLOAD_POINTS, Math.ceil(fileSizeKB * UPLOAD_POINTS_PER_KB));
+    const pointsConfig = await getSiteConfigValues(['upload_file_points']);
+    const uploadFilePoints = parseFloat(pointsConfig.upload_file_points || '0');
+    const requiredPoints = uploadFilePoints > 0
+      ? Math.ceil(uploadFilePoints)
+      : Math.max(MIN_UPLOAD_POINTS, Math.ceil(fileSizeKB * UPLOAD_POINTS_PER_KB));
 
     // 积分检查（如果有用户）
     if (userId) {
@@ -156,19 +166,8 @@ export async function POST(request: NextRequest) {
 
           const { error: createError } = await serviceClient.storage.createBucket('quote-files', {
             public: true,
-            allowedMimeTypes: [
-              'application/pdf',
-              'application/vnd.ms-excel',
-              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              'application/msword',
-              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-              'text/plain',
-              'text/csv',
-              'image/jpeg',
-              'image/png',
-              'image/gif',
-            ],
-            fileSizeLimit: 10485760, // 10MB
+            allowedMimeTypes: allowedTypes.length > 0 ? allowedTypes : undefined,
+            fileSizeLimit: maxUploadSizeBytes,
           });
 
           if (createError) {

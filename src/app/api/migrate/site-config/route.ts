@@ -67,10 +67,17 @@ export async function POST() {
       { config_key: 'default_quote_currency', config_value: 'CNY', config_type: 'string', category: 'general', label: '默认报价币种', description: '报价单默认币种，如 CNY/USD' },
       { config_key: 'default_quote_valid_days', config_value: '15', config_type: 'number', category: 'general', label: '报价单默认有效期(天)', description: '新建报价单时的默认有效天数' },
       { config_key: 'default_tax_rate', config_value: '13', config_type: 'number', category: 'general', label: '默认税率(%)', description: '新建报价单时的默认税率' },
-      // 积分设置
+      // 积分设置（与报价系统实际积分动作对应）
       { config_key: 'register_points', config_value: '100', config_type: 'number', category: 'points', label: '注册赠送积分', description: '新用户注册赠送的积分数' },
-      { config_key: 'daily_sign_points', config_value: '10', config_type: 'number', category: 'points', label: '每日签到积分', description: '每日签到获得的积分数' },
-      { config_key: 'invite_points', config_value: '50', config_type: 'number', category: 'points', label: '邀请奖励积分', description: '成功邀请新用户获得的积分数' },
+      { config_key: 'daily_login_points', config_value: '10', config_type: 'number', category: 'points', label: '每日登录积分', description: '用户每日首次登录获得的积分数' },
+      { config_key: 'invite_reward_points', config_value: '50', config_type: 'number', category: 'points', label: '邀请奖励积分', description: '成功邀请新用户获得的积分数' },
+      { config_key: 'upload_file_points', config_value: '5', config_type: 'number', category: 'points', label: '上传文件积分', description: '用户上传文件（如报价附件）奖励的积分数' },
+      { config_key: 'parse_document_points', config_value: '20', config_type: 'number', category: 'points', label: '解析文档积分', description: '使用 AI 解析需求文档消耗的积分数（负值表示消耗）' },
+      { config_key: 'generate_proposal_points', config_value: '30', config_type: 'number', category: 'points', label: '生成方案积分', description: '使用 AI 生成报价方案消耗的积分数（负值表示消耗）' },
+      { config_key: 'enhance_proposal_points', config_value: '15', config_type: 'number', category: 'points', label: '优化方案积分', description: '使用 AI 优化/润色方案消耗的积分数（负值表示消耗）' },
+      { config_key: 'export_quote_points', config_value: '5', config_type: 'number', category: 'points', label: '导出报价积分', description: '导出报价单消耗的积分数（负值表示消耗）' },
+      { config_key: 'task_reward_points', config_value: '100', config_type: 'number', category: 'points', label: '完成任务积分', description: '完成系统任务/活动奖励的积分数' },
+      { config_key: 'chat_points_per_token', config_value: '0.001', config_type: 'number', category: 'points', label: 'AI 对话积分系数', description: '每 Token AI 对话消耗的积分（负值表示消耗）' },
       { config_key: 'max_points_per_day', config_value: '1000', config_type: 'number', category: 'points', label: '每日获取上限', description: '用户每日获取积分上限' },
       // 安全设置
       { config_key: 'login_max_attempts', config_value: '5', config_type: 'number', category: 'security', label: '登录最大尝试次数', description: '锁定前允许的最大登录失败次数' },
@@ -78,10 +85,13 @@ export async function POST() {
       { config_key: 'password_min_length', config_value: '8', config_type: 'number', category: 'security', label: '密码最小长度', description: '用户密码最小字符数' },
       { config_key: 'allow_register', config_value: 'true', config_type: 'boolean', category: 'security', label: '开放注册', description: '是否允许新用户注册', is_public: true },
       { config_key: 'require_email_verify', config_value: 'false', config_type: 'boolean', category: 'security', label: '邮箱验证', description: '注册后是否需要验证邮箱' },
+      { config_key: 'session_timeout_hours', config_value: '24', config_type: 'number', category: 'security', label: '会话超时时间(小时)', description: '用户登录会话过期时间' },
       // 存储设置
       { config_key: 'max_upload_size_mb', config_value: '50', config_type: 'number', category: 'storage', label: '上传大小限制(MB)', description: '单文件最大上传大小' },
       { config_key: 'allowed_file_types', config_value: 'pdf,xlsx,xls,csv,doc,docx,jpg,png', config_type: 'string', category: 'storage', label: '允许的文件类型', description: '逗号分隔的文件扩展名' },
       { config_key: 'default_storage_mb', config_value: '100', config_type: 'number', category: 'storage', label: '默认存储空间(MB)', description: '新用户默认存储空间' },
+      { config_key: 'max_product_images', config_value: '10', config_type: 'number', category: 'storage', label: '产品最大图片数', description: '每个产品最多上传的图片数量' },
+      { config_key: 'max_quote_attachments', config_value: '5', config_type: 'number', category: 'storage', label: '报价最大附件数', description: '每个报价单最多上传的附件数量' },
     ];
 
     let inserted = 0;

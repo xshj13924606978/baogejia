@@ -1,6 +1,9 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { POST as _awardPoints } from '../../points/route';
+import { getSiteConfigValues } from '@/lib/site-config';
 import bcrypt from 'bcrypt';
 
 // 注册用户
@@ -13,9 +16,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '用户名、密码和邮箱不能为空' }, { status: 400 });
     }
 
-    // 密码强度校验：至少6位
-    if (password.length < 6) {
-      return NextResponse.json({ error: '密码长度不能少于6位' }, { status: 400 });
+    // 读取安全设置配置
+    const securityConfig = await getSiteConfigValues([
+      'allow_register',
+      'password_min_length',
+    ]);
+
+    // 检查是否开放注册
+    if (securityConfig.allow_register === 'false') {
+      return NextResponse.json({ error: '当前已关闭新用户注册' }, { status: 403 });
+    }
+
+    // 密码强度校验：使用配置的最小长度
+    const minLength = Math.max(1, parseInt(securityConfig.password_min_length || '6', 10));
+    if (password.length < minLength) {
+      return NextResponse.json({ error: `密码长度不能少于${minLength}位` }, { status: 400 });
     }
 
     // 邮箱格式校验

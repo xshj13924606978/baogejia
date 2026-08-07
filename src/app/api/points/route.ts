@@ -1,9 +1,12 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/auth-utils';
+import { getSiteConfigValues } from '@/lib/site-config';
 
-// 积分奖励规则
-const POINTS_RULES = {
+// 积分奖励规则默认值（当 site_config 未配置时回退使用）
+const DEFAULT_POINTS_RULES = {
   register: 10,
   daily_login: 1,
   upload_price: 5,
@@ -14,6 +17,35 @@ const POINTS_RULES = {
   invite_friend: 30,
   redeem: -1 // 兑换消耗
 };
+
+// 类型到 site_config 键的映射
+const POINTS_CONFIG_KEY_MAP: Record<string, string> = {
+  register: 'register_points',
+  daily_login: 'daily_login_points',
+  invite_friend: 'invite_reward_points',
+  upload_price: 'upload_file_points',
+  upload_doc: 'parse_document_points',
+  upload_case: 'parse_document_points',
+  upload_drawing: 'upload_file_points',
+  data_adopted: 'task_reward_points',
+  redeem: '',
+};
+
+/**
+ * 获取积分规则值，优先读取 site_config
+ */
+async function getPointsRule(type: string): Promise<number> {
+  const defaultValue = DEFAULT_POINTS_RULES[type as keyof typeof DEFAULT_POINTS_RULES] || 0;
+  const configKey = POINTS_CONFIG_KEY_MAP[type];
+  if (!configKey) return defaultValue;
+
+  const configs = await getSiteConfigValues([configKey]);
+  const value = configs[configKey];
+  if (value === null || value === undefined || value === '') return defaultValue;
+
+  const parsed = parseFloat(value);
+  return Number.isNaN(parsed) ? defaultValue : parsed;
+}
 
 // 增加积分
 export async function POST(request: NextRequest) {
@@ -34,7 +66,8 @@ export async function POST(request: NextRequest) {
     const db = getSupabaseServiceClient();
 
     // 获取积分规则
-    const points = custom_points || POINTS_RULES[type as keyof typeof POINTS_RULES] || 0;
+    const rulePoints = custom_points || await getPointsRule(type);
+    const points = Number(rulePoints) || 0;
 
     if (points === 0) {
       return NextResponse.json(

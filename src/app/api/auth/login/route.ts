@@ -1,7 +1,11 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import bcrypt from 'bcrypt';
 import { signSessionToken } from '@/lib/session-token';
+import { checkLoginRateLimit, clearLoginFailures } from '@/lib/rate-limit';
+import { getSiteConfigValues } from '@/lib/site-config';
 
 // 登录用户
 export async function POST(request: NextRequest) {
@@ -14,6 +18,28 @@ export async function POST(request: NextRequest) {
 
     // 清理输入：去除前后空格
     const trimmedUsername = username.trim();
+
+    // 获取 IP 进行限流
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    const realIp = request.headers.get('x-real-ip');
+    const ip = (forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown').replace(/^::ffff:/, '');
+
+    // 读取安全设置配置
+    const securityConfig = await getSiteConfigValues([
+      'login_max_attempts',
+      'login_lockout_minutes',
+    ]);
+    const maxAttempts = parseInt(securityConfig.login_max_attempts || '5', 10);
+    const lockoutMinutes = parseInt(securityConfig.login_lockout_minutes || '30', 10);
+
+    // 登录失败限流检查（防暴力破解）
+    const rateLimit = checkLoginRateLimit(trimmedUsername, ip, maxAttempts, lockoutMinutes);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: rateLimit.error, retryAfterSeconds: rateLimit.retryAfterSeconds },
+        { status: 429 }
+      );
+    }
 
     const supabase = getSupabaseServiceClient();
 
@@ -127,13 +153,16 @@ export async function POST(request: NextRequest) {
       console.error('[Login] 更新登录时间失败:', updateError);
     }
 
+    // 登录成功，清除失败计数
+    clearLoginFailures(trimmedUsername, ip);
+
     // 返回用户信息（不包含密码和密码哈希）
     const { password: _, password_hash: __, ...userWithoutSensitive } = user;
 
     // 签发 session token（HMAC签名，防伪造）
     const sessionToken = signSessionToken(user.id, user.email || '', user.role || 'user', 7 * 24 * 3600);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       sessionToken,
       user: {
@@ -143,6 +172,27 @@ export async function POST(request: NextRequest) {
         nextLevelPoints: levelData?.next_level_points || 1000,
       },
     });
+
+    // 检测实际请求协议（支持反向代理）
+    const isSecure = request.headers.get('x-forwarded-proto') === 'https' || request.url.startsWith('https://');
+
+    // 设置 httpOnly cookie（供 middleware 路由保护使用）
+    response.cookies.set('session_token', sessionToken, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 3600, // 7天
+    });
+    response.cookies.set('user_role', user.role || 'user', {
+      httpOnly: false, // JS 可读，用于前端判断
+      secure: isSecure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 3600,
+    });
+
+    return response;
   } catch (error) {
     console.error('[Login] 登录请求失败:', error);
     return NextResponse.json({ error: '登录失败，请稍后重试' }, { status: 500 });
