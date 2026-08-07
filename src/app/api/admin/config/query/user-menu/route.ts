@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * 用户菜单树查询（前端渲染用）
  * GET /api/admin/config/query/user-menu
@@ -45,11 +47,13 @@ export const GET = withPermissionCheck(
         pagesByMenu.set(p.menu_id, list);
       }
 
-      // 4. 构建树结构
-      const tree = menus.map((m) => ({
-        ...m,
-        items: pagesByMenu.get(m.id) || [],
-      }));
+      // 4. 构建树结构（过滤掉系统管理分组，其账户管理功能与个人资料重复）
+      const tree = menus
+        .filter((m) => m.menu_key !== 'system_mgmt')
+        .map((m) => ({
+          ...m,
+          items: pagesByMenu.get(m.id) || [],
+        }));
 
       return NextResponse.json({ success: true, data: tree });
     } catch (error) {
