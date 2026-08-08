@@ -68,7 +68,13 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    if (error) throw error;
+    if (error) {
+      // 表不存在时优雅降级，返回空数据
+      if (error.code === '42P01' || error.code === 'PGRST205') {
+        return NextResponse.json({ success: true, data: [] });
+      }
+      throw error;
+    }
 
     return NextResponse.json({
       success: true,

@@ -27,7 +27,11 @@ async function updateRankings(period: string = 'week') {
 
   const { data: relations, error } = await query;
 
-  if (error) throw error;
+  if (error) {
+    // 表不存在时跳过更新
+    if (error.code === '42P01' || error.code === 'PGRST205') return 0;
+    throw error;
+  }
 
   // 统计每个用户的邀请数量和积分
   const userStats = new Map();
@@ -94,7 +98,16 @@ export async function GET(request: NextRequest) {
       .order('rank', { ascending: true })
       .limit(10);
 
-    if (error) throw error;
+    if (error) {
+      // 表不存在时优雅降级
+      if (error.code === '42P01' || error.code === 'PGRST205') {
+        return NextResponse.json({
+          success: true,
+          data: { rankings: [], userRank: null },
+        });
+      }
+      throw error;
+    }
 
     // 如果指定了user_id，找到该用户的排名
     let userRank = null;

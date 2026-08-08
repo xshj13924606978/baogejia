@@ -80,6 +80,14 @@ export async function GET(request: NextRequest) {
       .limit(50);
 
     if (error) {
+      // 表不存在时优雅降级，返回空数据
+      if (error.code === '42P01' || error.code === 'PGRST205') {
+        return NextResponse.json({
+          success: true,
+          stats: { total: 0, registered: 0, points: 0 },
+          invites: [],
+        });
+      }
       console.error('[Invite] 查询失败:', error);
       return NextResponse.json({ error: '查询失败' }, { status: 500 });
     }
@@ -89,13 +97,17 @@ export async function GET(request: NextRequest) {
     const registered = invites?.filter((i) => i.status === 'registered').length || 0;
     const points = invites?.reduce((sum, i) => sum + (i.points_awarded || 0), 0) || 0;
 
-    // 获取最新的邀请码
-    const { data: latestInvite } = await db
+    // 获取最新的邀请码（表不存在时优雅降级）
+    const { data: latestInvite, error: latestError } = await db
       .from('invites')
       .select('invite_code')
       .eq('user_id', user_id)
       .order('created_at', { ascending: false })
       .maybeSingle();
+
+    if (latestError && latestError.code !== '42P01' && latestError.code !== 'PGRST205') {
+      console.error('[Invite] 获取最新邀请码失败:', latestError);
+    }
 
     return NextResponse.json({
       success: true,
