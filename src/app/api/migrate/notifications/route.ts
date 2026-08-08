@@ -26,23 +26,35 @@ async function handleMigrate() {
     CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
   `;
 
-  try {
-    // Force IPv4 for Supabase connection (IPv6 is unreachable from China)
-    require('dns').setDefaultResultOrder('ipv4first');
+  const host = 'db.tjbnjrcgmyiwudqptfhc.supabase.co';
 
+  // Resolve IPv4 address manually to avoid IPv6 issues
+  const dns = require('dns');
+  const { promisify } = require('util');
+  let ipv4Host: string;
+
+  try {
+    const addresses: string[] = await promisify(dns.resolve4)(host);
+    ipv4Host = addresses[0];
+  } catch {
+    // Fallback to hostname
+    ipv4Host = host;
+  }
+
+  try {
     const { Pool } = await import('pg');
     const pool = new Pool({
-      host: 'db.tjbnjrcgmyiwudqptfhc.supabase.co',
+      host: ipv4Host,
       port: 5432,
       user: 'postgres',
       password: serviceKey,
       database: 'postgres',
-      ssl: { rejectUnauthorized: false },
+      ssl: { rejectUnauthorized: false, servername: host },
       connectionTimeoutMillis: 15000,
     });
     await pool.query(sql);
     await pool.end();
-    return NextResponse.json({ success: true, method: 'pg-ipv4' });
+    return NextResponse.json({ success: true, method: 'pg-ipv4', host: ipv4Host });
   } catch (pgErr: any) {
     return NextResponse.json({ error: pgErr.message }, { status: 500 });
   }
