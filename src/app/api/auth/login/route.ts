@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
 
     // 验证密码
     let isValid = false;
+    let hashNeedsUpdate = false;
     
     if (user.password_hash) {
       // 优先使用 bcrypt 哈希验证
@@ -115,20 +116,27 @@ export async function POST(request: NextRequest) {
         console.error('[Login] bcrypt比对失败:', bcryptError);
         isValid = false;
       }
+      // bcrypt 失败时尝试明文密码字段（密码修改后 hash 可能未同步）
+      if (!isValid && user.password && user.password === password) {
+        isValid = true;
+        hashNeedsUpdate = true;
+      }
     } else if (user.password) {
-      // 向后兼容：仅有明文密码的老用户，验证成功后立即迁移到 bcrypt
+      // 向后兼容：仅有明文密码的老用户
       isValid = user.password === password;
-      
-      if (isValid) {
-        try {
-          const passwordHash = await bcrypt.hash(password, 10);
-          await supabase
-            .from('users')
-            .update({ password_hash: passwordHash, password: null })
-            .eq('id', user.id);
-        } catch (migrateError) {
-          console.error('[Login] 密码迁移失败:', migrateError);
-        }
+      hashNeedsUpdate = isValid;
+    }
+    
+    if (isValid && hashNeedsUpdate) {
+      // 重新生成 bcrypt hash 并清理明文密码
+      try {
+        const passwordHash = await bcrypt.hash(password, 10);
+        await supabase
+          .from('users')
+          .update({ password_hash: passwordHash, password: null })
+          .eq('id', user.id);
+      } catch (migrateError) {
+        console.error('[Login] 密码迁移失败:', migrateError);
       }
     }
     
