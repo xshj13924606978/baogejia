@@ -61,11 +61,15 @@ export async function POST(request: NextRequest) {
 
     // 1. 如果请求携带已有 session token，验证后同步（已认证用户不限额）
     const existingSessionToken = request.headers.get('x-user-token');
+    let isAuthenticated = false;
+    let authenticatedUserId: string | null = null;
     if (existingSessionToken) {
       const verified = verifySessionToken(existingSessionToken);
       if (!verified) {
         return NextResponse.json({ error: '认证已过期，请重新登录' }, { status: 401 });
       }
+      isAuthenticated = true;
+      authenticatedUserId = verified.userId;
     }
 
     const body = await request.json();
@@ -122,23 +126,47 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. 准备密码哈希
-    let passwordHash = null;
+    let passwordHash: string | null = null;
+    let shouldUpdatePassword = false;
+
     if (password) {
-      // 安全：已有用户修改密码时，必须验证当前密码（如果 DB 中已存密码）
-      if (existingUser?.password_hash) {
-        if (!currentPassword) {
-          return NextResponse.json({ error: '修改密码需提供当前密码' }, { status: 403 });
-        }
-        const isCurrentValid = await bcrypt.compare(currentPassword, existingUser.password_hash);
-        if (!isCurrentValid) {
-          return NextResponse.json({ error: '当前密码不正确' }, { status: 403 });
-        }
-      }
       // 检查是否已经是 bcrypt hash
       if (password.startsWith('$2b$') || password.startsWith('$2a$')) {
         passwordHash = password;
+        shouldUpdatePassword = true;
       } else {
-        passwordHash = await bcrypt.hash(password, 10);
+        // 判断是否需要验证当前密码
+        let canUpdatePassword = false;
+
+        if (isAuthenticated && authenticatedUserId && existingUser && existingUser.id === authenticatedUserId) {
+          // 已登录用户修改自己的密码：不需要 currentPassword
+          canUpdatePassword = true;
+          // 但如果提供了 currentPassword，则验证（用于安全确认）
+          if (currentPassword && existingUser.password_hash) {
+            const isCurrentValid = await bcrypt.compare(currentPassword, existingUser.password_hash);
+            if (!isCurrentValid) {
+              return NextResponse.json({ error: '当前密码不正确' }, { status: 403 });
+            }
+          }
+        } else if (existingUser?.password_hash) {
+          // 未认证用户修改已存在的账号密码：必须验证 currentPassword
+          if (!currentPassword) {
+            return NextResponse.json({ error: '修改密码需提供当前密码' }, { status: 403 });
+          }
+          const isCurrentValid = await bcrypt.compare(currentPassword, existingUser.password_hash);
+          if (!isCurrentValid) {
+            return NextResponse.json({ error: '当前密码不正确' }, { status: 403 });
+          }
+          canUpdatePassword = true;
+        } else {
+          // 新用户创建或用户无密码记录：允许直接设置密码
+          canUpdatePassword = true;
+        }
+
+        if (canUpdatePassword) {
+          passwordHash = await bcrypt.hash(password, 10);
+          shouldUpdatePassword = true;
+        }
       }
     }
 

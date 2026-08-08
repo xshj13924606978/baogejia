@@ -235,9 +235,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         body.currentPassword = options.currentPassword;
       }
 
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const sessionToken = typeof window !== 'undefined' ? localStorage.getItem('session_token') : null;
+      if (sessionToken) {
+        headers['x-user-token'] = sessionToken;
+      }
+
       const res = await fetch('/api/auth/sync-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body),
       });
 

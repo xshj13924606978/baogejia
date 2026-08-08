@@ -141,6 +141,13 @@ export async function POST(request: NextRequest) {
     }
     
     if (!isValid) {
+      console.warn('[Login] 密码验证失败:', {
+        userId: user.id,
+        username: user.username,
+        hasHash: !!user.password_hash,
+        hasPlain: !!user.password,
+        providedPassword: password ? '[provided]' : '[missing]',
+      });
       return NextResponse.json({ error: '用户名或密码错误' }, { status: 401 });
     }
 
