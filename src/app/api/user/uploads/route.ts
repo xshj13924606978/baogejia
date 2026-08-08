@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 // 获取用户上传记录
 export async function GET(request: NextRequest) {
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     const { data: records, error } = await db
       .from('user_uploads')
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 检查今日是否已上传相同类型（限制每日上传次数）
     const today = new Date().toISOString().split('T')[0];
