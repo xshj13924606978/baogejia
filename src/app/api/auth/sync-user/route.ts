@@ -66,21 +66,45 @@ export async function POST(request: NextRequest) {
     if (existingSessionToken) {
       const verified = verifySessionToken(existingSessionToken);
       if (!verified) {
+        console.warn('[sync-user] token 验证失败，token 已过期或无效');
         return NextResponse.json({ error: '认证已过期，请重新登录' }, { status: 401 });
       }
       isAuthenticated = true;
       authenticatedUserId = verified.userId;
+      console.log('[sync-user] 用户已认证:', { userId: authenticatedUserId });
     }
 
     const body = await request.json();
     // 注意：不再从 body 中解构 role，禁止客户端指定角色
     const { phone, email, username, password, name, clearEmail, clearPhone, supabaseUserId, currentPassword } = body;
 
+    console.log('[sync-user] 请求参数:', {
+      hasEmail: !!email,
+      hasPhone: !!phone,
+      hasUsername: !!username,
+      hasPassword: !!password,
+      hasCurrentPassword: !!currentPassword,
+      hasSupabaseUserId: !!supabaseUserId,
+      isAuthenticated,
+      passwordLength: password?.length || 0,
+    });
+
     if (!email && !phone && !username) {
+      console.warn('[sync-user] 缺少用户标识');
       return NextResponse.json({ error: '缺少用户标识' }, { status: 400 });
     }
 
-    const supabase = getSupabaseServiceClient();
+    let supabase;
+    try {
+      supabase = getSupabaseServiceClient();
+      console.log('[sync-user] Supabase 客户端创建成功');
+    } catch (clientErr) {
+      console.error('[sync-user] Supabase 客户端创建失败:', clientErr instanceof Error ? clientErr.message : String(clientErr));
+      return NextResponse.json(
+        { error: '服务配置错误', detail: clientErr instanceof Error ? clientErr.message : '未知错误' },
+        { status: 500 }
+      );
+    }
 
     // 1. 尝试在 Supabase 中查找已有用户
     let existingUser: any = null;
@@ -124,6 +148,12 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
       if (data) existingUser = data;
     }
+
+    console.log('[sync-user] 用户查找结果:', {
+      found: !!existingUser,
+      userId: existingUser?.id,
+      hasPasswordHash: !!existingUser?.password_hash,
+    });
 
     // 2. 准备密码哈希
     let passwordHash: string | null = null;
@@ -219,7 +249,16 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        return NextResponse.json({ error: '同步失败' }, { status: 500 });
+        console.error('[sync-user] 更新用户失败:', {
+          userId: existingUser.id,
+          errorCode: (error as any)?.code,
+          errorMessage: (error as any)?.message || error,
+          errorDetails: (error as any)?.details || '',
+        });
+        return NextResponse.json(
+          { error: '同步失败', detail: (error as any)?.message || String(error) },
+          { status: 500 }
+        );
       }
 
       syncUser = updatedUser;
@@ -252,7 +291,15 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        return NextResponse.json({ error: '同步失败' }, { status: 500 });
+        console.error('[sync-user] 创建用户失败:', {
+          errorCode: (error as any)?.code,
+          errorMessage: (error as any)?.message || error,
+          errorDetails: (error as any)?.details || '',
+        });
+        return NextResponse.json(
+          { error: '同步失败', detail: (error as any)?.message || String(error) },
+          { status: 500 }
+        );
       }
 
       syncUser = newUser;
@@ -273,7 +320,13 @@ export async function POST(request: NextRequest) {
       synced: true,
     });
   } catch (error) {
-    console.error('[sync-user] 同步失败:', error);
-    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+    console.error('[sync-user] 未预期的同步错误:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
+    });
+    return NextResponse.json(
+      { error: '服务器错误', detail: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
   }
 }
