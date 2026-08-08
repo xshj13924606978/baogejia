@@ -218,13 +218,9 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       };
 
-      // 密码始终同步：password 存明文（登录降级用），password_hash 存 bcrypt
+      // 密码同步：只存 password_hash（bcrypt 哈希），users 表无 password 列
       if (passwordHash) {
         updateData.password_hash = passwordHash;
-        // 同时保留明文密码，确保 bcrypt 失败时能降级恢复
-        if (password && !password.startsWith('$2b$') && !password.startsWith('$2a$')) {
-          updateData.password = password;
-        }
       }
 
       // 如果已有用户缺少 email/username 但本次提供了，则补充
@@ -279,10 +275,6 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      // 保留明文密码作为 bcrypt 降级恢复路径
-      if (password && !password.startsWith('$2b$') && !password.startsWith('$2a$')) {
-        insertData.password = password;
-      }
 
       const { data: newUser, error } = await supabase
         .from('users')
