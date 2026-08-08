@@ -162,19 +162,12 @@ export async function GET(request: NextRequest) {
 
     const db = getSupabaseServiceClient();
 
-    // 获取用户信息
-    const { data: user, error: userError } = await db
+    // 获取用户信息（用户可能不在 users 表中，用 maybeSingle 避免报错）
+    const { data: user } = await db
       .from('users')
       .select('points, total_points')
       .eq('id', user_id)
-      .single();
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: '用户不存在' },
-        { status: 404 }
-      );
-    }
+      .maybeSingle();
 
     // 获取积分记录（最近50条）
     const { data: records, error: recordsError } = await db
