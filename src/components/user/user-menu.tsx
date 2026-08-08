@@ -464,6 +464,32 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     return gradients[index];
   };
 
+  // 检测是否在微信内置浏览器中
+  const isInWechat = (): boolean => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent.toLowerCase();
+    return ua.indexOf('micromessenger') !== -1;
+  };
+
+  // 在微信内置浏览器中调起微信原生分享面板
+  const shareToWechat = (title: string, desc: string, link: string): boolean => {
+    if (typeof window === 'undefined') return false;
+    // @ts-ignore - WeixinJSBridge 是微信浏览器私有 API
+    const wx = (window as any).WeixinJSBridge;
+    if (!wx || !wx.invoke) return false;
+    try {
+      wx.invoke('sendAppMessage', {
+        title,
+        desc,
+        link,
+        img_url: `${window.location.origin}/favicon.ico`,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   // 复制到剪贴板 — 简化方案：优先 Clipboard API，失败时不阻塞
   const copyToClipboard = async (text: string, message: string) => {
     if (!text) return;
@@ -1600,10 +1626,17 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => {
-                    copyToClipboard(
-                      inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : '',
-                      '邀请链接已复制'
-                    );
+                    const link = inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : '';
+                    // 在微信内置浏览器中：直接调起微信原生分享面板
+                    if (isInWechat()) {
+                      const ok = shareToWechat('邀请好友', '加入报个价，一起生成报价', link);
+                      if (ok) {
+                        toast({ title: '微信分享', description: '请选择好友发送', duration: 2000 });
+                        return;
+                      }
+                    }
+                    // 非微信浏览器：复制链接并提示
+                    copyToClipboard(link, '邀请链接已复制');
                     toast({
                       title: '微信分享提示',
                       description: '链接已复制，请打开微信粘贴发送给好友',
