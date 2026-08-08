@@ -50,6 +50,22 @@ function isAdminPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // OPTIONS 预检请求：API 路由返回 CORS 头，其他路径直接放行
+  if (request.method === 'OPTIONS') {
+    if (pathname.startsWith('/api/')) {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-token, x-user-role',
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    }
+    return NextResponse.next();
+  }
+
   // 公开路由直接放行
   if (isPublicPath(pathname)) {
     return NextResponse.next();
