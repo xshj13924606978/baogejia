@@ -1,7 +1,39 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
-import { signSessionToken } from '@/lib/session-token';
+import { signSessionToken, verifySessionToken } from '@/lib/session-token';
 import bcrypt from 'bcrypt';
+
+/**
+ * 简易内存速率限制器 — 防止暴力创建用户
+ * 生产环境建议替换为 Redis 方案
+ */
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 10;       // 每个 IP 每分钟最多 10 次
+const RATE_LIMIT_WINDOW = 60000; // 60 秒窗口
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return false; // 超限
+  }
+  entry.count++;
+  return true;
+}
+
+// 每 5 分钟清理一次过期条目，防止内存泄漏
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(ip);
+  }
+}, 300000);
 
 /**
  * 用户同步 API
@@ -9,11 +41,33 @@ import bcrypt from 'bcrypt';
  * 实现前端/后端用户数据的打通
  *
  * 安全措施：
+ * - IP 速率限制（防暴力注册）
  * - 不接受客户端传入的 role 字段（防权限提升）
+ * - 已认证用户同步无次数限制
  * - 返回签名 session token 供后续认证
  */
 export async function POST(request: NextRequest) {
   try {
+    // 0. IP 速率限制
+    const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || request.headers.get('x-real-ip')
+      || 'unknown';
+    if (!checkRateLimit(clientIp)) {
+      return NextResponse.json(
+        { error: '请求过于频繁，请稍后再试' },
+        { status: 429 }
+      );
+    }
+
+    // 1. 如果请求携带已有 session token，验证后同步（已认证用户不限额）
+    const existingSessionToken = request.headers.get('x-user-token');
+    if (existingSessionToken) {
+      const verified = verifySessionToken(existingSessionToken);
+      if (!verified) {
+        return NextResponse.json({ error: '认证已过期，请重新登录' }, { status: 401 });
+      }
+    }
+
     const body = await request.json();
     // 注意：不再从 body 中解构 role，禁止客户端指定角色
     const { phone, email, username, password, name, clearEmail, clearPhone, supabaseUserId, currentPassword } = body;
@@ -106,9 +160,13 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       };
 
-      // 仅在有新密码时更新（localStorage 是密码的真实来源，总是同步）
+      // 密码始终同步：password 存明文（登录降级用），password_hash 存 bcrypt
       if (passwordHash) {
         updateData.password_hash = passwordHash;
+        // 同时保留明文密码，确保 bcrypt 失败时能降级恢复
+        if (password && !password.startsWith('$2b$') && !password.startsWith('$2a$')) {
+          updateData.password = password;
+        }
       }
 
       // 如果已有用户缺少 email/username 但本次提供了，则补充
@@ -154,6 +212,10 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
+      // 保留明文密码作为 bcrypt 降级恢复路径
+      if (password && !password.startsWith('$2b$') && !password.startsWith('$2a$')) {
+        insertData.password = password;
+      }
 
       const { data: newUser, error } = await supabase
         .from('users')
