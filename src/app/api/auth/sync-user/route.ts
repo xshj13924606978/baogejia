@@ -6,6 +6,22 @@ import { signSessionToken, verifySessionToken } from '@/lib/session-token';
 import bcrypt from 'bcrypt';
 
 /**
+ * CORS 预检请求处理
+ * 确保浏览器 OPTIONS 预检请求成功，使 POST 请求能正常到达
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, x-user-token',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
+}
+
+/**
  * 简易内存速率限制器 — 防止暴力创建用户
  * 生产环境建议替换为 Redis 方案
  */
