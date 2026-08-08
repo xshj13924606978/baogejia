@@ -24,26 +24,70 @@ async function handleMigrate() {
   CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
   CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);`;
 
-  // Try Supabase Management API (HTTP, works via IPv4)
+  const logs: string[] = [];
+
+  // Approach 1: REST API /sql endpoint
   try {
-    const res = await fetch(
-      'https://api.supabase.com/v1/projects/tjbnjrcgmyiwudqptfhc/query',
-      {
-        method: 'POST',
-        headers: {
-          'apikey': serviceKey,
-          'Authorization': `Bearer ${serviceKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query: sql }),
-      }
-    );
+    const res = await fetch('https://tjbnjrcgmyiwudqptfhc.supabase.co/rest/v1/sql', {
+      method: 'POST',
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        'Content-Profile': 'sql',
+      },
+      body: JSON.stringify({ query: sql }),
+    });
     const text = await res.text();
     if (res.ok) {
-      return NextResponse.json({ success: true, method: 'management-api', result: text });
+      return NextResponse.json({ success: true, method: 'sql-endpoint', result: text, logs });
     }
-    return NextResponse.json({ error: `Management API: ${res.status} - ${text}` }, { status: 500 });
+    logs.push(`sql-endpoint: ${res.status} ${text.slice(0, 200)}`);
   } catch (e: any) {
-    return NextResponse.json({ error: `Management API: ${e.message}` }, { status: 500 });
+    logs.push(`sql-endpoint err: ${e.message}`);
   }
+
+  // Approach 2: pg direct, resolve via fetch and then connect
+  try {
+    const { Pool } = await import('pg');
+    // Use IP directly - try to resolve via included DNS
+    const os = require('os');
+    logs.push(`os.networkInterfaces: ${JSON.stringify(Object.keys(os.networkInterfaces()))}`);
+
+    const pool = new Pool({
+      host: 'db.tjbnjrcgmyiwudqptfhc.supabase.co',
+      port: 5432,
+      user: 'postgres',
+      password: serviceKey,
+      database: 'postgres',
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10000,
+    });
+    await pool.query(sql);
+    await pool.end();
+    return NextResponse.json({ success: true, method: 'pg-direct', logs });
+  } catch (e2: any) {
+    logs.push(`pg-direct: ${e2.message}`);
+  }
+
+  // Approach 3: pooler on port 5432
+  try {
+    const { Pool } = await import('pg');
+    const pool = new Pool({
+      host: 'aws-0-ap-southeast-1.pooler.supabase.com',
+      port: 5432,
+      user: 'postgres',
+      password: serviceKey,
+      database: 'postgres',
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10000,
+    });
+    await pool.query(sql);
+    await pool.end();
+    return NextResponse.json({ success: true, method: 'pooler-5432', logs });
+  } catch (e3: any) {
+    logs.push(`pooler-5432: ${e3.message}`);
+  }
+
+  return NextResponse.json({ error: 'All methods failed', logs }, { status: 500 });
 }
