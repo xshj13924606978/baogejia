@@ -466,6 +466,15 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
   // 复制到剪贴板
   const copyToClipboard = (text: string, message: string) => {
+    if (!text) {
+      toast({
+        title: '复制失败',
+        description: '内容为空',
+        variant: 'destructive',
+        duration: 2000,
+      });
+      return;
+    }
     const onSuccess = () => {
       toast({
         title: '复制成功',
@@ -481,7 +490,8 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     if (
       typeof navigator !== 'undefined' &&
       navigator.clipboard &&
-      typeof navigator.clipboard.writeText === 'function'
+      typeof navigator.clipboard.writeText === 'function' &&
+      (window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1')
     ) {
       navigator.clipboard
         .writeText(text)
@@ -491,7 +501,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
         });
       return;
     }
-    // HTTP 环境降级方案
+    // HTTP 环境直接走降级方案
     legacyCopy(text, onSuccess, onFail);
   };
 
@@ -501,34 +511,61 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       onFail();
       return;
     }
+    // 移除已存在的临时 textarea
+    const existing = document.getElementById('__copy_textarea__');
+    if (existing) existing.remove();
+
     const textarea = document.createElement('textarea');
+    textarea.id = '__copy_textarea__';
     textarea.value = text;
     textarea.setAttribute('readonly', '');
+    // 让 textarea 可见但不影响布局（放在屏幕外）
     textarea.style.position = 'fixed';
     textarea.style.top = '0';
     textarea.style.left = '0';
-    textarea.style.width = '1px';
-    textarea.style.height = '1px';
+    textarea.style.width = '2px';
+    textarea.style.height = '2px';
     textarea.style.padding = '0';
     textarea.style.border = 'none';
     textarea.style.outline = 'none';
     textarea.style.boxShadow = 'none';
     textarea.style.background = 'transparent';
     textarea.style.opacity = '0';
+    textarea.style.zIndex = '-1';
     document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    let ok = false;
-    try {
-      ok = document.execCommand('copy');
-    } catch (_) {
-      ok = false;
-    }
-    document.body.removeChild(textarea);
-    if (ok) {
-      onSuccess();
+
+    // 关键：使用 setSelectionRange + 异步聚焦，确保浏览器完成渲染后再操作
+    const execute = () => {
+      textarea.focus({ preventScroll: true });
+      try {
+        textarea.setSelectionRange(0, text.length);
+      } catch (_) {
+        textarea.select();
+      }
+      let ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch (_) {
+        ok = false;
+      }
+      // 延迟 200ms 删除，确保复制完成
+      setTimeout(() => {
+        try {
+          document.body.removeChild(textarea);
+        } catch (_) {}
+        if (ok) {
+          onSuccess();
+        } else {
+          onFail();
+        }
+      }, 200);
+    };
+
+    // 异步执行，给浏览器渲染时间
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(execute);
     } else {
-      onFail();
+      setTimeout(execute, 0);
     }
   };
 
