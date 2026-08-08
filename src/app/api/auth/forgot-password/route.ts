@@ -33,7 +33,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证验证码
-    const { createClient } = await import('@supabase/supabase-js');
     const supabase = getSupabaseServiceClient();
 
     // 查找用户
