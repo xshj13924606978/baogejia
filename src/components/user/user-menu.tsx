@@ -1450,14 +1450,14 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                   <label className="text-sm font-medium">邀请链接</label>
                   <div className="flex gap-2 mt-1">
                     <Input
-                      value={inviteCode ? `${window.location.origin}/invite/${inviteCode}` : '暂无邀请链接'}
+                      value={inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : '暂无邀请链接'}
                       readOnly
                       className="bg-gray-50 text-xs"
                     />
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => inviteCode && copyToClipboard(`${window.location.origin}/invite/${inviteCode}`, '邀请链接已复制')}
+                      onClick={() => inviteCode && copyToClipboard(`${window.location.origin}/register?code=${inviteCode}`, '邀请链接已复制')}
                       disabled={!inviteCode}
                     >
                       <Copy className="h-4 w-4" />
@@ -1469,7 +1469,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <div className="flex gap-2">
                 <Button
                   className="flex-1 bg-gradient-to-r from-pink-600 to-purple-600"
-                  onClick={() => inviteCode && handleShareInvite(`${window.location.origin}/invite/${inviteCode}`)}
+                  onClick={() => inviteCode && handleShareInvite(`${window.location.origin}/register?code=${inviteCode}`)}
                   disabled={!inviteCode}
                 >
                   <Share2 className="h-4 w-4 mr-2" />
