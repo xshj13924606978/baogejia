@@ -665,6 +665,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
           url: text,
         });
       } catch (_error) {
+        // share 失败或用户取消，降级为复制链接
         copyToClipboard(text, '邀请链接已复制到剪贴板');
       }
     } else {
