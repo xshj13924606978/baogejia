@@ -53,6 +53,7 @@ import {
   Eye,
   Lock,
 } from 'lucide-react';
+import { QRCodeCanvas as QRCode } from 'qrcode.react';
 import ManufacturerPaymentPanel from '@/components/manufacturer-payment-panel';
 import { ProfileDialog } from '@/components/shared/profile-dialog';
 import { useUser } from '@/contexts/UserContext';
@@ -242,6 +243,8 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
   // 邀请记录数据
   const [inviteRecords, setInviteRecords] = useState<Array<{id: number; name: string; time: string; status: string; points: number}>>([]);
+  const [showQrCodeDialog, setShowQrCodeDialog] = useState(false);
+  const qrCodeRef = useRef<HTMLDivElement>(null);
 
   // 统计数据
   const [statsData, setStatsData] = useState({ quotes: 0, conversations: 0, suppliers: 0, rating: '0%' });
@@ -687,7 +690,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     });
   };
 
-  // 分享邀请
+  // 分享邀请 — 弹出二维码面板（微信/企业微信/QQ 均可扫码）
   const handleShareInvite = async (text: string) => {
     if (navigator.share) {
       try {
@@ -696,12 +699,23 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
           text: '加入报个价，一起生成报价',
           url: text,
         });
-      } catch (_error) {
-        // share 失败或用户取消，降级为复制链接
-        copyToClipboard(text, '邀请链接已复制到剪贴板');
+        return;
+      } catch {
+        // 用户取消或 share 失败，弹出二维码
       }
-    } else {
-      copyToClipboard(text, '邀请链接已复制到剪贴板');
+    }
+    setShowQrCodeDialog(true);
+  };
+
+  // 下载二维码图片
+  const downloadQrCode = () => {
+    const canvas = qrCodeRef.current?.querySelector('canvas');
+    if (canvas) {
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '邀请二维码.png';
+      a.click();
     }
   };
 
@@ -1559,6 +1573,86 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                   )}
                 </div>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* 二维码分享弹窗 */}
+        <Dialog open={showQrCodeDialog} onOpenChange={setShowQrCodeDialog}>
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[420px]">
+            <DialogHeader>
+              <DialogTitle>扫码分享邀请</DialogTitle>
+              <DialogDescription>
+                使用微信、企业微信或 QQ 扫码即可打开注册页面
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="flex justify-center" ref={qrCodeRef}>
+                <QRCode
+                  value={inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : window.location.origin}
+                  size={200}
+                  level="H"
+                  includeMargin
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => {
+                    copyToClipboard(
+                      inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : '',
+                      '邀请链接已复制'
+                    );
+                    toast({
+                      title: '微信分享提示',
+                      description: '链接已复制，请打开微信粘贴发送给好友',
+                      duration: 3000,
+                    });
+                  }}
+                  className="py-2 bg-green-500 text-white rounded text-sm font-medium"
+                >
+                  <span className="mr-1">💬</span>微信
+                </button>
+                <button
+                  onClick={() => {
+                    copyToClipboard(
+                      inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : '',
+                      '邀请链接已复制'
+                    );
+                    toast({
+                      title: 'QQ分享提示',
+                      description: '链接已复制，请打开 QQ 粘贴发送给好友',
+                      duration: 3000,
+                    });
+                  }}
+                  className="py-2 bg-blue-500 text-white rounded text-sm font-medium"
+                >
+                  <span className="mr-1">🐧</span>QQ
+                </button>
+                <button
+                  onClick={() => downloadQrCode()}
+                  className="py-2 bg-purple-500 text-white rounded text-sm font-medium"
+                >
+                  <span className="mr-1">💾</span>保存图片
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    copyToClipboard(
+                      inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : '',
+                      '邀请链接已复制'
+                    );
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  复制链接
+                </Button>
+              </div>
+              <p className="text-xs text-center text-gray-400">
+                好友通过该链接注册后，双方均可获得积分奖励
+              </p>
             </div>
           </DialogContent>
         </Dialog>
