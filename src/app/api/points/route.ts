@@ -149,9 +149,6 @@ export async function POST(request: NextRequest) {
 
 // 获取用户积分记录
 export async function GET(request: NextRequest) {
-  const { user, errorResponse } = await requireAuth(request);
-  if (errorResponse) return errorResponse;
-
   try {
     const searchParams = request.nextUrl.searchParams;
     const user_id = searchParams.get('user_id');
