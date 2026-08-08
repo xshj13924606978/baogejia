@@ -462,23 +462,39 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
   // 复制到剪贴板
   const copyToClipboard = (text: string, message: string) => {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
+    const fallbackCopy = () => {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
         toast({
           title: '复制成功',
           description: message,
           duration: 2000,
         });
-      })
-      .catch(() => {
+      } catch (_) {
         toast({
           title: '复制失败',
           description: '请手动复制',
           variant: 'destructive',
           duration: 2000,
         });
-      });
+      }
+      document.body.removeChild(textarea);
+    };
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          toast({ title: '复制成功', description: message, duration: 2000 });
+        })
+        .catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
   };
 
   // 下载文件
