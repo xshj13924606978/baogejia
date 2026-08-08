@@ -462,38 +462,70 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
   // 复制到剪贴板
   const copyToClipboard = (text: string, message: string) => {
-    const fallbackCopy = () => {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        document.execCommand('copy');
-        toast({
-          title: '复制成功',
-          description: message,
-          duration: 2000,
-        });
-      } catch (_) {
-        toast({
-          title: '复制失败',
-          description: '请手动复制',
-          variant: 'destructive',
-          duration: 2000,
-        });
-      }
-      document.body.removeChild(textarea);
+    const onSuccess = () => {
+      toast({
+        title: '复制成功',
+        description: message,
+        duration: 2000,
+      });
     };
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text)
-        .then(() => {
-          toast({ title: '复制成功', description: message, duration: 2000 });
-        })
-        .catch(fallbackCopy);
-    } else {
-      fallbackCopy();
+    const onFail = () => {
+      toast({
+        title: '复制失败',
+        description: '请手动选中复制',
+        variant: 'destructive',
+        duration: 3000,
+      });
+    };
+    // 优先使用 Clipboard API（HTTPS / localhost 可用）
+    if (
+      typeof navigator !== 'undefined' &&
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === 'function'
+    ) {
+      navigator.clipboard
+        .writeText(text)
+        .then(onSuccess)
+        .catch(() => {
+          // Clipboard API 调用失败（如权限拒绝），降级使用 execCommand
+          legacyCopy(text, onSuccess, onFail);
+        });
+      return;
+    }
+    // HTTP 环境降级方案
+    legacyCopy(text, onSuccess, onFail);
+  };
+
+  // 旧版复制方法（execCommand），作为不可用 Clipboard API 时的降级
+  const legacyCopy = (text: string, onSuccess: () => void, onFail: () => void) => {
+    if (typeof document === 'undefined') {
+      onFail();
+      return;
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.width = '1px';
+    textarea.style.height = '1px';
+    textarea.style.padding = '0';
+    textarea.style.border = 'none';
+    textarea.style.outline = 'none';
+    textarea.style.boxShadow = 'none';
+    textarea.style.background = 'transparent';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      const ok = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      ok ? onSuccess() : onFail();
+    } catch (_) {
+      document.body.removeChild(textarea);
+      onFail();
     }
   };
 
