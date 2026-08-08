@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     try {
       const pointsRule = await getRegisterPoints();
       if (pointsRule > 0) {
-        const { error: pointsError } = await supabase
+        const { error: pointsError } = await db
           .from('point_records')
           .insert({
             user_id: user.id,
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
 
         if (!pointsError) {
           // 更新用户积分
-          const { data: userPoints } = await supabase
+          const { data: userPoints } = await db
             .from('users')
             .select('points, total_points')
             .eq('id', user.id)
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
           const newPoints = Math.max(0, (userPoints?.points || 0) + pointsRule);
           const newTotalPoints = (userPoints?.total_points || 0) + Math.max(0, pointsRule);
 
-          await supabase
+          await db
             .from('users')
             .update({ points: newPoints, total_points: newTotalPoints })
             .eq('id', user.id);
