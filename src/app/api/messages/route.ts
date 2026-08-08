@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     if (errorResponse) return errorResponse;
 
     const body = await request.json();
-    const { conversationId, role, content, quoteData, files } = body;
+    const { conversationId, role, content, quoteData, files, metadata } = body;
 
     if (!conversationId || !role) {
       Logger.error('[Messages] 缺少必要参数', { conversationId, role });
@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
       content: content || '',
       quote_data: quoteData || null,
       file_data: processedFiles,
+      metadata: metadata || null,
       created_at: new Date().toISOString(),
     };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -1194,6 +1194,27 @@ export default function ChatMessage({
   const { toast } = useToast();
   const [selectedIntent, setSelectedIntent] = useState<'quote' | 'proposal' | 'both' | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  // 从 metadata 或 content 中的 DATABASE_INFO 注释提取品牌对比数据
+  const brandCompareData = useMemo(() => {
+    // 优先从 metadata 读取
+    if (message.metadata?.entities?.brandCompare &&
+        Array.isArray(message.metadata.entities.brandCompare) &&
+        message.metadata.entities.brandCompare.length >= 1) {
+      return message.metadata.entities.brandCompare;
+    }
+    // 兜底：从消息内容的 DATABASE_INFO 注释中解析（历史消息未保存 metadata）
+    try {
+      const match = message.content?.match(/<!-- DATABASE_INFO:\s*(\[[\s\S]*?\])\s*-->/);
+      if (match && match[1]) {
+        const parsed = JSON.parse(match[1]);
+        if (Array.isArray(parsed) && parsed.length >= 1) {
+          return parsed;
+        }
+      }
+    } catch { /* ignore parse errors */ }
+    return null;
+  }, [message.metadata, message.content]);
 
   const getFileIcon = (fileType: string) => {
     if (fileType.includes('image')) return <ImageIcon className="h-4 w-4" />;
@@ -2578,12 +2599,10 @@ export default function ChatMessage({
           )}
 
           {/* 产品对比卡片（不受 prose 容器宽度限制） */}
-          {message.metadata?.entities?.brandCompare &&
-            Array.isArray(message.metadata.entities.brandCompare) &&
-            message.metadata.entities.brandCompare.length >= 1 && (
+          {brandCompareData && (
               <div className="mt-4 not-prose">
                 <BrandCompareCard
-                  items={message.metadata.entities.brandCompare}
+                  items={brandCompareData}
                   onBrandSelect={(item) => onBrandSelect?.(message.id, item)}
                 />
               </div>
