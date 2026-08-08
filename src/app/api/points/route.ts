@@ -187,8 +187,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       user: {
-        points: user.points || 0,
-        total_points: user.total_points || 0
+        points: user?.points || 0,
+        total_points: user?.total_points || 0
       },
       records: records || []
     });
