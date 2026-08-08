@@ -54,6 +54,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { QRCodeCanvas as QRCode } from 'qrcode.react';
+import { toPng } from 'html-to-image';
 import ManufacturerPaymentPanel from '@/components/manufacturer-payment-panel';
 import { ProfileDialog } from '@/components/shared/profile-dialog';
 import { useUser } from '@/contexts/UserContext';
@@ -245,7 +246,6 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   const [inviteRecords, setInviteRecords] = useState<Array<{id: number; name: string; time: string; status: string; points: number}>>([]);
   const [showQrCodeDialog, setShowQrCodeDialog] = useState(false);
   const qrCodeRef = useRef<HTMLDivElement>(null);
-  const [manualCopyText, setManualCopyText] = useState<string | null>(null);
 
   // 统计数据
   const [statsData, setStatsData] = useState({ quotes: 0, conversations: 0, suppliers: 0, rating: '0%' });
@@ -464,109 +464,28 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     return gradients[index];
   };
 
-  // 复制到剪贴板
-  const copyToClipboard = (text: string, message: string) => {
-    if (!text) {
-      toast({
-        title: '复制失败',
-        description: '内容为空',
-        variant: 'destructive',
-        duration: 2000,
-      });
-      return;
-    }
-    const onSuccess = () => {
-      toast({
-        title: '复制成功',
-        description: message,
-        duration: 2000,
-      });
-    };
-    const onFail = () => {
-      // 所有自动复制都失败：弹出对话框让用户手动复制
-      setManualCopyText(text);
-    };
-    // 优先使用 Clipboard API（HTTPS / localhost 可用）
-    if (
-      typeof navigator !== 'undefined' &&
-      navigator.clipboard &&
-      typeof navigator.clipboard.writeText === 'function' &&
-      (window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-    ) {
-      navigator.clipboard
-        .writeText(text)
-        .then(onSuccess)
-        .catch(() => {
-          legacyCopy(text, onSuccess, onFail);
-        });
-      return;
-    }
-    // HTTP 环境直接走降级方案
-    legacyCopy(text, onSuccess, onFail);
-  };
-
-  // 旧版复制方法（execCommand），作为不可用 Clipboard API 时的降级
-  const legacyCopy = (text: string, onSuccess: () => void, onFail: () => void) => {
-    if (typeof document === 'undefined') {
-      onFail();
-      return;
-    }
-    // 移除已存在的临时 textarea
-    const existing = document.getElementById('__copy_textarea__');
-    if (existing) existing.remove();
-
-    const textarea = document.createElement('textarea');
-    textarea.id = '__copy_textarea__';
-    textarea.value = text;
-    textarea.setAttribute('readonly', '');
-    // 让 textarea 可见但不影响布局（放在屏幕外）
-    textarea.style.position = 'fixed';
-    textarea.style.top = '0';
-    textarea.style.left = '0';
-    textarea.style.width = '2px';
-    textarea.style.height = '2px';
-    textarea.style.padding = '0';
-    textarea.style.border = 'none';
-    textarea.style.outline = 'none';
-    textarea.style.boxShadow = 'none';
-    textarea.style.background = 'transparent';
-    textarea.style.opacity = '0';
-    textarea.style.zIndex = '-1';
-    document.body.appendChild(textarea);
-
-    // 关键：使用 setSelectionRange + 异步聚焦，确保浏览器完成渲染后再操作
-    const execute = () => {
-      textarea.focus({ preventScroll: true });
+  // 复制到剪贴板 — 简化方案：优先 Clipboard API，失败时不阻塞
+  const copyToClipboard = async (text: string, message: string) => {
+    if (!text) return;
+    // 仅在安全上下文下尝试 Clipboard API
+    const isSecure =
+      typeof window !== 'undefined' &&
+      (window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+    if (isSecure && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
       try {
-        textarea.setSelectionRange(0, text.length);
-      } catch (_) {
-        textarea.select();
+        await navigator.clipboard.writeText(text);
+        toast({ title: '复制成功', description: message, duration: 2000 });
+        return;
+      } catch {
+        // 继续走 UI 降级（用户直接选择 textarea 复制）
       }
-      let ok = false;
-      try {
-        ok = document.execCommand('copy');
-      } catch (_) {
-        ok = false;
-      }
-      // 延迟 200ms 删除，确保复制完成
-      setTimeout(() => {
-        try {
-          document.body.removeChild(textarea);
-        } catch (_) {}
-        if (ok) {
-          onSuccess();
-        } else {
-          onFail();
-        }
-      }, 200);
-    };
-
-    // 异步执行，给浏览器渲染时间
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(execute);
-    } else {
-      setTimeout(execute, 0);
     }
+    // 不安全上下文或 Clipboard API 失败：提示用户在 UI 中直接复制
+    toast({
+      title: '请手动复制',
+      description: '长按下方文本框全选后复制',
+      duration: 3000,
+    });
   };
 
   // 下载文件
@@ -744,15 +663,51 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     setShowQrCodeDialog(true);
   };
 
-  // 下载二维码图片
-  const downloadQrCode = () => {
-    const canvas = qrCodeRef.current?.querySelector('canvas');
-    if (canvas) {
-      const url = canvas.toDataURL('image/png');
+  // 下载二维码图片 — 使用 html-to-image 兜底 + canvas.toDataURL 兜底
+  const downloadQrCode = async () => {
+    const node = qrCodeRef.current;
+    if (!node) {
+      toast({ title: '下载失败', description: '二维码未生成', variant: 'destructive', duration: 2000 });
+      return;
+    }
+    try {
+      // 优先使用 html-to-image（更兼容）
+      const dataUrl = await toPng(node, {
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+      });
       const a = document.createElement('a');
-      a.href = url;
+      a.href = dataUrl;
       a.download = '邀请二维码.png';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
+      toast({ title: '保存成功', description: '二维码已下载', duration: 2000 });
+    } catch (_err) {
+      // 兜底方案：canvas.toDataURL
+      const canvas = node.querySelector('canvas');
+      if (canvas) {
+        try {
+          const dataUrl = canvas.toDataURL('image/png');
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = '邀请二维码.png';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          toast({ title: '保存成功', description: '二维码已下载', duration: 2000 });
+          return;
+        } catch (_err2) {
+          // 继续走到错误分支
+        }
+      }
+      toast({
+        title: '下载失败',
+        description: '请长按二维码图片手动保存',
+        variant: 'destructive',
+        duration: 3000,
+      });
     }
   };
 
@@ -1534,7 +1489,14 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div>
                   <label className="text-sm font-medium">邀请码</label>
                   <div className="flex gap-2 mt-1">
-                    <Input value={inviteCode || '暂无邀请码'} readOnly className="bg-gray-50" />
+                    <textarea
+                      readOnly
+                      value={inviteCode || '暂无邀请码'}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onClick={(e) => e.currentTarget.select()}
+                      className="flex-1 px-3 py-2 text-sm border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text select-all"
+                      rows={1}
+                    />
                     <Button
                       variant="outline"
                       size="icon"
@@ -1549,10 +1511,13 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div>
                   <label className="text-sm font-medium">邀请链接</label>
                   <div className="flex gap-2 mt-1">
-                    <Input
-                      value={inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : '暂无邀请链接'}
+                    <textarea
                       readOnly
-                      className="bg-gray-50 text-xs"
+                      value={inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : '暂无邀请链接'}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onClick={(e) => e.currentTarget.select()}
+                      className="flex-1 px-3 py-2 text-xs border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text select-all"
+                      rows={2}
                     />
                     <Button
                       variant="outline"
@@ -1687,8 +1652,17 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                   复制链接
                 </Button>
               </div>
+              {/* 始终显示可手动全选复制的链接 */}
+              <textarea
+                readOnly
+                value={inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : ''}
+                onFocus={(e) => e.currentTarget.select()}
+                onClick={(e) => e.currentTarget.select()}
+                className="w-full px-3 py-2 text-xs border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text select-all"
+                rows={2}
+              />
               <p className="text-xs text-center text-gray-400">
-                好友通过该链接注册后，双方均可获得积分奖励
+                点击上方链接文本框可一键全选复制
               </p>
             </div>
           </DialogContent>
@@ -1742,62 +1716,6 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 ))}
               </div>
               )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* 手动复制对话框（HTTP 环境复制失败时降级） */}
-        <Dialog open={manualCopyText !== null} onOpenChange={(open) => !open && setManualCopyText(null)}>
-          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[460px]">
-            <DialogHeader>
-              <DialogTitle>请手动复制</DialogTitle>
-              <DialogDescription>
-                当前浏览器不支持自动复制，请长按下方文本框全选后复制
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <textarea
-                readOnly
-                value={manualCopyText || ''}
-                onFocus={(e) => e.currentTarget.select()}
-                onClick={(e) => e.currentTarget.select()}
-                className="w-full p-3 text-sm border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={4}
-              />
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    const textarea = document.querySelector('textarea[rows="4"]') as HTMLTextAreaElement | null;
-                    if (textarea) {
-                      textarea.focus();
-                      textarea.select();
-                      try {
-                        document.execCommand('copy');
-                        toast({ title: '复制成功', description: '已复制到剪贴板', duration: 2000 });
-                      } catch (_) {
-                        toast({
-                          title: '请手动复制',
-                          description: '长按上方文本框全选后复制',
-                          duration: 3000,
-                        });
-                      }
-                    }
-                  }}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  再次尝试复制
-                </Button>
-                <Button
-                  className="flex-1"
-                  onClick={() => {
-                    setManualCopyText(null);
-                  }}
-                >
-                  关闭
-                </Button>
-              </div>
             </div>
           </DialogContent>
         </Dialog>
