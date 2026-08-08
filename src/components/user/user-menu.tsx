@@ -225,41 +225,27 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     },
   });
 
+  // 积分明细数据
+  const [pointRecords, setPointRecords] = useState<Array<{id: number; description: string; date: string; points: number}>>([]);
+  const [loadingPoints, setLoadingPoints] = useState(false);
+
+  // 邀请数据
+  const [inviteStats, setInviteStats] = useState({ count: 0, points: 0 });
+  const [inviteCode, setInviteCode] = useState('');
+  const [ranking, setRanking] = useState<Array<{rank: number; name: string; count: number}>>([]);
+  const [loadingInvite, setLoadingInvite] = useState(false);
+
   // 通知数据
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: '报价单已生成',
-      message: '您的搅拌设备报价单已生成',
-      time: '5分钟前',
-      read: false,
-      icon: '📄',
-    },
-    {
-      id: 2,
-      title: '积分到账',
-      message: '邀请好友获得50积分',
-      time: '1小时前',
-      read: false,
-      icon: '🎁',
-    },
-    {
-      id: 3,
-      title: '文件解析完成',
-      message: '上传的PDF文件已解析完成',
-      time: '2小时前',
-      read: true,
-      icon: '📁',
-    },
-    { id: 4, title: '系统通知', message: '新版本功能上线', time: '昨天', read: true, icon: '✨' },
-  ]);
+  const [notifications, setNotifications] = useState<Array<{
+    id: number; title: string; message: string; time: string; read: boolean; icon: string;
+  }>>([]);
 
   // 邀请记录数据
-  const [inviteRecords, _setInviteRecords] = useState([
-    { id: 1, name: '张三', time: '2024-02-26', status: '已注册', points: 50 },
-    { id: 2, name: '李四', time: '2024-02-25', status: '已注册', points: 50 },
-    { id: 3, name: '王五', time: '2024-02-24', status: '待激活', points: 0 },
-  ]);
+  const [inviteRecords, setInviteRecords] = useState<Array<{id: number; name: string; time: string; status: string; points: number}>>([]);
+
+  // 统计数据
+  const [statsData, setStatsData] = useState({ quotes: 0, conversations: 0, suppliers: 0, rating: '0%' });
+  const [loadingStats, setLoadingStats] = useState(false);
 
   // 最近记录数据
   const [allUploadRecords, setAllUploadRecords] = useState<Array<{
@@ -320,6 +306,129 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       setShowAllRecords(false);
     }
   }, [showRecordsDialog, user?.id]);
+
+  // 加载积分明细
+  const loadPoints = async (userId: string) => {
+    try {
+      setLoadingPoints(true);
+      const res = await fetch(`/api/points?user_id=${userId}`);
+      const data = await res.json();
+      if (data.success && data.records) {
+        const mapped = data.records.map((r: any) => ({
+          id: r.id,
+          description: r.description || r.type || '积分变动',
+          date: new Date(r.created_at).toLocaleDateString('zh-CN'),
+          points: r.points || r.amount || 0,
+        }));
+        setPointRecords(mapped);
+      }
+    } catch (err) {
+      console.error('[Points] 加载积分失败:', err);
+    } finally {
+      setLoadingPoints(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showPointsDialog && user?.id) loadPoints(user.id);
+  }, [showPointsDialog, user?.id]);
+
+  // 加载邀请数据
+  const loadInviteData = async (userId: string) => {
+    try {
+      setLoadingInvite(true);
+      const [invitesRes, codesRes, rankingRes] = await Promise.all([
+        fetch(`/api/invites?user_id=${userId}`),
+        fetch(`/api/invite-codes?user_id=${userId}`),
+        fetch('/api/invite-rankings?period=total'),
+      ]);
+      const invitesData = await invitesRes.json();
+      const codesData = await codesRes.json();
+      const rankingData = await rankingRes.json();
+
+      if (invitesData.success && invitesData.invites) {
+        const records = invitesData.invites.map((r: any) => ({
+          id: r.id,
+          name: r.invitee_name || r.invited_name || '',
+          time: new Date(r.created_at).toLocaleDateString('zh-CN'),
+          status: r.status === 'registered' ? '已注册' : r.status === 'pending' ? '待激活' : r.status,
+          points: r.points || 0,
+        }));
+        setInviteRecords(records);
+        setInviteStats({
+          count: invitesData.total || records.length,
+          points: invitesData.total_points || records.reduce((sum: number, r: any) => sum + r.points, 0),
+        });
+      }
+      if (codesData.success && codesData.codes && codesData.codes.length > 0) {
+        setInviteCode(codesData.codes[0].code);
+      }
+      if (rankingData.success && rankingData.rankings) {
+        setRanking(rankingData.rankings.map((r: any, i: number) => ({
+          rank: i + 1,
+          name: r.user_name || r.name || '',
+          count: r.invite_count || r.count || 0,
+        })));
+      }
+    } catch (err) {
+      console.error('[Invite] 加载邀请数据失败:', err);
+    } finally {
+      setLoadingInvite(false);
+    }
+  };
+
+  useEffect(() => {
+    if ((showInviteDialog || showInviteRecordsDialog) && user?.id) loadInviteData(user.id);
+  }, [showInviteDialog, showInviteRecordsDialog, user?.id]);
+
+  // 加载通知
+  const loadNotifications = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/notifications?user_id=${userId}`);
+      const data = await res.json();
+      if (data.success && data.notifications) {
+        setNotifications(data.notifications.map((n: any) => ({
+          id: n.id,
+          title: n.title,
+          message: n.message || n.content || '',
+          time: n.time || new Date(n.created_at).toLocaleString('zh-CN'),
+          read: n.read || n.is_read || false,
+          icon: n.type === 'points' ? '🏆' : n.type === 'system' ? '✨' : '📄',
+        })));
+      }
+    } catch (err) {
+      console.error('[Notifications] 加载通知失败:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (showNotificationsDialog && user?.id) loadNotifications(user.id);
+  }, [showNotificationsDialog, user?.id]);
+
+  // 加载统计数据
+  const loadStats = async (userId: string) => {
+    try {
+      setLoadingStats(true);
+      const res = await fetch(`/api/user/stats?user_id=${userId}`);
+      const data = await res.json();
+      if (data.success && data.stats) {
+        setStatsData({
+          quotes: data.stats.quotes || data.stats.quoteCount || 0,
+          conversations: data.stats.conversations || data.stats.conversationCount || 0,
+          suppliers: data.stats.suppliers || data.stats.supplierCount || 0,
+          rating: data.stats.rating || '0%',
+        });
+      }
+    } catch (err) {
+      console.error('[Stats] 加载统计失败:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showStatsDialog && user?.id) loadStats(user.id);
+  }, [showStatsDialog, user?.id]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -503,8 +612,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   };
 
   // 标记所有通知为已读
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications(notifications.map((n) => ({ ...n, read: true })));
+    try {
+      await fetch('/api/notifications/read-all', { method: 'POST' });
+    } catch (_) {}
     toast({
       title: '操作成功',
       description: '所有通知已标记为已读',
@@ -1243,48 +1355,28 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               </div>
 
               <div className="space-y-2">
-                <h4 className="text-sm font-medium">最近记录</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">📄</span>
-                      <div>
-                        <p className="text-sm font-medium">上传文件</p>
-                        <p className="text-xs text-gray-500">2024-02-26</p>
+                <h4 className="text-sm font-medium">积分记录</h4>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {loadingPoints ? (
+                    <p className="text-sm text-gray-400 text-center py-4">加载中...</p>
+                  ) : pointRecords.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-4">暂无积分记录</p>
+                  ) : (
+                    pointRecords.map((r) => (
+                      <div key={r.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{r.points >= 0 ? '🏆' : '💸'}</span>
+                          <div>
+                            <p className="text-sm font-medium">{r.description}</p>
+                            <p className="text-xs text-gray-500">{r.date}</p>
+                          </div>
+                        </div>
+                        <Badge className={r.points >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                          {r.points >= 0 ? '+' : ''}{r.points}
+                        </Badge>
                       </div>
-                    </div>
-                    <Badge className="bg-green-100 text-green-700">+10</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">💰</span>
-                      <div>
-                        <p className="text-sm font-medium">生成报价</p>
-                        <p className="text-xs text-gray-500">2024-02-25</p>
-                      </div>
-                    </div>
-                    <Badge className="bg-red-100 text-red-700">-5</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">🎁</span>
-                      <div>
-                        <p className="text-sm font-medium">每日登录</p>
-                        <p className="text-xs text-gray-500">2024-02-25</p>
-                      </div>
-                    </div>
-                    <Badge className="bg-green-100 text-green-700">+2</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">👥</span>
-                      <div>
-                        <p className="text-sm font-medium">邀请好友</p>
-                        <p className="text-xs text-gray-500">2024-02-24</p>
-                      </div>
-                    </div>
-                    <Badge className="bg-green-100 text-green-700">+50</Badge>
-                  </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -1314,11 +1406,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-sm text-gray-600">已邀请好友</p>
-                    <p className="text-2xl font-bold">3人</p>
+                    <p className="text-2xl font-bold">{loadingInvite ? '...' : `${inviteStats.count}人`}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">获得积分</p>
-                    <p className="text-2xl font-bold text-green-600">+150</p>
+                    <p className="text-2xl font-bold text-green-600">{loadingInvite ? '...' : `+${inviteStats.points}`}</p>
                   </div>
                 </div>
               </div>
@@ -1327,11 +1419,12 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div>
                   <label className="text-sm font-medium">邀请码</label>
                   <div className="flex gap-2 mt-1">
-                    <Input value="ABC123XYZ" readOnly className="bg-gray-50" />
+                    <Input value={inviteCode || '暂无邀请码'} readOnly className="bg-gray-50" />
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => copyToClipboard('ABC123XYZ', '邀请码已复制')}
+                      onClick={() => inviteCode && copyToClipboard(inviteCode, '邀请码已复制')}
+                      disabled={!inviteCode}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -1342,16 +1435,15 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                   <label className="text-sm font-medium">邀请链接</label>
                   <div className="flex gap-2 mt-1">
                     <Input
-                      value="https://baogejia.com/invite/ABC123XYZ"
+                      value={inviteCode ? `${window.location.origin}/invite/${inviteCode}` : '暂无邀请链接'}
                       readOnly
                       className="bg-gray-50 text-xs"
                     />
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() =>
-                        copyToClipboard('https://baogejia.com/invite/ABC123XYZ', '邀请链接已复制')
-                      }
+                      onClick={() => inviteCode && copyToClipboard(`${window.location.origin}/invite/${inviteCode}`, '邀请链接已复制')}
+                      disabled={!inviteCode}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -1362,7 +1454,8 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <div className="flex gap-2">
                 <Button
                   className="flex-1 bg-gradient-to-r from-pink-600 to-purple-600"
-                  onClick={() => handleShareInvite('https://baogejia.com/invite/ABC123XYZ')}
+                  onClick={() => inviteCode && handleShareInvite(`${window.location.origin}/invite/${inviteCode}`)}
+                  disabled={!inviteCode}
                 >
                   <Share2 className="h-4 w-4 mr-2" />
                   分享
@@ -1380,33 +1473,26 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <div className="border-t pt-4">
                 <h4 className="text-sm font-medium mb-3">邀请排行榜</h4>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-yellow-100 text-yellow-700 flex items-center justify-center text-xs">
-                        1
-                      </span>
-                      <span className="text-sm">张三</span>
-                    </div>
-                    <span className="text-sm font-medium">15人</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-xs">
-                        2
-                      </span>
-                      <span className="text-sm">李四</span>
-                    </div>
-                    <span className="text-sm font-medium">12人</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center text-xs">
-                        3
-                      </span>
-                      <span className="text-sm">王五</span>
-                    </div>
-                    <span className="text-sm font-medium">8人</span>
-                  </div>
+                  {ranking.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-2">暂无排行榜数据</p>
+                  ) : (
+                    ranking.map((r) => (
+                      <div key={r.rank} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                            r.rank === 1 ? 'bg-yellow-100 text-yellow-700' :
+                            r.rank === 2 ? 'bg-gray-100 text-gray-700' :
+                            r.rank === 3 ? 'bg-orange-100 text-orange-700' :
+                            'bg-gray-50 text-gray-500'
+                          }`}>
+                            {r.rank}
+                          </span>
+                          <span className="text-sm">{r.name}</span>
+                        </div>
+                        <span className="text-sm font-medium">{r.count}人</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -1421,6 +1507,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <DialogDescription>您邀请的好友列表</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {loadingInvite ? (
+                <p className="text-sm text-gray-400 text-center py-4">加载中...</p>
+              ) : inviteRecords.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">暂无邀请记录</p>
+              ) : (
               <div className="space-y-2">
                 {inviteRecords.map((record) => (
                   <div
@@ -1455,6 +1546,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                   </div>
                 ))}
               </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -1514,28 +1606,34 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <DialogDescription>查看您的使用数据统计</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {loadingStats ? (
+                <p className="text-sm text-gray-400 text-center py-8">加载中...</p>
+              ) : (
+              <>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <FileText className="h-5 w-5 text-blue-600 mb-2" />
                   <p className="text-xs text-gray-600">报价单</p>
-                  <p className="text-xl font-bold">28</p>
+                  <p className="text-xl font-bold">{statsData.quotes}</p>
                 </div>
                 <div className="bg-green-50 p-3 rounded-lg">
                   <MessageSquare className="h-5 w-5 text-green-600 mb-2" />
                   <p className="text-xs text-gray-600">对话</p>
-                  <p className="text-xl font-bold">45</p>
+                  <p className="text-xl font-bold">{statsData.conversations}</p>
                 </div>
                 <div className="bg-purple-50 p-3 rounded-lg">
                   <Users className="h-5 w-5 text-purple-600 mb-2" />
                   <p className="text-xs text-gray-600">合作厂商</p>
-                  <p className="text-xl font-bold">12</p>
+                  <p className="text-xl font-bold">{statsData.suppliers}</p>
                 </div>
                 <div className="bg-amber-50 p-3 rounded-lg">
                   <Star className="h-5 w-5 text-amber-600 mb-2" />
                   <p className="text-xs text-gray-600">好评率</p>
-                  <p className="text-xl font-bold">96%</p>
+                  <p className="text-xl font-bold">{statsData.rating}</p>
                 </div>
               </div>
+              </>
+              )}
 
               <div className="border-t pt-4">
                 <h4 className="text-sm font-medium mb-3">月度趋势</h4>

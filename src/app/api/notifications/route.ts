@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 // 获取通知列表
 export async function GET(request: NextRequest) {
@@ -11,12 +13,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     const { data: notifications, error } = await db
       .from('notifications')
       .select('*')
-      .eq('user_id', parseInt(user_id))
+      .eq('user_id', user_id)
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少通知ID' }, { status: 400 });
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     const { error } = await db
       .from('notifications')

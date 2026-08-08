@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/auth-utils';
 
 // 生成邀请码
@@ -15,7 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 生成唯一的邀请码
     const code = `INVITE${user_id}${Date.now().toString(36)}`;
@@ -24,7 +26,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await db
       .from('invite_codes')
       .insert({
-        user_id: parseInt(user_id),
+        user_id,
         code,
         type,
         expire_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30天后过期
@@ -57,12 +59,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     const { data, error } = await db
       .from('invite_codes')
       .select('*')
-      .eq('user_id', parseInt(user_id))
+      .eq('user_id', user_id)
       .order('created_at', { ascending: false })
       .limit(10);
 
@@ -91,7 +93,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: '缺少邀请码' }, { status: 400 });
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 查找邀请码
     const { data: inviteCode, error: codeError } = await db

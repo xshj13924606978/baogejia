@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { POST as _awardPoints } from '../points/route';
 
 // 创建邀请链接
@@ -12,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 检查是否已有邀请码
     const { data: existingInvite } = await db
@@ -67,13 +69,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 获取邀请列表
     const { data: invites, error } = await db
       .from('invites')
       .select('*')
-      .eq('user_id', parseInt(user_id))
+      .eq('user_id', user_id)
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -91,7 +93,7 @@ export async function GET(request: NextRequest) {
     const { data: latestInvite } = await db
       .from('invites')
       .select('invite_code')
-      .eq('user_id', parseInt(user_id))
+      .eq('user_id', user_id)
       .order('created_at', { ascending: false })
       .maybeSingle();
 

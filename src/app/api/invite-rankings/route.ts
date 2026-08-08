@@ -1,9 +1,11 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 // 更新排行榜数据
 async function updateRankings(period: string = 'week') {
-  const db = getSupabaseClient();
+  const db = getSupabaseServiceClient();
 
   let startDate = new Date();
   if (period === 'day') {
@@ -70,7 +72,7 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get('period') || 'week'; // day/week/month/total
     const user_id = searchParams.get('user_id');
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 先更新排行榜数据
     await updateRankings(period);
@@ -101,7 +103,7 @@ export async function GET(request: NextRequest) {
         .from('invite_rankings')
         .select('*')
         .eq('period', period)
-        .eq('user_id', parseInt(user_id))
+        .eq('user_id', user_id)
         .single();
 
       if (userRankData) {
