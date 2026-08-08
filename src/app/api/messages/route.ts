@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { Logger } from '@/lib/logger';
 import { requireAuth } from '@/lib/auth-utils';
 
@@ -18,10 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseServiceClient();
 
     // 先检查对话是否存在，不存在则自动创建
     const { data: conversationData, error: checkError } = await supabase
@@ -132,10 +131,7 @@ export async function GET(request: NextRequest) {
     const { user, errorResponse } = await requireAuth(request);
     if (errorResponse) return errorResponse;
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseServiceClient();
 
     // 权限检查：非超管/管理员只能获取自己对话的消息
     if (user.role !== 'super_admin' && user.role !== 'admin') {
@@ -184,10 +180,7 @@ export async function PATCH(request: NextRequest) {
     const { user, errorResponse } = await requireAuth(request);
     if (errorResponse) return errorResponse;
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseServiceClient();
 
     const body = await request.json();
     const { quoteData, conversationId, role, contentPrefix } = body;

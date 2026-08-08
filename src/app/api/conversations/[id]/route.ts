@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/auth-utils';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -9,10 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { user, errorResponse } = await requireAuth(request);
     if (errorResponse) return errorResponse;
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseServiceClient();
 
     // 获取对话基本信息
     const { data: conversation, error: convError } = await supabase
@@ -101,10 +100,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const { user, errorResponse } = await requireAuth(request);
     if (errorResponse) return errorResponse;
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseServiceClient();
 
     // 权限检查：非超管/管理员只能修改自己的对话
     if (user.role !== 'super_admin' && user.role !== 'admin') {
@@ -164,10 +160,7 @@ export async function DELETE(
     const { user, errorResponse } = await requireAuth(request);
     if (errorResponse) return errorResponse;
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseServiceClient();
 
     // 权限检查：非超管/管理员只能删除自己的对话
     if (user.role !== 'super_admin' && user.role !== 'admin') {

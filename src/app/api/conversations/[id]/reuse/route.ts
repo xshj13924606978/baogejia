@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/auth-utils';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -9,10 +11,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { user, errorResponse } = await requireAuth(request);
     if (errorResponse) return errorResponse;
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseServiceClient();
 
     // 获取原对话
     const { data: original, error: fetchError } = await supabase
