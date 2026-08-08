@@ -3,7 +3,11 @@ import { Pool } from 'pg';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST() {
+// GET for easy curl access
+export async function GET() { return handleMigrate(); }
+export async function POST() { return handleMigrate(); }
+
+async function handleMigrate() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) {
     return NextResponse.json({ error: 'Missing SUPABASE_SERVICE_ROLE_KEY' }, { status: 500 });
@@ -11,7 +15,6 @@ export async function POST() {
 
   let pool: Pool | null = null;
   try {
-    // Use Supabase session pooler (IPv4 compatible)
     pool = new Pool({
       host: 'aws-0-ap-southeast-1.pooler.supabase.com',
       port: 6543,
