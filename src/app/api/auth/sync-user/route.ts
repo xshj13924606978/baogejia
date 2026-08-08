@@ -245,6 +245,7 @@ export async function POST(request: NextRequest) {
       synced: true,
     });
   } catch (error) {
+    console.error('[sync-user] 同步失败:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
