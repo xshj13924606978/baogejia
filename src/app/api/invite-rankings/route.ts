@@ -84,16 +84,7 @@ export async function GET(request: NextRequest) {
     // 获取排行榜前10名
     const { data: rankings, error } = await db
       .from('invite_rankings')
-      .select(
-        `
-        *,
-        user:users!invite_rankings_user_id_fkey (
-          id,
-          username,
-          avatar
-        )
-      `
-      )
+      .select('*')
       .eq('period', period)
       .order('rank', { ascending: true })
       .limit(10);
@@ -107,6 +98,15 @@ export async function GET(request: NextRequest) {
         });
       }
       throw error;
+    }
+
+    // 补全用户信息（外键可能不存在，单独查询）
+    let rankingsWithUser = rankings || [];
+    if (rankingsWithUser.length > 0) {
+      const userIds = [...new Set(rankingsWithUser.map((r: any) => r.user_id))];
+      const { data: users } = await db.from('users').select('id, username, avatar').in('id', userIds);
+      const userMap = new Map((users || []).map((u: any) => [u.id, u]));
+      rankingsWithUser = rankingsWithUser.map((r: any) => ({ ...r, user: userMap.get(r.user_id) || null }));
     }
 
     // 如果指定了user_id，找到该用户的排名
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        rankings: rankings || [],
+        rankings: rankingsWithUser,
         userRank,
       },
     });
