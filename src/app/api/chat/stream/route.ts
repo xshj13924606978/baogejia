@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from 'next/server';
 import { aiClient } from '@/lib/deepseek-client';
 import { InputProcessor } from '@/lib/input-processor';
@@ -84,14 +86,19 @@ export async function POST(request: NextRequest) {
   try {
     // 0. 获取当前用户（用于计费）
     let userId: string | null = null;
+    let userRole: string | null = null;
     try {
       const currentUser = await getCurrentUser(request);
       if (currentUser && currentUser.id) {
         userId = currentUser.id; // 保持 UUID 字符串格式
+        userRole = currentUser.role || null;
       }
     } catch (error) {
       console.error('[Chat Stream API] 获取用户信息失败:', error);
     }
+
+    // 管理员（super_admin / admin）不受积分限制
+    const isAdmin = userRole === 'super_admin' || userRole === 'admin';
 
     // 1. 解析请求
     const body = await request.json();
@@ -104,10 +111,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 1.5. 积分预检查（如果有用户）
+    // 1.5. 积分预检查（如果有用户且非管理员）
     let estimatedInputTokens = 0;
     let estimatedRequiredPoints = 0;
-    if (userId) {
+    if (userId && !isAdmin) {
       try {
         // 估算输入Token
         estimatedInputTokens = pointsService.countTokens(message);
@@ -411,8 +418,8 @@ export async function POST(request: NextRequest) {
               assistantMessage += `\n\n<!-- DATABASE_INFO: ${JSON.stringify(priceBrandCompareData)} -->`;
             }
 
-            // 扣除积分（如果有用户）- 使用统一的 pointsService
-            if (userId) {
+            // 扣除积分（如果有用户且非管理员）- 使用统一的 pointsService
+            if (userId && !isAdmin) {
               try {
                 // 计算实际 Token 消耗
                 const cleanContent = assistantMessage.replace(/<!-- DATABASE_INFO:.*?-->/g, '');
