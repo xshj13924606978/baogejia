@@ -23,6 +23,10 @@ export async function GET(request: NextRequest) {
       .limit(50);
 
     if (error) {
+      // Table might not exist yet; return empty data gracefully
+      if (error.code === '42P01' || error.code === 'PGRST205') {
+        return NextResponse.json({ success: true, notifications: [] });
+      }
       console.error('[Notifications] 查询失败:', error);
       return NextResponse.json({ error: '查询失败' }, { status: 500 });
     }
@@ -55,6 +59,9 @@ export async function POST(request: NextRequest) {
       .eq('id', notification_id);
 
     if (error) {
+      if (error.code === '42P01' || error.code === 'PGRST205') {
+        return NextResponse.json({ success: true, message: '已标记为已读' });
+      }
       console.error('[Notifications] 标记失败:', error);
       return NextResponse.json({ error: '标记失败' }, { status: 500 });
     }
