@@ -15,24 +15,38 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getSupabaseServiceClient();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5000';
+    const fallbackInviteCode = `INVITE${user_id}${Date.now().toString(36)}`;
+    const fallbackInviteLink = `${appUrl}/register?code=${fallbackInviteCode}`;
 
     // 检查是否已有邀请码
-    const { data: existingInvite } = await db
+    const { data: existingInvite, error: existingError } = await db
       .from('invites')
       .select('invite_code')
       .eq('user_id', user_id)
       .eq('status', 'pending')
       .maybeSingle();
 
+    if (existingError) {
+      // 表不存在时直接返回生成的邀请码，保证前端可以分享
+      if (existingError.code === '42P01' || existingError.code === 'PGRST205') {
+        return NextResponse.json({
+          success: true,
+          inviteLink: fallbackInviteLink,
+          inviteCode: fallbackInviteCode});
+      }
+      console.error('[Invite] 查询已有邀请码失败:', existingError);
+    }
+
     if (existingInvite) {
       return NextResponse.json({
         success: true,
-        inviteLink: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5000'}/register?code=${existingInvite.invite_code}`,
+        inviteLink: `${appUrl}/register?code=${existingInvite.invite_code}`,
         inviteCode: existingInvite.invite_code});
     }
 
     // 生成新的邀请码
-    const inviteCode = `INVITE${user_id}${Date.now().toString(36)}`;
+    const inviteCode = fallbackInviteCode;
 
     // 创建邀请记录
     const { data: invite, error } = await db
@@ -44,14 +58,26 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (error || !invite) {
+    if (error) {
+      // 表不存在时直接返回生成的邀请码，保证前端可以分享
+      if (error.code === '42P01' || error.code === 'PGRST205') {
+        return NextResponse.json({
+          success: true,
+          inviteLink: fallbackInviteLink,
+          inviteCode: inviteCode});
+      }
       console.error('[Invite] 创建邀请失败:', error);
+      return NextResponse.json({ error: '创建邀请失败' }, { status: 500 });
+    }
+
+    if (!invite) {
+      console.error('[Invite] 创建邀请后未返回数据');
       return NextResponse.json({ error: '创建邀请失败' }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      inviteLink: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5000'}/register?code=${inviteCode}`,
+      inviteLink: `${appUrl}/register?code=${inviteCode}`,
       inviteCode: invite.invite_code});
   } catch (error) {
     console.error('[Invite] 请求失败:', error);

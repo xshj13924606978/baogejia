@@ -356,17 +356,32 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
         }));
         setInviteRecords(records);
         setInviteStats({
-          count: invitesData.total || records.length,
-          points: invitesData.total_points || records.reduce((sum: number, r: any) => sum + r.points, 0),
+          count: invitesData.stats?.total ?? invitesData.total ?? records.length,
+          points: invitesData.stats?.points ?? invitesData.total_points ?? records.reduce((sum: number, r: any) => sum + r.points, 0),
         });
       }
-      if (codesData.success && codesData.codes && codesData.codes.length > 0) {
-        setInviteCode(codesData.codes[0].code);
+
+      let inviteCodeValue = codesData.data?.[0]?.code ?? invitesData.inviteCode ?? null;
+      if (!inviteCodeValue) {
+        const createRes = await fetch('/api/invites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId }),
+        });
+        const createData = await createRes.json();
+        if (createData.success && createData.inviteCode) {
+          inviteCodeValue = createData.inviteCode;
+        }
       }
-      if (rankingData.success && rankingData.rankings) {
-        setRanking(rankingData.rankings.map((r: any, i: number) => ({
+      if (inviteCodeValue) {
+        setInviteCode(inviteCodeValue);
+      }
+
+      if (rankingData.success && (rankingData.data?.rankings || rankingData.rankings)) {
+        const rankings = rankingData.data?.rankings || rankingData.rankings || [];
+        setRanking(rankings.map((r: any, i: number) => ({
           rank: i + 1,
-          name: r.user_name || r.name || '',
+          name: r.user?.username || r.user_name || r.name || '',
           count: r.invite_count || r.count || 0,
         })));
       }
