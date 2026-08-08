@@ -27,6 +27,9 @@ async function handleMigrate() {
   `;
 
   try {
+    // Force IPv4 for Supabase connection (IPv6 is unreachable from China)
+    require('dns').setDefaultResultOrder('ipv4first');
+
     const { Pool } = await import('pg');
     const pool = new Pool({
       host: 'db.tjbnjrcgmyiwudqptfhc.supabase.co',
@@ -35,7 +38,6 @@ async function handleMigrate() {
       password: serviceKey,
       database: 'postgres',
       ssl: { rejectUnauthorized: false },
-      family: 4,
       connectionTimeoutMillis: 15000,
     });
     await pool.query(sql);
