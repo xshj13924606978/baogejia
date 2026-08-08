@@ -27,6 +27,7 @@ const PUBLIC_PATHS = [
   '/api/auth',        // 所有认证相关 API（login/register/send-sms-code/verify-sms-code/oauth-url/callback 等）
   '/api/public',
   '/api/migrate',     // 数据库迁移端点（一次性）
+  '/api/points',      // 积分查询（无需登录，GET 有 user_id 参数）
   '/_next',
   '/static',
   '/favicon.ico',
