@@ -953,7 +953,33 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   const bindWechat = async (): Promise<void> => {
-    await thirdPartyLogin('wechat');
+    if (!user || !user.id) {
+      setError('请先登录');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 生成绑定模式的 state: bind:<userId>:<random>
+      const randomPart = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+      const state = `bind:${user.id}:${randomPart}`;
+      localStorage.setItem('oauth_state', state);
+
+      // 通过后端 API 获取微信 OAuth 授权 URL
+      const response = await fetch(`/api/auth/oauth-url?provider=wechat&state=${encodeURIComponent(state)}`);
+      const data = await response.json();
+
+      if (data.success && data.authUrl) {
+        window.location.href = data.authUrl;
+      } else {
+        setError(data.error || '微信绑定暂未开放');
+      }
+    } catch (error) {
+      console.error('[bindWechat] 微信绑定失败:', error);
+      setError('网络错误，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const unbindWechat = async (): Promise<boolean> => {
@@ -969,6 +995,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const { password: _, ...userWithoutPassword } = updatedUser;
     setUser(userWithoutPassword);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
+
+    // 同步解绑到 Supabase：删除 OAuth 绑定记录 + 清空微信字段
+    try {
+      const token = localStorage.getItem('session_token');
+      if (token) {
+        await fetch('/api/auth/unlink', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-token': token,
+          },
+          body: JSON.stringify({ provider: 'wechat' }),
+        });
+      }
+    } catch (error) {
+      console.error('[unbindWechat] Supabase 解绑失败（不影响本地解绑）:', error);
+    }
 
     return true;
   };
