@@ -245,6 +245,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   const [inviteRecords, setInviteRecords] = useState<Array<{id: number; name: string; time: string; status: string; points: number}>>([]);
   const [showQrCodeDialog, setShowQrCodeDialog] = useState(false);
   const qrCodeRef = useRef<HTMLDivElement>(null);
+  const [manualCopyText, setManualCopyText] = useState<string | null>(null);
 
   // 统计数据
   const [statsData, setStatsData] = useState({ quotes: 0, conversations: 0, suppliers: 0, rating: '0%' });
@@ -473,12 +474,8 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
       });
     };
     const onFail = () => {
-      toast({
-        title: '复制失败',
-        description: '请手动选中复制',
-        variant: 'destructive',
-        duration: 3000,
-      });
+      // 所有自动复制都失败：弹出对话框让用户手动复制
+      setManualCopyText(text);
     };
     // 优先使用 Clipboard API（HTTPS / localhost 可用）
     if (
@@ -490,7 +487,6 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
         .writeText(text)
         .then(onSuccess)
         .catch(() => {
-          // Clipboard API 调用失败（如权限拒绝），降级使用 execCommand
           legacyCopy(text, onSuccess, onFail);
         });
       return;
@@ -522,12 +518,16 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     document.body.appendChild(textarea);
     textarea.focus();
     textarea.select();
+    let ok = false;
     try {
-      const ok = document.execCommand('copy');
-      document.body.removeChild(textarea);
-      ok ? onSuccess() : onFail();
+      ok = document.execCommand('copy');
     } catch (_) {
-      document.body.removeChild(textarea);
+      ok = false;
+    }
+    document.body.removeChild(textarea);
+    if (ok) {
+      onSuccess();
+    } else {
       onFail();
     }
   };
@@ -1705,6 +1705,62 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 ))}
               </div>
               )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* 手动复制对话框（HTTP 环境复制失败时降级） */}
+        <Dialog open={manualCopyText !== null} onOpenChange={(open) => !open && setManualCopyText(null)}>
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[460px]">
+            <DialogHeader>
+              <DialogTitle>请手动复制</DialogTitle>
+              <DialogDescription>
+                当前浏览器不支持自动复制，请长按下方文本框全选后复制
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <textarea
+                readOnly
+                value={manualCopyText || ''}
+                onFocus={(e) => e.currentTarget.select()}
+                onClick={(e) => e.currentTarget.select()}
+                className="w-full p-3 text-sm border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={4}
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    const textarea = document.querySelector('textarea[rows="4"]') as HTMLTextAreaElement | null;
+                    if (textarea) {
+                      textarea.focus();
+                      textarea.select();
+                      try {
+                        document.execCommand('copy');
+                        toast({ title: '复制成功', description: '已复制到剪贴板', duration: 2000 });
+                      } catch (_) {
+                        toast({
+                          title: '请手动复制',
+                          description: '长按上方文本框全选后复制',
+                          duration: 3000,
+                        });
+                      }
+                    }
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  再次尝试复制
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    setManualCopyText(null);
+                  }}
+                >
+                  关闭
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
