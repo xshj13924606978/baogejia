@@ -17,6 +17,8 @@ export async function POST(request: NextRequest) {
     // 获取当前用户
     const currentUser = await getCurrentUser(request);
     const userId = currentUser?.id || null;
+    const userRole = currentUser?.role || null;
+    const isAdmin = userRole === 'super_admin' || userRole === 'admin';
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -83,8 +85,8 @@ export async function POST(request: NextRequest) {
       ? Math.ceil(uploadFilePoints)
       : Math.max(MIN_UPLOAD_POINTS, Math.ceil(fileSizeKB * UPLOAD_POINTS_PER_KB));
 
-    // 积分检查（如果有用户）
-    if (userId) {
+    // 积分检查（如果有用户且非管理员）
+    if (userId && !isAdmin) {
       const hasEnough = await pointsService.checkPointsBalance(userId, requiredPoints);
       if (!hasEnough) {
         const pointsInfo = await pointsService.getUserPoints(userId);
@@ -219,8 +221,8 @@ export async function POST(request: NextRequest) {
     const publicUrl = `${supabaseUrl}/storage/v1/object/public/quote-files/${fileKey}`;
 
 
-    // 扣除积分（如果有用户）
-    if (userId) {
+    // 扣除积分（如果有用户且非管理员）
+    if (userId && !isAdmin) {
       try {
         const deductResult = await pointsService.deductPoints(
           userId,

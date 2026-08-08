@@ -72,7 +72,7 @@ export async function GET(
     // ======== 绑定模式：state = bind:<userId>:<random> ========
     if (state.startsWith('bind:')) {
       const stateParts = state.split(':');
-      const bindUserId = parseInt(stateParts[1], 10);
+      const bindUserId = stateParts[1]; // 用户 ID 是 UUID 字符串，不是整数
 
       if (!bindUserId) {
         return NextResponse.redirect(

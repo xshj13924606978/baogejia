@@ -12,6 +12,13 @@ import { Mail, Phone, Building, MapPin, Edit2 } from 'lucide-react';
 export default function ProfilePanel() {
   const { user } = useUser();
 
+  // 格式化手机号为脱敏显示
+  const maskedPhone = user?.phone
+    ? user.phone.length >= 11
+      ? `${user.phone.slice(0, 3)}****${user.phone.slice(-4)}`
+      : user.phone
+    : '';
+
   return (
     <div className="p-4 space-y-4">
       <Card>
@@ -49,21 +56,21 @@ export default function ProfilePanel() {
               <Label>手机</Label>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-gray-400" />
-                <Input value="138****8888" readOnly className="bg-gray-50" />
+                <Input value={maskedPhone || '未设置'} readOnly className="bg-gray-50" />
               </div>
             </div>
             <div className="space-y-1">
               <Label>公司</Label>
               <div className="flex items-center gap-2">
                 <Building className="h-4 w-4 text-gray-400" />
-                <Input value="兴绿环境" readOnly className="bg-gray-50" />
+                <Input value={user?.company || '未设置'} readOnly className="bg-gray-50" />
               </div>
             </div>
             <div className="space-y-1">
               <Label>地址</Label>
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-gray-400" />
-                <Input value="上海市浦东新区" readOnly className="bg-gray-50" />
+                <Input value={user?.address || '未设置'} readOnly className="bg-gray-50" />
               </div>
             </div>
           </div>

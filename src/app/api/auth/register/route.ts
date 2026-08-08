@@ -2,9 +2,23 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
-import { POST as _awardPoints } from '../../points/route';
 import { getSiteConfigValues } from '@/lib/site-config';
 import bcrypt from 'bcrypt';
+
+// 默认注册积分奖励
+const DEFAULT_REGISTER_POINTS = 10;
+
+async function getRegisterPoints(): Promise<number> {
+  try {
+    const configs = await getSiteConfigValues(['register_points']);
+    const value = configs['register_points'];
+    if (value === null || value === undefined || value === '') return DEFAULT_REGISTER_POINTS;
+    const parsed = parseFloat(value);
+    return Number.isNaN(parsed) ? DEFAULT_REGISTER_POINTS : parsed;
+  } catch {
+    return DEFAULT_REGISTER_POINTS;
+  }
+}
 
 // 注册用户
 export async function POST(request: NextRequest) {
@@ -82,15 +96,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '注册失败' }, { status: 500 });
     }
 
-    // 注册成功后奖励积分
+    // 注册成功后奖励积分（直接操作数据库，避免 HTTP 自调用认证问题）
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/points`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user.id,
-          type: 'register',
-          description: '注册账号奖励'})});
+      const pointsRule = await getRegisterPoints();
+      if (pointsRule > 0) {
+        const { error: pointsError } = await supabase
+          .from('point_records')
+          .insert({
+            user_id: user.id,
+            points: pointsRule,
+            type: 'register',
+            description: '注册账号奖励'
+          })
+          .select()
+          .single();
+
+        if (!pointsError) {
+          // 更新用户积分
+          const { data: userPoints } = await supabase
+            .from('users')
+            .select('points, total_points')
+            .eq('id', user.id)
+            .single();
+
+          const newPoints = Math.max(0, (userPoints?.points || 0) + pointsRule);
+          const newTotalPoints = (userPoints?.total_points || 0) + Math.max(0, pointsRule);
+
+          await supabase
+            .from('users')
+            .update({ points: newPoints, total_points: newTotalPoints })
+            .eq('id', user.id);
+        }
+      }
     } catch (pointsError) {
       console.error('[Auth] 注册积分奖励失败:', pointsError);
     }
