@@ -11,97 +11,39 @@ async function handleMigrate() {
     return NextResponse.json({ error: 'Missing SUPABASE_SERVICE_ROLE_KEY' }, { status: 500 });
   }
 
-  const sql = `
-    CREATE TABLE IF NOT EXISTS notifications (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-      type VARCHAR(50) NOT NULL,
-      title VARCHAR(255) NOT NULL,
-      content TEXT,
-      data JSONB,
-      is_read BOOLEAN DEFAULT false,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    );
-    CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-    CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
-  `;
+  const sql = `CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    content TEXT,
+    data JSONB,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+  CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+  CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);`;
 
-  const logs: string[] = [];
-  const hostname = 'db.tjbnjrcgmyiwudqptfhc.supabase.co';
-
-  // Try 1: dns.resolve4 -> connect via IPv4
+  // Try Supabase Management API (HTTP, works via IPv4)
   try {
-    const dns = require('dns');
-    const { promisify } = require('util');
-    const resolve4 = promisify(dns.resolve4);
-    const addresses: string[] = await resolve4(hostname);
-    const ipv4 = addresses[0];
-    logs.push(`dns.resolve4 OK: ${ipv4}`);
-
-    const { Pool } = await import('pg');
-    const pool = new Pool({
-      host: ipv4,
-      port: 5432,
-      user: 'postgres',
-      password: serviceKey,
-      database: 'postgres',
-      ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 10000,
-    });
-    await pool.query(sql);
-    await pool.end();
-    return NextResponse.json({ success: true, method: 'pg-ipv4', logs });
-  } catch (e1: any) {
-    logs.push(`Try1(pg-ipv4): ${e1.message}`);
-
-    // Try 2: pg with pooler (force IPv4 via pooler)
-    try {
-      // Force IPv4 DNS
-      const dns = require('dns');
-      dns.setDefaultResultOrder?.('ipv4first');
-
-      const { Pool } = await import('pg');
-      const pool = new Pool({
-        host: 'aws-0-ap-southeast-1.pooler.supabase.com',
-        port: 5432,
-        user: 'postgres.tjbnjrcgmyiwudqptfhc',
-        password: serviceKey,
-        database: 'postgres',
-        ssl: { rejectUnauthorized: false },
-        connectionTimeoutMillis: 10000,
-      });
-      await pool.query(sql);
-      await pool.end();
-      return NextResponse.json({ success: true, method: 'pg-pooler-5432', logs });
-    } catch (e2: any) {
-      logs.push(`Try2(pg-pooler-5432): ${e2.message}`);
-
-      // Try 3: using supabase-js to create table via REST API
-      try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(
-          'https://tjbnjrcgmyiwudqptfhc.supabase.co',
-          serviceKey,
-          { auth: { persistSession: false } }
-        );
-
-        // Check if table exists first
-        const { data: testRow, error: testErr } = await supabase
-          .from('notifications')
-          .select('id')
-          .limit(1);
-
-        if (testErr) {
-          logs.push(`Try3(table-check): table doesn't exist yet - ${testErr.message}`);
-        } else {
-          // Table already exists
-          return NextResponse.json({ success: true, method: 'already-exists', logs });
-        }
-      } catch (e3: any) {
-        logs.push(`Try3(supabase-js): ${e3.message}`);
+    const res = await fetch(
+      'https://api.supabase.com/v1/projects/tjbnjrcgmyiwudqptfhc/query',
+      {
+        method: 'POST',
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: sql }),
       }
+    );
+    const text = await res.text();
+    if (res.ok) {
+      return NextResponse.json({ success: true, method: 'management-api', result: text });
     }
+    return NextResponse.json({ error: `Management API: ${res.status} - ${text}` }, { status: 500 });
+  } catch (e: any) {
+    return NextResponse.json({ error: `Management API: ${e.message}` }, { status: 500 });
   }
-
-  return NextResponse.json({ error: 'All methods failed', logs }, { status: 500 });
 }
