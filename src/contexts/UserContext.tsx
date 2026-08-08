@@ -212,6 +212,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     clearEmail?: boolean;
     clearPhone?: boolean;
     currentPassword?: string;
+    newPassword?: string;
   }) => {
     try {
       const currentUserId = user?.id || '';
@@ -222,7 +223,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         phone: dbUser.phone,
         email: dbUser.email,
         username: dbUser.username || dbUser.name,
-        password: dbUser.password,
+        // 优先使用 newPassword（密码修改场景），否则用 localStorage 中的密码
+        password: options?.newPassword || dbUser.password,
         name: dbUser.name,
         role: dbUser.role,
         supabaseUserId: (user as any)?.supabaseId,
@@ -1145,14 +1147,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const dbUser = findUserById(user.id);
     if (!dbUser) return false;
 
-    if (dbUser.password && dbUser.password !== oldPassword) {
+    // 注意：saveUserToDB 会删除 password 字段，所以需要先记住旧密码
+    const actualOldPassword = dbUser.password;
+    if (actualOldPassword && actualOldPassword !== oldPassword) {
       return false;
     }
 
     saveUserToDB({ ...dbUser, password: newPassword });
 
-    // 同步新密码到 Supabase（传入旧密码以通过服务端验证）
-    await syncToSupabase({ currentPassword: oldPassword });
+    // 直接传新密码和旧密码到同步函数，不依赖 localStorage 读取
+    await syncToSupabase({ currentPassword: oldPassword, newPassword });
 
     localStorage.setItem(
       STORAGE_KEYS.PASSWORD_CHANGE_EVENT,
