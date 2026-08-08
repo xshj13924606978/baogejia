@@ -25,8 +25,17 @@ RUN pnpm install --frozen-lockfile
 # 复制全部源码
 COPY . .
 
+# 构建期环境变量（NEXT_PUBLIC_* 会在构建时内联，运行时环境变量无法覆盖）
+ARG NEXT_PUBLIC_APP_URL
+ARG WECHAT_APP_ID
+ARG WECHAT_APP_SECRET
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+ENV WECHAT_APP_ID=${WECHAT_APP_ID}
+ENV WECHAT_APP_SECRET=${WECHAT_APP_SECRET}
+
 # 构建 Next.js（standalone 模式，跳过 prebuild type-check）
-RUN NODE_ENV=production npx next build
+# NEXT_PUBLIC 变量在构建时内联，需确保已设置
+RUN echo "构建 APP_URL=$NEXT_PUBLIC_APP_URL WECHAT_APP_ID=$WECHAT_APP_ID" && NODE_ENV=production npx next build
 
 # ---- 生产阶段 ----
 FROM node:20-alpine AS runner

@@ -3,6 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://xs-bj.com}
+        - WECHAT_APP_ID=${WECHAT_APP_ID}
+        - WECHAT_APP_SECRET=${WECHAT_APP_SECRET}
     container_name: quote-app
     ports:
       - "5000:5000"
@@ -20,6 +24,9 @@ services:
       - TENCENT_SMS_TEMPLATE_ID=${TENCENT_SMS_TEMPLATE_ID}
       - SESSION_TOKEN_SECRET=${SESSION_TOKEN_SECRET}
       - DATABASE_URL=${DATABASE_URL}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://xs-bj.com}
+      - WECHAT_APP_ID=${WECHAT_APP_ID}
+      - WECHAT_APP_SECRET=${WECHAT_APP_SECRET}
     volumes:
       - ./tmp:/tmp
       - ./logs:/app/logs
