@@ -11,72 +11,78 @@ async function handleMigrate() {
     return NextResponse.json({ error: 'Missing SUPABASE_SERVICE_ROLE_KEY' }, { status: 500 });
   }
 
+  const sql = `
+    CREATE TABLE IF NOT EXISTS notifications (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      type VARCHAR(50) NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      content TEXT,
+      data JSONB,
+      is_read BOOLEAN DEFAULT false,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
+  `;
+
+  // Approach 1: Supabase SQL REST API (requires both apikey and Authorization headers)
   try {
-    // Use Supabase REST API to execute raw SQL via the query endpoint
-    // POST https://<project>.supabase.co/rest/v1/sql
-    const res = await fetch('https://tjbnjrcgmyiwudqptfhc.supabase.co/rest/v1/', {
+    const res = await fetch('https://tjbnjrcgmyiwudqptfhc.supabase.co/rest/v1/rpc/exec_sql', {
       method: 'POST',
       headers: {
+        'apikey': serviceKey,
         'Authorization': `Bearer ${serviceKey}`,
         'Content-Type': 'application/json',
-        'Content-Profile': 'sql',
-        'Prefer': 'tx=commit',
       },
-      body: JSON.stringify({
-        query: `
-          CREATE TABLE IF NOT EXISTS notifications (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-            type VARCHAR(50) NOT NULL,
-            title VARCHAR(255) NOT NULL,
-            content TEXT,
-            data JSONB,
-            is_read BOOLEAN DEFAULT false,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-          );
-          CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-          CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
-        `
-      }),
+      body: JSON.stringify({ query: sql }),
     });
-
     const text = await res.text();
-    if (!res.ok) {
-      // Fallback: try pg library with transaction pooler
-      try {
-        const { Pool } = await import('pg');
-        const pool = new Pool({
-          host: process.env.SUPABASE_DB_HOST || 'aws-0-ap-southeast-1.pooler.supabase.com',
-          port: parseInt(process.env.SUPABASE_DB_PORT || '6543'),
-          user: process.env.SUPABASE_DB_USER || 'postgres',
-          password: serviceKey,
-          database: 'postgres',
-          ssl: { rejectUnauthorized: false },
-          connectionTimeoutMillis: 10000,
-        });
-        await pool.query(`
-          CREATE TABLE IF NOT EXISTS notifications (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-            type VARCHAR(50) NOT NULL,
-            title VARCHAR(255) NOT NULL,
-            content TEXT,
-            data JSONB,
-            is_read BOOLEAN DEFAULT false,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-          );
-          CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-          CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
-        `);
-        await pool.end();
-        return NextResponse.json({ success: true, message: 'notifications table created (fallback pg)', method: 'pg' });
-      } catch (pgErr: any) {
-        return NextResponse.json({ error: `SQL returned ${res.status}: ${text}, pg fallback: ${pgErr.message}` }, { status: 500 });
-      }
+    if (res.ok && !text.includes('error') && !text.includes('syntax error')) {
+      return NextResponse.json({ success: true, method: 'rpc', result: text });
     }
-
-    return NextResponse.json({ success: true, message: 'notifications table created', result: text });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!res.ok) console.log('[migrate] rpc exec_sql failed:', text.slice(0, 200));
+  } catch (e: any) {
+    console.log('[migrate] rpc exception:', e.message);
   }
+
+  // Approach 2: pg direct connection with tenant identifier
+  try {
+    const { Pool } = await import('pg');
+    const pool = new Pool({
+      host: 'db.tjbnjrcgmyiwudqptfhc.supabase.co',
+      port: 5432,
+      user: 'postgres',
+      password: serviceKey,
+      database: 'postgres',
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10000,
+    });
+    await pool.query(sql);
+    await pool.end();
+    return NextResponse.json({ success: true, method: 'pg-direct' });
+  } catch (pgErr: any) {
+    console.log('[migrate] pg-direct failed:', pgErr.message);
+  }
+
+  // Approach 3: pg transaction pooler
+  try {
+    const { Pool } = await import('pg');
+    const pool = new Pool({
+      host: 'aws-0-ap-southeast-1.pooler.supabase.com',
+      port: 6543,
+      user: `postgres.tjbnjrcgmyiwudqptfhc`,
+      password: serviceKey,
+      database: 'postgres',
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10000,
+    });
+    await pool.query(sql);
+    await pool.end();
+    return NextResponse.json({ success: true, method: 'pg-pooler' });
+  } catch (pgErr2: any) {
+    console.log('[migrate] pg-pooler failed:', pgErr2.message);
+  }
+
+  return NextResponse.json({ error: 'All migration methods failed' }, { status: 500 });
 }
