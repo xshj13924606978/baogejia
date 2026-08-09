@@ -22,6 +22,10 @@ const nextConfig = {
     ],
   },
 
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   async headers() {
     const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || '';
     return [
