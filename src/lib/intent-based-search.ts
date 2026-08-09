@@ -18,7 +18,7 @@
  *   - 所有满足条件的产品全部展示
  */
 
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import type { Intent, IntentProduct } from './intent-understanding';
 
 // ═══════════════════════ 接口 ═══════════════════════
@@ -356,7 +356,7 @@ export class IntentBasedSearch {
   }
 
   async search(intent: Intent): Promise<IntentSearchResult> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
     const { productType, brand, specs, budget, attributes } = intent.entities;
 
     if (!productType) {
