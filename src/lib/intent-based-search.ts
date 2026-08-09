@@ -18,7 +18,6 @@
  *   - 所有满足条件的产品全部展示
  */
 
-import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import type { Intent, IntentProduct } from './intent-understanding';
 
 // ═══════════════════════ 接口 ═══════════════════════
@@ -356,7 +355,6 @@ export class IntentBasedSearch {
   }
 
   async search(intent: Intent): Promise<IntentSearchResult> {
-    const supabase = getSupabaseServiceClient();
     const { productType, brand, specs, budget, attributes } = intent.entities;
 
     if (!productType) {
@@ -364,24 +362,25 @@ export class IntentBasedSearch {
     }
 
 
-    // ═══ SQL 层：宽松获取候选集 ═══
-    let query = supabase
-      .from('products')
-      .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category');
+    // ═══ SQL 层：宽松获取候选集（直接 fetch Supabase REST API，绕过 supabase-js 兼容性问题）═══
+    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
+    const apiKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    const select = encodeURIComponent('id,name,model,price,min_price,cost_price,parameter_description,brand,category');
 
     const strategies: string[] = [];
+    const filters: string[] = [];
 
-    query = query.ilike('name', `%${productType}%`);
+    filters.push(`name=ilike.*${encodeURIComponent(productType)}*`);
     strategies.push(`产品类型=${productType}`);
 
     if (brand) {
-      query = query.ilike('brand', `%${brand}%`);
+      filters.push(`brand=ilike.*${encodeURIComponent(brand)}*`);
       strategies.push(`品牌=${brand}`);
     }
 
     if (budget) {
-      if (budget.max) { query = query.lte('price', budget.max); strategies.push(`预算≤${budget.max}`); }
-      if (budget.min) { query = query.gte('price', budget.min); strategies.push(`预算≥${budget.min}`); }
+      if (budget.max) { filters.push(`price=lte.${budget.max}`); strategies.push(`预算≤${budget.max}`); }
+      if (budget.min) { filters.push(`price=gte.${budget.min}`); strategies.push(`预算≥${budget.min}`); }
     }
 
     let orderField: string | null = null;
@@ -391,7 +390,8 @@ export class IntentBasedSearch {
         const filter = ATTRIBUTE_FILTERS[attr];
         if (!filter) continue;
         if (filter.ilikeField && filter.ilikePattern) {
-          query = query.ilike(filter.ilikeField, filter.ilikePattern);
+          const pgPattern = filter.ilikePattern.replace(/%/g, '*');
+          filters.push(`${filter.ilikeField}=ilike.${encodeURIComponent(pgPattern)}`);
           strategies.push(`属性=${attr}`);
         }
         if (filter.orderField) {
@@ -401,9 +401,27 @@ export class IntentBasedSearch {
       }
     }
 
-    query = query.limit(200);
+    const orderParam = orderField ? `&order=${orderField}.${orderDir}.nullslast` : '';
+    const url = `${supabaseUrl}/rest/v1/products?select=${select}&${filters.join('&')}&limit=200${orderParam}`;
 
-    const { data: products, error } = await query;
+    let products: any[] = [];
+    let error: any = null;
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'apikey': apiKey,
+          'Authorization': `Bearer ${apiKey}`,
+        },
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        error = { message: `HTTP ${res.status}: ${body.substring(0, 200)}` };
+      } else {
+        products = await res.json();
+      }
+    } catch (e: any) {
+      error = { message: e.message };
+    }
 
     if (error) {
       console.error('[IntentBasedSearch] Supabase 查询失败:', error);
