@@ -195,6 +195,39 @@ export const getRoleDisplayName = (role: UserRole): string => {
   return roleNames[role] || role;
 };
 
+// 角色选项（用于下拉选择）
+export const ROLE_OPTIONS = [
+  { value: 'super_admin', label: '超级管理员' },
+  { value: 'admin', label: '系统管理员' },
+  { value: 'enterprise_admin', label: '企业管理员' },
+  { value: 'manufacturer', label: '产品厂家' },
+  { value: 'vip', label: 'VIP会员' },
+  { value: 'premium', label: '付费会员' },
+  { value: 'free', label: '免费用户' },
+  { value: 'pending', label: '待审核' },
+];
+
+// 用户状态显示名称
+export const getUserStatusDisplayName = (status: UserStatus): string => {
+  const statusNames: Record<UserStatus, string> = {
+    active: '正常',
+    inactive: '未激活',
+    pending: '待审核',
+    banned: '已封禁',
+    expired: '已过期',
+  };
+  return statusNames[status] || status;
+};
+
+// 用户状态下拉选项
+export const USER_STATUS_OPTIONS = [
+  { value: 'active', label: '正常' },
+  { value: 'inactive', label: '未激活' },
+  { value: 'pending', label: '待审核' },
+  { value: 'banned', label: '已封禁' },
+  { value: 'expired', label: '已过期' },
+];
+
 // 获取角色等级（用于权限判断）
 export const getRoleLevel = (role: UserRole): number => {
   const levels: Record<UserRole, number> = {
