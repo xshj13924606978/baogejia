@@ -729,6 +729,8 @@ export async function POST(request: NextRequest) {
         '--disable-features=IsolateOrigins,site-per-process',
       ]});
 
+    try {
+
     const browserLaunchTime = Date.now() - browserLaunchStart;
 
     const page = await browser.newPage();
@@ -755,8 +757,6 @@ export async function POST(request: NextRequest) {
       preferCSSPageSize: true});
     const pdfTime = Date.now() - pdfStart;
 
-    await browser.close();
-
     const totalTime = Date.now() - startTime;
 
     const fileName = `报价单_${formatText(quoteNumber)}_${new Date().getTime()}.pdf`;
@@ -774,6 +774,10 @@ export async function POST(request: NextRequest) {
         Expires: '0'}});
 
     return response;
+    } finally {
+      // 确保浏览器进程在任何情况下都被关闭，防止僵尸进程
+      try { await browser.close(); } catch {}
+    }
   } catch (error) {
     const errorTime = Date.now() - startTime;
     console.error('[ExportPDF] ==========================================');

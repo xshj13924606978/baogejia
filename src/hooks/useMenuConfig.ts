@@ -31,7 +31,7 @@ interface MenuConfigState {
 }
 
 const cache = { data: null as MenuModule[] | null, timestamp: 0 };
-const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_TTL = 0;
 
 export function useMenuConfig() {
   const [state, setState] = useState<MenuConfigState>({

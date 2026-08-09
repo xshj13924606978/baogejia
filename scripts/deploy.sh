@@ -90,7 +90,7 @@ case $DEPLOY_MODE in
         docker run -d \
             --name quote-app \
             --restart unless-stopped \
-            -p 3000:3000 \
+            -p 5000:5000 \
             --env-file .env.production \
             -v $(pwd)/tmp:/tmp \
             -v $(pwd)/logs:/app/logs \

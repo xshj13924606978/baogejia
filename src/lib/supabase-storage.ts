@@ -2,10 +2,20 @@ import { supabase } from './supabase-client';
 
 const BUCKET_NAME = process.env.STORAGE_BUCKET || 'quote-files';
 
+// 防止路径穿越：移除 .. 和绝对路径
+function sanitizePath(path: string): string {
+  return path
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter(segment => segment !== '..' && segment !== '.' && segment !== '')
+    .join('/');
+}
+
 // 上传文件
 export async function uploadFile(file: File, path?: string) {
   try {
-    const filePath = path || `${Date.now()}-${file.name}`;
+    const rawPath = path || `${Date.now()}-${file.name}`;
+    const filePath = sanitizePath(rawPath);
 
     const { data, error } = await supabase.storage.from(BUCKET_NAME).upload(filePath, file, {
       cacheControl: '3600',
@@ -60,7 +70,8 @@ export async function listFiles(prefix?: string) {
 // 删除文件
 export async function deleteFile(path: string) {
   try {
-    const { error } = await supabase.storage.from(BUCKET_NAME).remove([path]);
+    const safePath = sanitizePath(path);
+    const { error } = await supabase.storage.from(BUCKET_NAME).remove([safePath]);
 
     if (error) throw error;
 

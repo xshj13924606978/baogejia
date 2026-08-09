@@ -1,43 +1,23 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { withPermissionCheck } from '@/lib/permission-check';
-import { getCurrentUser } from '@/lib/auth-utils';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAdmin } from '@/lib/auth-utils';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 /**
  * 权限使用热力图API
  *
  * 功能：
  * - GET: 获取权限使用热力图数据，包括每日使用量、权限使用统计、API拒绝统计
- * 权限：仅超级管理员
+ * 权限：需要管理员权限
  */
 
-export const GET = withPermissionCheck(
-  { requiresAuth: true, permissions: ['admin.stats.view'] },
-  async (request: NextRequest, _context: any) => {
-    try {
-      // 获取当前用户
-      const currentUser = await getCurrentUser(request);
-      if (!currentUser || !currentUser.id) {
-        return NextResponse.json({ error: '无权限' }, { status: 403 });
-      }
+export async function GET(request: NextRequest) {
+  const { errorResponse } = await requireAdmin(request);
+  if (errorResponse) return errorResponse;
 
-      // 查询用户角色
-      const supabase = getSupabaseClient();
-      const { data: userRole, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', currentUser.id)
-        .single();
-
-      if (roleError || !userRole) {
-        console.error('[Heatmap API] 获取用户角色失败:', roleError);
-        return NextResponse.json({ error: '无权限' }, { status: 403 });
-      }
-
-      // 检查超级管理员权限
-      if (userRole.role !== 'super_admin') {
-        return NextResponse.json({ error: '无权限，需要超级管理员权限' }, { status: 403 });
-      }
+  try {
+      const supabase = getSupabaseServiceClient();
 
       // 获取查询参数
       const { searchParams } = new URL(request.url);
@@ -127,5 +107,4 @@ export const GET = withPermissionCheck(
       console.error('[Heatmap API] 获取热力图失败:', error);
       return NextResponse.json({ error: '获取失败' }, { status: 500 });
     }
-  }
-);
+}

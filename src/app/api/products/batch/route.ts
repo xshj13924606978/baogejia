@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ServerDatabaseUtils, ServerFileUtils } from '@/lib/server-utils';
+import { requireAuth } from '@/lib/auth-utils';
 import * as XLSX from 'xlsx';
 
 export async function POST(request: NextRequest) {
+  // 认证检查
+  const auth = await requireAuth(request);
+  if (auth.user === null) {
+    return NextResponse.json({ error: '未授权' }, { status: auth.errorResponse?.status || 401 });
+  }
+
   try {
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const _userId = (formData.get('userId') as string) || 'anonymous';
 
     if (!file) {
       return NextResponse.json({ error: '请上传文件' }, { status: 400 });

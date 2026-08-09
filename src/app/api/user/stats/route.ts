@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 // 获取用户统计数据
 export async function GET(request: NextRequest) {
@@ -11,13 +13,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
     }
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 获取邀请统计
     const { data: invites } = await db
       .from('invites')
       .select('status')
-      .eq('user_id', parseInt(user_id));
+      .eq('user_id', user_id);
 
     const _inviteCount = invites?.length || 0;
     const inviteRegistered = invites?.filter((i) => i.status === 'registered').length || 0;
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest) {
     const { data: uploads } = await db
       .from('user_uploads')
       .select('id')
-      .eq('user_id', parseInt(user_id));
+      .eq('user_id', user_id);
 
     const uploadCount = uploads?.length || 0;
 

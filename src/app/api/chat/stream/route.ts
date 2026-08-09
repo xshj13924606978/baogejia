@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from 'next/server';
 import { aiClient } from '@/lib/deepseek-client';
 import { InputProcessor } from '@/lib/input-processor';
@@ -84,14 +86,19 @@ export async function POST(request: NextRequest) {
   try {
     // 0. 获取当前用户（用于计费）
     let userId: string | null = null;
+    let userRole: string | null = null;
     try {
       const currentUser = await getCurrentUser(request);
       if (currentUser && currentUser.id) {
         userId = currentUser.id; // 保持 UUID 字符串格式
+        userRole = currentUser.role || null;
       }
     } catch (error) {
       console.error('[Chat Stream API] 获取用户信息失败:', error);
     }
+
+    // 管理员（super_admin / admin）不受积分限制
+    const isAdmin = userRole === 'super_admin' || userRole === 'admin';
 
     // 1. 解析请求
     const body = await request.json();
@@ -104,10 +111,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 1.5. 积分预检查（如果有用户）
+    // 1.5. 积分预检查（如果有用户且非管理员）
     let estimatedInputTokens = 0;
     let estimatedRequiredPoints = 0;
-    if (userId) {
+    if (userId && !isAdmin) {
       try {
         // 估算输入Token
         estimatedInputTokens = pointsService.countTokens(message);
@@ -252,7 +259,7 @@ export async function POST(request: NextRequest) {
     const smartProcessor = smartChatProcessor;
 
     // 6. 构建系统提示词和消息
-    let systemPrompt = (smartChatProcessor as any).buildSystemPrompt(processedInput);
+    let systemPrompt = smartChatProcessor.buildSystemPrompt(processedInput);
 
     // 6.1 注入商务信息（供应方）和客户信息（采购方）到 system prompt
     try {
@@ -334,6 +341,11 @@ export async function POST(request: NextRequest) {
 
     const stream = new ReadableStream({
       async start(controller) {
+        const onAbort = () => {
+          try { controller.close(); } catch {}
+        };
+        request.signal.addEventListener('abort', onAbort, { once: true });
+
         try {
           // 发送开始标记
           const startEvent = `data: ${JSON.stringify({ type: 'start' })}\n\n`;
@@ -341,7 +353,7 @@ export async function POST(request: NextRequest) {
 
           // === 联网搜索阶段 ===
           let webSearchUsed = false;
-          if (needsWebSearch) {
+          if (needsWebSearch && !request.signal.aborted) {
             const searchingEvent = `data: ${JSON.stringify({
               type: 'searching',
               message: '正在联网搜索相关信息...'
@@ -382,7 +394,9 @@ export async function POST(request: NextRequest) {
             temperature: 0.7,
             maxTokens: 8192,
             model: model || 'deepseek',
+            signal: request.signal,
           })) {
+            if (request.signal.aborted) break;
             fullContent += chunk;
 
             // 发送内容块
@@ -404,8 +418,8 @@ export async function POST(request: NextRequest) {
               assistantMessage += `\n\n<!-- DATABASE_INFO: ${JSON.stringify(priceBrandCompareData)} -->`;
             }
 
-            // 扣除积分（如果有用户）- 使用统一的 pointsService
-            if (userId) {
+            // 扣除积分（如果有用户且非管理员）- 使用统一的 pointsService
+            if (userId && !isAdmin) {
               try {
                 // 计算实际 Token 消耗
                 const cleanContent = assistantMessage.replace(/<!-- DATABASE_INFO:.*?-->/g, '');
@@ -444,7 +458,7 @@ export async function POST(request: NextRequest) {
           }
 
           // 解析完整响应
-          const parsedResponse = (smartProcessor as any).parseLLMResponse(fullContent);
+          const parsedResponse = smartProcessor.parseLLMResponse(fullContent);
 
           // 发送结束标记
           const endEvent = `data: ${JSON.stringify({
@@ -489,6 +503,7 @@ export async function POST(request: NextRequest) {
           })}\n\n`;
           controller.enqueue(encoder.encode(errorEvent));
         } finally {
+          request.signal.removeEventListener('abort', onAbort);
           controller.close();
         }
       }

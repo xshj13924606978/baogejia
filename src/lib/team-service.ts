@@ -28,6 +28,8 @@ const teamInvites = new Map<string, TeamInvite[]>();
 const comments = new Map<string, Comment[]>();
 const sharedQuotes = new Map<string, SharedQuote[]>();
 const teamActivities = new Map<string, TeamActivity[]>();
+const MAX_TEAMS = 500;
+const MAX_ACTIVITIES_PER_TEAM = 200;
 
 // 角色权限映射
 const rolePermissions: Record<TeamRole, TeamPermissions> = {
@@ -68,6 +70,9 @@ export class TeamService {
    * 创建团队
    */
   static async createTeam(ownerId: string, data: CreateTeamRequest): Promise<Team> {
+    if (teams.size >= MAX_TEAMS) {
+      throw new Error('团队数量已达上限');
+    }
     const teamId = `team_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     const team: Team = {

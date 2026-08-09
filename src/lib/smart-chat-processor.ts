@@ -24,6 +24,7 @@ interface ConversationContext {
   lastTopic?: string;
   lastUserInput?: string;
   lastResponse?: string;
+  lastAccessAt: number;
 }
 
 interface SmartResponse {
@@ -47,8 +48,36 @@ interface SmartResponse {
 
 export class SmartChatProcessor {
   private conversations: Map<string, ConversationContext> = new Map();
+  private readonly MAX_CONVERSATIONS = 1000;
+  private readonly CONVERSATION_TTL = 30 * 60 * 1000; // 30分钟TTL
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
+    this.cleanupTimer = setInterval(() => this.cleanupExpiredConversations(), 5 * 60 * 1000);
+    if (this.cleanupTimer && typeof this.cleanupTimer.unref === 'function') {
+      this.cleanupTimer.unref();
+    }
+  }
+
+  /**
+   * 清理过期对话
+   */
+  private cleanupExpiredConversations(): void {
+    const now = Date.now();
+    for (const [key, ctx] of this.conversations) {
+      if (now - ctx.lastAccessAt > this.CONVERSATION_TTL) {
+        this.conversations.delete(key);
+      }
+    }
+    // LRU: 如果仍超限，删除最久未访问的
+    if (this.conversations.size > this.MAX_CONVERSATIONS) {
+      const entries = Array.from(this.conversations.entries())
+        .sort((a, b) => a[1].lastAccessAt - b[1].lastAccessAt);
+      const toRemove = entries.length - this.MAX_CONVERSATIONS;
+      for (let i = 0; i < toRemove; i++) {
+        this.conversations.delete(entries[i][0]);
+      }
+    }
   }
 
   /**
@@ -271,7 +300,7 @@ export class SmartChatProcessor {
   /**
    * 构建系统提示词
    */
-  private buildSystemPrompt(processedInput?: ProcessedInput): string {
+  buildSystemPrompt(processedInput?: ProcessedInput): string {
     const now = new Date();
     const currentDate = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日`;
     const currentWeekday = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
@@ -905,7 +934,7 @@ export class SmartChatProcessor {
   /**
    * 解析 LLM 响应
    */
-  private parseLLMResponse(llmResponse: string): {
+  parseLLMResponse(llmResponse: string): {
     content: string;
     intent?: string;
     suggestions?: string[];
@@ -979,6 +1008,7 @@ export class SmartChatProcessor {
     if (!conversationId) {
       return {
         history: [],
+        lastAccessAt: Date.now(),
       };
     }
 
@@ -986,7 +1016,10 @@ export class SmartChatProcessor {
       this.conversations.set(conversationId, {
         conversationId,
         history: [],
+        lastAccessAt: Date.now(),
       });
+    } else {
+      this.conversations.get(conversationId)!.lastAccessAt = Date.now();
     }
 
     return this.conversations.get(conversationId)!;

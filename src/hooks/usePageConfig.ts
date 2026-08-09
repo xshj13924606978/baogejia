@@ -65,6 +65,26 @@ interface PageConfigState {
 
 const cache = new Map<string, { data: PageConfig; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 分钟
+const MAX_CACHE_SIZE = 200;
+
+// 清理过期条目
+function cleanupExpiredCache() {
+  const now = Date.now();
+  for (const [key, val] of cache) {
+    if (now - val.timestamp >= CACHE_TTL) {
+      cache.delete(key);
+    }
+  }
+  // 超限时裁剪
+  if (cache.size > MAX_CACHE_SIZE) {
+    const entries = Array.from(cache.entries())
+      .sort((a, b) => a[1].timestamp - b[1].timestamp);
+    const toRemove = entries.length - MAX_CACHE_SIZE;
+    for (let i = 0; i < toRemove; i++) {
+      cache.delete(entries[i][0]);
+    }
+  }
+}
 
 // ── Hook ──
 
@@ -81,6 +101,12 @@ export function usePageConfig(pageKey: string | null | undefined) {
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       setState({ data: cached.data, loading: false, error: null });
       return;
+    }
+
+    // 清理过期条目（命中的缓存已过期，顺便触发清理）
+    if (cached) {
+      cache.delete(key);
+      cleanupExpiredCache();
     }
 
     setState(prev => ({ ...prev, loading: true, error: null }));

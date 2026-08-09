@@ -1,9 +1,11 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 export async function GET(_request: NextRequest) {
   try {
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     const { data, error } = await db
       .from('quote_terms')
@@ -15,7 +17,7 @@ export async function GET(_request: NextRequest) {
       throw error;
     }
 
-    const terms = data.map((term: any) => ({
+    const terms = (data || []).map((term: any) => ({
       id: term.id,
       name: term.name,
       paymentTerms: term.payment_terms,
@@ -34,7 +36,7 @@ export async function GET(_request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
     const termData = await request.json();
 
     const now = new Date().toISOString();

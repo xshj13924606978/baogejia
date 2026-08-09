@@ -18,7 +18,6 @@
  *   - 所有满足条件的产品全部展示
  */
 
-import { getSupabaseClient } from '@/storage/database/supabase-client';
 import type { Intent, IntentProduct } from './intent-understanding';
 
 // ═══════════════════════ 接口 ═══════════════════════
@@ -65,7 +64,7 @@ const SPEC_FIELD_MAP: Record<string, string> = {
 
 // ═══════════════════════ 容差配置 ═══════════════════════
 
-const EXACT_TOLERANCE = 0.05;
+const EXACT_TOLERANCE = 0.03;
 const RELAXED_TOLERANCE = 0.10;
 
 // ═══════════════════════ 属性映射 ═══════════════════════
@@ -96,11 +95,11 @@ const ATTRIBUTE_FILTERS: Record<string, {
 export function matchNumericParam(
   userValue: number,
   productValue: number
-): { matched: boolean; type: 'exact' | 'relaxed' | 'none'; errorPercent: number } {
-  if (userValue <= 0) return { matched: false, type: 'none', errorPercent: 100 };
+): { matched: boolean; type: 'exact' | 'close' | 'none'; errorPercent: number } {
+  if (!userValue || !productValue || userValue <= 0 || !Number.isFinite(userValue) || !Number.isFinite(productValue)) return { matched: false, type: 'none', errorPercent: 100 };
   const diff = Math.abs(userValue - productValue) / userValue;
   if (diff < EXACT_TOLERANCE) return { matched: true, type: 'exact', errorPercent: Math.round(diff * 100) };
-  if (diff < RELAXED_TOLERANCE) return { matched: true, type: 'relaxed', errorPercent: Math.round(diff * 100) };
+  if (diff < RELAXED_TOLERANCE) return { matched: true, type: 'close', errorPercent: Math.round(diff * 100) };
   return { matched: false, type: 'none', errorPercent: Math.round(diff * 100) };
 }
 
@@ -115,14 +114,66 @@ export function extractNumericFromText(text: string, paramLabel: string): number
 export function extractAllParamsFromText(text: string): Map<string, string> {
   const params = new Map<string, string>();
   if (!text) return params;
-  const kvRegex = /([^，,、\n]+?)\s*[：:：]\s*([^，,、\n]+)/g;
-  let match;
-  while ((match = kvRegex.exec(text)) !== null) {
-    const key = match[1].trim();
-    const value = match[2].trim();
-    if (key && value) params.set(key, value);
+
+  // 用正则找到所有 key: 位置，然后手动解析值（支持引号配对）
+  const keyRegex = /([^，,、\n\s：:："'\"《》]+?)\s*[：:：]/g;
+  const matches: { key: string; colonEnd: number }[] = [];
+  let m;
+  while ((m = keyRegex.exec(text)) !== null) {
+    matches.push({ key: m[1].trim(), colonEnd: m.index + m[0].length });
   }
+
+  // 解析值，跳过落在已解析值范围内的匹配
+  let valueEnd = 0;
+  for (let j = 0; j < matches.length; j++) {
+    const { key, colonEnd } = matches[j];
+
+    // 跳过落在已解析值范围内的匹配
+    if (colonEnd <= valueEnd) continue;
+
+    let pos = colonEnd;
+
+    // 跳过冒号后最多 1 个空格
+    if (pos < text.length && text[pos] === ' ') pos++;
+
+    if (pos >= text.length) continue;
+
+    const result = extractQuotedValue(text, pos);
+    if (result) {
+      params.set(key, result.value);
+      valueEnd = result.end;
+    }
+  }
+
   return params;
+}
+
+/** 从 pos 开始提取值，支持引号配对和转义。返回值内容和结束位置 */
+function extractQuotedValue(text: string, pos: number): { value: string; end: number } | null {
+  const QUOTES = ['"', "'", '\u201c', '\u201d'];
+  const TERMINATORS = new Set([' ', '\t', '\n', '，', ',', '、']);
+
+  const ch = text[pos];
+  if (QUOTES.includes(ch)) {
+    // 引号配对模式：找到对应的闭合引号
+    const openQuote = ch;
+    const closeQuote = ch === '\u201c' ? '\u201d' : ch;
+    let end = pos + 1;
+    while (end < text.length) {
+      if (text[end] === '\\') { end += 2; continue; } // 跳过转义
+      if (text[end] === closeQuote) { end++; break; }
+      end++;
+    }
+    return end > pos ? { value: text.slice(pos, end), end } : null;
+  }
+
+  // 非引号模式：扫描到终止符
+  let end = pos;
+  while (end < text.length && !TERMINATORS.has(text[end])) {
+    end++;
+  }
+  const value = text.slice(pos, end);
+  return value.length > 0 ? { value, end } : null;
 }
 
 function extractPrice(price: any): number {
@@ -304,7 +355,6 @@ export class IntentBasedSearch {
   }
 
   async search(intent: Intent): Promise<IntentSearchResult> {
-    const supabase = getSupabaseClient();
     const { productType, brand, specs, budget, attributes } = intent.entities;
 
     if (!productType) {
@@ -312,24 +362,25 @@ export class IntentBasedSearch {
     }
 
 
-    // ═══ SQL 层：宽松获取候选集 ═══
-    let query = supabase
-      .from('products')
-      .select('id, name, model, price, min_price, cost_price, parameter_description, brand, category');
+    // ═══ SQL 层：宽松获取候选集（直接 fetch Supabase REST API，绕过 supabase-js 兼容性问题）═══
+    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
+    const apiKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    const select = encodeURIComponent('id,name,model,price,min_price,cost_price,parameter_description,brand,category');
 
     const strategies: string[] = [];
+    const filters: string[] = [];
 
-    query = query.ilike('name', `%${productType}%`);
+    filters.push(`name=ilike.*${encodeURIComponent(productType)}*`);
     strategies.push(`产品类型=${productType}`);
 
     if (brand) {
-      query = query.ilike('brand', `%${brand}%`);
+      filters.push(`brand=ilike.*${encodeURIComponent(brand)}*`);
       strategies.push(`品牌=${brand}`);
     }
 
     if (budget) {
-      if (budget.max) { query = query.lte('price', budget.max); strategies.push(`预算≤${budget.max}`); }
-      if (budget.min) { query = query.gte('price', budget.min); strategies.push(`预算≥${budget.min}`); }
+      if (budget.max) { filters.push(`price=lte.${budget.max}`); strategies.push(`预算≤${budget.max}`); }
+      if (budget.min) { filters.push(`price=gte.${budget.min}`); strategies.push(`预算≥${budget.min}`); }
     }
 
     let orderField: string | null = null;
@@ -339,7 +390,8 @@ export class IntentBasedSearch {
         const filter = ATTRIBUTE_FILTERS[attr];
         if (!filter) continue;
         if (filter.ilikeField && filter.ilikePattern) {
-          query = query.ilike(filter.ilikeField, filter.ilikePattern);
+          const pgPattern = filter.ilikePattern.replace(/%/g, '*');
+          filters.push(`${filter.ilikeField}=ilike.${encodeURIComponent(pgPattern)}`);
           strategies.push(`属性=${attr}`);
         }
         if (filter.orderField) {
@@ -349,9 +401,27 @@ export class IntentBasedSearch {
       }
     }
 
-    query = query.limit(200);
+    const orderParam = orderField ? `&order=${orderField}.${orderDir}.nullslast` : '';
+    const url = `${supabaseUrl}/rest/v1/products?select=${select}&${filters.join('&')}&limit=200${orderParam}`;
 
-    const { data: products, error } = await query;
+    let products: any[] = [];
+    let error: any = null;
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'apikey': apiKey,
+          'Authorization': `Bearer ${apiKey}`,
+        },
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        error = { message: `HTTP ${res.status}: ${body.substring(0, 200)}` };
+      } else {
+        products = await res.json();
+      }
+    } catch (e: any) {
+      error = { message: e.message };
+    }
 
     if (error) {
       console.error('[IntentBasedSearch] Supabase 查询失败:', error);

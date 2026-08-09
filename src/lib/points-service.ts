@@ -127,9 +127,46 @@ export class PointsService {
   }
 
   /**
-   * 增加用户积分
+   * 增加用户积分（使用数据库原子操作防止竞态条件）
    */
   async addPoints(
+    userId: string,
+    points: number,
+    type: PointOperationType,
+    description?: string
+  ): Promise<boolean> {
+    try {
+      // 使用数据库 RPC 原子更新积分（避免 read-modify-write 竞态条件）
+      const { data: updateResult, error: updateError } = await this.supabase.rpc('add_points_atomic', {
+        p_user_id: userId,
+        p_points: points,
+      });
+
+      if (updateError) {
+        // 如果 RPC 不存在，降级为直接 SQL 更新（仍优于 read-modify-write）
+        if (updateError.message?.includes('does not exist') || updateError.code === '42883') {
+          console.warn('[PointsService] RPC add_points_atomic 不存在，降级为直接更新');
+          return this.addPointsFallback(userId, points, type, description);
+        }
+        console.error('[PointsService] 原子更新积分失败:', updateError.message);
+        return false;
+      }
+
+      const newPoints = updateResult?.new_points ?? 0;
+      await this.logPointRecord(userId, points, type, description || POINTS_RULES[type]?.description || '积分变动', newPoints);
+
+      return true;
+    } catch (error) {
+      console.error('[PointsService] 增加积分异常:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 积分增加降级方法（当数据库 RPC 不可用时使用）
+   * 注意：此方法仍有竞态条件风险，仅作为临时降级方案
+   */
+  private async addPointsFallback(
     userId: string,
     points: number,
     type: PointOperationType,
@@ -183,7 +220,7 @@ export class PointsService {
   }
 
   /**
-   * 扣除用户积分
+   * 扣除用户积分（使用原子操作防止竞态条件）
    */
   async deductPoints(
     userId: string,
@@ -192,17 +229,39 @@ export class PointsService {
     description?: string
   ): Promise<{ success: boolean; reason?: string }> {
     try {
-      const userPoints = await this.getUserPoints(userId);
-      if (!userPoints) {
-        return { success: false, reason: '用户不存在' };
+      // 尝试使用数据库原子扣除 RPC（余额校验 + 扣除在同一事务）
+      const { data: rpcResult, error: rpcError } = await this.supabase.rpc('deduct_points_atomic', {
+        p_user_id: userId,
+        p_points: points,
+      });
+
+      if (!rpcError && rpcResult?.success) {
+        // 原子扣除成功，记录流水
+        await this.logPointRecord(userId, -points, type, description || POINTS_RULES[type]?.description || '积分变动', rpcResult.new_points || 0);
+        return { success: true };
       }
 
-      if (userPoints.points < points) {
-        return { success: false, reason: '积分不足' };
+      // RPC 失败：可能是函数不存在或余额不足
+      if (rpcResult?.success === false) {
+        return { success: false, reason: rpcResult.reason || '积分不足' };
       }
 
-      const success = await this.addPoints(userId, -points, type, description);
-      return { success };
+      // 函数不存在时降级为原有方式
+      if (rpcError && (rpcError.message?.includes('does not exist') || rpcError.code === '42883')) {
+        console.warn('[PointsService] RPC deduct_points_atomic 不存在，降级为两步操作');
+        const userPoints = await this.getUserPoints(userId);
+        if (!userPoints) {
+          return { success: false, reason: '用户不存在' };
+        }
+        if (userPoints.points < points) {
+          return { success: false, reason: '积分不足' };
+        }
+        const success = await this.addPoints(userId, -points, type, description);
+        return { success };
+      }
+
+      console.error('[PointsService] 原子扣除积分失败:', rpcError);
+      return { success: false, reason: '系统错误' };
     } catch (error) {
       console.error('[PointsService] 扣除积分异常:', error);
       return { success: false, reason: '系统错误' };
@@ -405,14 +464,15 @@ export class PointsService {
       });
 
       if (error) {
-        // 表可能不存在，只记录日志
+        console.error('[PointsService] 记录 Token 消费日志失败:', error.message);
       }
     } catch (error) {
+      console.error('[PointsService] 记录 Token 消费日志异常:', error);
     }
   }
 
   /**
-   * 管理员设置用户积分
+   * 管理员设置用户积分（使用原子操作防止竞态条件）
    */
   async adminSetPoints(
     adminId: string,
@@ -421,7 +481,25 @@ export class PointsService {
     reason: string
   ): Promise<{ success: boolean; reason?: string }> {
     try {
-      // 获取当前用户数据
+      // 尝试使用数据库原子设置 RPC
+      const { data: rpcResult, error: rpcError } = await this.supabase.rpc('set_points_atomic', {
+        p_user_id: userId,
+        p_new_points: points,
+      });
+
+      if (!rpcError && rpcResult?.success) {
+        const diff = rpcResult.diff || 0;
+        const type = diff >= 0 ? 'admin_grant' : 'admin_deduct';
+        await this.logPointRecord(userId, diff, type, `管理员操作: ${reason}`, points);
+        return { success: true };
+      }
+
+      // RPC 失败时降级为原有方式
+      if (rpcError && (rpcError.message?.includes('does not exist') || rpcError.code === '42883')) {
+        console.warn('[PointsService] RPC set_points_atomic 不存在，降级为直接更新');
+      }
+
+      // 降级：获取当前用户数据
       const { data: user, error: userError } = await this.supabase
         .from('users')
         .select('metadata')
@@ -477,25 +555,39 @@ export class PointsService {
       const success = await this.addPoints(userId, points, 'recharge', `充值 ${points} 积分 (支付ID: ${paymentId})`);
 
       if (success) {
-        // 更新充值统计
-        const { data: user } = await this.supabase
-          .from('users')
-          .select('metadata')
-          .eq('id', userId)
-          .single();
+        // 使用 jsonb_set 原子更新充值统计，避免 read-modify-write 竞态
+        try {
+          await this.supabase.rpc('recharge_stats_atomic', {
+            p_user_id: userId,
+            p_amount: amount,
+            p_points: points,
+          });
+        } catch (rpcError: any) {
+          // RPC 不存在时降级到直接更新
+          if (rpcError?.message?.includes('does not exist') || rpcError?.code === '42883') {
+            console.warn('[PointsService] recharge_stats_atomic RPC 不存在，降级为直接更新');
+            const { data: user } = await this.supabase
+              .from('users')
+              .select('metadata')
+              .eq('id', userId)
+              .single();
 
-        if (user) {
-          const metadata = user.metadata || {};
-          await this.supabase
-            .from('users')
-            .update({
-              metadata: {
-                ...metadata,
-                total_recharged: (metadata.total_recharged || 0) + amount,
-                total_recharged_points: (metadata.total_recharged_points || 0) + points,
-              },
-            })
-            .eq('id', userId);
+            if (user) {
+              const metadata = user.metadata || {};
+              await this.supabase
+                .from('users')
+                .update({
+                  metadata: {
+                    ...metadata,
+                    total_recharged: (metadata.total_recharged || 0) + amount,
+                    total_recharged_points: (metadata.total_recharged_points || 0) + points,
+                  },
+                })
+                .eq('id', userId);
+            }
+          } else {
+            throw rpcError;
+          }
         }
       }
 
@@ -521,22 +613,22 @@ export class PointsService {
         return { points: 0, totalPoints: 0, consumedPoints: 0, rechargedPoints: 0 };
       }
 
-      // 获取消费统计
-      const { data: logs } = await this.supabase
+      // 使用聚合查询避免加载全部日志
+      const { data: consumedData } = await this.supabase
         .from('point_logs')
-        .select('points, type')
-        .eq('user_id', userId);
+        .select('points')
+        .eq('user_id', userId)
+        .lt('points', 0);
 
-      let consumedPoints = 0;
-      let rechargedPoints = 0;
+      const { data: rechargeData } = await this.supabase
+        .from('point_logs')
+        .select('points')
+        .eq('user_id', userId)
+        .eq('type', 'recharge')
+        .gt('points', 0);
 
-      (logs || []).forEach((log) => {
-        if (log.points < 0) {
-          consumedPoints += Math.abs(log.points);
-        } else if (log.type === 'recharge') {
-          rechargedPoints += log.points;
-        }
-      });
+      const consumedPoints = (consumedData || []).reduce((sum, log) => sum + Math.abs(log.points), 0);
+      const rechargedPoints = (rechargeData || []).reduce((sum, log) => sum + log.points, 0);
 
       return {
         points: userPoints.points,

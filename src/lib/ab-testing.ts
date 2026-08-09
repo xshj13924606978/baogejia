@@ -106,6 +106,8 @@ export class ABTestingFramework {
   private results: Map<AlgorithmType, TestResult[]>;
   private userGroups: Map<string, AlgorithmType>;  // 用户分组
   private currentTestStart: number;
+  private MAX_RESULTS_PER_ALGO: number;
+  private MAX_USER_GROUPS: number;
 
   private constructor(config?: ABTestConfig) {
     // 延迟初始化以避免循环依赖
@@ -168,6 +170,8 @@ export class ABTestingFramework {
     this.results = new Map();
     this.userGroups = new Map();
     this.currentTestStart = Date.now();
+    this.MAX_RESULTS_PER_ALGO = 10000;
+    this.MAX_USER_GROUPS = 100000;
 
     // 初始化结果存储
     this.config.algorithms.forEach(algo => {
@@ -255,6 +259,16 @@ export class ABTestingFramework {
     // 检查用户是否已经分组
     if (this.userGroups.has(userId)) {
       return this.userGroups.get(userId)!;
+    }
+
+    // 防止 userGroups Map 无限增长
+    if (this.userGroups.size >= this.MAX_USER_GROUPS) {
+      // 清理最旧的 20% 条目
+      const entriesToDelete = Math.floor(this.userGroups.size * 0.2);
+      const keys = Array.from(this.userGroups.keys());
+      for (let i = 0; i < entriesToDelete; i++) {
+        this.userGroups.delete(keys[i]);
+      }
     }
 
     // 基于用户 ID 哈希进行一致性分配

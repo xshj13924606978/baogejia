@@ -95,13 +95,13 @@ export default function ConversationList({
   const [searchTerm, setSearchTerm] = useState('');
   const [pinnedConversations, setPinnedConversations] = useState<Set<string>>(new Set());
   
-  // 缓存机制：防止短时间内重复请求
-  const [lastRequestTime, setLastRequestTime] = useState(0);
-  const [cachedData, setCachedData] = useState<Conversation[]>([]);
+  // 缓存机制：防止短时间内重复请求（用 useRef 避免触发 useCallback 重建）
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const lastRequestTimeRef = useRef(0);
+  const cachedDataRef = useRef<Conversation[]>([]);
   const REQUEST_CACHE_DURATION = 5000; // 5秒缓存
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadConversations = useCallback(async () => {
     if (isRefreshing) {
@@ -110,8 +110,8 @@ export default function ConversationList({
 
     // 缓存机制：5秒内使用缓存数据
     const now = Date.now();
-    if (now - lastRequestTime < REQUEST_CACHE_DURATION && cachedData.length > 0) {
-      setConversations(cachedData);
+    if (now - lastRequestTimeRef.current < REQUEST_CACHE_DURATION && cachedDataRef.current.length > 0) {
+      setConversations(cachedDataRef.current);
       return;
     }
 
@@ -123,9 +123,9 @@ export default function ConversationList({
       });
       if (response.ok) {
         const data = await response.json();
-        const savedPins = localStorage.getItem('pinned-conversations');
+        const savedPins = (() => { try { return localStorage.getItem('pinned-conversations'); } catch { return null; } })();
         if (savedPins) {
-          setPinnedConversations(new Set(JSON.parse(savedPins)));
+          try { setPinnedConversations(new Set(JSON.parse(savedPins))); } catch { /* ignore */ }
         }
 
         // 基于 title 判断是否有内容
@@ -138,8 +138,8 @@ export default function ConversationList({
         }
 
         setConversations(filteredConversations);
-        setCachedData(filteredConversations); // 缓存数据
-        setLastRequestTime(now); // 更新请求时间
+        cachedDataRef.current = filteredConversations; // 缓存数据
+        lastRequestTimeRef.current = now; // 更新请求时间
       }
     } catch (error) {
       console.error('[ConversationList] 加载异常:', error);
@@ -147,7 +147,7 @@ export default function ConversationList({
       setLoading(false);
       setTimeout(() => setIsRefreshing(false), 500);
     }
-  }, [hideEmptyConversations, isRefreshing, lastRequestTime, cachedData]);
+  }, [hideEmptyConversations, isRefreshing]);
 
   // 加载单个对话的详细内容
   const loadConversationDetail = async (conversationId: string) => {
@@ -157,16 +157,17 @@ export default function ConversationList({
       });
       if (response.ok) {
         const data = await response.json();
-        window.dispatchEvent(
-          new CustomEvent('load-conversation', {
-            detail: {
-              conversationId: data.conversation.id,
-              messages: data.conversation.messages || [],
-              files: data.conversation.files || [],
-            },
-          })
-        );
-
+        if (data.conversation) {
+          window.dispatchEvent(
+            new CustomEvent('load-conversation', {
+              detail: {
+                conversationId: data.conversation.id,
+                messages: data.conversation.messages || [],
+                files: data.conversation.files || [],
+              },
+            })
+          );
+        }
         return data;
       }
     } catch (error) {
@@ -186,7 +187,7 @@ export default function ConversationList({
     }
 
     setPinnedConversations(newPins);
-    localStorage.setItem('pinned-conversations', JSON.stringify(Array.from(newPins)));
+    try { localStorage.setItem('pinned-conversations', JSON.stringify(Array.from(newPins))); } catch { /* ignore */ }
     setOpenDropdownId(null);
   };
 

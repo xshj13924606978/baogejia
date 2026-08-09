@@ -124,11 +124,17 @@ export class Analytics {
   private users: Map<number, UserBehaviorData> = new Map();
   private revenue: RevenueData[] = [];
   private retention: RetentionData[] = [];
+  private readonly MAX_EVENTS = 10000;
+  private readonly MAX_REVENUE_ENTRIES = 365;
 
   /**
    * 记录事件
    */
   trackEvent(event: EventData) {
+    // 防止无限增长：超限时裁剪最旧的记录
+    if (this.events.length >= this.MAX_EVENTS) {
+      this.events = this.events.slice(-Math.floor(this.MAX_EVENTS * 0.8));
+    }
     this.events.push(event);
 
     // 更新用户行为数据
@@ -235,6 +241,9 @@ export class Analytics {
         returningCustomerRevenue: 0,
       };
       this.revenue.push(revenueData);
+      if (this.revenue.length > this.MAX_REVENUE_ENTRIES) {
+        this.revenue.shift();
+      }
     }
 
     revenueData.revenue += amount;
@@ -279,8 +288,8 @@ export class Analytics {
 
       const previousCount =
         index === 0 ? count : this.getFunnelStepCount(steps[index - 1], filteredUsers);
-      const conversionRate = index === 0 ? 100 : (count / previousCount) * 100;
-      const dropOffRate = index === 0 ? 0 : 100 - conversionRate;
+      const conversionRate = index === 0 ? 100 : (previousCount > 0 ? (count / previousCount) * 100 : 0);
+      const dropOffRate = index === 0 ? 0 : (previousCount > 0 ? 100 - conversionRate : 0);
 
       return {
         step,

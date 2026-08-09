@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,16 @@ function LoginPage() {
   const [loginMode, setLoginMode] = useState<'phone' | 'password' | 'qrcode'>('phone');
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // 组件卸载时清除倒计时
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+    };
+  }, []);
 
   // 表单数据
   const [phone, setPhone] = useState('');
@@ -123,10 +133,12 @@ function LoginPage() {
           duration: 3000,
         });
         setCountdown(60);
-        const timer = setInterval(() => {
+        if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = setInterval(() => {
           setCountdown((prev) => {
             if (prev <= 1) {
-              clearInterval(timer);
+              if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+              countdownTimerRef.current = null;
               return 0;
             }
             return prev - 1;

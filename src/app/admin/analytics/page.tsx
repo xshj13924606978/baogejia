@@ -130,18 +130,8 @@ export default function AnalyticsPage() {
     }
   };
 
-  const handleExport = async () => {
-    try {
-      const response = await fetch('/api/analytics/export');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `analytics-${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-    } catch (error) {
-      console.error('导出数据失败:', error);
-    }
+  const handleExport = () => {
+    window.open('/api/analytics/export', '_blank');
   };
 
   const stepNames = {
@@ -220,7 +210,9 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="text-2xl font-bold">{data.stats.activeUsers.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {((data.stats.activeUsers / data.stats.totalUsers) * 100).toFixed(1)}% 活跃率
+              {data.stats.totalUsers > 0
+                ? ((data.stats.activeUsers / data.stats.totalUsers) * 100).toFixed(1)
+                : '0.0'}% 活跃率
             </p>
           </CardContent>
         </Card>

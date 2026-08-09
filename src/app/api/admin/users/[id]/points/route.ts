@@ -59,7 +59,9 @@ export async function GET(
       if (balance && balance.points_balance > 0) {
         points = balance.points_balance;
       }
-    } catch {}
+    } catch (err) {
+      console.warn('[admin/points] user_token_balance 查询失败，使用 metadata 中的积分:', err);
+    }
 
     return NextResponse.json({
       success: true,

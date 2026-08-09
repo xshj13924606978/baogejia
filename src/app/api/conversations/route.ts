@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { getCurrentUser, requireAuth } from '@/lib/auth-utils';
 
 export async function GET(request: NextRequest) {
@@ -11,10 +13,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ conversations: [] });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseServiceClient();
 
     let query = supabase
       .from('conversations')
@@ -58,16 +57,15 @@ export async function POST(request: NextRequest) {
       return errorResponse;
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseServiceClient();
 
     let title = '新对话';
     try {
       const body = await request.json();
       title = body.title || '新对话';
-    } catch (_e) {}
+    } catch {
+      // title 解析失败时使用默认值
+    }
 
     const now = new Date().toISOString();
     const { data, error } = await supabase
@@ -112,10 +110,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: '权限不足' }, { status: 403 });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseServiceClient();
 
     const { error } = await supabase.from('conversations').delete().not('id', 'is', null);
 

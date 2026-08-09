@@ -141,7 +141,7 @@ function parseProductParamsLegacy(product: IntentProduct): ParsedParams {
  * 通用产品对比（新逻辑）：自动从 parameter_description 提取所有参数维度
  */
 function generateComparisonGeneric(products: IntentProduct[], productType?: string): ComparisonResult {
-  if (products.length < 2) {
+  if (!products || !Array.isArray(products) || products.length < 2) {
     return { commonPoints: [], differences: [], recommendation: '需要至少2个产品才能进行对比。' };
   }
 

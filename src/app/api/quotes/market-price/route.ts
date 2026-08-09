@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { SearchClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
+import { requireAuth } from '@/lib/auth-utils';
 
 /**
  * 市场价查询接口
@@ -208,6 +209,10 @@ function extractPricesFromText(text: string): number[] {
 
 export async function POST(request: NextRequest) {
   try {
+    // 认证检查
+    const authResult = await requireAuth(request);
+    if (authResult.errorResponse) return authResult.errorResponse;
+
     const body = await request.json();
 
     // 支持两种格式：{ products: [...] } 或 { productName, specifications }

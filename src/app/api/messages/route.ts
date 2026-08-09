@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { Logger } from '@/lib/logger';
 import { requireAuth } from '@/lib/auth-utils';
 
@@ -10,18 +12,31 @@ export async function POST(request: NextRequest) {
     const { user, errorResponse } = await requireAuth(request);
     if (errorResponse) return errorResponse;
 
-    const body = await request.json();
-    const { conversationId, role, content, quoteData, files } = body;
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      Logger.error('[Messages] 请求体解析失败', parseError);
+      return NextResponse.json({ error: '请求体格式错误' }, { status: 400 });
+    }
+
+    const { conversationId, role, content, quoteData, files, metadata } = body;
 
     if (!conversationId || !role) {
       Logger.error('[Messages] 缺少必要参数', { conversationId, role });
       return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    let supabase;
+    try {
+      supabase = getSupabaseServiceClient();
+    } catch (dbError) {
+      Logger.error('[Messages] 数据库客户端初始化失败', dbError);
+      return NextResponse.json(
+        { error: '数据库服务暂不可用', details: dbError instanceof Error ? dbError.message : String(dbError) },
+        { status: 500 }
+      );
+    }
 
     // 先检查对话是否存在，不存在则自动创建
     const { data: conversationData, error: checkError } = await supabase
@@ -83,13 +98,15 @@ export async function POST(request: NextRequest) {
     }));
 
     // 准备要插入的数据
+    const now = new Date().toISOString();
     const messageData = {
       conversation_id: conversationId,
       role: role,
       content: content || '',
       quote_data: quoteData || null,
       file_data: processedFiles,
-      created_at: new Date().toISOString(),
+      metadata: metadata || null,
+      created_at: now,
     };
 
     Logger.debug('[Messages] 插入数据', {
@@ -104,7 +121,21 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       Logger.error('[Messages] 插入失败', error);
-      return NextResponse.json({ error: '保存失败' }, { status: 500 });
+      return NextResponse.json({ error: '保存失败', details: error.message }, { status: 500 });
+    }
+
+    // 消息保存成功后，回写会话的最新消息和更新时间
+    try {
+      await supabase
+        .from('conversations')
+        .update({
+          last_message: content?.substring(0, 100) || '',
+          updated_at: now,
+        })
+        .eq('id', conversationId);
+    } catch (convUpdateError) {
+      // 非关键操作，仅记录日志
+      Logger.error('[Messages] 更新会话失败（非致命）', convUpdateError);
     }
 
     Logger.info('[Messages] 保存成功', { messageId: data.id });
@@ -115,7 +146,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     Logger.error('[Messages] 异常', error);
-    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : '服务器错误' },
+      { status: 500 }
+    );
   }
 }
 
@@ -132,10 +166,7 @@ export async function GET(request: NextRequest) {
     const { user, errorResponse } = await requireAuth(request);
     if (errorResponse) return errorResponse;
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseServiceClient();
 
     // 权限检查：非超管/管理员只能获取自己对话的消息
     if (user.role !== 'super_admin' && user.role !== 'admin') {
@@ -184,10 +215,7 @@ export async function PATCH(request: NextRequest) {
     const { user, errorResponse } = await requireAuth(request);
     if (errorResponse) return errorResponse;
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseServiceClient();
 
     const body = await request.json();
     const { quoteData, conversationId, role, contentPrefix } = body;

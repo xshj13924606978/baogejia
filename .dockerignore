@@ -12,3 +12,5 @@ supabase/
 .env.*.local
 pnpm-debug.log*
 .vercel
+backups/
+.rollback/

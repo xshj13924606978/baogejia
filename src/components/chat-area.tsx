@@ -398,6 +398,7 @@ export default function ChatArea({
           setCustomerList((data.customers || []).map((c: any) => ({ id: c.id, company_name: c.company_name || c.companyName || '' })));
         }
         // 加载供应商信息并保存到 localStorage 供 QuoteTable 使用
+        if (!headers['x-user-id']) return;
         const bizRes = await fetch('/api/user/business-profile', { headers });
         if (bizRes.ok) {
           const bizResult = await bizRes.json();
@@ -535,6 +536,14 @@ export default function ChatArea({
     };
   }, []);
 
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+  };
+
   const {
     getRootProps: getRootPropsForInput,
     getInputProps,
@@ -548,7 +557,7 @@ export default function ChatArea({
         type: file.type,
         file: file,
       }));
-      setFiles([...files, ...newFiles]);
+      setFiles(prev => [...prev, ...newFiles]);
     },
     noClick: true,
     multiple: true,
@@ -556,14 +565,6 @@ export default function ChatArea({
 
   const dropzoneProps = getRootPropsForInput();
   const { onKeyDown: _dropzoneKeyDown, ...dropzonePropsWithoutKeyboard } = dropzoneProps;
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-  };
 
   useEffect(() => {
     setIsReady(true);
@@ -578,23 +579,6 @@ export default function ChatArea({
       shouldAllowCreation.current = false;
     };
   }, []);
-
-  useEffect(() => {
-    if (!isReady) return;
-
-    if (conversationId) {
-      setCurrentConversationId(conversationId);
-      loadConversation(conversationId);
-    } else {
-      setMessages([]);
-      setCurrentConversationId(null);
-      window.dispatchEvent(new CustomEvent('clear-quote-table'));
-      if (onTitleChange) {
-        onTitleChange('新对话');
-      }
-      setTimeout(scrollToBottom, 100);
-    }
-  }, [conversationId, isReady]);
 
   useEffect(() => {
     const inputElement = document.querySelector('textarea');
@@ -622,42 +606,6 @@ export default function ChatArea({
       };
     }
   }, []);
-
-  useEffect(() => {
-    const handleIntentSelect = async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { fileGroupId, choice } = customEvent.detail;
-
-      const files = parsedFilesMapRef.current[fileGroupId];
-
-      if (files) {
-        setActiveGroup(fileGroupId, files, choice);
-      } else {
-        console.error('[Chat] 未找到文件组数据, fileGroupId:', fileGroupId);
-      }
-
-      await handleIntentSelectionForSwitch(fileGroupId, choice);
-    };
-
-    window.addEventListener('intent-select', handleIntentSelect);
-    return () => {
-      window.removeEventListener('intent-select', handleIntentSelect);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleSwitchChange = async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { fileGroupId, choice } = customEvent.detail;
-
-      await handleIntentSelectionForSwitch(fileGroupId, choice);
-    };
-
-    window.addEventListener('switch-change', handleSwitchChange);
-    return () => {
-      window.removeEventListener('switch-change', handleSwitchChange);
-    };
-  }, [parsedFilesMap, switchIsLoading]);
 
   useEffect(() => {
     const handleFillPricesComplete = (event: Event) => {
@@ -692,7 +640,7 @@ export default function ChatArea({
     };
   }, []);
 
-  const loadConversation = async (id: string) => {
+  const loadConversation = useCallback(async (id: string) => {
     try {
       const response = await fetch(`/api/conversations/${id}`, {
         headers: getClientAuthHeaders(),
@@ -773,7 +721,24 @@ export default function ChatArea({
     } catch (error) {
       console.error('Failed to load conversation:', error);
     }
-  };
+  }, [onTitleChange]);
+
+  useEffect(() => {
+    if (!isReady) return;
+
+    if (conversationId) {
+      setCurrentConversationId(conversationId);
+      loadConversation(conversationId);
+    } else {
+      setMessages([]);
+      setCurrentConversationId(null);
+      window.dispatchEvent(new CustomEvent('clear-quote-table'));
+      if (onTitleChange) {
+        onTitleChange('新对话');
+      }
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [conversationId, isReady, loadConversation]);
 
   const createNewConversation = async (
     title: string = '新对话',
@@ -1318,7 +1283,7 @@ export default function ChatArea({
       files: [...files],
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
 
     await saveMessageToDatabase(activeConversationId, 'user', input);
@@ -1601,13 +1566,13 @@ export default function ChatArea({
   };
 
   const handleRemoveFile = (fileId: string) => {
-    setFiles(files.filter((f) => f.id !== fileId));
+    setFiles(prev => prev.filter((f) => f.id !== fileId));
   };
 
   const handleUpdateProductPrice = (messageId: number, productIndex: number, newPrice: number) => {
     setMessages((prev) =>
       prev.map((msg) => {
-        if (msg.id === messageId && msg.quoteData) {
+        if (msg.id === messageId && msg.quoteData && msg.quoteData.products) {
           const updatedProducts = [...msg.quoteData.products];
           const product = updatedProducts[productIndex];
           if (product) {
@@ -1615,7 +1580,8 @@ export default function ChatArea({
             const quantity = product.quantity || 1;
             product.totalPrice = newPrice * quantity;
             const newSubtotal = updatedProducts.reduce((sum, p) => sum + (p.totalPrice || 0), 0);
-            const newTaxAmount = newSubtotal * (msg.quoteData.taxRate / 100);
+            const taxRate = msg.quoteData.taxRate ?? 0;
+            const newTaxAmount = newSubtotal * (taxRate / 100);
             const newTotalAmount = newSubtotal + newTaxAmount;
 
             return {
@@ -1642,7 +1608,7 @@ export default function ChatArea({
   ) => {
     setMessages((prev) =>
       prev.map((msg) => {
-        if (msg.id === messageId && msg.quoteData) {
+        if (msg.id === messageId && msg.quoteData && msg.quoteData.products) {
           const updatedProducts = [...msg.quoteData.products];
           const product = updatedProducts[productIndex];
           if (product) {
@@ -1650,7 +1616,8 @@ export default function ChatArea({
             const price = product.unitPrice || 0;
             product.totalPrice = price * newQuantity;
             const newSubtotal = updatedProducts.reduce((sum, p) => sum + (p.totalPrice || 0), 0);
-            const newTaxAmount = newSubtotal * (msg.quoteData.taxRate / 100);
+            const taxRate = msg.quoteData.taxRate ?? 0;
+            const newTaxAmount = newSubtotal * (taxRate / 100);
             const newTotalAmount = newSubtotal + newTaxAmount;
 
             return {
@@ -2098,6 +2065,42 @@ export default function ChatArea({
     [conversationId, scrollToBottom]
   );
 
+  useEffect(() => {
+    const handleIntentSelect = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { fileGroupId, choice } = customEvent.detail;
+
+      const files = parsedFilesMapRef.current[fileGroupId];
+
+      if (files) {
+        setActiveGroup(fileGroupId, files, choice);
+      } else {
+        console.error('[Chat] 未找到文件组数据, fileGroupId:', fileGroupId);
+      }
+
+      await handleIntentSelectionForSwitch(fileGroupId, choice);
+    };
+
+    window.addEventListener('intent-select', handleIntentSelect);
+    return () => {
+      window.removeEventListener('intent-select', handleIntentSelect);
+    };
+  }, [handleIntentSelectionForSwitch]);
+
+  useEffect(() => {
+    const handleSwitchChange = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { fileGroupId, choice } = customEvent.detail;
+
+      await handleIntentSelectionForSwitch(fileGroupId, choice);
+    };
+
+    window.addEventListener('switch-change', handleSwitchChange);
+    return () => {
+      window.removeEventListener('switch-change', handleSwitchChange);
+    };
+  }, [parsedFilesMap, switchIsLoading, handleIntentSelectionForSwitch]);
+
   /**
    * 生图功能
    */
@@ -2336,8 +2339,8 @@ export default function ChatArea({
             />
 
             <TooltipProvider>
-              <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2 px-2 sm:px-4 py-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2 overflow-x-auto sm:overflow-visible flex-nowrap -mx-1 px-1 [&>*]:flex-shrink-0">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -2358,7 +2361,7 @@ export default function ChatArea({
                                 type: file.type,
                                 file: file,
                               }));
-                              setFiles([...files, ...newFiles]);
+                              setFiles(prev => [...prev, ...newFiles]);
                             }
                           };
                           input.click();
@@ -2422,10 +2425,10 @@ export default function ChatArea({
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowKnowledgeCenter(true)}
-                        className="h-9 px-3 rounded-full bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 gap-1.5"
+                        className="h-9 px-2 sm:px-3 rounded-full bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 gap-1.5"
                       >
                         <span className="text-base">📚</span>
-                        <span className="text-sm font-medium">管理资料</span>
+                        <span className="hidden sm:inline text-sm font-medium">管理资料</span>
                         <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">
                           7
                         </span>
@@ -2442,7 +2445,7 @@ export default function ChatArea({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Select value={selectedModel} onValueChange={setSelectedModel}>
-                        <SelectTrigger className="h-9 w-auto min-w-[120px] rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs">
+                        <SelectTrigger className="h-9 w-auto min-w-[80px] sm:min-w-[120px] rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs">
                           <Brain className="h-3.5 w-3.5 mr-1 text-violet-500" />
                           <SelectValue />
                         </SelectTrigger>
@@ -2470,7 +2473,7 @@ export default function ChatArea({
                           className="h-9 w-auto min-w-[90px] max-w-[160px] rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-slate-200 dark:border-slate-700 text-xs justify-start gap-1"
                         >
                           <Users className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                            <span className="truncate">
+                            <span className="hidden sm:inline truncate">
                             {currentCustomer?.companyName || '选择客户'}
                           </span>
                           <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50" />

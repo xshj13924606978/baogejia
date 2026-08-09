@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * 菜单树查询
  * GET /api/admin/config/query/menu
@@ -68,7 +70,35 @@ export const GET = withAdmin(async (_req, user) => {
     // 6. 过滤非菜单可见的顶级模块（超级管理员跳过此过滤）
     const visibleTree = isSuperAdmin ? tree : tree.filter(m => m.is_visible_in_menu !== false);
 
-    return NextResponse.json({ success: true, data: visibleTree });
+    // 7. 调整菜单结构（数据层面仍保留原模块，仅在前端聚合展示）
+    const productModule = visibleTree.find((m: any) => m.module_key === 'products');
+    const knowledgeCenterModule = visibleTree.find((m: any) => m.module_key === 'knowledge-center');
+
+    const remappedTree = visibleTree.filter((m: any) => {
+      // 将导入日志合并到产品管理
+      if (m.module_key === 'import-logs') {
+        if (productModule) {
+          productModule.children = [...productModule.children, ...m.children];
+          productModule.sub_modules = [...productModule.sub_modules, ...m.sub_modules];
+        }
+        return false;
+      }
+      // 将知识库管理合并到资料中心
+      if (m.module_key === 'knowledge') {
+        if (knowledgeCenterModule) {
+          knowledgeCenterModule.children = [...knowledgeCenterModule.children, ...m.children];
+          knowledgeCenterModule.sub_modules = [...knowledgeCenterModule.sub_modules, ...m.sub_modules];
+        }
+        return false;
+      }
+      // 客户管理移到核心业务分组
+      if (m.module_key === 'customer_management') {
+        m.group_label = '核心业务';
+      }
+      return true;
+    });
+
+    return NextResponse.json({ success: true, data: remappedTree });
   } catch (error) {
     console.error('[QueryMenuAPI] 失败:', error);
     return NextResponse.json({ success: false, error: '服务器错误' }, { status: 500 });

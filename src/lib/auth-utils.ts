@@ -45,7 +45,7 @@ export async function getCurrentUser(request: NextRequest) {
         const { data: businessUser } = await dbClient
           .from('users').select('id, email, role').eq('email', user.email).single();
         if (businessUser) {
-          return { id: businessUser.id, email: businessUser.email, role: businessUser.role || 'admin', name: user.user_metadata?.name || businessUser.email };
+          return { id: businessUser.id, email: businessUser.email, role: businessUser.role || 'user', name: user.user_metadata?.name || businessUser.email };
         }
       }
     }
@@ -59,7 +59,7 @@ export async function getCurrentUser(request: NextRequest) {
         const { data: businessUser } = await dbClient
           .from('users').select('id, email, role').eq('email', user.email).single();
         if (businessUser) {
-          return { id: businessUser.id, email: businessUser.email, role: businessUser.role || 'admin', name: user.user_metadata?.name || businessUser.email };
+          return { id: businessUser.id, email: businessUser.email, role: businessUser.role || 'user', name: user.user_metadata?.name || businessUser.email };
         }
       }
     }
@@ -83,7 +83,7 @@ export async function getCurrentUser(request: NextRequest) {
       const { data: businessUser } = await dbClient
         .from('users').select('id, email, role').eq('email', 'admin2@test.com').single();
       if (businessUser) {
-        return { id: businessUser.id, email: businessUser.email, role: businessUser.role || 'admin' };
+        return { id: businessUser.id, email: businessUser.email, role: businessUser.role || 'user' };
       }
     }
 

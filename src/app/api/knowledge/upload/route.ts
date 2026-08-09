@@ -167,38 +167,45 @@ export async function POST(request: NextRequest) {
     }
 
 
-    // 处理 tags：自动创建并关联
+    // 处理 tags：批量查询/创建/关联
     if (tagNames.length > 0) {
-      for (const tagName of tagNames) {
-        try {
-          // 查找或创建标签
-          let tagId: string;
-          const { data: existingTag } = await supabase
+      try {
+        // 批量查询已有标签
+        const { data: existingTags } = await supabase
+          .from('knowledge_tags')
+          .select('id, name')
+          .in('name', tagNames);
+
+        const existingMap = new Map(
+          (existingTags || []).map((t: any) => [t.name, t.id] as [string, string])
+        );
+
+        // 找出需要创建的标签
+        const toCreate = tagNames.filter(name => !existingMap.has(name));
+
+        // 批量创建新标签
+        let newTagIds: string[] = [];
+        if (toCreate.length > 0) {
+          const { data: createdTags } = await supabase
             .from('knowledge_tags')
-            .select('id')
-            .eq('name', tagName)
-            .single();
-
-          if (existingTag) {
-            tagId = existingTag.id;
-          } else {
-            const { data: newTag } = await supabase
-              .from('knowledge_tags')
-              .insert({ name: tagName })
-              .select('id')
-              .single();
-            tagId = newTag?.id;
-          }
-
-          // 关联条目和标签
-          if (tagId) {
-            await supabase
-              .from('knowledge_entry_tags')
-              .insert({ entry_id: record.id, tag_id: tagId });
-          }
-        } catch (tagErr: any) {
-          console.warn('[Knowledge Upload] 标签处理失败（已忽略）:', tagErr.message);
+            .insert(toCreate.map(name => ({ name })))
+            .select('id');
+          newTagIds = (createdTags || []).map((t: any) => t.id);
         }
+
+        // 批量关联条目和标签
+        const allTagIds = tagNames
+          .map(name => existingMap.get(name))
+          .filter((id): id is string => !!id)
+          .concat(newTagIds);
+
+        if (allTagIds.length > 0) {
+          await supabase
+            .from('knowledge_entry_tags')
+            .insert(allTagIds.map(tagId => ({ entry_id: record.id, tag_id: tagId })));
+        }
+      } catch (tagErr: any) {
+        console.warn('[Knowledge Upload] 标签处理失败（已忽略）:', tagErr.message);
       }
     }
 

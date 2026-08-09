@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { requireAdmin } from '@/lib/auth-utils';
@@ -16,12 +18,13 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseServiceClient();
 
     // 获取用户等级数据
-    const { data: userLevels, error: levelsError } = await supabase
+    let { data: userLevels, error: levelsError } = await supabase
       .from('user_levels')
       .select('user_id, level, level_up_at, created_at');
 
     if (levelsError) {
-      return NextResponse.json(emptyDistribution());
+      console.error('[LevelDistribution API] 查询 user_levels 失败:', levelsError);
+      userLevels = [];
     }
 
     // 获取用户基本信息
@@ -30,8 +33,21 @@ export async function GET(request: NextRequest) {
       .select('id, created_at');
 
     if (usersError) {
+      console.error('[LevelDistribution API] 查询 users 失败:', usersError);
       return NextResponse.json(emptyDistribution());
     }
+
+    // 合并数据：users 表中所有用户都纳入统计，没有等级记录的用户默认等级为1
+    const levelMap = new Map((userLevels || []).map((u: any) => [u.user_id, u]));
+    userLevels = (_users || []).map((u: any) => {
+      const record = levelMap.get(u.id);
+      return {
+        user_id: u.id,
+        level: record?.level || 1,
+        level_up_at: record?.level_up_at || null,
+        created_at: record?.created_at || u.created_at,
+      };
+    });
 
       // 合并数据
       const distribution = {
@@ -45,7 +61,7 @@ export async function GET(request: NextRequest) {
         conversion: {} as Record<string, { rate: number; count: number }>,
         upgradeTime: {} as Record<number, { avgDays: number; minDays: number; maxDays: number }>,
         summary: {
-          totalUsers: userLevels?.length || 0,
+          totalUsers: _users?.length || 0,
           averageLevel: 0,
           mostCommonLevel: 1,
           upgradeRate: 0}};

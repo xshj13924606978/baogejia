@@ -28,7 +28,9 @@ export function SupplierProvider({ children }: { children: React.ReactNode }) {
     try {
       const saved = localStorage.getItem('defaultSupplier');
       if (saved) setDefaultSupplierState(JSON.parse(saved));
-    } catch {}
+    } catch (err) {
+      console.error('[SupplierContext] 读取 localStorage defaultSupplier 失败:', err);
+    }
   }, []);
 
   const setDefaultSupplier = useCallback((supplier: DefaultSupplier | null) => {

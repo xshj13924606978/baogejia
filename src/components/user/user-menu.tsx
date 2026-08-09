@@ -53,6 +53,8 @@ import {
   Eye,
   Lock,
 } from 'lucide-react';
+import { QRCodeCanvas as QRCode } from 'qrcode.react';
+import { toPng } from 'html-to-image';
 import ManufacturerPaymentPanel from '@/components/manufacturer-payment-panel';
 import { ProfileDialog } from '@/components/shared/profile-dialog';
 import { useUser } from '@/contexts/UserContext';
@@ -225,77 +227,227 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     },
   });
 
+  // 积分明细数据
+  const [pointRecords, setPointRecords] = useState<Array<{id: number; description: string; date: string; points: number}>>([]);
+  const [loadingPoints, setLoadingPoints] = useState(false);
+
+  // 邀请数据
+  const [inviteStats, setInviteStats] = useState({ count: 0, points: 0 });
+  const [inviteCode, setInviteCode] = useState('');
+  const [ranking, setRanking] = useState<Array<{rank: number; name: string; count: number}>>([]);
+  const [loadingInvite, setLoadingInvite] = useState(false);
+
   // 通知数据
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: '报价单已生成',
-      message: '您的搅拌设备报价单已生成',
-      time: '5分钟前',
-      read: false,
-      icon: '📄',
-    },
-    {
-      id: 2,
-      title: '积分到账',
-      message: '邀请好友获得50积分',
-      time: '1小时前',
-      read: false,
-      icon: '🎁',
-    },
-    {
-      id: 3,
-      title: '文件解析完成',
-      message: '上传的PDF文件已解析完成',
-      time: '2小时前',
-      read: true,
-      icon: '📁',
-    },
-    { id: 4, title: '系统通知', message: '新版本功能上线', time: '昨天', read: true, icon: '✨' },
-  ]);
+  const [notifications, setNotifications] = useState<Array<{
+    id: number; title: string; message: string; time: string; read: boolean; icon: string;
+  }>>([]);
 
   // 邀请记录数据
-  const [inviteRecords, _setInviteRecords] = useState([
-    { id: 1, name: '张三', time: '2024-02-26', status: '已注册', points: 50 },
-    { id: 2, name: '李四', time: '2024-02-25', status: '已注册', points: 50 },
-    { id: 3, name: '王五', time: '2024-02-24', status: '待激活', points: 0 },
-  ]);
+  const [inviteRecords, setInviteRecords] = useState<Array<{id: number; name: string; time: string; status: string; points: number}>>([]);
+  const [showQrCodeDialog, setShowQrCodeDialog] = useState(false);
+  const qrCodeRef = useRef<HTMLDivElement>(null);
+
+  // 统计数据
+  const [statsData, setStatsData] = useState({ quotes: 0, conversations: 0, suppliers: 0, rating: '0%' });
+  const [loadingStats, setLoadingStats] = useState(false);
 
   // 最近记录数据
-  const [recentRecords, _setRecentRecords] = useState([
-    {
-      id: 1,
-      name: '搅拌设备报价单.pdf',
-      type: 'pdf',
-      action: 'download',
-      time: '2024-02-26 14:30',
-      size: '2.3 MB',
-    },
-    {
-      id: 2,
-      name: '泵类采购方案.docx',
-      type: 'docx',
-      action: 'preview',
-      time: '2024-02-25 09:15',
-      size: '1.1 MB',
-    },
-    {
-      id: 3,
-      name: '产品目录.xlsx',
-      type: 'xlsx',
-      action: 'upload',
-      time: '2024-02-24 16:45',
-      size: '3.2 MB',
-    },
-    {
-      id: 4,
-      name: '技术规范.pdf',
-      type: 'pdf',
-      action: 'share',
-      time: '2024-02-23 11:20',
-      size: '4.5 MB',
-    },
-  ]);
+  const [allUploadRecords, setAllUploadRecords] = useState<Array<{
+    id: number;
+    name: string;
+    type: string;
+    action: string;
+    time: string;
+    size: string;
+  }>>([]);
+  const [showAllRecords, setShowAllRecords] = useState(false);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+
+  const recentRecords = showAllRecords ? allUploadRecords : allUploadRecords.slice(0, 5);
+
+  const getUploadTypeLabel = (uploadType: string) => {
+    const map: Record<string, string> = {
+      upload_price: '产品价格',
+      upload_doc: '技术文档',
+      upload_case: '成功案例',
+      upload_drawing: '工程图纸',
+    };
+    return map[uploadType] || uploadType;
+  };
+
+  const getUploadTypeIcon = (uploadType: string) => {
+    if (uploadType === 'upload_price') return 'xlsx';
+    if (uploadType === 'upload_drawing') return 'pdf';
+    return 'docx';
+  };
+
+  const loadRecentRecords = async (userId: string) => {
+    try {
+      setRecordsLoading(true);
+      const res = await fetch(`/api/user/uploads?user_id=${userId}`);
+      const data = await res.json();
+      if (data.success && data.records) {
+        const mapped = data.records.map((r: any) => ({
+          id: r.id,
+          name: r.title,
+          type: getUploadTypeIcon(r.type),
+          action: 'upload',
+          time: new Date(r.created_at).toLocaleString('zh-CN'),
+          size: getUploadTypeLabel(r.type),
+        }));
+        setAllUploadRecords(mapped);
+      }
+    } catch (err) {
+      console.error('[Records] 加载记录失败:', err);
+    } finally {
+      setRecordsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showRecordsDialog && user?.id) {
+      loadRecentRecords(user.id);
+      setShowAllRecords(false);
+    }
+  }, [showRecordsDialog, user?.id]);
+
+  // 加载积分明细
+  const loadPoints = async (userId: string) => {
+    try {
+      setLoadingPoints(true);
+      const res = await fetch(`/api/points?user_id=${userId}`);
+      const data = await res.json();
+      if (data.success && data.records) {
+        const mapped = data.records.map((r: any) => ({
+          id: r.id,
+          description: r.description || r.type || '积分变动',
+          date: new Date(r.created_at).toLocaleDateString('zh-CN'),
+          points: r.points || r.amount || 0,
+        }));
+        setPointRecords(mapped);
+      }
+    } catch (err) {
+      console.error('[Points] 加载积分失败:', err);
+    } finally {
+      setLoadingPoints(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showPointsDialog && user?.id) loadPoints(user.id);
+  }, [showPointsDialog, user?.id]);
+
+  // 加载邀请数据
+  const loadInviteData = async (userId: string) => {
+    try {
+      setLoadingInvite(true);
+      const [invitesRes, codesRes, rankingRes] = await Promise.all([
+        fetch(`/api/invites?user_id=${userId}`),
+        fetch(`/api/invite-codes?user_id=${userId}`),
+        fetch('/api/invite-rankings?period=total'),
+      ]);
+      const invitesData = await invitesRes.json();
+      const codesData = await codesRes.json();
+      const rankingData = await rankingRes.json();
+
+      if (invitesData.success && invitesData.invites) {
+        const records = invitesData.invites.map((r: any) => ({
+          id: r.id,
+          name: r.invitee_name || r.invited_name || '',
+          time: new Date(r.created_at).toLocaleDateString('zh-CN'),
+          status: r.status === 'registered' ? '已注册' : r.status === 'pending' ? '待激活' : r.status,
+          points: r.points || 0,
+        }));
+        setInviteRecords(records);
+        setInviteStats({
+          count: invitesData.stats?.total ?? invitesData.total ?? records.length,
+          points: invitesData.stats?.points ?? invitesData.total_points ?? records.reduce((sum: number, r: any) => sum + r.points, 0),
+        });
+      }
+
+      let inviteCodeValue = codesData.data?.[0]?.code ?? invitesData.inviteCode ?? null;
+      if (!inviteCodeValue) {
+        const createRes = await fetch('/api/invites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId }),
+        });
+        const createData = await createRes.json();
+        if (createData.success && createData.inviteCode) {
+          inviteCodeValue = createData.inviteCode;
+        }
+      }
+      if (inviteCodeValue) {
+        setInviteCode(inviteCodeValue);
+      }
+
+      if (rankingData.success && (rankingData.data?.rankings || rankingData.rankings)) {
+        const rankings = rankingData.data?.rankings || rankingData.rankings || [];
+        setRanking(rankings.map((r: any, i: number) => ({
+          rank: i + 1,
+          name: r.user?.username || r.user_name || r.name || '',
+          count: r.invite_count || r.count || 0,
+        })));
+      }
+    } catch (err) {
+      console.error('[Invite] 加载邀请数据失败:', err);
+    } finally {
+      setLoadingInvite(false);
+    }
+  };
+
+  useEffect(() => {
+    if ((showInviteDialog || showInviteRecordsDialog) && user?.id) loadInviteData(user.id);
+  }, [showInviteDialog, showInviteRecordsDialog, user?.id]);
+
+  // 加载通知
+  const loadNotifications = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/notifications?user_id=${userId}`);
+      const data = await res.json();
+      if (data.success && data.notifications) {
+        setNotifications(data.notifications.map((n: any) => ({
+          id: n.id,
+          title: n.title,
+          message: n.message || n.content || '',
+          time: n.time || new Date(n.created_at).toLocaleString('zh-CN'),
+          read: n.read || n.is_read || false,
+          icon: n.type === 'points' ? '🏆' : n.type === 'system' ? '✨' : '📄',
+        })));
+      }
+    } catch (err) {
+      console.error('[Notifications] 加载通知失败:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (showNotificationsDialog && user?.id) loadNotifications(user.id);
+  }, [showNotificationsDialog, user?.id]);
+
+  // 加载统计数据
+  const loadStats = async (userId: string) => {
+    try {
+      setLoadingStats(true);
+      const res = await fetch(`/api/user/stats?user_id=${userId}`);
+      const data = await res.json();
+      if (data.success && data.stats) {
+        setStatsData({
+          quotes: data.stats.quotes || data.stats.quoteCount || 0,
+          conversations: data.stats.conversations || data.stats.conversationCount || 0,
+          suppliers: data.stats.suppliers || data.stats.supplierCount || 0,
+          rating: data.stats.rating || '0%',
+        });
+      }
+    } catch (err) {
+      console.error('[Stats] 加载统计失败:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showStatsDialog && user?.id) loadStats(user.id);
+  }, [showStatsDialog, user?.id]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -312,25 +464,54 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     return gradients[index];
   };
 
-  // 复制到剪贴板
-  const copyToClipboard = (text: string, message: string) => {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        toast({
-          title: '复制成功',
-          description: message,
-          duration: 2000,
-        });
-      })
-      .catch(() => {
-        toast({
-          title: '复制失败',
-          description: '请手动复制',
-          variant: 'destructive',
-          duration: 2000,
-        });
+  // 检测是否在微信内置浏览器中
+  const isInWechat = (): boolean => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent.toLowerCase();
+    return ua.indexOf('micromessenger') !== -1;
+  };
+
+  // 在微信内置浏览器中调起微信原生分享面板
+  const shareToWechat = (title: string, desc: string, link: string): boolean => {
+    if (typeof window === 'undefined') return false;
+    // @ts-ignore - WeixinJSBridge 是微信浏览器私有 API
+    const wx = (window as any).WeixinJSBridge;
+    if (!wx || !wx.invoke) return false;
+    try {
+      wx.invoke('sendAppMessage', {
+        title,
+        desc,
+        link,
+        img_url: `${window.location.origin}/favicon.ico`,
       });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // 复制到剪贴板 — 简化方案：优先 Clipboard API，失败时不阻塞
+  const copyToClipboard = async (text: string, message: string) => {
+    if (!text) return;
+    // 仅在安全上下文下尝试 Clipboard API
+    const isSecure =
+      typeof window !== 'undefined' &&
+      (window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+    if (isSecure && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast({ title: '复制成功', description: message, duration: 2000 });
+        return;
+      } catch {
+        // 继续走 UI 降级（用户直接选择 textarea 复制）
+      }
+    }
+    // 不安全上下文或 Clipboard API 失败：提示用户在 UI 中直接复制
+    toast({
+      title: '请手动复制',
+      description: '长按下方文本框全选后复制',
+      duration: 3000,
+    });
   };
 
   // 下载文件
@@ -479,8 +660,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
   };
 
   // 标记所有通知为已读
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications(notifications.map((n) => ({ ...n, read: true })));
+    try {
+      await fetch('/api/notifications/read-all', { method: 'POST' });
+    } catch (_) {}
     toast({
       title: '操作成功',
       description: '所有通知已标记为已读',
@@ -488,7 +672,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     });
   };
 
-  // 分享邀请
+  // 分享邀请 — 弹出二维码面板（微信/企业微信/QQ 均可扫码）
   const handleShareInvite = async (text: string) => {
     if (navigator.share) {
       try {
@@ -497,11 +681,59 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
           text: '加入报个价，一起生成报价',
           url: text,
         });
-      } catch (_error) {
-        copyToClipboard(text, '邀请链接已复制到剪贴板');
+        return;
+      } catch {
+        // 用户取消或 share 失败，弹出二维码
       }
-    } else {
-      copyToClipboard(text, '邀请链接已复制到剪贴板');
+    }
+    setShowQrCodeDialog(true);
+  };
+
+  // 下载二维码图片 — 使用 html-to-image 兜底 + canvas.toDataURL 兜底
+  const downloadQrCode = async () => {
+    const node = qrCodeRef.current;
+    if (!node) {
+      toast({ title: '下载失败', description: '二维码未生成', variant: 'destructive', duration: 2000 });
+      return;
+    }
+    try {
+      // 优先使用 html-to-image（更兼容）
+      const dataUrl = await toPng(node, {
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+      });
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = '邀请二维码.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast({ title: '保存成功', description: '二维码已下载', duration: 2000 });
+    } catch (_err) {
+      // 兜底方案：canvas.toDataURL
+      const canvas = node.querySelector('canvas');
+      if (canvas) {
+        try {
+          const dataUrl = canvas.toDataURL('image/png');
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = '邀请二维码.png';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          toast({ title: '保存成功', description: '二维码已下载', duration: 2000 });
+          return;
+        } catch (_err2) {
+          // 继续走到错误分支
+        }
+      }
+      toast({
+        title: '下载失败',
+        description: '请长按二维码图片手动保存',
+        variant: 'destructive',
+        duration: 3000,
+      });
     }
   };
 
@@ -579,14 +811,32 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
     });
 
     setTimeout(() => {
-      const dataStr = JSON.stringify({ user, settings, notifications, recentRecords }, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
       const exportFileDefaultName = `baogejia-export-${new Date().toISOString().slice(0, 10)}.json`;
 
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
+      const iframe = document.createElement('iframe');
+      iframe.name = 'export-frame';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/api/user/export-data';
+      form.target = 'export-frame';
+      form.style.display = 'none';
+      const dataInput = document.createElement('input');
+      dataInput.type = 'hidden';
+      dataInput.name = 'data';
+      dataInput.value = JSON.stringify({ user, settings, notifications, recentRecords });
+      form.appendChild(dataInput);
+      const filenameInput = document.createElement('input');
+      filenameInput.type = 'hidden';
+      filenameInput.name = 'filename';
+      filenameInput.value = exportFileDefaultName;
+      form.appendChild(filenameInput);
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+      setTimeout(() => document.body.removeChild(iframe), 5000);
 
       toast({
         title: '导出成功',
@@ -1100,7 +1350,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 修改密码弹窗 - 使用key防止自动填充 */}
         <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-          <DialogContent className="sm:max-w-[500px]" key={passwordFormKey}>
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]" key={passwordFormKey}>
             <DialogHeader>
               <DialogTitle>修改密码</DialogTitle>
               <DialogDescription>请输入新密码，密码长度至少6位</DialogDescription>
@@ -1170,7 +1420,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
         {/* 厂商支付面板 */}
         {showPaymentPanel && (
           <Dialog open={showPaymentPanel} onOpenChange={setShowPaymentPanel}>
-            <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>厂商支付排行</DialogTitle>
                 <DialogDescription>按支付金额排序的厂商排行榜</DialogDescription>
@@ -1184,7 +1434,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 积分明细弹窗 */}
         <Dialog open={showPointsDialog} onOpenChange={setShowPointsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>积分明细</DialogTitle>
               <DialogDescription>查看您的积分获取和消费记录</DialogDescription>
@@ -1201,48 +1451,28 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               </div>
 
               <div className="space-y-2">
-                <h4 className="text-sm font-medium">最近记录</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">📄</span>
-                      <div>
-                        <p className="text-sm font-medium">上传文件</p>
-                        <p className="text-xs text-gray-500">2024-02-26</p>
+                <h4 className="text-sm font-medium">积分记录</h4>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {loadingPoints ? (
+                    <p className="text-sm text-gray-400 text-center py-4">加载中...</p>
+                  ) : pointRecords.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-4">暂无积分记录</p>
+                  ) : (
+                    pointRecords.map((r) => (
+                      <div key={r.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{r.points >= 0 ? '🏆' : '💸'}</span>
+                          <div>
+                            <p className="text-sm font-medium">{r.description}</p>
+                            <p className="text-xs text-gray-500">{r.date}</p>
+                          </div>
+                        </div>
+                        <Badge className={r.points >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                          {r.points >= 0 ? '+' : ''}{r.points}
+                        </Badge>
                       </div>
-                    </div>
-                    <Badge className="bg-green-100 text-green-700">+10</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">💰</span>
-                      <div>
-                        <p className="text-sm font-medium">生成报价</p>
-                        <p className="text-xs text-gray-500">2024-02-25</p>
-                      </div>
-                    </div>
-                    <Badge className="bg-red-100 text-red-700">-5</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">🎁</span>
-                      <div>
-                        <p className="text-sm font-medium">每日登录</p>
-                        <p className="text-xs text-gray-500">2024-02-25</p>
-                      </div>
-                    </div>
-                    <Badge className="bg-green-100 text-green-700">+2</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">👥</span>
-                      <div>
-                        <p className="text-sm font-medium">邀请好友</p>
-                        <p className="text-xs text-gray-500">2024-02-24</p>
-                      </div>
-                    </div>
-                    <Badge className="bg-green-100 text-green-700">+50</Badge>
-                  </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -1262,7 +1492,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 邀请好友弹窗 */}
         <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>邀请好友</DialogTitle>
               <DialogDescription>邀请好友注册，双方都可获得积分奖励</DialogDescription>
@@ -1272,11 +1502,11 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-sm text-gray-600">已邀请好友</p>
-                    <p className="text-2xl font-bold">3人</p>
+                    <p className="text-2xl font-bold">{loadingInvite ? '...' : `${inviteStats.count}人`}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">获得积分</p>
-                    <p className="text-2xl font-bold text-green-600">+150</p>
+                    <p className="text-2xl font-bold text-green-600">{loadingInvite ? '...' : `+${inviteStats.points}`}</p>
                   </div>
                 </div>
               </div>
@@ -1285,11 +1515,19 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div>
                   <label className="text-sm font-medium">邀请码</label>
                   <div className="flex gap-2 mt-1">
-                    <Input value="ABC123XYZ" readOnly className="bg-gray-50" />
+                    <textarea
+                      readOnly
+                      value={inviteCode || '暂无邀请码'}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onClick={(e) => e.currentTarget.select()}
+                      className="flex-1 px-3 py-2 text-sm border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text select-all"
+                      rows={1}
+                    />
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => copyToClipboard('ABC123XYZ', '邀请码已复制')}
+                      onClick={() => inviteCode && copyToClipboard(inviteCode, '邀请码已复制')}
+                      disabled={!inviteCode}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -1299,17 +1537,19 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                 <div>
                   <label className="text-sm font-medium">邀请链接</label>
                   <div className="flex gap-2 mt-1">
-                    <Input
-                      value="https://baogejia.com/invite/ABC123XYZ"
+                    <textarea
                       readOnly
-                      className="bg-gray-50 text-xs"
+                      value={inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : '暂无邀请链接'}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onClick={(e) => e.currentTarget.select()}
+                      className="flex-1 px-3 py-2 text-xs border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text select-all"
+                      rows={2}
                     />
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() =>
-                        copyToClipboard('https://baogejia.com/invite/ABC123XYZ', '邀请链接已复制')
-                      }
+                      onClick={() => inviteCode && copyToClipboard(`${window.location.origin}/register?code=${inviteCode}`, '邀请链接已复制')}
+                      disabled={!inviteCode}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -1320,7 +1560,8 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <div className="flex gap-2">
                 <Button
                   className="flex-1 bg-gradient-to-r from-pink-600 to-purple-600"
-                  onClick={() => handleShareInvite('https://baogejia.com/invite/ABC123XYZ')}
+                  onClick={() => inviteCode && handleShareInvite(`${window.location.origin}/register?code=${inviteCode}`)}
+                  disabled={!inviteCode}
                 >
                   <Share2 className="h-4 w-4 mr-2" />
                   分享
@@ -1338,47 +1579,141 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <div className="border-t pt-4">
                 <h4 className="text-sm font-medium mb-3">邀请排行榜</h4>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-yellow-100 text-yellow-700 flex items-center justify-center text-xs">
-                        1
-                      </span>
-                      <span className="text-sm">张三</span>
-                    </div>
-                    <span className="text-sm font-medium">15人</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-xs">
-                        2
-                      </span>
-                      <span className="text-sm">李四</span>
-                    </div>
-                    <span className="text-sm font-medium">12人</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center text-xs">
-                        3
-                      </span>
-                      <span className="text-sm">王五</span>
-                    </div>
-                    <span className="text-sm font-medium">8人</span>
-                  </div>
+                  {ranking.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-2">暂无排行榜数据</p>
+                  ) : (
+                    ranking.map((r) => (
+                      <div key={r.rank} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                            r.rank === 1 ? 'bg-yellow-100 text-yellow-700' :
+                            r.rank === 2 ? 'bg-gray-100 text-gray-700' :
+                            r.rank === 3 ? 'bg-orange-100 text-orange-700' :
+                            'bg-gray-50 text-gray-500'
+                          }`}>
+                            {r.rank}
+                          </span>
+                          <span className="text-sm">{r.name}</span>
+                        </div>
+                        <span className="text-sm font-medium">{r.count}人</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
           </DialogContent>
         </Dialog>
 
+        {/* 二维码分享弹窗 */}
+        <Dialog open={showQrCodeDialog} onOpenChange={setShowQrCodeDialog}>
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[420px]">
+            <DialogHeader>
+              <DialogTitle>扫码分享邀请</DialogTitle>
+              <DialogDescription>
+                使用微信、企业微信或 QQ 扫码即可打开注册页面
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="flex justify-center" ref={qrCodeRef}>
+                <QRCode
+                  value={inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : window.location.origin}
+                  size={200}
+                  level="H"
+                  includeMargin
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => {
+                    const link = inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : '';
+                    // 在微信内置浏览器中：直接调起微信原生分享面板
+                    if (isInWechat()) {
+                      const ok = shareToWechat('邀请好友', '加入报个价，一起生成报价', link);
+                      if (ok) {
+                        toast({ title: '微信分享', description: '请选择好友发送', duration: 2000 });
+                        return;
+                      }
+                    }
+                    // 非微信浏览器：复制链接并提示
+                    copyToClipboard(link, '邀请链接已复制');
+                    toast({
+                      title: '微信分享提示',
+                      description: '链接已复制，请打开微信粘贴发送给好友',
+                      duration: 3000,
+                    });
+                  }}
+                  className="py-2 bg-green-500 text-white rounded text-sm font-medium"
+                >
+                  <span className="mr-1">💬</span>微信
+                </button>
+                <button
+                  onClick={() => {
+                    copyToClipboard(
+                      inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : '',
+                      '邀请链接已复制'
+                    );
+                    toast({
+                      title: 'QQ分享提示',
+                      description: '链接已复制，请打开 QQ 粘贴发送给好友',
+                      duration: 3000,
+                    });
+                  }}
+                  className="py-2 bg-blue-500 text-white rounded text-sm font-medium"
+                >
+                  <span className="mr-1">🐧</span>QQ
+                </button>
+                <button
+                  onClick={() => downloadQrCode()}
+                  className="py-2 bg-purple-500 text-white rounded text-sm font-medium"
+                >
+                  <span className="mr-1">💾</span>保存图片
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    copyToClipboard(
+                      inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : '',
+                      '邀请链接已复制'
+                    );
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  复制链接
+                </Button>
+              </div>
+              {/* 始终显示可手动全选复制的链接 */}
+              <textarea
+                readOnly
+                value={inviteCode ? `${window.location.origin}/register?code=${inviteCode}` : ''}
+                onFocus={(e) => e.currentTarget.select()}
+                onClick={(e) => e.currentTarget.select()}
+                className="w-full px-3 py-2 text-xs border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text select-all"
+                rows={2}
+              />
+              <p className="text-xs text-center text-gray-400">
+                点击上方链接文本框可一键全选复制
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* 邀请记录弹窗 */}
         <Dialog open={showInviteRecordsDialog} onOpenChange={setShowInviteRecordsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>邀请记录</DialogTitle>
               <DialogDescription>您邀请的好友列表</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {loadingInvite ? (
+                <p className="text-sm text-gray-400 text-center py-4">加载中...</p>
+              ) : inviteRecords.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">暂无邀请记录</p>
+              ) : (
               <div className="space-y-2">
                 {inviteRecords.map((record) => (
                   <div
@@ -1413,13 +1748,14 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
                   </div>
                 ))}
               </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
 
         {/* 通知中心弹窗 */}
         <Dialog open={showNotificationsDialog} onOpenChange={setShowNotificationsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>通知中心</DialogTitle>
               <DialogDescription>查看系统通知和消息</DialogDescription>
@@ -1466,34 +1802,40 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 数据统计弹窗 */}
         <Dialog open={showStatsDialog} onOpenChange={setShowStatsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>数据统计</DialogTitle>
               <DialogDescription>查看您的使用数据统计</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {loadingStats ? (
+                <p className="text-sm text-gray-400 text-center py-8">加载中...</p>
+              ) : (
+              <>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <FileText className="h-5 w-5 text-blue-600 mb-2" />
                   <p className="text-xs text-gray-600">报价单</p>
-                  <p className="text-xl font-bold">28</p>
+                  <p className="text-xl font-bold">{statsData.quotes}</p>
                 </div>
                 <div className="bg-green-50 p-3 rounded-lg">
                   <MessageSquare className="h-5 w-5 text-green-600 mb-2" />
                   <p className="text-xs text-gray-600">对话</p>
-                  <p className="text-xl font-bold">45</p>
+                  <p className="text-xl font-bold">{statsData.conversations}</p>
                 </div>
                 <div className="bg-purple-50 p-3 rounded-lg">
                   <Users className="h-5 w-5 text-purple-600 mb-2" />
                   <p className="text-xs text-gray-600">合作厂商</p>
-                  <p className="text-xl font-bold">12</p>
+                  <p className="text-xl font-bold">{statsData.suppliers}</p>
                 </div>
                 <div className="bg-amber-50 p-3 rounded-lg">
                   <Star className="h-5 w-5 text-amber-600 mb-2" />
                   <p className="text-xs text-gray-600">好评率</p>
-                  <p className="text-xl font-bold">96%</p>
+                  <p className="text-xl font-bold">{statsData.rating}</p>
                 </div>
               </div>
+              </>
+              )}
 
               <div className="border-t pt-4">
                 <h4 className="text-sm font-medium mb-3">月度趋势</h4>
@@ -1520,7 +1862,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 最近记录弹窗 */}
         <Dialog open={showRecordsDialog} onOpenChange={setShowRecordsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>最近记录</DialogTitle>
               <DialogDescription>查看您的操作历史</DialogDescription>
@@ -1615,11 +1957,9 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
               <Button
                 variant="outline"
                 className="w-full mt-2"
-                onClick={() =>
-                  toast({ title: '查看全部', description: '正在加载更多记录...', duration: 2000 })
-                }
+                onClick={() => setShowAllRecords(!showAllRecords)}
               >
-                查看全部记录
+                {showAllRecords ? '收起' : '查看全部记录'}
               </Button>
             </div>
           </DialogContent>
@@ -1627,7 +1967,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 供应商信息弹窗 */}
         <Dialog open={showSupplierDialog} onOpenChange={setShowSupplierDialog}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>供应方信息</DialogTitle>
               <DialogDescription>管理您的公司信息和账户</DialogDescription>
@@ -1759,7 +2099,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 客户管理弹窗 */}
         <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-green-500" />
@@ -1773,7 +2113,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 商务条款弹窗 */}
         <Dialog open={showTermsDialog} onOpenChange={setShowTermsDialog}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>商务条款</DialogTitle>
               <DialogDescription>设置报价条款和费用</DialogDescription>
@@ -1905,7 +2245,7 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
         {/* 设置弹窗 */}
         <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="max-w-[calc(100vw-16px)] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>设置</DialogTitle>
               <DialogDescription>配置系统参数和偏好</DialogDescription>

@@ -46,6 +46,8 @@ export class RedisCacheManager {
   private connectAttempted = false;  // 防止多次尝试连接
   private globalRetryCount = 0;  // 全局重试计数器
   private readonly MAX_GLOBAL_RETRIES = 5;  // 全局最大重试次数
+  private readonly MAX_MEMORY_CACHE_SIZE = 10000;
+  private memoryCleanupTimer: ReturnType<typeof setInterval> | null = null;
   private stats = {
     hits: 0,
     misses: 0,
@@ -67,6 +69,32 @@ export class RedisCacheManager {
       ...config
     };
 
+    // 定期清理过期的内存缓存条目
+    this.memoryCleanupTimer = setInterval(() => this.cleanupMemoryCache(), 60 * 1000);
+    if (this.memoryCleanupTimer && typeof this.memoryCleanupTimer.unref === 'function') {
+      this.memoryCleanupTimer.unref();
+    }
+  }
+
+  /**
+   * 清理过期的内存缓存
+   */
+  private cleanupMemoryCache(): void {
+    const now = Date.now();
+    for (const [key, val] of this.memoryCache) {
+      if (val.ttl && (now - val.timestamp) > val.ttl) {
+        this.memoryCache.delete(key);
+      }
+    }
+    // 超限时裁剪
+    if (this.memoryCache.size > this.MAX_MEMORY_CACHE_SIZE) {
+      const entries = Array.from(this.memoryCache.entries())
+        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+      const toRemove = entries.length - this.MAX_MEMORY_CACHE_SIZE;
+      for (let i = 0; i < toRemove; i++) {
+        this.memoryCache.delete(entries[i][0]);
+      }
+    }
   }
 
   /**
@@ -207,11 +235,6 @@ export class RedisCacheManager {
         // 使用内存缓存
         this.memoryCache.set(cacheKey, cacheValue);
         
-        // 设置自动过期
-        setTimeout(() => {
-          this.memoryCache.delete(cacheKey);
-        }, actualTTL);
-        
         this.stats.sets++;
         return true;
       }
@@ -226,9 +249,6 @@ export class RedisCacheManager {
       // 降级到内存缓存
       if (this.config.fallbackToMemory) {
         this.memoryCache.set(cacheKey, cacheValue);
-        setTimeout(() => {
-          this.memoryCache.delete(cacheKey);
-        }, actualTTL);
         return true;
       }
 
@@ -247,9 +267,13 @@ export class RedisCacheManager {
         // 从 Redis 获取
         const value = await this.redis.get(cacheKey);
         if (value) {
-          const cacheValue: CacheValue = JSON.parse(value);
-          this.stats.hits++;
-          return cacheValue.data;
+          const cacheValue = JSON.parse(value) as CacheValue;
+          if (cacheValue && cacheValue.data !== undefined) {
+            this.stats.hits++;
+            return cacheValue.data;
+          }
+          this.stats.misses++;
+          return null;
         }
         this.stats.misses++;
         return null;

@@ -71,6 +71,11 @@ export async function getCozeResponse(fileId: string): Promise<any> {
       }),
     });
 
+    if (!response.ok) {
+      console.error('[Coze] API请求失败:', response.status, response.statusText);
+      return { products: [] };
+    }
+
     const data = await response.json();
     
     if (data.code === 0 && data.data) {
@@ -108,7 +113,12 @@ export async function getTextInTableResponse(fileId: string): Promise<any> {
         'x-ti-secret-code': process.env.TEXTIN_SECRET_CODE!,
       },
     });
-    
+
+    if (!response.ok) {
+      console.error('[TextIn] API请求失败:', response.status, response.statusText);
+      return { products: [] };
+    }
+
     const data = await response.json();
     
     
@@ -392,7 +402,12 @@ export async function uploadFileToTextIn(fileBuffer: Buffer, fileName: string): 
       },
       body: formData,
     });
-    
+
+    if (!response.ok) {
+      console.error('[TextIn] 文件上传失败:', response.status, response.statusText);
+      return null;
+    }
+
     const data = await response.json();
     
     if (data.code === 200 && data.file_id) {

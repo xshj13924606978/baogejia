@@ -151,6 +151,7 @@ const STORAGE_KEYS = {
   VERIFIED_PHONES: 'verified_phones',
   LAST_EMAIL: 'last_email',
   LAST_PHONE: 'last_phone',
+  LAST_USERNAME: 'last_username',
   LOGOUT_EVENT: 'logout_event',
   PASSWORD_CHANGE_EVENT: 'password_change_event',
   LOGOUT_ALL_EVENT: 'logout_all_event',
@@ -210,26 +211,40 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const syncToSupabase = async (options?: {
     clearEmail?: boolean;
     clearPhone?: boolean;
+    currentPassword?: string;
+    newPassword?: string;
   }) => {
     try {
       const currentUserId = user?.id || '';
       const dbUser = findUserById(currentUserId);
       if (!dbUser) return;
 
+      const body: Record<string, unknown> = {
+        phone: dbUser.phone,
+        email: dbUser.email,
+        username: dbUser.username || dbUser.name,
+        // 优先使用 newPassword（密码修改场景），否则用 localStorage 中的密码
+        password: options?.newPassword || dbUser.password,
+        name: dbUser.name,
+        role: dbUser.role,
+        supabaseUserId: (user as any)?.supabaseId,
+        clearEmail: options?.clearEmail,
+        clearPhone: options?.clearPhone,
+      };
+      if (options?.currentPassword) {
+        body.currentPassword = options.currentPassword;
+      }
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const sessionToken = typeof window !== 'undefined' ? localStorage.getItem('session_token') : null;
+      if (sessionToken) {
+        headers['x-user-token'] = sessionToken;
+      }
+
       const res = await fetch('/api/auth/sync-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: dbUser.phone,
-          email: dbUser.email,
-          username: dbUser.username || dbUser.name,
-          password: dbUser.password,
-          name: dbUser.name,
-          role: dbUser.role,
-          supabaseUserId: (user as any)?.supabaseId,
-          clearEmail: options?.clearEmail,
-          clearPhone: options?.clearPhone,
-        }),
+        headers,
+        body: JSON.stringify(body),
       });
 
       // 保存返回的 supabaseId 到 localStorage，供后续精确定位
@@ -249,7 +264,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // 保存用户到数据库
+  // 保存用户到数据库（不存储密码明文到 localStorage）
   const saveUserToDB = (userData: any) => {
     try {
       const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS_DB) || '[]');
@@ -262,6 +277,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             cleanData[key] = value;
           }
         }
+        // 安全：不将密码明文写入 localStorage
+        delete cleanData.password;
+        delete cleanData.password_hash;
         users[index] = { ...users[index], ...cleanData };
         // 显式删除被设为 undefined 的字段（如解绑后需要移除 email）
         for (const [key, value] of Object.entries(userData)) {
@@ -270,7 +288,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } else {
-        users.push(userData);
+        // 新用户：同样过滤密码
+        const { password, password_hash, ...safeData } = userData;
+        users.push(safeData);
       }
       localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(users));
       return true;
@@ -472,43 +492,50 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // 发送手机验证码
+  // 发送手机验证码（调用后端 API，腾讯云短信）
   const sendPhoneCode = async (phone: string): Promise<{ success: boolean; error?: string }> => {
     if (!validatePhone(phone)) {
       return { success: false, error: '手机号格式不正确' };
     }
 
-    const code = generateCode();
+    try {
+      const response = await fetch('/api/auth/send-sms-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
 
-    const codes = JSON.parse(localStorage.getItem(STORAGE_KEYS.PHONE_CODES) || '{}');
-    codes[phone] = {
-      code,
-      timestamp: Date.now(),
-    };
-    localStorage.setItem(STORAGE_KEYS.PHONE_CODES, JSON.stringify(codes));
+      const data = await response.json();
 
-    return { success: true };
-  };
+      if (response.ok && data.success) {
+        return { success: true };
+      }
 
-  // 验证手机
-  const verifyPhone = async (phone: string, code: string): Promise<boolean> => {
-    const codes = JSON.parse(localStorage.getItem(STORAGE_KEYS.PHONE_CODES) || '{}');
-    const stored = codes[phone];
-
-    if (stored && stored.code === code && stored.timestamp > Date.now() - 5 * 60 * 1000) {
-      delete codes[phone];
-      localStorage.setItem(STORAGE_KEYS.PHONE_CODES, JSON.stringify(codes));
-
-      const verified = JSON.parse(localStorage.getItem(STORAGE_KEYS.VERIFIED_PHONES) || '{}');
-      verified[phone] = true;
-      localStorage.setItem(STORAGE_KEYS.VERIFIED_PHONES, JSON.stringify(verified));
-
-      return true;
+      return {
+        success: false,
+        error: data.error || '验证码发送失败',
+      };
+    } catch (error) {
+      console.error('[sendPhoneCode] 请求失败:', error);
+      return { success: false, error: '网络错误，请稍后重试' };
     }
-    return false;
   };
 
-  // 手机号登录
+  // 验证手机（保留给其他场景使用，但主要流程通过后端验证）
+  const verifyPhone = async (phone: string, code: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/auth/verify-sms-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code }),
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  // 手机号登录（调用后端 API）
   const phoneLogin = async (phone: string, code: string): Promise<AuthResponse> => {
     setLoading(true);
     setError(null);
@@ -518,37 +545,35 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: '手机号格式不正确' };
       }
 
-      const verified = await verifyPhone(phone, code);
-      if (!verified) {
-        return { success: false, error: '验证码错误' };
+      const response = await fetch('/api/auth/verify-sms-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // 保存用户信息
+        setUser(data.user);
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.user));
+        localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
+        localStorage.setItem(STORAGE_KEYS.LAST_PHONE, phone);
+
+        if (data.sessionToken) {
+          localStorage.setItem('session_token', data.sessionToken);
+        }
+
+        return { success: true, user: data.user };
       }
 
-      let user = findUserInDB(phone);
-
-      if (!user) {
-        // 新手机号，创建新用户
-        const newUser = {
-          id: 'user-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
-          phone,
-          name: '用户' + phone.slice(-4),
-          role: 'user',
-          phoneVerified: true,
-          createdAt: new Date().toISOString(),
-        };
-        saveUserToDB(newUser);
-        user = newUser;
-      }
-
-      localStorage.setItem(STORAGE_KEYS.LAST_PHONE, phone);
-
-      const { password: _, ...userWithoutPassword } = user;
-      setUser(userWithoutPassword);
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
-      localStorage.setItem(STORAGE_KEYS.TOKEN, 'token-' + Date.now());
-
-      return { success: true, user: userWithoutPassword };
-    } catch (_err) {
-      return { success: false, error: '登录失败' };
+      return {
+        success: false,
+        error: data.error || '验证码错误或已过期',
+      };
+    } catch (error) {
+      console.error('[phoneLogin] 请求失败:', error);
+      return { success: false, error: '登录失败，请稍后重试' };
     } finally {
       setLoading(false);
     }
@@ -607,19 +632,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return passwordLogin(email, password);
   };
 
-  // 统一的密码登录（支持邮箱和手机号）
+  // 统一的密码登录（支持用户名、邮箱和手机号）
   const passwordLogin = async (account: string, password: string): Promise<AuthResponse> => {
     setLoading(true);
     setError(null);
 
     try {
-      // 验证账号格式（可以是邮箱或手机号）
-      const isEmail = validateEmail(account);
-      const isPhone = validatePhone(account);
-
-      if (!isEmail && !isPhone) {
-        return { success: false, error: '请输入正确的邮箱或手机号' };
-      }
+      const trimmedAccount = account.trim();
+      const isEmail = validateEmail(trimmedAccount);
+      const isPhone = validatePhone(trimmedAccount);
+      // 允许用户名登录（非空、非纯数字）
+      const isUsername = trimmedAccount.length >= 2 && !/^\d{11}$/.test(trimmedAccount);
 
       // 调用后端登录API
       const response = await fetch('/api/auth/login', {
@@ -671,9 +694,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         // 保存最后登录的账号
         if (isEmail) {
-          localStorage.setItem(STORAGE_KEYS.LAST_EMAIL, account);
+          localStorage.setItem(STORAGE_KEYS.LAST_EMAIL, trimmedAccount);
         } else if (isPhone) {
-          localStorage.setItem(STORAGE_KEYS.LAST_PHONE, account);
+          localStorage.setItem(STORAGE_KEYS.LAST_PHONE, trimmedAccount);
+        } else {
+          localStorage.setItem(STORAGE_KEYS.LAST_USERNAME, trimmedAccount);
         }
 
         // 保存用户信息
@@ -690,7 +715,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
       // 后端返回用户未找到，尝试 localStorage 降级查询
       if (data.code === 'USER_NOT_FOUND' || !response.ok) {
-        const localUser = findUserInDB(account);
+        const localUser = findUserInDB(trimmedAccount);
         if (!localUser) {
           return { success: false, error: data.error || '用户名或密码错误' };
         }
@@ -707,9 +732,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         // 保存最后登录的账号
         if (isEmail) {
-          localStorage.setItem(STORAGE_KEYS.LAST_EMAIL, account);
+          localStorage.setItem(STORAGE_KEYS.LAST_EMAIL, trimmedAccount);
         } else if (isPhone) {
-          localStorage.setItem(STORAGE_KEYS.LAST_PHONE, account);
+          localStorage.setItem(STORAGE_KEYS.LAST_PHONE, trimmedAccount);
+        } else {
+          localStorage.setItem(STORAGE_KEYS.LAST_USERNAME, trimmedAccount);
         }
 
         // 保存用户信息到 localStorage
@@ -743,34 +770,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const thirdPartyLogin = async (provider: string): Promise<void> => {
     setLoading(true);
     try {
-      const redirectUri = encodeURIComponent(
-        `${window.location.origin}/api/auth/callback/${provider}`
-      );
-      const state = Math.random().toString(36).substring(7);
-
+      // 生成防 CSRF 的 state 参数
+      const state = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
       localStorage.setItem('oauth_state', state);
 
-      let authUrl = '';
-      switch (provider) {
-        case 'wechat':
-          authUrl = `https://open.weixin.qq.com/connect/qrconnect?appid=YOUR_APP_ID&redirect_uri=${redirectUri}&response_type=code&scope=snsapi_login&state=${state}`;
-          break;
-        case 'qq':
-          authUrl = `https://graph.qq.com/oauth2.0/authorize?response_type=code&client_id=YOUR_APP_ID&redirect_uri=${redirectUri}&state=${state}`;
-          break;
-        case 'github':
-          authUrl = `https://github.com/login/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=${redirectUri}&scope=user:email&state=${state}`;
-          break;
-        case 'google':
-          authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_CLIENT_ID&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile&state=${state}`;
-          break;
-      }
+      // 通过后端 API 获取真实的 OAuth 授权 URL
+      const response = await fetch(`/api/auth/oauth-url?provider=${provider}&state=${state}`);
+      const data = await response.json();
 
-      if (authUrl) {
-        window.location.href = authUrl;
+      if (data.success && data.authUrl) {
+        window.location.href = data.authUrl;
+      } else {
+        setError(data.error || `${provider} 登录暂未开放`);
       }
     } catch (error) {
       console.error('第三方登录失败:', error);
+      setError('网络错误，请稍后重试');
     } finally {
       setLoading(false);
     }
@@ -938,7 +953,33 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   const bindWechat = async (): Promise<void> => {
-    await thirdPartyLogin('wechat');
+    if (!user || !user.id) {
+      setError('请先登录');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 生成绑定模式的 state: bind:<userId>:<random>
+      const randomPart = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+      const state = `bind:${user.id}:${randomPart}`;
+      localStorage.setItem('oauth_state', state);
+
+      // 通过后端 API 获取微信 OAuth 授权 URL
+      const response = await fetch(`/api/auth/oauth-url?provider=wechat&state=${encodeURIComponent(state)}`);
+      const data = await response.json();
+
+      if (data.success && data.authUrl) {
+        window.location.href = data.authUrl;
+      } else {
+        setError(data.error || '微信绑定暂未开放');
+      }
+    } catch (error) {
+      console.error('[bindWechat] 微信绑定失败:', error);
+      setError('网络错误，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const unbindWechat = async (): Promise<boolean> => {
@@ -954,6 +995,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const { password: _, ...userWithoutPassword } = updatedUser;
     setUser(userWithoutPassword);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
+
+    // 同步解绑到 Supabase：删除 OAuth 绑定记录 + 清空微信字段
+    try {
+      const token = localStorage.getItem('session_token');
+      if (token) {
+        await fetch('/api/auth/unlink', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-token': token,
+          },
+          body: JSON.stringify({ provider: 'wechat' }),
+        });
+      }
+    } catch (error) {
+      console.error('[unbindWechat] Supabase 解绑失败（不影响本地解绑）:', error);
+    }
 
     return true;
   };
@@ -1118,6 +1176,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     localStorage.removeItem(STORAGE_KEYS.USER);
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
+    localStorage.removeItem('session_token');
+    // 清除 cookie（通过设置过期时间）
+    document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'user_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     setUser(null);
 
     localStorage.setItem(STORAGE_KEYS.LOGOUT_EVENT, Date.now().toString());
@@ -1134,14 +1196,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const dbUser = findUserById(user.id);
     if (!dbUser) return false;
 
-    if (dbUser.password && dbUser.password !== oldPassword) {
+    // 注意：saveUserToDB 会删除 password 字段，所以需要先记住旧密码
+    const actualOldPassword = dbUser.password;
+    if (actualOldPassword && actualOldPassword !== oldPassword) {
       return false;
     }
 
     saveUserToDB({ ...dbUser, password: newPassword });
 
-    // 同步新密码到 Supabase（在清除登录态之前，等待完成）
-    await syncToSupabase();
+    // 直接传新密码和旧密码到同步函数，不依赖 localStorage 读取
+    await syncToSupabase({ currentPassword: oldPassword, newPassword });
 
     localStorage.setItem(
       STORAGE_KEYS.PASSWORD_CHANGE_EVENT,
@@ -1394,13 +1458,45 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         // ========== 开发环境用户模拟结束 ==========
 
+        // 生产环境：从 localStorage 读取用户 + 校验 session token
         const localUser = localStorage.getItem(STORAGE_KEYS.USER);
         if (localUser) {
-          const parsedUser = JSON.parse(localUser);
+          try {
+            const parsedUser = JSON.parse(localUser);
+            // 校验 session token 有效性（发送轻量级验证请求）
+            const sessionToken = localStorage.getItem('session_token');
+            if (sessionToken) {
+              const verifyRes = await fetch('/api/auth/verify-session', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-user-token': sessionToken,
+                },
+                body: JSON.stringify({ userId: parsedUser.id }),
+              }).catch(() => null);
 
-          // 直接使用 localStorage 中保存的用户信息，不再依赖本地数据库
-          // 这样可以避免本地数据库与实际数据库不一致的问题
-          setUser(parsedUser);
+              if (verifyRes && verifyRes.ok) {
+                setUser(parsedUser);
+              } else {
+                // token 无效，清除登录状态
+                console.warn('[UserContext] session token 无效，清除登录状态');
+                localStorage.removeItem(STORAGE_KEYS.USER);
+                localStorage.removeItem('session_token');
+                localStorage.removeItem(STORAGE_KEYS.TOKEN);
+              }
+            } else {
+              // 没有 session token，也视为未登录
+              console.warn('[UserContext] 无 session token，清除登录状态');
+              localStorage.removeItem(STORAGE_KEYS.USER);
+              localStorage.removeItem('session_token');
+              localStorage.removeItem(STORAGE_KEYS.TOKEN);
+            }
+          } catch (e) {
+            console.error('[UserContext] 解析本地用户失败:', e);
+            localStorage.removeItem(STORAGE_KEYS.USER);
+            localStorage.removeItem('session_token');
+            localStorage.removeItem(STORAGE_KEYS.TOKEN);
+          }
         }
       } catch (error) {
         console.error('[UserContext] 加载用户失败:', error);

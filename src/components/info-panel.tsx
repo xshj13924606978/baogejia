@@ -160,13 +160,15 @@ export default function InfoPanel() {
       });
       if (response.ok) {
         const data = await response.json();
-        setCurrentCustomer({
-          ...currentCustomer,
-          id: data.customer.id,
-        });
-        setSelectedCustomerId(data.customer.id);
-        alert('客户信息保存成功');
-        loadData();
+        if (data.customer) {
+          setCurrentCustomer({
+            ...currentCustomer,
+            id: data.customer.id,
+          });
+          setSelectedCustomerId(data.customer.id);
+          alert('客户信息保存成功');
+          loadData();
+        }
       }
     } catch (error) {
       console.error('Failed to save customer:', error);
@@ -191,13 +193,15 @@ export default function InfoPanel() {
       });
       if (response.ok) {
         const data = await response.json();
-        setCurrentTerm({
-          ...currentTerm,
-          id: data.term.id,
-        });
-        setSelectedTermId(data.term.id);
-        alert('商务条款保存成功');
-        loadData();
+        if (data.term) {
+          setCurrentTerm({
+            ...currentTerm,
+            id: data.term.id,
+          });
+          setSelectedTermId(data.term.id);
+          alert('商务条款保存成功');
+          loadData();
+        }
       }
     } catch (error) {
       console.error('Failed to save term:', error);

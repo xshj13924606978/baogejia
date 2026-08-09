@@ -1,13 +1,17 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://xs-bj.com}
+        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        - WECHAT_APP_ID=${WECHAT_APP_ID}
+        - WECHAT_APP_SECRET=${WECHAT_APP_SECRET}
     container_name: quote-app
     ports:
-      - "3000:3000"
+      - "5000:5000"
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
@@ -15,6 +19,16 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - COZE_API_KEY=${COZE_API_KEY}
+      - TENCENT_SMS_SECRET_ID=${TENCENT_SMS_SECRET_ID}
+      - TENCENT_SMS_SECRET_KEY=${TENCENT_SMS_SECRET_KEY}
+      - TENCENT_SMS_SDK_APP_ID=${TENCENT_SMS_SDK_APP_ID}
+      - TENCENT_SMS_SIGN_NAME=${TENCENT_SMS_SIGN_NAME}
+      - TENCENT_SMS_TEMPLATE_ID=${TENCENT_SMS_TEMPLATE_ID}
+      - SESSION_TOKEN_SECRET=${SESSION_TOKEN_SECRET}
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://xs-bj.com}
+      - WECHAT_APP_ID=${WECHAT_APP_ID}
+      - WECHAT_APP_SECRET=${WECHAT_APP_SECRET}
     volumes:
       - ./tmp:/tmp
       - ./logs:/app/logs

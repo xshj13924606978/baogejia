@@ -20,6 +20,10 @@ export class OAuthService {
   private wechatConfig: WechatOAuthConfig;
   private qqConfig: QQOAuthConfig;
   private bindings: Map<string, OAuthBinding> = new Map();
+  private pendingStates: Map<string, { expiresAt: number }> = new Map();
+
+  // 清理过期 state 的定时器
+  private stateCleanupTimer: ReturnType<typeof setInterval>;
 
   constructor() {
     // 从环境变量读取配置
@@ -39,6 +43,22 @@ export class OAuthService {
 
     // 初始化模拟绑定数据
     this.initMockBindings();
+
+    // 每5分钟清理过期的 state，防止内存泄漏
+    this.stateCleanupTimer = setInterval(() => {
+      const now = Date.now();
+      for (const [state, { expiresAt }] of this.pendingStates) {
+        if (now > expiresAt) this.pendingStates.delete(state);
+      }
+    }, 5 * 60 * 1000);
+  }
+
+  /**
+   * 释放资源
+   */
+  destroy(): void {
+    if (this.stateCleanupTimer) clearInterval(this.stateCleanupTimer);
+    this.pendingStates.clear();
   }
 
   /**
@@ -81,8 +101,14 @@ export class OAuthService {
   /**
    * 微信登录回调处理
    */
-  async handleWechatCallback(code: string, _statestate: string): Promise<OAuthUserInfo | null> {
+  async handleWechatCallback(code: string, state: string): Promise<OAuthUserInfo | null> {
     try {
+      // 验证 state 防止 CSRF
+      if (!this.validateState(state)) {
+        console.error('[OAuthService] 微信登录回调 state 验证失败（可能为CSRF攻击）');
+        return null;
+      }
+
       // 检查配置
       if (!this.wechatConfig.app_id || !this.wechatConfig.app_secret) {
         console.warn('[OAuthService] 微信OAuth配置缺失，返回模拟用户');
@@ -178,8 +204,14 @@ export class OAuthService {
   /**
    * QQ登录回调处理
    */
-  async handleQQCallback(code: string, _statestate: string): Promise<OAuthUserInfo | null> {
+  async handleQQCallback(code: string, state: string): Promise<OAuthUserInfo | null> {
     try {
+      // 验证 state 防止 CSRF
+      if (!this.validateState(state)) {
+        console.error('[OAuthService] QQ登录回调 state 验证失败（可能为CSRF攻击）');
+        return null;
+      }
+
       // 检查配置
       if (!this.qqConfig.app_id || !this.qqConfig.app_key) {
         console.warn('[OAuthService] QQ OAuth配置缺失，返回模拟用户');
@@ -313,10 +345,27 @@ export class OAuthService {
   }
 
   /**
-   * 生成随机state
+   * 生成随机state并缓存（5分钟有效）
    */
   private generateState(): string {
-    return crypto.randomBytes(16).toString('hex');
+    const state = crypto.randomBytes(16).toString('hex');
+    this.pendingStates.set(state, { expiresAt: Date.now() + 5 * 60 * 1000 });
+    return state;
+  }
+
+  /**
+   * 验证OAuth回调中的state参数（防CSRF）
+   */
+  validateState(state: string): boolean {
+    const entry = this.pendingStates.get(state);
+    if (!entry) return false;
+    if (Date.now() > entry.expiresAt) {
+      this.pendingStates.delete(state);
+      return false;
+    }
+    // 一次性使用，验证后删除
+    this.pendingStates.delete(state);
+    return true;
   }
 
   /**

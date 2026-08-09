@@ -1,9 +1,11 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 // 更新排行榜数据
 async function updateRankings(period: string = 'week') {
-  const db = getSupabaseClient();
+  const db = getSupabaseServiceClient();
 
   let startDate = new Date();
   if (period === 'day') {
@@ -25,7 +27,11 @@ async function updateRankings(period: string = 'week') {
 
   const { data: relations, error } = await query;
 
-  if (error) throw error;
+  if (error) {
+    // 表不存在时跳过更新
+    if (error.code === '42P01' || error.code === 'PGRST205') return 0;
+    throw error;
+  }
 
   // 统计每个用户的邀请数量和积分
   const userStats = new Map();
@@ -44,18 +50,18 @@ async function updateRankings(period: string = 'week') {
     .sort((a, b) => b[1].inviteCount - a[1].inviteCount)
     .slice(0, 100); // 取前100名
 
-  // 更新或创建排行榜记录
-  for (let i = 0; i < sortedUsers.length; i++) {
-    const [userId, stats] = sortedUsers[i];
+  // 批量 upsert 排行榜记录
+  const records = sortedUsers.map(([userId, stats], i) => ({
+    user_id: userId,
+    period,
+    invite_count: stats.inviteCount,
+    points_earned: stats.pointsEarned,
+    rank: i + 1,
+    update_time: new Date(),
+  }));
 
-    const { error: upsertError } = await db.from('invite_rankings').upsert({
-      user_id: userId,
-      period,
-      invite_count: stats.inviteCount,
-      points_earned: stats.pointsEarned,
-      rank: i + 1,
-      update_time: new Date(),
-    });
+  if (records.length > 0) {
+    const { error: upsertError } = await db.from('invite_rankings').upsert(records);
 
     if (upsertError) throw upsertError;
   }
@@ -70,7 +76,7 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get('period') || 'week'; // day/week/month/total
     const user_id = searchParams.get('user_id');
 
-    const db = getSupabaseClient();
+    const db = getSupabaseServiceClient();
 
     // 先更新排行榜数据
     await updateRankings(period);
@@ -78,21 +84,30 @@ export async function GET(request: NextRequest) {
     // 获取排行榜前10名
     const { data: rankings, error } = await db
       .from('invite_rankings')
-      .select(
-        `
-        *,
-        user:users!invite_rankings_user_id_fkey (
-          id,
-          username,
-          avatar
-        )
-      `
-      )
+      .select('*')
       .eq('period', period)
       .order('rank', { ascending: true })
       .limit(10);
 
-    if (error) throw error;
+    if (error) {
+      // 表不存在时优雅降级
+      if (error.code === '42P01' || error.code === 'PGRST205') {
+        return NextResponse.json({
+          success: true,
+          data: { rankings: [], userRank: null },
+        });
+      }
+      throw error;
+    }
+
+    // 补全用户信息（外键可能不存在，单独查询）
+    let rankingsWithUser = rankings || [];
+    if (rankingsWithUser.length > 0) {
+      const userIds = [...new Set(rankingsWithUser.map((r: any) => r.user_id))];
+      const { data: users } = await db.from('users').select('id, username, avatar').in('id', userIds);
+      const userMap = new Map((users || []).map((u: any) => [u.id, u]));
+      rankingsWithUser = rankingsWithUser.map((r: any) => ({ ...r, user: userMap.get(r.user_id) || null }));
+    }
 
     // 如果指定了user_id，找到该用户的排名
     let userRank = null;
@@ -101,7 +116,7 @@ export async function GET(request: NextRequest) {
         .from('invite_rankings')
         .select('*')
         .eq('period', period)
-        .eq('user_id', parseInt(user_id))
+        .eq('user_id', user_id)
         .single();
 
       if (userRankData) {
@@ -112,7 +127,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        rankings: rankings || [],
+        rankings: rankingsWithUser,
         userRank,
       },
     });

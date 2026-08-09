@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { requireAdmin } from '@/lib/auth-utils';
@@ -62,9 +64,19 @@ export async function GET(request: NextRequest) {
       metadata: u.metadata || {},
     }));
 
+    // 批量获取用户等级
+    const userIds = formattedUsers.map((u) => u.id);
+    const { data: userLevels } = await db
+      .from('user_levels')
+      .select('user_id, level')
+      .in('user_id', userIds);
+
+    const levelMap = new Map((userLevels || []).map((l: any) => [l.user_id, l.level]));
+    const finalUsers = formattedUsers.map((u) => ({ ...u, level: levelMap.get(u.id) || 1 }));
+
     return NextResponse.json({
       success: true,
-      data: formattedUsers,
+      data: finalUsers,
       total: count || 0,
       page,
       limit,
