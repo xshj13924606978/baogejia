@@ -11,9 +11,10 @@ import { requireAuth } from '@/lib/auth-utils';
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  Logger.info('[Messages:id] PATCH 编辑消息', { id: params.id });
+  const { id: messageId } = await params;
+  Logger.info('[Messages:id] PATCH 编辑消息', { id: messageId });
 
   try {
     const { user, errorResponse } = await requireAuth(request);
@@ -21,7 +22,6 @@ export async function PATCH(
 
     const body = await request.json();
     const { content } = body;
-    const messageId = params.id;
 
     if (!messageId || content === undefined) {
       Logger.error('[Messages:id] 缺少必要参数', { messageId, hasContent: content !== undefined });
