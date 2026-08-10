@@ -289,7 +289,8 @@ export class AIClient {
       } else if (model === 'deepseek' && this.geminiClient) {
         yield* this.streamGemini({ ...params, signal });
       } else if (newModels.includes(model) && process.env.DEEPSEEK_API_KEY) {
-        yield `> ${model} 暂时不可用，已切换到 DeepSeek 处理您的请求\n\n`;
+        console.error(`[AIClient] ${model} 调用失败，降级到 deepseek:`, error.message);
+        yield `> ${model} 暂时不可用（${error.message}），已切换到 DeepSeek 处理您的请求\n\n`;
         yield* this.streamDeepSeek({ ...params, signal });
       } else {
         console.error(`[AIClient] ${model}流式调用失败:`, error);
