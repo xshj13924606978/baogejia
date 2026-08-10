@@ -2451,7 +2451,7 @@ export default function ChatArea({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="auto">自动</SelectItem>
-                          <SelectItem value="deepseek-v4-pro">DeepSeek V4 Pro</SelectItem>
+                          <SelectItem value="deepseek-v4-pro" disabled>DeepSeek V4 Pro（即将上线）</SelectItem>
                           <SelectItem value="deepseek">DeepSeek</SelectItem>
                           <SelectItem value="minimax-m2-her">MiniMax M2 Her</SelectItem>
                           <SelectItem value="kimi-k2.7-code">Kimi K2.7 Code</SelectItem>

@@ -13,7 +13,6 @@
 export type ModelId =
   | 'auto'
   | 'deepseek'
-  | 'deepseek-v4-pro'
   | 'gemini'
   | 'gemma'
   | 'minimax-m2-her'
@@ -48,15 +47,6 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     description: 'AI 根据问题自动选择最合适的模型',
     strengths: ['智能路由', '自动选择'],
     category: 'general',
-    icon: '',
-  },
-  {
-    id: 'deepseek-v4-pro',
-    name: 'DeepSeek V4 Pro',
-    provider: 'deepseek',
-    description: '旗舰推理模型，适合复杂报价和技术方案',
-    strengths: ['100万上下文', '推理强'],
-    category: 'reasoning',
     icon: '',
   },
   {
@@ -133,8 +123,8 @@ export interface RouteRule {
 export const AUTO_ROUTE_RULES: RouteRule[] = [
   {
     keywords: ['报价', '价格', '多少钱', '方案', '预算', '费用', '成本'],
-    model: 'deepseek-v4-pro',
-    reason: '推理能力强，适合报价和方案生成',
+    model: 'deepseek',
+    reason: '通用能力强，稳定可靠，适合报价和方案生成',
   },
   {
     keywords: ['对比', '市场', '行情', '趋势', '竞品', '搜索', '查询', '最新'],
@@ -159,7 +149,7 @@ export const AUTO_ROUTE_RULES: RouteRule[] = [
 ];
 
 /** 默认模型（通用能力强） */
-export const DEFAULT_MODEL: ModelId = 'deepseek-v4-pro';
+export const DEFAULT_MODEL: ModelId = 'deepseek';
 
 // ============================================================================
 // 自动路由函数
@@ -188,8 +178,8 @@ export function autoSelectModel(userInput: string): { model: ModelId; reason: st
     }
   }
 
-  // 默认使用 DeepSeek V4 Pro
-  return { model: DEFAULT_MODEL, reason: '通用场景使用 DeepSeek V4 Pro' };
+  // 默认使用 DeepSeek
+  return { model: DEFAULT_MODEL, reason: '通用场景使用 DeepSeek' };
 }
 
 // ============================================================================
