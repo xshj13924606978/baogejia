@@ -1462,6 +1462,26 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             localStorage.removeItem('session_token');
             localStorage.removeItem(STORAGE_KEYS.TOKEN);
           }
+        } else {
+          // localStorage 无用户数据，尝试从 httpOnly cookie 恢复会话
+          try {
+            const verifyRes = await fetch('/api/auth/verify-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({}),
+            }).catch(() => null);
+
+            if (verifyRes && verifyRes.ok) {
+              const verifyData = await verifyRes.json().catch(() => ({}));
+              if (verifyData.valid && verifyData.user) {
+                setUser(verifyData.user);
+                localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(verifyData.user));
+                console.log('[UserContext] 从 Cookie 恢复登录状态成功');
+              }
+            }
+          } catch (e) {
+            console.error('[UserContext] 从 Cookie 恢复会话失败:', e);
+          }
         }
       } catch (error) {
         console.error('[UserContext] 加载用户失败:', error);
