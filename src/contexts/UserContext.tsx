@@ -1422,43 +1422,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       try {
         setLoading(true);
 
-        // ========== 开发环境用户模拟 ==========
-        if (process.env.NODE_ENV === 'development') {
-          const savedTestUser = localStorage.getItem('dev_test_user');
-          if (savedTestUser) {
-            try {
-              const testUser = JSON.parse(savedTestUser);
-              if (testUser.id && testUser.email && testUser.role) {
-                setUser(testUser);
-                // 同步写入 localStorage.user，确保 hooks 能读到用户信息
-                localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(testUser));
-                setLoading(false);
-                return;
-              }
-            } catch (e) {
-              console.error('[UserContext] 解析测试用户失败', e);
-            }
-          }
-          // 默认使用超级管理员（使用真实 DB UUID，确保 API 查询和 dev fallback 一致）
-          const defaultDevUser = {
-            id: '8aab9b65-32e1-41d2-80c3-8be24fa30059',
-            email: 'admin2@test.com',
-            username: 'admin2',
-            role: 'super_admin',
-            level: 5,
-            currentPoints: 9999,
-            name: '超级管理员',
-            phone: '13924606978'
-          };
-          setUser(defaultDevUser);
-          // 同步写入 localStorage.user
-          localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(defaultDevUser));
-          setLoading(false);
-          return;
-        }
-        // ========== 开发环境用户模拟结束 ==========
-
-        // 生产环境：从 localStorage 读取用户 + 校验 session token
+        // 从 localStorage 读取用户 + 校验 session token
         const localUser = localStorage.getItem(STORAGE_KEYS.USER);
         if (localUser) {
           try {

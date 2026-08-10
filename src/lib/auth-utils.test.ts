@@ -188,17 +188,7 @@ describe('auth-utils', () => {
       expect(user).toBeNull();
     });
 
-    it('优先级4: 开发环境降级返回 admin2', async () => {
-      vi.stubEnv('NODE_ENV', 'development');
-      const devAdmin = { id: 'admin2-id', email: 'admin2@test.com', role: 'super_admin' };
-      mockDbSingle.mockResolvedValue({ data: devAdmin, error: null });
-      const req = createMockRequest();
-
-      const user = await getCurrentUser(req);
-      expect(user).toEqual({ id: 'admin2-id', email: 'admin2@test.com', role: 'super_admin' });
-    });
-
-    it('优先级4: 非开发环境不降级返回 null', async () => {
+    it('无凭据时返回 null', async () => {
       const req = createMockRequest();
       const user = await getCurrentUser(req);
       expect(user).toBeNull();

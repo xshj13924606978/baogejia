@@ -53,7 +53,7 @@ export interface AuthContext {
  * 核心设计：
  * - 调用 getCurrentUser(request) 获取用户
  * - 检测 dev fallback：当请求 x-user-id 与返回的用户 ID 不匹配时
- * - 降级时 currentUserId **保留** fallback 用户的真实 UUID（admin2）
+ * - 降级时 currentUserId **保留** fallback 用户的真实 UUID
  *   这样 scope=mine、download 自上传检测、upload 写入 user_id 都能正确工作
  * - 降级时 effectiveRole 使用 x-user-role header（前端从 localStorage 传入）
  */

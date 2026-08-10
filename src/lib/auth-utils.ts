@@ -78,15 +78,6 @@ export async function getCurrentUser(request: NextRequest) {
       }
     }
 
-    // 优先级4: 开发环境降级（保持向后兼容，避免影响其他未传 header 的 API）
-    if (process.env.NODE_ENV === 'development') {
-      const { data: businessUser } = await dbClient
-        .from('users').select('id, email, role').eq('email', 'admin2@test.com').single();
-      if (businessUser) {
-        return { id: businessUser.id, email: businessUser.email, role: businessUser.role || 'user' };
-      }
-    }
-
     return null;
   } catch (error) {
     // 区分错误类型：

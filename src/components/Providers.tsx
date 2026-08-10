@@ -19,18 +19,12 @@ const SupplierProvider = dynamic(
   { ssr: false }
 );
 
-// 开发环境用户切换器
-const DevUserSwitcher = process.env.NODE_ENV === 'development'
-  ? dynamic(() => import('@/components/dev-user-switcher').then((mod) => mod.DevUserSwitcher), { ssr: false })
-  : () => null;
-
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider>
       <CustomerProvider>
         <SupplierProvider>
           <SwitchProvider>{children}</SwitchProvider>
-          <DevUserSwitcher />
         </SupplierProvider>
       </CustomerProvider>
     </UserProvider>
