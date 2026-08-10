@@ -252,7 +252,7 @@ export default function ChatArea({
   const [parsedFilesMap, setParsedFilesMap] = useState<Record<string, any[]>>({});
   const parsedFilesMapRef = useRef(parsedFilesMap);
   const [showKnowledgeCenter, setShowKnowledgeCenter] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<string>('deepseek');
+  const [selectedModel, setSelectedModel] = useState<string>('auto');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
     () => typeof window !== 'undefined' ? localStorage.getItem('selectedCustomerId') || '' : ''
   );
@@ -2450,9 +2450,14 @@ export default function ChatArea({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="auto">自动</SelectItem>
+                          <SelectItem value="deepseek-v4-pro">DeepSeek V4 Pro</SelectItem>
                           <SelectItem value="deepseek">DeepSeek</SelectItem>
+                          <SelectItem value="minimax-m2-her">MiniMax M2 Her</SelectItem>
+                          <SelectItem value="kimi-k2.7-code">Kimi K2.7 Code</SelectItem>
                           <SelectItem value="gemini">Gemini</SelectItem>
                           <SelectItem value="gemma">Gemma 4 (本地)</SelectItem>
+                          <SelectItem value="octopus-rpa">八爪鱼 RPA</SelectItem>
                         </SelectContent>
                       </Select>
                     </TooltipTrigger>

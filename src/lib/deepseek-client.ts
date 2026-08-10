@@ -3,7 +3,15 @@ import {  ChatCompletionChunk } from 'openai/resources/chat/completions';
 import { Stream } from 'openai/streaming';
 
 // 定义支持的AI模型类型
-export type AIModel = 'deepseek' | 'coze' | 'gemini' | 'gemma';
+export type AIModel =
+  | 'deepseek'
+  | 'deepseek-v4-pro'
+  | 'coze'
+  | 'gemini'
+  | 'gemma'
+  | 'minimax-m2-her'
+  | 'kimi-k2.7-code'
+  | 'octopus-rpa';
 
 // 聊天补全参数接口
 export interface ChatCompletionParams {
@@ -262,15 +270,27 @@ export class AIClient {
         yield* this.streamGemma(params);
       } else if (model === 'gemini') {
         yield* this.streamGemini(params);
+      } else if (model === 'deepseek-v4-pro') {
+        yield* this.streamDeepSeekV4Pro(params);
+      } else if (model === 'minimax-m2-her') {
+        yield* this.streamMiniMax(params);
+      } else if (model === 'kimi-k2.7-code') {
+        yield* this.streamKimi(params);
+      } else if (model === 'octopus-rpa') {
+        yield* this.handleOctopusRPA(params);
       } else {
         yield* this.streamDeepSeek(params);
       }
     } catch (error: any) {
-      // 降级：gemma 失败切 deepseek，gemini 失败切 deepseek，deepseek 失败切 gemini
+      // 降级：新模型失败降级到 deepseek
+      const newModels: AIModel[] = ['gemma', 'gemini', 'deepseek-v4-pro', 'minimax-m2-her', 'kimi-k2.7-code', 'octopus-rpa'];
       if ((model === 'gemma' || model === 'gemini') && process.env.DEEPSEEK_API_KEY) {
         yield* this.streamDeepSeek({ ...params, signal });
       } else if (model === 'deepseek' && this.geminiClient) {
         yield* this.streamGemini({ ...params, signal });
+      } else if (newModels.includes(model) && process.env.DEEPSEEK_API_KEY) {
+        yield `> ${model} 暂时不可用，已切换到 DeepSeek 处理您的请求\n\n`;
+        yield* this.streamDeepSeek({ ...params, signal });
       } else {
         console.error(`[AIClient] ${model}流式调用失败:`, error);
         yield `[错误] ${error.message}`;
@@ -378,6 +398,75 @@ export class AIClient {
   }
 
   /**
+   * 流式调用 DeepSeek V4 Pro
+   */
+  private async *streamDeepSeekV4Pro(params: ChatCompletionParams): AsyncGenerator<string, void, unknown> {
+    const { streamDeepSeekV4Pro } = await import('./deepseek-v4-pro-client');
+    yield* streamDeepSeekV4Pro(params.messages, {
+      temperature: params.temperature,
+      max_tokens: params.maxTokens,
+    });
+  }
+
+  /**
+   * 流式调用 MiniMax M2 Her
+   */
+  private async *streamMiniMax(params: ChatCompletionParams): AsyncGenerator<string, void, unknown> {
+    const { streamMiniMax } = await import('./minimax-client');
+    yield* streamMiniMax(params.messages, {
+      temperature: params.temperature,
+      max_tokens: params.maxTokens,
+      enableSearch: true,
+    });
+  }
+
+  /**
+   * 流式调用 Kimi K2.7 Code
+   */
+  private async *streamKimi(params: ChatCompletionParams): AsyncGenerator<string, void, unknown> {
+    const { streamKimi } = await import('./kimi-client');
+    yield* streamKimi(params.messages, {
+      temperature: params.temperature ?? 0.3,
+      max_tokens: params.maxTokens,
+    });
+  }
+
+  /**
+   * 八爪鱼 RPA 特殊处理（数据采集模式）
+   */
+  private async *handleOctopusRPA(params: ChatCompletionParams): AsyncGenerator<string, void, unknown> {
+    const { getOctopusAssistantMessage, executeOctopusTask } = await import('./octopus-rpa-client');
+
+    const lastMessage = params.messages[params.messages.length - 1]?.content || '';
+
+    // 检查是否包含 URL
+    const urlMatch = lastMessage.match(/https?:\/\/[^\s]+/);
+
+    if (urlMatch && process.env.OCTOPUS_RPA_API_KEY) {
+      yield '正在通过**八爪鱼 RPA**采集网页数据...\n\n';
+
+      try {
+        const result = await executeOctopusTask({
+          url: urlMatch[0],
+          operation: 'extract',
+          extractType: 'text',
+        });
+
+        if (result.success && result.data) {
+          yield `**采集成功！**\n\n采集到的数据：\n\n\`\`\`\n${typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2)}\n\`\`\``;
+        } else {
+          yield `采集任务已提交（任务 ID: ${result.taskId}），请稍后查询结果。`;
+        }
+      } catch (error: any) {
+        yield `采集过程出现错误: ${error.message}\n\n`;
+        yield getOctopusAssistantMessage(lastMessage);
+      }
+    } else {
+      yield getOctopusAssistantMessage(lastMessage);
+    }
+  }
+
+  /**
    * 获取当前可用模型列表
    */
   getAvailableModels(): AIModel[] {
@@ -387,8 +476,24 @@ export class AIClient {
       available.push('deepseek');
     }
 
+    if (process.env.DEEPSEEK_V4_PRO_API_KEY) {
+      available.push('deepseek-v4-pro');
+    }
+
     if (this.geminiClient) {
       available.push('gemini');
+    }
+
+    if (process.env.MINIMAX_M2_HER_API_KEY) {
+      available.push('minimax-m2-her');
+    }
+
+    if (process.env.KIMI_K2_7_CODE_API_KEY) {
+      available.push('kimi-k2.7-code');
+    }
+
+    if (process.env.OCTOPUS_RPA_API_KEY) {
+      available.push('octopus-rpa');
     }
 
     return available;

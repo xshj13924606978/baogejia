@@ -10,6 +10,7 @@ import { pointsService } from '@/lib/points-service';
 import { searchWeb, formatSearchResult } from '@/lib/web-search';
 import { processWithIntent, formatProductsAsContext } from '@/lib/intent-pipeline';
 import { buildSupplierContext, buildCustomerContext } from '@/lib/inject-business-info';
+import { autoSelectModel } from '@/lib/models';
 
 // 从数据库加载对话历史
 async function loadConversationHistory(conversationId: string) {
@@ -102,7 +103,12 @@ export async function POST(request: NextRequest) {
 
     // 1. 解析请求
     const body = await request.json();
-    const { message, conversationId, model, customerId } = body;
+    const { message, conversationId, model: requestModel, customerId } = body;
+
+    // 自动路由：当 model 为 "auto" 或未指定时，根据用户问题自动选择模型
+    const model = (!requestModel || requestModel === 'auto')
+      ? autoSelectModel(message).model
+      : requestModel;
 
     if (!message) {
       return new Response(JSON.stringify({ error: '请提供消息内容' }), {

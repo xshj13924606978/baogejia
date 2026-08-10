@@ -1,6 +1,9 @@
 import { callGemmaLocal, isGemmaAvailable } from './gemma-local-client';
+import type { ModelId } from './models';
 
-export type TaskType = 'chat' | 'quote' | 'analyze_image' | 'analyze_doc' | 'price_query';
+export type TaskType = 'chat' | 'quote' | 'analyze_image' | 'analyze_doc' | 'price_query'
+  | 'tech_solution' | 'code_generation' | 'data_parsing' | 'market_compare' | 'simple_chat'
+  | 'image_analysis' | 'document_analysis';
 
 /**
  * AI 智能路由：根据任务类型选择最合适的模型
@@ -62,4 +65,65 @@ export async function smartRoute(
     messages: messages as any,
   });
   return result.text || '';
+}
+
+// ============================================================================
+// 任务类型 → 推荐模型映射表（用于自动模式）
+// ============================================================================
+
+const TASK_MODEL_MAP: Record<TaskType, ModelId[]> = {
+  price_query: ['deepseek-v4-pro', 'deepseek'],
+  tech_solution: ['deepseek-v4-pro', 'kimi-k2.7-code'],
+  image_analysis: ['gemini', 'deepseek-v4-pro'],
+  analyze_image: ['gemini', 'deepseek-v4-pro'],
+  document_analysis: ['deepseek-v4-pro', 'gemini'],
+  analyze_doc: ['deepseek-v4-pro', 'gemini'],
+  code_generation: ['kimi-k2.7-code', 'deepseek-v4-pro', 'gemma'],
+  data_parsing: ['kimi-k2.7-code', 'deepseek-v4-pro'],
+  market_compare: ['minimax-m2-her', 'deepseek-v4-pro'],
+  simple_chat: ['gemma', 'deepseek'],
+  chat: ['deepseek-v4-pro', 'deepseek'],
+  quote: ['deepseek-v4-pro', 'deepseek'],
+};
+
+/**
+ * 根据任务类型获取推荐模型列表
+ */
+export function getRecommendedModels(taskType: TaskType): ModelId[] {
+  return TASK_MODEL_MAP[taskType] || ['deepseek'];
+}
+
+/**
+ * 根据任务类型选择最佳可用模型
+ */
+export function selectBestModel(taskType: TaskType): ModelId {
+  const recommended = getRecommendedModels(taskType);
+
+  // 按优先级检查模型是否可用
+  for (const model of recommended) {
+    switch (model) {
+      case 'deepseek':
+        if (process.env.DEEPSEEK_API_KEY) return 'deepseek';
+        break;
+      case 'deepseek-v4-pro':
+        if (process.env.DEEPSEEK_V4_PRO_API_KEY) return 'deepseek-v4-pro';
+        break;
+      case 'gemini':
+        if (process.env.LAOZHANG_API_KEY) return 'gemini';
+        break;
+      case 'gemma':
+        if (process.env.GEMMA_ENABLED === 'true') return 'gemma';
+        break;
+      case 'minimax-m2-her':
+        if (process.env.MINIMAX_M2_HER_API_KEY) return 'minimax-m2-her';
+        break;
+      case 'kimi-k2.7-code':
+        if (process.env.KIMI_K2_7_CODE_API_KEY) return 'kimi-k2.7-code';
+        break;
+      default:
+        break;
+    }
+  }
+
+  return 'deepseek';
 }
