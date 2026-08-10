@@ -1436,7 +1436,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                   'Content-Type': 'application/json',
                   'x-user-token': sessionToken,
                 },
-                body: JSON.stringify({ userId: parsedUser.id }),
+                body: JSON.stringify({ token: sessionToken }),
               }).catch(() => null);
 
               if (verifyRes && verifyRes.ok) {
