@@ -1050,7 +1050,7 @@ const SimpleMarkdown = ({ content, isStreaming }: { content: string; isStreaming
       // 1. 为一级标题添加底部边距和分隔线（左对齐）
       renderedHtml = renderedHtml.replace(
         /<h1([^>]*)>([\s\S]*?)<\/h1>/g,
-        '<h1 class="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-4xl mb-6 pb-4 border-b-2 border-border text-left"$1>$2</h1>'
+        '<h1 class="scroll-m-20 text-2xl font-extrabold tracking-tight lg:text-3xl mb-6 pb-4 border-b-2 border-border text-left"$1>$2</h1>'
       );
 
       // 2. 为二级标题添加左边框和背景色（字号小于一级目录）
@@ -1062,7 +1062,7 @@ const SimpleMarkdown = ({ content, isStreaming }: { content: string; isStreaming
       // 3. 为三级标题添加左边框（颜色递变）和左缩进
       renderedHtml = renderedHtml.replace(
         /<h3([^>]*)>([\s\S]*?)<\/h3>/g,
-        '<h3 class="scroll-m-20 border-l-2 border-primary/60 pl-8 py-2 my-4 text-xl font-semibold tracking-tight text-slate-700"$1>$2</h3>'
+        '<h3 class="scroll-m-20 border-l-2 border-primary/60 pl-8 py-2 my-4 text-lg font-semibold tracking-tight text-slate-700"$1>$2</h3>'
       );
 
       // 4. 为四级标题添加左边框（颜色递变）和左缩进
