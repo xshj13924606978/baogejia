@@ -525,6 +525,76 @@ export async function* streamGeminiChat(
   yield* aiClient.streamChat({ ...params, model: 'gemini' });
 }
 
+/**
+ * 使用 Gemini 多模态分析产品图片
+ * 识别设备实物照片、铭牌、图纸、报价单等，返回专业分析结果
+ */
+export async function analyzeProductImageWithGemini(
+  buffer: Buffer,
+  mimeType: string,
+  userMessage?: string
+): Promise<string> {
+  const apiKey = process.env.LAOZHANG_API_KEY;
+  const baseURL = process.env.LAOZHANG_BASE_URL || 'https://api.laozhang.ai/v1';
+
+  if (!apiKey) {
+    throw new Error('LAOZHANG_API_KEY 未配置，Gemini 图片分析不可用');
+  }
+
+  const base64Image = buffer.toString('base64');
+  const dataUrl = `data:${mimeType};base64,${base64Image}`;
+  const additionalContext = userMessage ? `\n用户补充说明：${userMessage}` : '';
+
+  const prompt = `请分析这张图片，根据图片内容给出专业回复：
+
+1. **如果图片中是设备/产品实物照片**：
+   - 识别设备名称、类型和用途
+   - 根据外观判断规格参数（尺寸、功率、材质、处理量等）
+   - 给出该设备的参考市场价格和选型建议
+
+2. **如果图片中是铭牌/标签**：
+   - 提取品牌、型号、技术参数
+   - 根据型号说明该设备的用途和参考价格
+
+3. **如果图片中是技术图纸/示意图**：
+   - 识别设备结构和尺寸标注
+   - 说明涉及的设备类型和大致配置
+
+4. **如果图片中是报价单/合同/文档截图**：
+   - 提取产品名称、规格、数量、价格
+   - 生成结构化的报价单
+${additionalContext}
+请根据图片实际内容灵活处理，给出最有价值的专业回复。直接给出分析结果即可。`;
+
+  console.log('[ImageAnalysis] 调用 Gemini 进行多模态图片分析...');
+
+  const client = new OpenAI({ apiKey, baseURL, dangerouslyAllowBrowser: false });
+
+  const response = await client.chat.completions.create({
+    model: process.env.LAOZHANG_MODEL || 'gemini-2.5-flash',
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: dataUrl } },
+        ],
+      },
+    ],
+    temperature: 0.7,
+    max_tokens: 4096,
+  });
+
+  const text = response.choices?.[0]?.message?.content || '';
+
+  if (text.trim().length === 0) {
+    throw new Error('Gemini 未返回有效的图片分析结果');
+  }
+
+  console.log('[ImageAnalysis] Gemini 图片分析成功', { textLength: text.length });
+  return text;
+}
+
 export function getAIClient(): AIClient {
   return aiClient;
 }
