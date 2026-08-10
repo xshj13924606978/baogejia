@@ -76,3 +76,4 @@ eng.traineddata
 .clean-sensitive-config
 scripts/bfg.jar
 scripts/git-filter-repo
+projects/
