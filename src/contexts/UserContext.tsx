@@ -1428,29 +1428,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           try {
             const parsedUser = JSON.parse(localUser);
             // 校验 session token 有效性（发送轻量级验证请求）
+            // 优先使用 localStorage 中的 token；若缺失则让后端从 httpOnly cookie 读取
             const sessionToken = localStorage.getItem('session_token');
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
             if (sessionToken) {
-              const verifyRes = await fetch('/api/auth/verify-session', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'x-user-token': sessionToken,
-                },
-                body: JSON.stringify({ token: sessionToken }),
-              }).catch(() => null);
+              headers['x-user-token'] = sessionToken;
+            }
 
-              if (verifyRes && verifyRes.ok) {
-                setUser(parsedUser);
-              } else {
-                // token 无效，清除登录状态
-                console.warn('[UserContext] session token 无效，清除登录状态');
-                localStorage.removeItem(STORAGE_KEYS.USER);
-                localStorage.removeItem('session_token');
-                localStorage.removeItem(STORAGE_KEYS.TOKEN);
-              }
+            const verifyRes = await fetch('/api/auth/verify-session', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(sessionToken ? { token: sessionToken } : {}),
+            }).catch(() => null);
+
+            if (verifyRes && verifyRes.ok) {
+              // 使用服务端返回的最新用户信息，避免 localStorage 中数据过期
+              const verifyData = await verifyRes.json().catch(() => ({}));
+              const verifiedUser = verifyData.user
+                ? { ...parsedUser, ...verifyData.user }
+                : parsedUser;
+              setUser(verifiedUser);
+              localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(verifiedUser));
             } else {
-              // 没有 session token，也视为未登录
-              console.warn('[UserContext] 无 session token，清除登录状态');
+              // token 无效，清除登录状态
+              console.warn('[UserContext] session token 无效，清除登录状态');
               localStorage.removeItem(STORAGE_KEYS.USER);
               localStorage.removeItem('session_token');
               localStorage.removeItem(STORAGE_KEYS.TOKEN);

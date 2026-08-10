@@ -3,7 +3,10 @@ import { verifySessionToken } from '@/lib/session-token';
 
 export async function POST(request: NextRequest) {
   try {
-    const { token } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    // 优先使用请求体中的 token，否则回退到 httpOnly cookie
+    // 这样即使前端 localStorage 中的 session_token 丢失，也能通过 cookie 恢复登录状态
+    const token = body.token || request.cookies.get('session_token')?.value;
 
     if (!token || typeof token !== 'string') {
       return NextResponse.json({ valid: false, error: '缺少 token' }, { status: 400 });
