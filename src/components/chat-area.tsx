@@ -242,6 +242,7 @@ export default function ChatArea({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMessagesLengthRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastStreamUpdateRef = useRef(0);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(conversationId);
   const currentConversationIdRef = useRef(currentConversationId);
   const [isReady, setIsReady] = useState(false);
@@ -1086,6 +1087,7 @@ export default function ChatArea({
   const handleStreamingChat = async (message: string, conversationId: string) => {
     const tempId = Date.now() + 1;
     let fullContent = '';
+    lastStreamUpdateRef.current = 0;
 
     // 创建临时消息，显示加载动画
     setMessages((prev) => [
@@ -1160,11 +1162,15 @@ export default function ChatArea({
                 );
               } else if (data.type === 'content') {
                 fullContent += data.content;
-                setMessages((prev) =>
-                  prev.map((msg) => (msg.id === tempId ? { ...msg, content: fullContent } : msg))
-                );
-                // 每次更新内容后滚动到底部
-                scrollToBottom();
+                // 节流：每 50ms 最多更新一次 UI，避免每个 token 都触发全量 Markdown 渲染 + React 协调
+                const now = Date.now();
+                if (now - lastStreamUpdateRef.current >= 50) {
+                  lastStreamUpdateRef.current = now;
+                  setMessages((prev) =>
+                    prev.map((msg) => (msg.id === tempId ? { ...msg, content: fullContent } : msg))
+                  );
+                  scrollToBottom();
+                }
               } else if (data.type === 'error') {
                 console.error('[ChatArea] 流式错误:', data.error);
                 throw new Error(data.error);
