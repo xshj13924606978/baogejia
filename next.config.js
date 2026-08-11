@@ -27,11 +27,35 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
+  // Turbopack 兼容：空配置使用默认 Turbopack 行为
+  turbopack: {},
+
   webpack: (config, { dev }) => {
-    // 在开发环境使用相对路径，避免 Chrome 在 WSL 下因绝对路径
-    // 抛出 "无法添加文件系统：<illegal path>" 错误
     if (dev) {
+      // 在 WSL 下使用相对路径，避免 Chrome 抛出 "无法添加文件系统：<illegal path>"
       config.output.devtoolModuleFilenameTemplate = '[resource-path]';
+      config.output.devtoolFallbackModuleFilenameTemplate = '[resource-path]?[hash]';
+      // eval-cheap-module-source-map 不生成绝对路径的 source map，彻底避免 WSL 路径问题
+      config.devtool = 'eval-cheap-module-source-map';
+
+      // 忽略非源码目录的文件变更，防止无意义的 Fast Refresh 频繁触发
+      config.watchOptions = {
+        ignored: [
+          '**/logs/**',
+          '**/coverage/**',
+          '**/reports/**',
+          '**/assets/**',
+          '**/database/**',
+          '**/docs/**',
+          '**/scripts/**',
+          '**/projects/**',
+          '**/public/**',
+          '**/ssl/**',
+          '**/patches/**',
+          '**/*.md',
+          '**/*.log',
+        ],
+      };
     }
     return config;
   },
