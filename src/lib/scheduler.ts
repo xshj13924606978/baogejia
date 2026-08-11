@@ -6,7 +6,7 @@
 import cron from 'node-cron';
 import { collectAllCategories } from './octopus-collector';
 import { importCollectedData } from './data-importer';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 
 let isRunning = false;
 
@@ -32,7 +32,7 @@ export async function runDataCollection(): Promise<{
   try {
     console.log('[Scheduler] 开始执行产品数据采集任务...');
 
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
 
     // 1. 获取所有启用的类别
     const { data: categories } = await supabase
@@ -89,7 +89,7 @@ export async function runDataCollection(): Promise<{
 
     // 记录失败日志
     try {
-      const supabase = getSupabaseClient();
+      const supabase = getSupabaseServiceClient();
       await supabase.from('collection_logs').insert({
         executed_at: new Date().toISOString(),
         status: 'failed',

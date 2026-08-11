@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient, getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/auth-utils';
 
 // GET /api/categories - 获取所有采集类别
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
     const { searchParams } = new URL(request.url);
     const enabled = searchParams.get('enabled');
 
