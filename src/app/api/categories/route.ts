@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseClient, getSupabaseServiceClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/auth-utils';
 
 // GET /api/categories - 获取所有采集类别
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   if (errorResponse) return errorResponse;
 
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
     const body = await request.json();
 
     if (!body.name || !body.keywords || body.keywords.length === 0) {
@@ -75,7 +75,7 @@ export async function PUT(request: NextRequest) {
   if (errorResponse) return errorResponse;
 
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
     const body = await request.json();
 
     if (!body.id) {
@@ -112,7 +112,7 @@ export async function DELETE(request: NextRequest) {
   if (errorResponse) return errorResponse;
 
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
