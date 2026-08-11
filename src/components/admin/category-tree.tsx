@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Folder, FolderOpen, Package, Edit2, RotateCcw, Trash2, X, Check, Plus, GitMerge } from 'lucide-react';
+import { ChevronDown, ChevronRight, Folder, FolderOpen, FolderTree, Package, Edit2, RotateCcw, Trash2, X, Check, Plus, GitMerge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -367,12 +367,19 @@ export function CategoryTree({
     const isEditingThisNode = editingNodeId === node.id;
 
     return (
-      <div key={node.id} className="select-none">
+      <div key={node.id} className="select-none relative">
+        {/* 树形连接线：为每个非根节点绘制左侧竖线 */}
+        {level > 0 && (
+          <div
+            className="absolute top-0 bottom-0 border-l border-slate-200 dark:border-slate-700"
+            style={{ left: `${level * 16 + 12}px` }}
+          />
+        )}
         <div
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${
+          className={`relative flex items-center gap-2 py-1.5 pr-2 rounded-lg transition-all duration-150 cursor-pointer z-[1] ${
             isSelected
-              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-sm'
-              : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+              ? 'bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-900/30 dark:to-blue-800/20 text-blue-700 dark:text-blue-300 shadow-sm ring-1 ring-blue-100 dark:ring-blue-800'
+              : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
           }`}
           style={{ paddingLeft: `${level * 16 + 8}px` }}
           onClick={() => {
@@ -383,26 +390,26 @@ export function CategoryTree({
         >
           {hasChildren ? (
             <button
-              className="w-5 h-5 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-transform duration-200"
+              className="w-5 h-5 shrink-0 flex items-center justify-center rounded-md hover:bg-slate-200/70 dark:hover:bg-slate-700 transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleExpand(node.id);
               }}
             >
-              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? '' : '-rotate-90'}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isExpanded ? '' : '-rotate-90'}`} />
             </button>
           ) : (
-            <span className="w-5"></span>
+            <span className="w-5 shrink-0"></span>
           )}
 
           {hasChildren ? (
             isExpanded ? (
-              <FolderOpen className="w-4 h-4 text-blue-500" />
+              <FolderOpen className="w-4 h-4 shrink-0 text-blue-500" />
             ) : (
-              <Folder className="w-4 h-4 text-blue-500" />
+              <Folder className="w-4 h-4 shrink-0 text-blue-500" />
             )
           ) : (
-            <Package className="w-4 h-4 text-slate-400" />
+            <Package className="w-4 h-4 shrink-0 text-slate-400" />
           )}
 
           {isEditingThisNode ? (
@@ -423,23 +430,17 @@ export function CategoryTree({
               autoFocus
             />
           ) : (
-            <span className="text-sm flex-1">{node.name}</span>
+            <span className="text-sm flex-1 truncate">{node.name}</span>
           )}
 
           {totalCount > 0 && !isEditingThisNode && (
-            <span className="text-xs bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded-full text-slate-600 dark:text-slate-400">
+            <span className="text-xs bg-slate-100 dark:bg-slate-700/60 px-2 py-0.5 rounded-full text-slate-500 dark:text-slate-400 font-medium">
               {totalCount}
             </span>
           )}
 
-          {node.code && !isEditingThisNode && (
-            <span className="text-xs text-slate-400 dark:text-slate-600">
-              {node.code}
-            </span>
-          )}
-
           {isEditing && !isEditingThisNode && (
-            <div className="flex items-center gap-1 ml-1">
+            <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 className="w-6 h-6 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 dark:text-slate-400"
                 onClick={(e) => {
@@ -526,7 +527,7 @@ export function CategoryTree({
         {/* 新增子分类输入框 */}
         {addingNodeId === node.id && (
           <div
-            className="flex items-center gap-1 px-2 py-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 ml-4"
+            className="flex items-center gap-2 py-1.5 pr-2 rounded-lg bg-blue-50/70 dark:bg-blue-900/20"
             style={{ paddingLeft: `${(level + 1) * 16 + 8}px` }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -586,13 +587,16 @@ export function CategoryTree({
   };
 
   return (
-    <div className="flex flex-col" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-      <div className="flex items-center justify-between mb-3 px-2 shrink-0">
-        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">产品分类</h3>
+    <div className="flex flex-col bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+      <div className="flex items-center justify-between mb-0 px-4 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-slate-50/50 dark:bg-slate-800/50 rounded-t-xl">
+        <div className="flex items-center gap-2">
+          <FolderTree className="h-4 w-4 text-blue-500" />
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">产品分类</h3>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-              <Edit2 className="h-3.5 w-3.5" />
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-slate-200 dark:hover:bg-slate-700">
+              <Edit2 className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -610,18 +614,19 @@ export function CategoryTree({
         </DropdownMenu>
       </div>
 
-      <div className="overflow-y-auto px-1" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+      <div className="overflow-y-auto p-3" style={{ maxHeight: 'calc(100vh - 280px)' }}>
         {renderNode(treeWithCounts)}
       </div>
 
       {selectedCategoryId && (
-        <div className="mt-2 px-2 shrink-0">
+        <div className="mt-0 px-3 py-2 border-t border-slate-100 dark:border-slate-800 shrink-0">
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-xs h-7"
+            className="w-full justify-start text-xs h-7 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
             onClick={() => onCategorySelect?.(null)}
           >
+            <X className="h-3 w-3 mr-1.5" />
             清除筛选
           </Button>
         </div>
