@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -231,6 +232,7 @@ export default function ChatArea({
   supplierInfo,
   onTitleChange,
 }: ChatAreaProps) {
+  const router = useRouter();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -2526,6 +2528,18 @@ export default function ChatArea({
                                 {selectedCustomerId === c.id && <Check className="h-3 w-3 text-emerald-500 shrink-0" />}
                               </button>
                             ))}
+                          <div className="border-t pt-1 mt-1">
+                            <button
+                              className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/20 flex items-center gap-2 text-emerald-600"
+                              onClick={() => {
+                                setCustomerPopoverOpen(false);
+                                router.push('/customers');
+                              }}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              <span>添加新客户</span>
+                            </button>
+                          </div>
                         </div>
                       </PopoverContent>
                     </Popover>
