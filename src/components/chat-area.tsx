@@ -2246,7 +2246,7 @@ export default function ChatArea({
                 <div className="flex items-center justify-center gap-2">
                   <Sparkle className="h-8 w-8 text-blue-600" />
                   <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-200">
-                    今天有什么可以帮到你？
+                    来！让我们一起把事情变得快乐而简单！
                   </h1>
                 </div>
                 <p className="text-slate-500 dark:text-slate-400 text-base">
