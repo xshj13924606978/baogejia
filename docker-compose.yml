@@ -29,6 +29,8 @@ services:
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://xs-bj.com}
       - WECHAT_APP_ID=${WECHAT_APP_ID}
       - WECHAT_APP_SECRET=${WECHAT_APP_SECRET}
+      - OCTOPUS_RPA_API_KEY=${OCTOPUS_RPA_API_KEY}
+      - OCTOPUS_RPA_API_URL=${OCTOPUS_RPA_API_URL:-https://mcp-rpa.bazhuayu.com}
     volumes:
       - ./tmp:/tmp
       - ./logs:/app/logs
