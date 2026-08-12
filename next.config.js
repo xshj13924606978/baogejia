@@ -5,6 +5,15 @@ const nextConfig = {
 
   output: 'standalone',
 
+  // standalone 模式下，Tesseract.js 的 worker 脚本和 wasm core 通过运行时路径加载，
+  // 文件追踪（@vercel/nft）无法识别 new Worker(workerPath) 的字符串路径，需显式包含
+  outputFileTracingIncludes: {
+    '/api/**/*': [
+      './node_modules/tesseract.js/src/worker-script/**/*',
+      './node_modules/tesseract.js-core/**/*',
+    ],
+  },
+
   experimental: {},
 
   env: {},

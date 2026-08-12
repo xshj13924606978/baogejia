@@ -178,8 +178,21 @@ export class OcrHelper {
       const base64Image = imageBuffer.toString('base64');
       const dataUrl = `data:image/png;base64,${base64Image}`;
 
+      // 显式指定 workerPath：Next.js 打包时 __dirname 会被改写，
+      // 若不指定会解析到不存在的 .next/dev/worker-script/node/index.js
+      const workerPath = path.join(
+        process.cwd(),
+        'node_modules',
+        'tesseract.js',
+        'src',
+        'worker-script',
+        'node',
+        'index.js'
+      );
+
       const result = await Promise.race([
         Tesseract.recognize(dataUrl, 'chi_sim+eng', {
+          workerPath,
           logger: (m: any) => {
             if (m.status === 'recognizing text') {
               Logger.debug(`[OCR] 识别进度: ${(m.progress * 100).toFixed(2)}%`);
@@ -187,7 +200,7 @@ export class OcrHelper {
           },
         }),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Tesseract.js 识别超时（60秒）')), 60000)
+          setTimeout(() => reject(new Error('Tesseract.js 识别超时（120秒）')), 120000)
         ),
       ]);
 
@@ -260,7 +273,14 @@ export class OcrHelper {
 
     Logger.info('[OCR] 使用 AI Vision 识别图片...');
 
-    const client = new OpenAI({ apiKey, baseURL, dangerouslyAllowBrowser: false });
+    // 增加超时（120秒）与自动重试（最多2次），避免连接失败/超时直接中断图片解析
+    const client = new OpenAI({
+      apiKey,
+      baseURL,
+      timeout: 120000,
+      maxRetries: 2,
+      dangerouslyAllowBrowser: false,
+    });
     const base64Image = imageBuffer.toString('base64');
 
     // 检测图片类型

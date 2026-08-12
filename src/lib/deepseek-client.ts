@@ -628,7 +628,14 @@ ${additionalContext}
 
   console.log('[ImageAnalysis] 调用 Gemini 进行多模态图片分析...');
 
-  const client = new OpenAI({ apiKey, baseURL, dangerouslyAllowBrowser: false });
+  // 增加超时（120秒）与自动重试（最多2次），避免连接失败/超时导致图片分析不可用
+  const client = new OpenAI({
+    apiKey,
+    baseURL,
+    timeout: 120000,
+    maxRetries: 2,
+    dangerouslyAllowBrowser: false,
+  });
 
   const response = await client.chat.completions.create({
     model: process.env.LAOZHANG_MODEL || 'gemini-2.5-flash',
