@@ -6,6 +6,7 @@ import { Stream } from 'openai/streaming';
 export type AIModel =
   | 'deepseek'
   | 'deepseek-v4-pro'
+  | 'glm'
   | 'coze'
   | 'gemini'
   | 'gemma'
@@ -88,6 +89,8 @@ export class AIClient {
       switch (model) {
         case 'deepseek':
           return await this.callDeepSeek(params);
+        case 'glm':
+          return await this.callGLM(params);
         case 'gemini':
           return await this.callGemini(params);
         case 'coze':
@@ -101,6 +104,11 @@ export class AIClient {
       // 如果指定模型失败且有备用模型，尝试切换
       if (model === 'gemini') {
         // Gemini失败，尝试DeepSeek
+        if (process.env.DEEPSEEK_API_KEY) {
+          return await this.callDeepSeek(params);
+        }
+      } else if (model === 'glm') {
+        // GLM失败，尝试DeepSeek
         if (process.env.DEEPSEEK_API_KEY) {
           return await this.callDeepSeek(params);
         }
@@ -259,6 +267,41 @@ export class AIClient {
   }
 
   /**
+   * 调用 GLM API（非流式，通过智谱 OpenAI 兼容接口）
+   */
+  private async callGLM(params: ChatCompletionParams): Promise<AIResponse> {
+    if (!process.env.GLM_API_KEY) {
+      throw new Error('GLM_API_KEY未配置');
+    }
+
+    try {
+      const { callGLM } = await import('./glm-client');
+      const text = await callGLM(params.messages, {
+        temperature: params.temperature,
+        max_tokens: params.maxTokens,
+      });
+
+      return {
+        text,
+        model: 'glm',
+        conversationId: params.conversationId,
+      };
+    } catch (error: any) {
+      console.error('GLM API详细错误:', error);
+
+      if (error.status === 401) {
+        throw new Error('GLM API认证失败，请检查API Key');
+      } else if (error.status === 429) {
+        throw new Error('GLM API请求超限，请稍后重试');
+      } else if (error.code === 'ECONNREFUSED') {
+        throw new Error('无法连接到GLM API，请检查网络');
+      }
+
+      throw new Error(`GLM API调用失败: ${error.message}`);
+    }
+  }
+
+  /**
    * 流式调用（根据 model 参数分发到不同模型）
    */
   async *streamChat(params: ChatCompletionParams): AsyncGenerator<string, void, unknown> {
@@ -272,6 +315,8 @@ export class AIClient {
         yield* this.streamGemini(params);
       } else if (model === 'deepseek-v4-pro') {
         yield* this.streamDeepSeekV4Pro(params);
+      } else if (model === 'glm') {
+        yield* this.streamGLM(params);
       } else if (model === 'minimax-m2-her') {
         yield* this.streamMiniMax(params);
       } else if (model === 'kimi-k2.7-code') {
@@ -283,7 +328,7 @@ export class AIClient {
       }
     } catch (error: any) {
       // 降级：新模型失败降级到 deepseek
-      const newModels: AIModel[] = ['gemma', 'gemini', 'deepseek-v4-pro', 'minimax-m2-her', 'kimi-k2.7-code', 'octopus-rpa'];
+      const newModels: AIModel[] = ['gemma', 'gemini', 'deepseek-v4-pro', 'glm', 'minimax-m2-her', 'kimi-k2.7-code', 'octopus-rpa'];
       if ((model === 'gemma' || model === 'gemini') && process.env.DEEPSEEK_API_KEY) {
         yield* this.streamDeepSeek({ ...params, signal });
       } else if (model === 'deepseek' && this.geminiClient) {
@@ -410,6 +455,17 @@ export class AIClient {
   }
 
   /**
+   * 流式调用 GLM（智谱 OpenAI 兼容接口）
+   */
+  private async *streamGLM(params: ChatCompletionParams): AsyncGenerator<string, void, unknown> {
+    const { streamGLM } = await import('./glm-client');
+    yield* streamGLM(params.messages, {
+      temperature: params.temperature,
+      max_tokens: params.maxTokens,
+    });
+  }
+
+  /**
    * 流式调用 MiniMax M2 Her
    */
   private async *streamMiniMax(params: ChatCompletionParams): AsyncGenerator<string, void, unknown> {
@@ -479,6 +535,10 @@ export class AIClient {
 
     if (process.env.DEEPSEEK_V4_PRO_API_KEY) {
       available.push('deepseek-v4-pro');
+    }
+
+    if (process.env.GLM_API_KEY) {
+      available.push('glm');
     }
 
     if (this.geminiClient) {

@@ -13,6 +13,8 @@
 export type ModelId =
   | 'auto'
   | 'deepseek'
+  | 'deepseek-v4-pro'
+  | 'glm'
   | 'gemini'
   | 'gemma'
   | 'minimax-m2-her'
@@ -57,6 +59,15 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     strengths: ['通用理解', '稳定可靠'],
     category: 'general',
     icon: '',
+  },
+  {
+    id: 'glm',
+    name: 'GLM-5.2 High',
+    provider: 'zhipu',
+    description: '中文理解顶级，适合中文专业场景',
+    strengths: ['中文理解', '工具调用'],
+    category: 'general',
+    icon: '🇨🇳',
   },
   {
     id: 'minimax-m2-her',
@@ -145,6 +156,11 @@ export const AUTO_ROUTE_RULES: RouteRule[] = [
     keywords: ['采集', '抓取', '爬虫', '网页', '网站数据', '提取数据'],
     model: 'octopus-rpa',
     reason: '自动化网页数据采集',
+  },
+  {
+    keywords: ['材质', '耐压', '防腐', '过滤', '氧化', '催化', '发酵', '萃取', '污水', '废水', '工艺', '选型', '规范'],
+    model: 'glm',
+    reason: '中文专业场景使用 GLM，中文理解顶级',
   },
 ];
 

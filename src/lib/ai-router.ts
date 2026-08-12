@@ -72,18 +72,18 @@ export async function smartRoute(
 // ============================================================================
 
 const TASK_MODEL_MAP: Record<TaskType, ModelId[]> = {
-  price_query: ['deepseek', 'gemini', 'kimi-k2.7-code'],
-  tech_solution: ['deepseek', 'gemini', 'kimi-k2.7-code'],
-  image_analysis: ['gemini', 'deepseek'],
-  analyze_image: ['gemini', 'deepseek'],
-  document_analysis: ['gemini', 'deepseek'],
-  analyze_doc: ['gemini', 'deepseek'],
-  code_generation: ['kimi-k2.7-code', 'deepseek', 'gemma'],
-  data_parsing: ['kimi-k2.7-code', 'deepseek', 'gemini'],
-  market_compare: ['minimax-m2-her', 'deepseek', 'gemini'],
-  simple_chat: ['gemma', 'deepseek'],
+  price_query: ['deepseek-v4-pro', 'deepseek', 'glm'],
+  tech_solution: ['deepseek-v4-pro', 'glm', 'kimi-k2.7-code'],
+  image_analysis: ['gemini', 'deepseek-v4-pro'],
+  analyze_image: ['gemini', 'deepseek-v4-pro'],
+  document_analysis: ['deepseek-v4-pro', 'gemini', 'glm'],
+  analyze_doc: ['deepseek-v4-pro', 'gemini', 'glm'],
+  code_generation: ['kimi-k2.7-code', 'deepseek-v4-pro', 'gemma'],
+  data_parsing: ['kimi-k2.7-code', 'deepseek-v4-pro', 'glm'],
+  market_compare: ['minimax-m2-her', 'deepseek-v4-pro'],
+  simple_chat: ['gemma', 'deepseek-v4-pro', 'deepseek'],
   chat: ['deepseek', 'gemma', 'gemini'],
-  quote: ['deepseek', 'gemini', 'kimi-k2.7-code'],
+  quote: ['deepseek-v4-pro', 'deepseek', 'glm'],
 };
 
 /**
@@ -104,6 +104,12 @@ export function selectBestModel(taskType: TaskType): ModelId {
     switch (model) {
       case 'deepseek':
         if (process.env.DEEPSEEK_API_KEY) return 'deepseek';
+        break;
+      case 'deepseek-v4-pro':
+        if (process.env.DEEPSEEK_V4_PRO_API_KEY) return 'deepseek-v4-pro';
+        break;
+      case 'glm':
+        if (process.env.GLM_API_KEY) return 'glm';
         break;
       case 'gemini':
         if (process.env.LAOZHANG_API_KEY) return 'gemini';
