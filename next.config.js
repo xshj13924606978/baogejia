@@ -41,6 +41,9 @@ const nextConfig = {
       // 忽略非源码目录的文件变更，防止无意义的 Fast Refresh 频繁触发
       config.watchOptions = {
         ignored: [
+          '**/node_modules',
+          '**/.git',
+          '**/.*/',
           '**/logs/**',
           '**/coverage/**',
           '**/reports/**',
@@ -55,6 +58,9 @@ const nextConfig = {
           '**/*.md',
           '**/*.log',
         ],
+        // WSL 下文件系统监视不可靠，使用轮询方式监视文件变更
+        poll: 1000,
+        aggregateTimeout: 300,
       };
     }
     return config;
