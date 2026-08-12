@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * - /login, /register, /forgot-password
  * - /api/auth/*（登录/注册/验证码等认证接口）
  * - /api/public/*（公开 API）
+ * - /contributor/*（资料贡献公开上传页与接口）
  * - /_next/*, /static/*, /favicon.ico 等静态资源
  * - /payment/result（支付回调）
  * - /robots.txt
@@ -28,6 +29,8 @@ const PUBLIC_PATHS = [
   '/api/public',
   '/api/migrate',     // 数据库迁移端点（一次性）
   '/api/points',      // 积分查询（无需登录，GET 有 user_id 参数）
+  '/contributor',     // 资料贡献公开上传页（无需登录）
+  '/api/contributor', // 资料贡献公开接口（上传/注册/文件上传）
   '/_next',
   '/static',
   '/favicon.ico',
