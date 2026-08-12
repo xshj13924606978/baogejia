@@ -39,6 +39,10 @@ export async function importCollectedData(rawDataList: RawCollectionData[]): Pro
 
   console.log(`[DataImporter] 开始处理 ${rawDataList.length} 条采集数据`);
 
+  if (rawDataList.length > 0) {
+    console.log('[DataImporter] 数据样本:', JSON.stringify(rawDataList[0], null, 2));
+  }
+
   // 1. 数据清洗与验证
   const validatedList = validateBatch(rawDataList);
 

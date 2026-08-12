@@ -35,10 +35,14 @@ export async function runDataCollection(): Promise<{
     const supabase = getSupabaseServiceClient();
 
     // 1. 获取所有启用的类别
-    const { data: categories } = await supabase
+    const { data: categories, error: categoriesError } = await supabase
       .from('collection_categories')
       .select('*')
       .eq('enabled', true);
+
+    if (categoriesError) {
+      throw new Error(`获取采集类别失败: ${categoriesError.message}`);
+    }
 
     if (!categories || categories.length === 0) {
       console.log('[Scheduler] 没有启用的采集类别，跳过采集');
@@ -46,10 +50,15 @@ export async function runDataCollection(): Promise<{
     }
 
     console.log(`[Scheduler] 找到 ${categories.length} 个启用类别`);
+    console.log('[Scheduler] 启用类别:', categories.map((c) => ({ id: c.id, name: c.name, keywords: c.keywords })));
 
     // 2. 采集数据
     const collectedData = await collectAllCategories(categories);
     console.log(`[Scheduler] 采集完成，共 ${collectedData.length} 条原始数据`);
+
+    if (collectedData.length === 0) {
+      console.warn('[Scheduler] 未采集到任何数据，请检查八爪鱼 API 配置或关键词设置');
+    }
 
     // 3. 导入数据
     const importResult = await importCollectedData(collectedData);

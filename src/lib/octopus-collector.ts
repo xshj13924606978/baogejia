@@ -37,6 +37,22 @@ export async function triggerOctopusCollection(category: CollectionCategory): Pr
   const keywords = category.keywords || [];
 
   console.log(`[Octopus] 开始采集分类: ${category.name}, 关键词: ${keywords.join(', ')}`);
+  console.log('[Octopus] 采集请求参数:', {
+    taskName,
+    keywords,
+    targetFields: [
+      'product_name',
+      'model',
+      'brand',
+      'price',
+      'supplier',
+      'contact_person',
+      'contact_phone',
+      'parameter_description',
+      'category',
+    ],
+    maxResults: 100,
+  });
 
   try {
     // 1. 启动采集任务
@@ -70,6 +86,7 @@ export async function triggerOctopusCollection(category: CollectionCategory): Pr
     }
 
     const startResult: OctopusCollectionResult = await startResponse.json();
+    console.log('[Octopus] 八爪鱼响应:', JSON.stringify(startResult, null, 2));
 
     if (startResult.status === 'failed') {
       console.error(`[Octopus] 采集任务执行失败: ${startResult.error || '未知错误'}`);
@@ -80,6 +97,15 @@ export async function triggerOctopusCollection(category: CollectionCategory): Pr
     const data = startResult.data || [];
 
     console.log(`[Octopus] 分类 "${category.name}" 采集完成，获取 ${data.length} 条数据`);
+    if (data.length === 0) {
+      console.warn('[Octopus] 采集结果为空，请检查：');
+      console.warn('  1. 关键词是否有效（如"闸阀""美工刀"等是否匹配到产品）');
+      console.warn('  2. 八爪鱼客户端是否运行且已登录');
+      console.warn('  3. 八爪鱼采集模板是否已正确配置');
+      console.warn('  4. 八爪鱼 API Key 是否有权访问该任务');
+    } else if (data.length > 0) {
+      console.log('[Octopus] 数据样本:', JSON.stringify(data[0], null, 2));
+    }
     return data;
   } catch (error) {
     console.error(`[Octopus] 采集分类 "${category.name}" 时发生网络错误:`, error);
