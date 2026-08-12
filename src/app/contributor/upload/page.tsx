@@ -1,18 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, UploadCloud, CheckCircle2, ShieldCheck, Gift } from 'lucide-react';
+import { QRCodeCanvas as QRCode } from 'qrcode.react';
+import { useUser } from '@/contexts/UserContext';
+import { Loader2, UploadCloud, CheckCircle2, ShieldCheck, Gift, Copy, Check, Share2 } from 'lucide-react';
 import {
   CONTRIBUTOR_TYPES,
-  CONTRIBUTOR_TYPE_LABELS,
   CONTRIBUTOR_FORM_DEFS,
   CONTRIBUTOR_REGISTER_POINTS,
   ContributorType,
@@ -22,8 +22,16 @@ interface FormValue {
   [key: string]: string;
 }
 
+// 邀请奖励说明
+const INVITE_REWARD_RULES = [
+  { label: '被邀请人注册', points: 20 },
+  { label: '被邀请人提交资料', points: 30 },
+  { label: '资料审核通过（邀请人）', points: 50 },
+];
+
 export default function ContributorUploadPage() {
   const router = useRouter();
+  const { user } = useUser();
   const [type, setType] = useState<ContributorType>('product');
   const [identifier, setIdentifier] = useState('');
   const [name, setName] = useState('');
@@ -32,6 +40,44 @@ export default function ContributorUploadPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState<{ identifier: string; isNew: boolean } | null>(null);
+  const [inviteCode, setInviteCode] = useState('');
+  const [myInvite, setMyInvite] = useState<{ inviteCode: string; inviteLink: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // 读取 URL 中的邀请码（如 /contributor/upload?inviteCode=XXX）
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('inviteCode');
+    if (code) {
+      setInviteCode(code.trim());
+    }
+  }, []);
+
+  // 已登录用户获取自己的邀请码
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch('/api/contributor/invite')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setMyInvite({ inviteCode: data.inviteCode, inviteLink: data.inviteLink });
+        }
+      })
+      .catch(() => {
+        // 静默失败，不影响上传功能
+      });
+  }, [user?.id]);
+
+  const handleCopyInvite = async () => {
+    if (!myInvite) return;
+    try {
+      await navigator.clipboard.writeText(myInvite.inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore
+    }
+  };
 
   const formDef = CONTRIBUTOR_FORM_DEFS[type];
 
@@ -93,6 +139,7 @@ export default function ContributorUploadPage() {
           type,
           data: formValues,
           files: Object.values(uploadedFiles).map((f) => f.path),
+          inviteCode: inviteCode || undefined,
         }),
       });
 
@@ -143,10 +190,10 @@ export default function ContributorUploadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-50 to-white py-10">
+    <div className="min-h-screen overflow-y-auto bg-gradient-to-b from-sky-50 to-white py-10">
       <div className="max-w-3xl mx-auto px-4">
         {/* 头部 */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 bg-sky-100 text-sky-700 px-4 py-1.5 rounded-full text-sm mb-4">
             <ShieldCheck className="w-4 h-4" />
             公开上传 · 无需登录
@@ -157,6 +204,75 @@ export default function ContributorUploadPage() {
           </p>
         </div>
 
+        {/* 邀请奖励区 */}
+        {myInvite ? (
+          <Card className="mb-4">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="hidden sm:block shrink-0">
+                  <QRCode
+                    value={myInvite.inviteLink}
+                    size={96}
+                    fgColor="#0284c7"
+                    bgColor="transparent"
+                    level="M"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 text-sky-700 mb-1">
+                    <Share2 className="w-4 h-4" />
+                    <span className="font-semibold">我的邀请链接</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mb-2">邀请好友注册并贡献资料，双方都可获得积分奖励</p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={myInvite.inviteLink}
+                      readOnly
+                      className="bg-gray-50 text-sm"
+                      onFocus={(e) => e.target.select()}
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleCopyInvite}
+                      title="复制邀请链接"
+                    >
+                      {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {INVITE_REWARD_RULES.map((r) => (
+                      <Badge key={r.label} variant="secondary" className="bg-amber-50 text-amber-700 border-0">
+                        {r.label} +{r.points}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="mb-4">
+            <CardContent className="py-4 flex items-center gap-3">
+              <Gift className="w-5 h-5 text-sky-500 shrink-0" />
+              <div className="flex-1 text-sm text-gray-600">
+                {inviteCode ? (
+                  <span>
+                    您正在通过邀请码 <span className="font-semibold text-sky-600">{inviteCode}</span> 注册，
+                    提交后您与被邀请人将获得额外积分奖励
+                  </span>
+                ) : (
+                  <span>
+                    邀请好友贡献资料，双方获得积分奖励：
+                    {INVITE_REWARD_RULES.map((r) => `${r.label} +${r.points}`).join('、')}
+                    {user?.id ? '（登录后即可查看专属邀请链接）' : '（登录后可获取专属邀请链接）'}
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">1. 选择资料类型</CardTitle>
@@ -166,12 +282,12 @@ export default function ContributorUploadPage() {
             <div className="flex flex-wrap gap-2">
               {CONTRIBUTOR_TYPES.map((t) => (
                 <Badge
-                  key={t}
-                  variant={type === t ? 'default' : 'outline'}
+                  key={t.id}
+                  variant={type === t.id ? 'default' : 'outline'}
                   className="cursor-pointer px-4 py-2 text-sm"
-                  onClick={() => handleTypeChange(t)}
+                  onClick={() => handleTypeChange(t.id)}
                 >
-                  {CONTRIBUTOR_TYPE_LABELS[t]}
+                  {t.label}
                 </Badge>
               ))}
             </div>

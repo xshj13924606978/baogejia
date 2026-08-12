@@ -18,13 +18,13 @@ export const config = {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { identifier, name, type, data, files } = body;
+    const { identifier, name, type, data, files, inviteCode } = body;
 
     // 校验必填项
     if (!identifier) {
       return NextResponse.json({ error: '请填写手机号或邮箱' }, { status: 400 });
     }
-    if (!type || !CONTRIBUTOR_TYPES.includes(type as ContributorType)) {
+    if (!type || !CONTRIBUTOR_TYPES.some((t) => t.id === type)) {
       return NextResponse.json({ error: '请选择有效的资料类型' }, { status: 400 });
     }
     if (!data || typeof data !== 'object') {
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 调用服务层：自动注册 + 提交资料
-    const regResult = await registerContributor({ identifier, name });
+    const regResult = await registerContributor({ identifier, name, inviteCode });
     if (!regResult.success) {
       return NextResponse.json({ error: regResult.error || '注册失败' }, { status: 500 });
     }
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       type: type as ContributorType,
       data,
       files: Array.isArray(files) ? files : [],
+      inviteCode,
     });
 
     if (!uploadResult.success) {

@@ -10,13 +10,13 @@ import { registerContributor } from '@/lib/contributor/service';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { identifier, name } = body;
+    const { identifier, name, inviteCode } = body;
 
     if (!identifier) {
       return NextResponse.json({ error: '请填写手机号或邮箱' }, { status: 400 });
     }
 
-    const result = await registerContributor({ identifier, name });
+    const result = await registerContributor({ identifier, name, inviteCode });
 
     if (!result.success) {
       return NextResponse.json({ error: result.error || '注册失败' }, { status: 400 });

@@ -1241,6 +1241,14 @@ export default function UserMenu({ onToggleSidebar }: { onToggleSidebar?: () => 
 
                   <DropdownMenuItem
                     className="cursor-pointer"
+                    onClick={() => handleNavigation('/contributor/upload')}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    <span>资料贡献中心</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className="cursor-pointer"
                     onClick={() => setShowInviteDialog(true)}
                   >
                     <Gift className="mr-2 h-4 w-4" />

@@ -13,9 +13,63 @@ import {
   UploadStatus,
 } from './types';
 
+// 邀请奖励积分规则
+const INVITE_REGISTER_POINTS = 20; // 被邀请人注册 +20
+const INVITE_SUBMIT_POINTS = 30; // 被邀请人提交资料 +30
+const INVITE_REVIEW_POINTS = 50; // 被邀请人资料审核通过 +50（发放给邀请人）
+
 // 简单手机号校验
 function isValidPhone(phone: string): boolean {
   return /^1[3-9]\d{9}$/.test(phone);
+}
+
+/**
+ * 生成邀请码（8 位，去除易混淆字符 0/O/1/I）
+ */
+export function generateInviteCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+/**
+ * 根据邀请码查询邀请人（贡献者）
+ */
+export async function getContributorByInviteCode(inviteCode: string): Promise<any | null> {
+  const db = getSupabaseServiceClient();
+  const { data, error } = await db
+    .from('contributors')
+    .select('id, user_id, name')
+    .eq('invite_code', inviteCode)
+    .maybeSingle();
+  if (error) {
+    console.error('[Contributor] 查询邀请码失败:', error.message);
+    return null;
+  }
+  return data || null;
+}
+
+/**
+ * 获取贡献者邀请码（不存在则生成）
+ */
+export async function getOrCreateInviteCode(contributorId: string): Promise<string> {
+  const db = getSupabaseServiceClient();
+  const { data } = await db
+    .from('contributors')
+    .select('invite_code')
+    .eq('id', contributorId)
+    .maybeSingle();
+
+  if (data?.invite_code) {
+    return data.invite_code;
+  }
+
+  const inviteCode = generateInviteCode();
+  await db.from('contributors').update({ invite_code: inviteCode }).eq('id', contributorId);
+  return inviteCode;
 }
 
 // 简单邮箱校验
@@ -123,8 +177,9 @@ export async function registerContributor(input: {
   identifier: string;
   name?: string;
   password?: string;
+  inviteCode?: string;
 }): Promise<{ success: boolean; user?: any; contributor?: any; isNew?: boolean; error?: string }> {
-  const { identifier, name, password } = input;
+  const { identifier, name, password, inviteCode } = input;
   const isEmail = identifier.includes('@');
 
   // 校验格式
@@ -193,6 +248,7 @@ export async function registerContributor(input: {
     const contributorData: Record<string, unknown> = {
       user_id: user.id,
       name: name || user.metadata?.name || null,
+      invite_code: generateInviteCode(),
     };
     if (isEmail) contributorData.email = identifier;
     else contributorData.phone = identifier;
@@ -213,6 +269,29 @@ export async function registerContributor(input: {
     await db.from('contributors').update({ last_active_at: new Date().toISOString() }).eq('id', contributor.id);
   }
 
+  // 4. 邀请关系处理：新注册用户且提供有效邀请码
+  if (isNew && inviteCode && inviteCode !== contributor.invite_code) {
+    try {
+      const inviter = await getContributorByInviteCode(inviteCode);
+      if (inviter && inviter.user_id !== user.id) {
+        // 被邀请人注册奖励 +20
+        await awardPointsToUser(user.id, INVITE_REGISTER_POINTS, 'invite_register', '被邀请注册奖励');
+        // 创建邀请记录
+        await db.from('contributor_invites').insert({
+          inviter_id: inviter.user_id,
+          invitee_id: user.id,
+          invite_code: inviteCode,
+          status: 'registered',
+          register_rewarded: true,
+        });
+        // 记录被邀请人信息
+        await db.from('contributors').update({ invited_by: inviter.user_id }).eq('id', contributor.id);
+      }
+    } catch (e) {
+      console.error('[Contributor] 处理邀请关系失败:', e);
+    }
+  }
+
   return { success: true, user, contributor, isNew };
 }
 
@@ -225,11 +304,13 @@ export async function submitUpload(input: {
   type: ContributorType;
   data: Record<string, unknown>;
   files: string[];
+  inviteCode?: string;
 }): Promise<{ success: boolean; upload?: any; contributor?: any; error?: string }> {
   // 先注册/获取贡献者
   const regResult = await registerContributor({
     identifier: input.identifier,
     name: input.name,
+    inviteCode: input.inviteCode,
   });
 
   if (!regResult.success) {
@@ -254,6 +335,27 @@ export async function submitUpload(input: {
   if (error) {
     console.error('[Contributor] 提交资料失败:', error.message);
     return { success: false, error: '提交资料失败' };
+  }
+
+  // 被邀请人提交资料奖励 +30（仅首次提交时发放）
+  if (regResult.user?.id) {
+    try {
+      const { data: inviteRecord } = await db
+        .from('contributor_invites')
+        .select('id, submit_rewarded')
+        .eq('invitee_id', regResult.user.id)
+        .maybeSingle();
+
+      if (inviteRecord && !inviteRecord.submit_rewarded) {
+        await awardPointsToUser(regResult.user.id, INVITE_SUBMIT_POINTS, 'invite_submit', '被邀请人提交资料奖励');
+        await db
+          .from('contributor_invites')
+          .update({ submit_rewarded: true, status: 'submitted', updated_at: new Date().toISOString() })
+          .eq('id', inviteRecord.id);
+      }
+    } catch (e) {
+      console.error('[Contributor] 发放被邀请人提交奖励失败:', e);
+    }
   }
 
   return { success: true, upload, contributor: regResult.contributor };
@@ -341,6 +443,36 @@ export async function reviewUpload(input: {
       });
     } catch (e) {
       console.error('[Contributor] 发放积分失败:', e);
+    }
+  }
+
+  // 审核通过 → 被邀请人资料通过审核，邀请人获得邀请奖励 +50（不依赖资料类型积分）
+  if (status === 'approved' && upload.contributor_id) {
+    try {
+      const { data: contributor } = await db
+        .from('contributors')
+        .select('user_id, id')
+        .eq('id', upload.contributor_id)
+        .single();
+
+      const userId = contributor?.user_id;
+      if (userId) {
+        const { data: inviteRecord } = await db
+          .from('contributor_invites')
+          .select('id, inviter_id, review_rewarded')
+          .eq('invitee_id', userId)
+          .maybeSingle();
+
+        if (inviteRecord && !inviteRecord.review_rewarded) {
+          await awardPointsToUser(inviteRecord.inviter_id, INVITE_REVIEW_POINTS, 'invite_review', '邀请贡献者奖励：被邀请人资料审核通过');
+          await db
+            .from('contributor_invites')
+            .update({ review_rewarded: true, status: 'approved', updated_at: new Date().toISOString() })
+            .eq('id', inviteRecord.id);
+        }
+      }
+    } catch (e) {
+      console.error('[Contributor] 发放邀请奖励失败:', e);
     }
   }
 

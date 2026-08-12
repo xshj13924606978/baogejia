@@ -4,26 +4,33 @@
  */
 
 // 资料类型
-export const CONTRIBUTOR_TYPES = [
-  'product',
-  'document',
-  'case',
-  'standard',
-  'drawing',
-  'quota',
-] as const;
+export type ContributorType = 'product' | 'document' | 'case' | 'standard' | 'drawing' | 'quota';
 
-export type ContributorType = (typeof CONTRIBUTOR_TYPES)[number];
+// 资料类型定义
+export interface ContributorTypeDef {
+  id: ContributorType;
+  label: string;
+  hasFile: boolean;
+  fileLabel?: string;
+}
+
+export const CONTRIBUTOR_TYPES: ContributorTypeDef[] = [
+  { id: 'product', label: '产品价格库', hasFile: true, fileLabel: '上传价格表' },
+  { id: 'document', label: '技术文档库', hasFile: true, fileLabel: '上传文档' },
+  { id: 'case', label: '案例库', hasFile: true, fileLabel: '上传附件' },
+  { id: 'standard', label: '标准规范库', hasFile: true, fileLabel: '上传标准文件' },
+  { id: 'drawing', label: '图纸图片库', hasFile: true, fileLabel: '上传图纸' },
+  { id: 'quota', label: '定额库', hasFile: true, fileLabel: '上传定额表' },
+];
 
 // 资料类型展示配置
-export const CONTRIBUTOR_TYPE_LABELS: Record<ContributorType, string> = {
-  product: '产品价格库',
-  document: '技术文档库',
-  case: '案例库',
-  standard: '标准规范库',
-  drawing: '图纸图片库',
-  quota: '定额库',
-};
+export const CONTRIBUTOR_TYPE_LABELS: Record<ContributorType, string> = CONTRIBUTOR_TYPES.reduce(
+  (acc, t) => {
+    acc[t.id] = t.label;
+    return acc;
+  },
+  {} as Record<ContributorType, string>
+);
 
 // 每种资料类型的字段定义
 export interface FieldDef {
@@ -55,6 +62,7 @@ export const CONTRIBUTOR_FORM_DEFS: Record<ContributorType, TypeFormDef> = {
       { name: 'param_desc', label: '参数描述', required: false, type: 'textarea', placeholder: '请输入参数描述（可选）' },
       { name: 'contact', label: '联系人', required: false, type: 'text', placeholder: '联系人（可选）' },
       { name: 'phone', label: '电话', required: false, type: 'text', placeholder: '联系电话（可选）' },
+      { name: 'file', label: '上传价格表', required: false, type: 'file', placeholder: '请选择价格表文件上传' },
     ],
   },
   document: {
@@ -110,6 +118,7 @@ export const CONTRIBUTOR_FORM_DEFS: Record<ContributorType, TypeFormDef> = {
       { name: 'unit', label: '单位', required: true, type: 'text', placeholder: '请输入单位' },
       { name: 'unit_price', label: '单价', required: true, type: 'number', placeholder: '请输入单价（元）' },
       { name: 'description', label: '说明', required: false, type: 'textarea', placeholder: '补充说明（可选）' },
+      { name: 'file', label: '上传定额表', required: false, type: 'file', placeholder: '请选择定额表文件上传' },
     ],
   },
 };
