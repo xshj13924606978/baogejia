@@ -12,7 +12,7 @@ echo "Building the project..."
 
 # 捕获构建输出和退出码（临时禁用 set -e 以允许非零退出码）
 set +e
-BUILD_OUTPUT=$(NODE_ENV=production npx next build 2>&1)
+BUILD_OUTPUT=$(NODE_ENV=production npx next build --webpack 2>&1)
 BUILD_EXIT=$?
 set -e
 

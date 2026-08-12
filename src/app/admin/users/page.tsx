@@ -26,7 +26,7 @@ import {
   Users as UsersIcon, Building2, Star, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getRoleDisplayName, getUserStatusDisplayName, ROLE_OPTIONS, USER_STATUS_OPTIONS } from '@/lib/auth/roles';
+import { getRoleDisplayName, getUserStatusDisplayName, ROLE_OPTIONS, USER_STATUS_OPTIONS, UserStatus } from '@/lib/auth/roles';
 import { usePageConfig } from '@/hooks/usePageConfig';
 import { DynamicTable, DynamicPagination } from '@/components/admin/dynamic-table';
 
@@ -147,7 +147,7 @@ export default function UsersPage() {
   };
 
   const getStatusLabel = (status: string) => {
-    return getUserStatusDisplayName(status);
+    return getUserStatusDisplayName(status as UserStatus);
   };
 
   // 添加用户
