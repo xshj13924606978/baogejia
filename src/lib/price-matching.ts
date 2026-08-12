@@ -581,6 +581,11 @@ export class PriceMatcher {
     // 2. 移除管径规格（DN数字、Φ数字、英寸规格）
     cleaned = cleaned.replace(/\b(DN|Φ|inch|\")\s*\d+(\.\d+)?\b/gi, '');
 
+    // 2.5 移除 φ 开头的尺寸规格（如 φ4000×3000mm）
+    cleaned = cleaned.replace(/[φΦ]\s*\d+(\.\d+)?\s*[×xX*]\s*\d+(\.\d+)?\s*(mm|cm|m|毫米|厘米)?/gi, '');
+    // 移除功率规格（如 11kW、0.75千瓦）
+    cleaned = cleaned.replace(/\d+(\.\d+)?\s*(kW|KW|千瓦)\b/gi, '');
+
     // 3. 移除尺寸规格（长×宽×高、长度单位）
     cleaned = cleaned.replace(/\d+(\.\d+)?\s*[×x*]\s*\d+(\.\d+)?(\s*[×x*]\s*\d+(\.\d+)?)?/g, '');
     cleaned = cleaned.replace(/\d+(\.\d+)?\s*(mm|cm|m|米|毫米|厘米)\b/gi, '');

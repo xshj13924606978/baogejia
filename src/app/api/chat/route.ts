@@ -1384,7 +1384,7 @@ class PdfParser {
           return {
             name: p.name,
             model: p.model || '',
-            brand: '',
+            brand: p.brand || '',
             specs: cleanedSpecs,  // 使用清洗后的 specs
             quantity: p.quantity,
             unit: p.unit,
@@ -1427,7 +1427,7 @@ class PdfParser {
             return {
               name: p.name,
               model: p.model || '',
-              brand: '',
+              brand: p.brand || '',
               specs: cleanedSpecs,  // 使用清洗后的 specs
               quantity: p.quantity,
               unit: p.unit,

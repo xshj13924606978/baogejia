@@ -520,10 +520,21 @@ export class OcrHelper {
    * 匹配常见品牌模式：连续2-4个中文字符后跟产品名关键词
    */
   private extractBrand(text: string): string {
-    // 常见品牌名模式：中文品牌 + 产品关键词
-    const brandPatterns = [
-      // "普耐尔QQ150夹子" -> "普耐尔", "普耐尔氩弧焊枪5M" -> "普耐尔"
-      /([\u4e00-\u9fa5]{2,4})(?:QQ?\d|氩弧|焊枪|夹子|搅拌|水泵|风机|空压|电机|阀门|管道|焊机|切割|打磨|抛光|压缩机|发电机|钻机)/,
+    // 常见品牌列表（优先精确匹配，避免正则误识别）
+    const knownBrands = ['杰瑞浩', '金石', '兴燊', '良工', '德力西', '得力', '前田', '永拓', '犀瑞', '史丹利', '普耐尔'];
+    // 非品牌词黑名单（避免将「工艺」「药剂」等误识别为品牌）
+    const nonBrandWords = ['工艺', '药剂', '材质', '耐压', '防腐', '过滤', '氧化', '催化', '发酵', '萃取', '污水', '废水', '不锈钢', '碳钢', '玻璃钢', '铝合金', '通用', '标准', '高效', '新型', '优质', '成套'];
+
+    // 1. 优先匹配已知品牌列表
+    for (const brand of knownBrands) {
+      if (text.includes(brand)) {
+        Logger.debug('[OCR] 提取到品牌（已知品牌列表）', { brand });
+        return brand;
+      }
+    }
+
+    // 2. 品牌/厂家/制造商标识模式
+    const labeledPatterns = [
       // "品牌：XXX" 或 "品牌:XXX" 模式
       /品牌[\s：:]*([\u4e00-\u9fa5a-zA-Z0-9]{2,20})/,
       // "厂家：XXX" 模式
@@ -532,16 +543,29 @@ export class OcrHelper {
       /制造商[\s：:]*([\u4e00-\u9fa5a-zA-Z0-9]{2,20})/,
     ];
 
-    for (const pattern of brandPatterns) {
+    for (const pattern of labeledPatterns) {
       const match = text.match(pattern);
       if (match && match[1]) {
         const brand = match[1].trim();
-        if (brand.length >= 2) {
+        if (brand.length >= 2 && !nonBrandWords.includes(brand)) {
           Logger.debug('[OCR] 提取到品牌', { brand });
           return brand;
         }
       }
     }
+
+    // 3. 常见品牌名模式：中文品牌 + 产品关键词（排除非品牌词）
+    // "普耐尔QQ150夹子" -> "普耐尔", "普耐尔氩弧焊枪5M" -> "普耐尔"
+    const brandPattern = /([\u4e00-\u9fa5]{2,4})(?:QQ?\d|氩弧|焊枪|夹子|搅拌|水泵|风机|空压|电机|阀门|管道|焊机|切割|打磨|抛光|压缩机|发电机|钻机)/;
+    const brandMatch = text.match(brandPattern);
+    if (brandMatch && brandMatch[1]) {
+      const brand = brandMatch[1].trim();
+      if (brand.length >= 2 && !nonBrandWords.includes(brand)) {
+        Logger.debug('[OCR] 提取到品牌', { brand });
+        return brand;
+      }
+    }
+
     return '';
   }
 
