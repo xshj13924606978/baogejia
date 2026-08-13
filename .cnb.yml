@@ -18,6 +18,8 @@ main:
 
         - name: 构建项目
           image: node:20-slim
+          env:
+            SESSION_TOKEN_SECRET: $SESSION_TOKEN_SECRET
           script:
             - corepack enable
             - corepack prepare pnpm@8 --activate
