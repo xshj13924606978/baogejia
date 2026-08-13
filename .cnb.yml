@@ -18,11 +18,9 @@ main:
 
         - name: 构建项目
           image: node:20-slim
-          env:
-            SESSION_TOKEN_SECRET: $SESSION_TOKEN_SECRET
-            NEXT_PUBLIC_SUPABASE_URL: $NEXT_PUBLIC_SUPABASE_URL
-            NEXT_PUBLIC_SUPABASE_ANON_KEY: $NEXT_PUBLIC_SUPABASE_ANON_KEY
           script:
+            - export $(cat .env.ci | xargs)
+            - echo "URL: $NEXT_PUBLIC_SUPABASE_URL"
             - corepack enable
             - corepack prepare pnpm@8 --activate
             - pnpm run build
