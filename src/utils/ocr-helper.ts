@@ -109,74 +109,18 @@ export class OcrHelper {
 
   /**
    * 识别图片中的文本
-   * 方案1: 系统 tesseract（快速）
-   * 方案2: AI Vision（Gemini 多模态，质量高）
-   * 方案3: Tesseract.js（带超时，最后兜底）
+   * 方案: Tesseract.js 本地识别（禁用系统 tesseract 与 AI Vision，避免网络超时）
    */
   async recognizeImage(imageBuffer: Buffer): Promise<{ text: string; isTable: boolean }> {
     Logger.info('[OCR] 开始处理图片', { size: imageBuffer.length });
 
-    // 方案1: 优先使用系统 tesseract 命令（速度极快）
-    try {
-      await execFileAsync('which', ['tesseract']);
-      Logger.info('[OCR] 使用系统 tesseract 命令识别图片...');
-
-      const tempDir = os.tmpdir();
-      const timestamp = Date.now();
-      const tempImage = path.join(tempDir, `image-${timestamp}.png`);
-      const tempTxt = path.join(tempDir, `image-${timestamp}.txt`);
-
-      try {
-        // 保存图片到临时文件
-        fs.writeFileSync(tempImage, imageBuffer);
-        Logger.debug(`[OCR] 临时图片文件: ${tempImage}`);
-
-        // 使用 tesseract 识别
-        await execFileAsync('tesseract', [tempImage, tempTxt.replace('.txt', ''), '-l', 'chi_sim+eng']);
-
-        if (fs.existsSync(tempTxt)) {
-          const text = fs.readFileSync(tempTxt, 'utf-8');
-          if (text && text.trim().length > 0) {
-            Logger.info('[OCR] 系统 tesseract 识别成功', { textLength: text.length });
-            // 检测 OCR 质量，如果质量差则降级到 AI Vision
-            if (!this.isOCRQualityAcceptable(text)) {
-              Logger.info('[OCR] tesseract 识别质量较差，尝试 AI Vision...');
-              const aiResult = await this.recognizeImageWithAI(imageBuffer);
-              if (aiResult.text.trim().length > 0) {
-                return aiResult;
-              }
-            }
-            return { text, isTable: this.isLikelyTable(text) };
-          }
-        }
-      } catch (error) {
-        Logger.error('[OCR] 系统 tesseract 失败', error);
-      } finally {
-        // 清理临时文件
-        try { fs.unlinkSync(tempImage); } catch { /* 临时文件清理 */ }
-        try { fs.unlinkSync(tempTxt); } catch { /* 临时文件清理 */ }
-      }
-    } catch (_error) {
-      Logger.warn('[OCR] 系统 tesseract 不可用');
-    }
-
-    // 方案2: AI Vision（Gemini 多模态模型）
-    try {
-      const aiResult = await this.recognizeImageWithAI(imageBuffer);
-      if (aiResult.text.trim().length > 0) {
-        return aiResult;
-      }
-    } catch (error) {
-      Logger.warn('[OCR] AI Vision 识别失败', error);
-    }
-
-    // 方案3: Tesseract.js（带超时保护，最后兜底）
+    // 🔥 强制使用 Tesseract.js 本地识别（跳过系统 tesseract 和 AI Vision）
     try {
       const Tesseract = await import('tesseract.js');
-      Logger.info('[OCR] 降级使用 Tesseract.js 识别图片...');
+      Logger.info('[OCR] 使用 Tesseract.js 识别图片...');
 
       const base64Image = imageBuffer.toString('base64');
-      const dataUrl = `data:image/png;base64,${base64Image}`;
+      const dataUrl = `data:image/jpeg;base64,${base64Image}`;
 
       // 显式指定 workerPath：Next.js 打包时 __dirname 会被改写，
       // 若不指定会解析到不存在的 .next/dev/worker-script/node/index.js
@@ -197,31 +141,43 @@ export class OcrHelper {
         ? process.cwd()
         : undefined;
 
-      const result = await Promise.race([
-        Tesseract.recognize(dataUrl, 'chi_sim+eng', {
-          workerPath,
-          ...(langDir ? { langPath: langDir } : {}),
-          logger: (m: any) => {
-            if (m.status === 'recognizing text') {
-              Logger.debug(`[OCR] 识别进度: ${(m.progress * 100).toFixed(2)}%`);
-            }
-          },
-        }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Tesseract.js 识别超时（120秒）')), 120000)
-        ),
-      ]);
+      // 使用 createWorker 以便通过 setParameters 设置识别参数（tessedit_pageseg_mode 属于 WorkerParams）
+      const worker = await Tesseract.createWorker('chi_sim+eng', Tesseract.OEM.DEFAULT, {
+        workerPath,
+        ...(langDir ? { langPath: langDir } : {}),
+        logger: (m: any) => {
+          if (m.status === 'recognizing text') {
+            Logger.debug(`[OCR] 识别进度: ${(m.progress * 100).toFixed(2)}%`);
+          }
+        },
+      });
 
-      const text = result.data.text;
-      if (text && text.trim().length > 0) {
-        Logger.info('[OCR] Tesseract.js 识别成功', { textLength: text.length });
-        return { text, isTable: this.isLikelyTable(text) };
+      try {
+        // 优化识别参数：PSM.SINGLE_BLOCK（单文本块模式）
+        await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK });
+
+        const result = await Promise.race([
+          worker.recognize(dataUrl),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Tesseract.js 识别超时（120秒）')), 120000)
+          ),
+        ]);
+
+        const text = result.data.text;
+        if (text && text.trim().length > 0) {
+          Logger.info('[OCR] Tesseract.js 识别成功', { textLength: text.length });
+          return { text, isTable: this.isLikelyTable(text) };
+        } else {
+          Logger.warn('[OCR] Tesseract.js 识别结果为空或太短，返回空字符串');
+        }
+      } finally {
+        await worker.terminate();
       }
     } catch (error) {
-      Logger.warn('[OCR] Tesseract.js 识别失败', error);
+      Logger.error('[OCR] Tesseract.js 识别失败:', error);
     }
 
-    Logger.warn('[OCR] 所有 OCR 方法都失败，无法提取图片文本');
+    Logger.warn('[OCR] OCR 识别失败，无法提取图片文本');
     return { text: '', isTable: false };
   }
 
