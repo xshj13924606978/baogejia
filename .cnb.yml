@@ -5,9 +5,9 @@ main:
         - name: 构建项目
           image: node:20-slim
           script:
-            - cat .env.ci
-            - export $(cat .env.ci | xargs)
-            - echo "URL: $NEXT_PUBLIC_SUPABASE_URL"
+            - export SESSION_TOKEN_SECRET=YOUR_SESSION_TOKEN_SECRET
+            - export NEXT_PUBLIC_SUPABASE_URL=https://tjbnjrcgmyiwudqptfhc.supabase.co
+            - export NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_8fUZVOKkOgs0ubKfh5LstQ_ptFATDH_
             - corepack enable
             - corepack prepare pnpm@8 --activate
             - pnpm install --frozen-lockfile
