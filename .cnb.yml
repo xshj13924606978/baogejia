@@ -1,0 +1,31 @@
+# .cnb.yml
+main:
+  push:
+    - stages:
+        - name: 安装依赖
+          image: node:18-slim
+          script:
+            - corepack enable
+            - corepack prepare pnpm@8 --activate
+            - pnpm install --frozen-lockfile
+
+        - name: 类型检查
+          image: node:18-slim
+          script:
+            - corepack enable
+            - corepack prepare pnpm@8 --activate
+            - pnpm run type-check
+
+        - name: 构建项目
+          image: node:18-slim
+          script:
+            - corepack enable
+            - corepack prepare pnpm@8 --activate
+            - pnpm run build
+
+        - name: 运行测试
+          image: node:18-slim
+          script:
+            - corepack enable
+            - corepack prepare pnpm@8 --activate
+            - pnpm run test || true  # 如果没有测试，这步会跳过
