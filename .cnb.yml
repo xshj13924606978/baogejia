@@ -9,6 +9,8 @@ main:
             - export NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_8fUZVOKkOgs0ubKfh5LstQ_ptFATDH_
             - export COZE_SUPABASE_URL=https://tjbnjrcgmyiwudqptfhc.supabase.co
             - export COZE_SUPABASE_ANON_KEY=sb_publishable_8fUZVOKkOgs0ubKfh5LstQ_ptFATDH_
+            - export DATABASE_URL=postgresql://postgres:YOUR_DATABASE_PASSWORD@db.tjbnjrcgmyiwudqptfhc.supabase.co:5432/postgres
+            - export PGDATABASE_URL=postgresql://postgres:YOUR_DATABASE_PASSWORD@db.tjbnjrcgmyiwudqptfhc.supabase.co:5432/postgres
             - corepack enable
             - corepack prepare pnpm@8 --activate
             - pnpm install --frozen-lockfile
