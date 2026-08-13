@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 
 /**
  * 创建 OpenAI 客户端实例（延迟初始化）
+ * 仅在调用时才会创建，避免构建阶段因环境变量缺失而报错
  */
 function createImageClient(): OpenAI {
   const apiKey = process.env.LAOZHANG_API_KEY;
@@ -16,21 +17,11 @@ function createImageClient(): OpenAI {
 }
 
 /**
- * 生成图片返回结果
- */
-export interface GenerateImageResult {
-  url: string;
-  b64Json?: string;
-  revisedPrompt?: string;
-  model?: string;
-}
-
-/**
  * 生成图片
  * @param prompt 图片描述提示词
- * @returns 生成图片结果
+ * @returns 生成图片的URL
  */
-export async function generateImage(prompt: string): Promise<GenerateImageResult> {
+export async function generateImage(prompt: string): Promise<string> {
   try {
     const client = createImageClient();
     const response = await client.images.generate({
@@ -40,17 +31,17 @@ export async function generateImage(prompt: string): Promise<GenerateImageResult
       size: '1024x1024',
     });
 
-    const data = response.data[0];
-    if (!data) {
+    // 安全地访问 response.data
+    if (!response.data || response.data.length === 0) {
       throw new Error('生成图片失败：未返回数据');
     }
 
-    return {
-      url: data.url || '',
-      b64Json: data.b64_json,
-      revisedPrompt: data.revised_prompt,
-      model: response.model,
-    };
+    const data = response.data[0];
+    if (!data || !data.url) {
+      throw new Error('生成图片失败：未返回图片URL');
+    }
+
+    return data.url;
   } catch (error) {
     console.error('生成图片失败:', error);
     throw error;
