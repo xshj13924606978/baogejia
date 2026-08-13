@@ -20,6 +20,8 @@ main:
           image: node:20-slim
           env:
             SESSION_TOKEN_SECRET: $SESSION_TOKEN_SECRET
+            NEXT_PUBLIC_SUPABASE_URL: $NEXT_PUBLIC_SUPABASE_URL
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: $NEXT_PUBLIC_SUPABASE_ANON_KEY
           script:
             - corepack enable
             - corepack prepare pnpm@8 --activate
