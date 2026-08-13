@@ -403,7 +403,100 @@ export class OcrHelper {
       }
     }
 
+    // 🔥 增强：硬编码关键词未命中时，尝试通用表头识别（支持任意产品名）
+    if (products.length === 0) {
+      const headerProducts = this.extractProductsByTableHeader(lines);
+      if (headerProducts.length > 0) {
+        Logger.info('[OCR] 通过表头识别提取到产品', { productCount: headerProducts.length });
+        return headerProducts;
+      }
+    }
+
     Logger.info('[OCR] 提取完成', { productCount: products.length });
+    return products;
+  }
+
+  /**
+   * 通用表头识别：查找含"产品名称/名称 + 规格/数量"的表头行，
+   * 按列解析后续数据行（不依赖硬编码产品关键词）
+   */
+  private extractProductsByTableHeader(lines: string[]): ExtractedProduct[] {
+    // 1. 查找表头行（前 15 行内）
+    let headerIdx = -1;
+    for (let i = 0; i < Math.min(15, lines.length); i++) {
+      const line = lines[i];
+      const hasName = /产品名称|设备名称|项目名称|品名|名称/.test(line);
+      const hasSpecs = /规格|型号/.test(line);
+      const hasQty = /数量|台数|套数|单位/.test(line);
+      if ((hasName && hasSpecs) || (hasName && hasQty)) {
+        headerIdx = i;
+        break;
+      }
+    }
+    if (headerIdx === -1) return [];
+
+    const header = lines[headerIdx];
+
+    // 2. 切分表头确定各列索引（优先 Tab/多空格，其次单空格）
+    const splitCells = (line: string): string[] => {
+      if (line.includes('\t')) return line.split('\t').map(c => c.trim());
+      const multi = line.split(/\s{2,}/).map(c => c.trim());
+      if (multi.length >= 2) return multi;
+      return line.split(/\s+/).map(c => c.trim());
+    };
+
+    const headerCells = splitCells(header);
+    if (headerCells.length < 2) return [];
+
+    let nameCol = -1;
+    let specsCol = -1;
+    let qtyCol = -1;
+    let unitCol = -1;
+
+    headerCells.forEach((cell, idx) => {
+      const cs = cell.replace(/^[\d.、\s]+/, ''); // 去掉"序号"等序号前缀
+      if (/产品名称|设备名称|项目名称|品名|名称/.test(cs)) nameCol = idx;
+      else if (/规格|型号|参数|描述/.test(cs)) specsCol = idx;
+      else if (/数量|台数|套数/.test(cs)) qtyCol = idx;
+      else if (/单位/.test(cs)) unitCol = idx;
+    });
+
+    if (nameCol === -1) return [];
+
+    // 3. 解析表头后的数据行
+    const products: ExtractedProduct[] = [];
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      // 遇到合计/备注等停止
+      if (/^合计|^总计|^小计|^备注|^说明|^注[:：]/.test(line)) break;
+
+      const rowCells = splitCells(line);
+      if (rowCells.length <= nameCol) continue;
+
+      const name = (rowCells[nameCol] || '').trim();
+      if (!name || name.length < 2) continue;
+
+      const specs = specsCol !== -1 && rowCells[specsCol] ? rowCells[specsCol].trim() : '';
+      const qtyStr = qtyCol !== -1 && rowCells[qtyCol] ? rowCells[qtyCol] : '';
+      const unit = unitCol !== -1 && rowCells[unitCol] ? rowCells[unitCol].trim() : '';
+
+      const qtyMatch = qtyStr.match(/\d+/);
+      const quantity = qtyMatch ? parseInt(qtyMatch[0]) : 1;
+
+      products.push({
+        name,
+        model: '',
+        brand: this.extractBrand(name),
+        specs,
+        quantity: quantity > 0 && quantity < 1000 ? quantity : 1,
+        unit: unit || '台',
+        price: 0,
+        total: 0,
+        parameter_description: specs,
+      });
+    }
+
     return products;
   }
 

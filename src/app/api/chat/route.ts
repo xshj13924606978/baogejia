@@ -7,7 +7,7 @@ import { InputProcessor, ProcessedInput } from '@/lib/input-processor';
 import {  IntentResult } from '@/lib/intent-detector';
 import { Logger } from '@/lib/logger';
 // 导入 DeepSeek 客户端
-import { aiClient, analyzeProductImageWithGemini } from '@/lib/deepseek-client';
+import { aiClient } from '@/lib/deepseek-client';
 // 导入智能对话处理器（替代固定意图检测）
 import { smartChatProcessor } from '@/lib/smart-chat-processor';
 // 导入增强版参数清洗函数
@@ -4572,51 +4572,8 @@ export async function POST(request: NextRequest) {
       const totalProducts = parsedFiles.reduce((sum, f) => sum + (f.products?.length || 0), 0);
 
       if (totalProducts === 0) {
-        // 检查是否有图片文件，使用 Gemini 多模态进行产品识别
-        const imageFiles = files.filter((f: any) => {
-          const type = (f.type || f.mimeType || '').toLowerCase();
-          return type.startsWith('image/');
-        });
-
-        if (imageFiles.length > 0) {
-          console.log('[ImageAnalysis] 检测到图片文件:', imageFiles.map((f: any) => f.name || f.fileName).join(', '));
-          let analysisResult = '';
-
-          for (const file of imageFiles) {
-            const fileType = (file.type || 'image/jpeg').toLowerCase();
-            console.log('[ImageAnalysis] 文件类型:', fileType);
-
-            try {
-              const buffer = await downloader.download(file, file.fileKey);
-              if (buffer) {
-                const analysis = await analyzeProductImageWithGemini(buffer, fileType, message || '');
-                if (analysis) {
-                  analysisResult += analysis + '\n\n';
-                }
-              }
-            } catch (error: any) {
-              console.error('[ImageAnalysis] 图片分析失败:', file.name || file.fileName, error.message);
-            }
-          }
-
-          if (analysisResult.trim()) {
-            return NextResponse.json({
-              action: 'CHAT',
-              content: analysisResult.trim(),
-              files: parsedFiles,
-            });
-          }
-
-          // Gemini 分析全部失败，降级提示
-          return NextResponse.json({
-            action: 'ERROR',
-            content: `图片分析失败，请尝试：
-1. 重新上传更清晰的照片
-2. 描述产品名称和规格，我会为您生成报价
-3. 上传产品铭牌照片（含品牌和型号）`,
-            files: parsedFiles,
-          });
-        }
+        // 🔥 禁用 AI Vision（Gemini）：不再调用多模态图片分析，
+        // 直接使用 Tesseract.js 本地 OCR 识别出的文本交给智能处理器（DeepSeek）分析
 
         // 检查是否有图片OCR文本可供LLM分析
         const imageText = parsedFiles.find(f => f.parseLevel === 'image-text')?.remarks?.join('\n');
