@@ -142,9 +142,12 @@ export class OcrHelper {
         : undefined;
 
       // 使用 createWorker 以便通过 setParameters 设置识别参数（tessedit_pageseg_mode 属于 WorkerParams）
+      // gzip: false 必须显式设置：本地语言包是未压缩的 .traineddata，
+      // 默认 gzip:true 会去找 .traineddata.gz（不存在），进而转 CDN 下载导致 Docker 内语言包加载失败
       const worker = await Tesseract.createWorker('chi_sim+eng', Tesseract.OEM.DEFAULT, {
         workerPath,
         ...(langDir ? { langPath: langDir } : {}),
+        gzip: false,
         logger: (m: any) => {
           if (m.status === 'recognizing text') {
             Logger.debug(`[OCR] 识别进度: ${(m.progress * 100).toFixed(2)}%`);

@@ -5,12 +5,24 @@ const nextConfig = {
 
   output: 'standalone',
 
-  // standalone 模式下，Tesseract.js 的 worker 脚本和 wasm core 通过运行时路径加载，
-  // 文件追踪（@vercel/nft）无法识别 new Worker(workerPath) 的字符串路径，需显式包含
+  // standalone 模式下，Tesseract.js 的 worker 脚本、wasm core 及语言包通过运行时路径加载，
+  // 文件追踪（@vercel/nft）无法识别 new Worker(workerPath) 的字符串路径，需显式包含：
+  // 1. tesseract.js 完整包（worker-script 内部还 require src/constants、src/utils 等目录）
+  // 2. tesseract.js-core（wasm 核心）
+  // 3. tesseract.js 的全部运行时依赖（regenerator-runtime、is-url、node-fetch、bmp-js、zlibjs 等）
+  // 4. 中文/英文语言包（*.traineddata）
   outputFileTracingIncludes: {
     '/api/**/*': [
-      './node_modules/tesseract.js/src/worker-script/**/*',
+      './node_modules/tesseract.js/**/*',
       './node_modules/tesseract.js-core/**/*',
+      './node_modules/bmp-js/**/*',
+      './node_modules/idb-keyval/**/*',
+      './node_modules/is-url/**/*',
+      './node_modules/node-fetch/**/*',
+      './node_modules/opencollective-postinstall/**/*',
+      './node_modules/regenerator-runtime/**/*',
+      './node_modules/wasm-feature-detect/**/*',
+      './node_modules/zlibjs/**/*',
       './*.traineddata',
     ],
   },
