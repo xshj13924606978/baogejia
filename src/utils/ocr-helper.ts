@@ -190,9 +190,17 @@ export class OcrHelper {
         'index.js'
       );
 
+      // 语言包（chi_sim.traineddata / eng.traineddata）位于项目根目录。
+      // dev 下 cwd 即项目根；standalone 部署时语言包由 outputFileTracingIncludes 复制到运行目录。
+      // 显式指定 langPath 可避免 tesseract.js 走 jsdelivr CDN 下载（网络不通时会失败）。
+      const langDir = fs.existsSync(path.join(process.cwd(), 'chi_sim.traineddata'))
+        ? process.cwd()
+        : undefined;
+
       const result = await Promise.race([
         Tesseract.recognize(dataUrl, 'chi_sim+eng', {
           workerPath,
+          ...(langDir ? { langPath: langDir } : {}),
           logger: (m: any) => {
             if (m.status === 'recognizing text') {
               Logger.debug(`[OCR] 识别进度: ${(m.progress * 100).toFixed(2)}%`);

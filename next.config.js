@@ -11,6 +11,7 @@ const nextConfig = {
     '/api/**/*': [
       './node_modules/tesseract.js/src/worker-script/**/*',
       './node_modules/tesseract.js-core/**/*',
+      './*.traineddata',
     ],
   },
 
@@ -44,8 +45,8 @@ const nextConfig = {
       // 在 WSL 下使用相对路径，避免 Chrome 抛出 "无法添加文件系统：<illegal path>"
       config.output.devtoolModuleFilenameTemplate = '[resource-path]';
       config.output.devtoolFallbackModuleFilenameTemplate = '[resource-path]?[hash]';
-      // eval-cheap-module-source-map 不生成绝对路径的 source map，彻底避免 WSL 路径问题
-      config.devtool = 'eval-cheap-module-source-map';
+      // 注：不再自定义 config.devtool —— Next.js 16 会强制回退到 'false' 并产生警告，
+      // 使用默认 devtool 即可（devtoolModuleFilenameTemplate 仍生效以规避 WSL 路径问题）
 
       // 忽略非源码目录的文件变更，防止无意义的 Fast Refresh 频繁触发
       config.watchOptions = {
