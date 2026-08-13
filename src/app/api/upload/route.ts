@@ -264,6 +264,8 @@ export async function POST(request: NextRequest) {
         .from('user_uploads')
         .insert({
           user_id: uploadUserId,
+          file_name: file.name,
+          file_key: fileKey,
           type: 'document',
           title: file.name,
           description: `File: ${file.name}`,
