@@ -1,54 +1,38 @@
 import OpenAI from 'openai';
 
-// 生图客户端（通过 LaoZhang.ai 中转）
-const client = new OpenAI({
-  apiKey: process.env.LAOZHANG_API_KEY,
-  baseURL: process.env.LAOZHANG_BASE_URL || 'https://api.laozhang.ai/v1',
-  dangerouslyAllowBrowser: false,
-});
-
-const DEFAULT_MODEL = process.env.IMAGE_GENERATION_MODEL || 'gemini-2.5-flash-image';
-
-export interface GenerateImageOptions {
-  prompt: string;
-  size?: '1024x1024' | '2048x2048';
-  model?: string;
-}
-
-export interface GenerateImageResult {
-  url?: string;
-  b64Json?: string;
-  revisedPrompt?: string;
-  model: string;
+/**
+ * 创建 OpenAI 客户端实例（延迟初始化）
+ * 仅在调用时才会创建，避免构建阶段因环境变量缺失而报错
+ */
+function createImageClient(): OpenAI {
+  const apiKey = process.env.LAOZHANG_API_KEY;
+  if (!apiKey) {
+    throw new Error('LAOZHANG_API_KEY 未配置，生图功能不可用');
+  }
+  return new OpenAI({
+    apiKey,
+    baseURL: process.env.LAOZHANG_BASE_URL || 'https://api.laozhang.ai/v1',
+    dangerouslyAllowBrowser: false,
+  });
 }
 
 /**
  * 生成图片
+ * @param prompt 图片描述提示词
+ * @returns 生成图片的URL
  */
-export async function generateImage(
-  options: GenerateImageOptions
-): Promise<GenerateImageResult> {
-  const model = options.model || DEFAULT_MODEL;
-
-
-  const response = await client.images.generate({
-    model,
-    prompt: options.prompt,
-    n: 1,
-    size: (options.size || '1024x1024') as any,
-    response_format: 'b64_json',
-  });
-
-  const imageData = response.data?.[0];
-  if (!imageData) {
-    throw new Error('未生成图片数据');
+export async function generateImage(prompt: string): Promise<string> {
+  try {
+    const client = createImageClient();
+    const response = await client.images.generate({
+      model: 'dall-e-3',
+      prompt: prompt,
+      n: 1,
+      size: '1024x1024',
+    });
+    return response.data[0]?.url || '';
+  } catch (error) {
+    console.error('生成图片失败:', error);
+    throw error;
   }
-
-
-  return {
-    b64Json: imageData.b64_json,
-    url: imageData.url,
-    revisedPrompt: (imageData as any).revised_prompt,
-    model,
-  };
 }
