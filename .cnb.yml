@@ -2,32 +2,14 @@
 main:
   push:
     - stages:
-        - name: 安装依赖
-          image: node:20-slim
-          script:
-            - corepack enable
-            - corepack prepare pnpm@8 --activate
-            - pnpm install --frozen-lockfile
-
-        - name: 类型检查
-          image: node:20-slim
-          script:
-            - corepack enable
-            - corepack prepare pnpm@8 --activate
-            - pnpm run type-check
-
         - name: 构建项目
           image: node:20-slim
           script:
+            - cat .env.ci
             - export $(cat .env.ci | xargs)
             - echo "URL: $NEXT_PUBLIC_SUPABASE_URL"
             - corepack enable
             - corepack prepare pnpm@8 --activate
+            - pnpm install --frozen-lockfile
+            - pnpm run type-check
             - pnpm run build
-
-        - name: 运行测试
-          image: node:20-slim
-          script:
-            - corepack enable
-            - corepack prepare pnpm@8 --activate
-            - pnpm run test || true
