@@ -1,9 +1,5 @@
 import OpenAI from 'openai';
 
-/**
- * 创建 OpenAI 客户端实例（延迟初始化）
- * 仅在调用时才会创建，避免构建阶段因环境变量缺失而报错
- */
 function createImageClient(): OpenAI {
   const apiKey = process.env.LAOZHANG_API_KEY;
   if (!apiKey) {
@@ -16,11 +12,6 @@ function createImageClient(): OpenAI {
   });
 }
 
-/**
- * 生成图片
- * @param prompt 图片描述提示词
- * @returns 生成图片的URL
- */
 export async function generateImage(prompt: string): Promise<string> {
   try {
     const client = createImageClient();
@@ -31,19 +22,13 @@ export async function generateImage(prompt: string): Promise<string> {
       size: '1024x1024',
     });
 
-    // 安全地访问 response.data
-    if (!response.data || response.data.length === 0) {
-      throw new Error('生成图片失败：未返回数据');
+    if (!response.data || response.data.length === 0 || !response.data[0].url) {
+      throw new Error('Failed to generate image: no URL returned');
     }
 
-    const data = response.data[0];
-    if (!data || !data.url) {
-      throw new Error('生成图片失败：未返回图片URL');
-    }
-
-    return data.url;
+    return response.data[0].url;
   } catch (error) {
-    console.error('生成图片失败:', error);
+    console.error('Image generation error:', error);
     throw error;
   }
 }
