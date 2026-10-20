@@ -8,7 +8,7 @@ import select
 
 HOST = "xs-bj.com"
 USER = "root"
-PASSWORD = "YOUR_USER_PASSWORD"
+PASSWORD = os.environ["DEPLOY_SSH_PASSWORD"]
 
 # Deployment commands to run on the server
 COMMANDS = [
