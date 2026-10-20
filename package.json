@@ -17,7 +17,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
     "code-check": "pnpm run type-check && pnpm run lint && pnpm run format:check",
     "pr-check": "pnpm run type-check && pnpm run lint:threshold",
-    "start": "bash ./scripts/start.sh",
+    "start": "next start -p 3000",
     "ts-check": "tsc -p tsconfig.json",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
