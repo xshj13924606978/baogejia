@@ -1,20 +1,25 @@
 /**
  * 批量创建 Supabase Auth 用户 + 同步 users / user_levels / user_token_balance
- * 用法: node scripts/create-users.js
+ * 用法: 配置 SUPABASE_SERVICE_ROLE_KEY 和 CREATE_USER_PASSWORD_1 至 CREATE_USER_PASSWORD_6 后运行 node scripts/create-users.js
  */
 const SUPABASE_URL = 'https://tjbnjrcgmyiwudqptfhc.supabase.co';
-const SERVICE_ROLE_KEY = 'YOUR_SUPABASE_SERVICE_ROLE_KEY';
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SERVICE_ROLE_KEY) throw new Error('Set SUPABASE_SERVICE_ROLE_KEY before running this script');
 const ADMIN_BASE = `${SUPABASE_URL}/auth/v1/admin`;
 const REST_BASE = `${SUPABASE_URL}/rest/v1`;
 
 const USERS = [
-  { email: '519733058@qq.com',     password: 'YOUR_USER_PASSWORD',      role: 'super_admin',      level: 5, points: 10000 },
-  { email: 'cs@xs-hj.com',         password: 'YOUR_USER_PASSWORD',      role: 'admin',            level: 5, points: 10000 },
-  { email: '2651772301@qq.com',    password: 'YOUR_USER_PASSWORD',    role: 'vip',              level: 5, points: 10000 },
-  { email: '1379856008@163.com',   password: 'YOUR_USER_PASSWORD',    role: 'enterprise_admin', level: 4, points: 5000  },
-  { email: '39666731@qq.com',      password: 'YOUR_USER_PASSWORD',    role: 'premium',          level: 3, points: 2000  },
-  { email: '1307190511@qq.com',    password: 'YOUR_USER_PASSWORD',    role: 'free',             level: 1, points: 100   },
+  { email: '519733058@qq.com',     password: process.env.CREATE_USER_PASSWORD_1,      role: 'super_admin',      level: 5, points: 10000 },
+  { email: 'cs@xs-hj.com',         password: process.env.CREATE_USER_PASSWORD_2,      role: 'admin',            level: 5, points: 10000 },
+  { email: '2651772301@qq.com',    password: process.env.CREATE_USER_PASSWORD_3,    role: 'vip',              level: 5, points: 10000 },
+  { email: '1379856008@163.com',   password: process.env.CREATE_USER_PASSWORD_4,    role: 'enterprise_admin', level: 4, points: 5000  },
+  { email: '39666731@qq.com',      password: process.env.CREATE_USER_PASSWORD_5,    role: 'premium',          level: 3, points: 2000  },
+  { email: '1307190511@qq.com',    password: process.env.CREATE_USER_PASSWORD_6,    role: 'free',             level: 1, points: 100   },
 ];
+
+if (USERS.some(user => !user.password)) {
+  throw new Error('Set CREATE_USER_PASSWORD_1 through CREATE_USER_PASSWORD_6 before running this script');
+}
 
 const adminHeaders = {
   Authorization: `Bearer ${SERVICE_ROLE_KEY}`,

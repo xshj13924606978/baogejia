@@ -2,7 +2,8 @@
  * 修复 6 个用户的所有关联数据
  */
 const B = 'https://tjbnjrcgmyiwudqptfhc.supabase.co/rest/v1';
-const SK = 'YOUR_SUPABASE_SERVICE_ROLE_KEY';
+const SK = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SK) throw new Error('Set SUPABASE_SERVICE_ROLE_KEY before running this script');
 const H = { Authorization: `Bearer ${SK}`, apikey: SK, 'Content-Type': 'application/json' };
 
 const TARGETS = [

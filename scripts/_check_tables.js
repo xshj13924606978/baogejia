@@ -1,4 +1,6 @@
-const h = { Authorization: 'Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY', apikey: 'YOUR_SUPABASE_SERVICE_ROLE_KEY', 'Content-Type': 'application/json' };
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!serviceRoleKey) throw new Error('Set SUPABASE_SERVICE_ROLE_KEY before running this script');
+const h = { Authorization: `Bearer ${serviceRoleKey}`, apikey: serviceRoleKey, 'Content-Type': 'application/json' };
 const B = 'https://tjbnjrcgmyiwudqptfhc.supabase.co/rest/v1';
 
 const TABLES = ['user_levels', 'user_token_balance', 'profiles', 'users'];
