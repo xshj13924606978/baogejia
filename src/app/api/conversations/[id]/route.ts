@@ -1,0 +1,201 @@
+export const dynamic = "force-dynamic";
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireAuth } from '@/lib/auth-utils';
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  try {
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
+
+    const supabase = getSupabaseServiceClient();
+
+    // 获取对话基本信息
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (convError || !conversation) {
+      console.error('[Conversations/[id]] 查询失败:', convError);
+      return NextResponse.json({ error: '对话不存在' }, { status: 404 });
+    }
+
+    // 权限检查：非超管/管理员只能查看自己的对话
+    if (user.role !== 'super_admin' && user.role !== 'admin' && conversation.user_id !== user.id) {
+      console.error('[Conversations/[id]] 无权访问对话:', id);
+      return NextResponse.json({ error: '无权访问' }, { status: 403 });
+    }
+
+    // 获取对话的消息 - 确保按时间排序
+    const { data: messages, error: msgError } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', id)
+      .order('created_at', { ascending: true });
+
+    if (msgError) {
+      console.error('[Conversations/[id]] 获取消息失败:', msgError);
+    }
+
+
+    // 格式化消息，确保包含文件数据
+    const formattedMessages = (messages || []).map((msg) => {
+      // 确保文件数据是数组
+      const fileData = msg.file_data || [];
+
+      // 如果有文件数据，打印日志
+      if (fileData.length > 0) {
+      }
+
+      return {
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        created_at: msg.created_at,
+        quote_data: msg.quote_data,
+        file_data: fileData,
+        // #[20260827-1700]：必须返回 metadata。前端 loadConversation 与 load-conversation
+        // 事件恢复消息时以 msg.metadata 重建 message.metadata，若缺失则渲染层
+        // message.metadata?.card 为 undefined，知识参考卡片（含"前往资料中心查看"链接）丢失。
+        metadata: msg.metadata,
+      };
+    });
+
+    // 获取对话的文件
+    const { data: files, error: filesError } = await supabase
+      .from('conversation_files')
+      .select('*')
+      .eq('conversation_id', id);
+
+    if (filesError) {
+      console.error('[Conversations/[id]] 获取文件失败:', filesError);
+    }
+
+
+    // 构建返回数据
+    return NextResponse.json({
+      conversation: {
+        id: conversation.id,
+        title: conversation.title || '新对话',
+        createdAt: conversation.created_at,
+        updatedAt: conversation.updated_at,
+        lastMessage: conversation.last_message || '',
+        messages: formattedMessages,
+        files: files || [],
+        messageCount: messages?.length || 0,
+        fileCount: files?.length || 0,
+      },
+    });
+  } catch (error) {
+    console.error('[Conversations/[id]] 异常:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  try {
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
+
+    const supabase = getSupabaseServiceClient();
+
+    // 权限检查：非超管/管理员只能修改自己的对话
+    if (user.role !== 'super_admin' && user.role !== 'admin') {
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+      if (conversation && conversation.user_id !== user.id) {
+        console.error('[Conversations/[id]] 无权修改对话:', id);
+        return NextResponse.json({ error: '无权修改' }, { status: 403 });
+      }
+    }
+
+    const body = await request.json();
+    const { title } = body;
+
+    if (!title) {
+      return NextResponse.json({ error: '标题不能为空' }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from('conversations')
+      .update({
+        title,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Conversations/[id]] 更新失败:', error);
+      return NextResponse.json({ error: '更新失败' }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      conversation: {
+        id: data.id,
+        title: data.title,
+        updatedAt: data.updated_at,
+      },
+    });
+  } catch (error) {
+    console.error('[Conversations/[id]] 更新异常:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  try {
+    const { user, errorResponse } = await requireAuth(request);
+    if (errorResponse) return errorResponse;
+
+    const supabase = getSupabaseServiceClient();
+
+    // 权限检查：非超管/管理员只能删除自己的对话
+    if (user.role !== 'super_admin' && user.role !== 'admin') {
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+      if (conversation && conversation.user_id !== user.id) {
+        console.error('[Conversations/[id]] 无权删除对话:', id);
+        return NextResponse.json({ error: '无权删除' }, { status: 403 });
+      }
+    }
+
+    // 先删除相关的消息记录
+    await supabase.from('messages').delete().eq('conversation_id', id);
+
+    // 再删除相关的文件记录
+    await supabase.from('conversation_files').delete().eq('conversation_id', id);
+
+    // 最后删除对话
+    const { error } = await supabase.from('conversations').delete().eq('id', id);
+
+    if (error) {
+      console.error('[Conversations/[id]] 删除失败:', error);
+      return NextResponse.json({ error: '删除失败' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[Conversations/[id]] 删除异常:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}

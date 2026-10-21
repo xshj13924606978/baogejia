@@ -1,0 +1,81 @@
+'use client';
+
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+
+interface SwitchContextType {
+  fileGroupId: string | null;
+  files: any[];
+  currentChoice: string | null;
+  isLoading: boolean;
+  hasFiles: boolean;
+  setActiveGroup: (groupId: string, files: any[], choice: string) => void;
+  setChoice: (choice: string) => void;
+  setLoading: (loading: boolean) => void;
+  generatedChoice: string | null;
+  setGeneratedChoice: (choice: string | null) => void;
+  resetSwitch: () => void;
+}
+
+const SwitchContext = createContext<SwitchContextType | undefined>(undefined);
+
+export function SwitchProvider({ children }: { children: ReactNode }) {
+  const [fileGroupId, setFileGroupId] = useState<string | null>(null);
+  const [files, setFiles] = useState<any[]>([]);
+  const [currentChoice, setCurrentChoice] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [hasFiles, setHasFiles] = useState<boolean>(false);
+  const [generatedChoice, setGeneratedChoice] = useState<string | null>(null);
+
+  const setActiveGroup = (groupId: string, files: any[], choice: string) => {
+    setFileGroupId(groupId);
+    setFiles(files || []);
+    setCurrentChoice(choice);
+    setHasFiles(!!files && files.length > 0);
+  };
+
+  const setChoice = (choice: string) => {
+    setCurrentChoice(choice);
+  };
+
+  const setLoading = (loading: boolean) => {
+    setIsLoading(loading);
+  };
+
+  const resetSwitch = () => {
+    setFileGroupId(null);
+    setFiles([]);
+    setCurrentChoice(null);
+    setIsLoading(false);
+    setHasFiles(false);
+    setGeneratedChoice(null);
+  };
+
+  return (
+    <SwitchContext.Provider
+      value={{
+        fileGroupId,
+        files,
+        currentChoice,
+        isLoading,
+        hasFiles,
+        setActiveGroup,
+        setChoice,
+        setLoading,
+        generatedChoice,
+        setGeneratedChoice,
+        resetSwitch,
+      }}
+    >
+      {children}
+    </SwitchContext.Provider>
+  );
+}
+
+// 重新定义 useSwitch，确保不接受任何参数
+export function useSwitch(): SwitchContextType {
+  const context = useContext(SwitchContext);
+  if (context === undefined) {
+    throw new Error('useSwitch must be used within a SwitchProvider');
+  }
+  return context;
+}

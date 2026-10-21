@@ -1,0 +1,35 @@
+# 积分系统保护文件哈希值 - 2026-03-13 21:29:57
+
+553292e47fdb7b66dcffef67208578d27189b89a4d67e9fe84e3e77d25c95a70  src/lib/user-level-service.ts
+204da43249a5451e5a459c7fdd0cc30700c31651a9b21adb535a0b50a3d69389  src/storage/database/points-utils.ts
+7b6d83f271e1970873ddc96ba3cbd69f1ef29830560c196f28e05d35156e509f  src/app/api/points/route.ts
+5e006359f665dbf3a2bd9b32dff12a2db2ffdbcb765d540109ecd9a1968cd00e  src/app/api/points/exchange/route.ts
+cd66b4c99096f13dfae631d5bee13e27deda0df6c9f38ebae1f8656724361c9e  src/app/api/user/points/route.ts
+81ee2166b15af6abb463c1eff2f5bd94525f6717a26e94d14763b33558c432db  src/app/api/user/level/route.ts
+9d371d45ce536cfbef3e16d71a8f3129bb32243201e8a8f4aaa7aa44bd3687d6  src/app/api/user/level/check-upgrade/route.ts
+e5b7ac639567ee937fdb6551f901ca4fb9ef2773996b9c74f3ab58ce371494c2  src/app/api/user/level/exchange/route.ts
+ad6500c655dbb05d0c5c22a7a6cbf8966ce3ba6258b2df42de3fbf732f0a3e7f  src/app/api/user/level/history/route.ts
+c501d8d29803099ba10001c682cab1298df055817d4941202e24e9e6571348c1  src/app/api/user/level/purchase/route.ts
+a4592f2c13a7d171da4c67bda8f6e859ecfe5cbca780a05a608e6fbf954a0d51  src/app/api/user/level/recommendation/route.ts
+6f54f2288abb8b3966c3baab99853dd540eeb11496f3bf735210cceb8de5c491  src/app/api/admin/points/logs/route.ts
+8bb650ec6cdfce08561b27dda9499b1fd7f00bc1cedec55cfe607795499415ce  src/app/api/admin/levels/route.ts
+b4c5871b5f485cd9c58bb34b6d0497a32c483892d78a2e416123d322f440faba  src/app/api/admin/levels/[level]/route.ts
+75c618b4c5057524003e4e663fde8d9fcf51b0d3a3db289922033fc0cf6dde02  src/app/api/admin/levels/[level]/history/route.ts
+d79dc39ad1e2ce53f5f147446f11828497465be230882141a42a1ce5e8a921e1  src/app/api/admin/levels/batch/route.ts
+c88c728f13123dfe807208a6d7ef1ea04b0ae2f0311487cf218b18e1dd6ad3db  src/app/api/admin/levels/defaults/route.ts
+ddda034c883fe0a39e0d138c3019521fc30eefb4e86f9ec4f5c99be4906871ff  src/components/points-panel.tsx
+4b0dd10ee301d1c3efec15d3e4c409e85942dac56db3ea39a14a6b21bb258c87  src/components/user/points-panel.tsx
+3aa3ee6ed229d4c6ebca57ab42c06cd60a8850541137b15e4462a34c7bd2a2de  src/components/user/points-mall.tsx
+6ec3839bb68b75386d3da5563aca5b37f377b502b27cd497a866279858cba3d1  src/components/admin/points/PointsConfig.tsx
+1a1772e160cd11f76b9c5f812407534252e6045d0fe2f0aee02b2c95e00f4555  src/components/admin/points/PointsLog.tsx
+608377b04c34e55134d354b5bd5911ac9f93ef3c31f94edd8154f85131d888f6  src/components/admin/points/PointsManagement.tsx
+48dfbf59bbc48d2e0f8df3e19553220d9f86daa284a5d2d65c1f3175a2136005  src/components/admin/levels/LevelEditor.tsx
+b00b81e0e3cb8aa0e1b1c8d335cbe05098f050b148a1c4184212368a3af00c1c  src/components/admin/levels/LevelList.tsx
+e7a89220fb49e18d6613956781cfd5eb38d5da36379e93f5fc90ccec127dc871  src/components/ui/progress.tsx
+f85e3a827bec7171a9aa818bafeacdd5c56007577375029d494eb89fee2182ca  src/app/api/admin/permissions/preview/route.ts
+a617806c2376f3002c2dafd695cef1bfbb2e29b4d2da97fee5f61047b335e5ec  src/app/payment/result/page.tsx
+e2239a4a34dc022eb0a6209e5ac28ff2c420116974754b5e9564cdcb400251fb  src/app/test-diagnostics/page.tsx
+3fc8016fd7cb2703de7f4ccb9303442dd9cd662e04398733b4ae28a1e16b9c8b  src/lib/token-billing-service.ts
+77dc3559a662b9e6881f57ad69b407faf9da6037e79d4b2fdbf14a74c121d999  src/app/api/admin/users/[id]/points/route.ts
+614e718901a1e6e383cbc870f289e484516e69c1c04c5ad4218cdb2b5137cb5e  src/app/api/admin/stats/level-distribution/route.ts
+618a5758461c5abb760b8e5e658588f833d40f5a1ac76abd441050178e9912ba  src/app/api/admin/stats/revenue/route.ts

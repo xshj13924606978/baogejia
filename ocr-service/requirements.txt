@@ -1,0 +1,12 @@
+# ============================================================
+# OCR Service 依赖
+# 版本说明：以下组合已在 Python 3.12 实测通过（返回值格式为
+# (result_data, elapse)，result_data 为 [[box, text, score], ...]）
+# ============================================================
+fastapi==0.104.1
+uvicorn==0.24.0
+python-multipart==0.0.6
+rapidocr-onnxruntime==1.4.4
+Pillow==10.1.0
+numpy>=1.26,<2
+opencv-python-headless>=4.9,<5

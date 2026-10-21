@@ -1,0 +1,11 @@
+{
+  "build_exit": 0,
+  "next_version": "16.3.6",
+  "build_id": "Hau8rp46ClEzwjiVGyGBe",
+  "configuration": "isolated placeholders; localhost port 9; NOT DEPLOYABLE",
+  "ownership_guard_present": true,
+  "matching_compiled_files": [
+    "server/app/api/auth/sync-user/route.js"
+  ],
+  "quarantined_build_path": "/tmp/quote-health-security-build-y1sjz57k/isolated-build"
+}

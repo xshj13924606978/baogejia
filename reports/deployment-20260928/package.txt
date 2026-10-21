@@ -1,0 +1,12 @@
+=== [1] 检查 build 产物 ===
+=== [2] 强制同步 public → standalone/public（完整，含 manifest.json/icon）===
+✅ manifest.json 已同步
+=== [3] 同步 static → standalone/.next-production/static ===
+static/chunks 数量: 155
+=== [3.5] 补齐 tesseract worker-script（#20260822-2242 固化） ===
+✅ worker-script 已补齐: .next-production/standalone/.next-production/worker-script
+=== [4] 打包 ===
+=== [5] 统一校验 ===
+static/chunks=1193  public/manifest.json=1  worker-script=2
+✅ 打包校验通过（static + public + worker-script 齐全）
+PKG=release/quote-standalone-20260928-1449.tgz (68M)

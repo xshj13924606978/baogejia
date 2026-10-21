@@ -1,0 +1,200 @@
+name: 自动代码质量维护
+
+on:
+  schedule:
+    # 每天凌晨2点运行
+    - cron: '0 2 * * *'
+  # 代码推送时运行
+  push:
+    branches: [main, develop]
+  # 手动触发
+  workflow_dispatch:
+
+jobs:
+  quality-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'pnpm'
+    
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+    
+    - name: Run ESLint check
+      id: eslint
+      run: |
+        echo "🔍 运行 ESLint 检查..."
+        npx eslint . --format json > eslint-output.json 2>&1 || true
+
+        if [ -f eslint-output.json ]; then
+          WARNINGS=$(node -e "try { const d = require('./eslint-output.json'); console.log(d.reduce((s, f) => s + f.messages.length, 0)); } catch(e) { console.log(0); }")
+          ERRORS=$(node -e "try { const d = require('./eslint-output.json'); console.log(d.reduce((s, f) => s + f.messages.filter(m => m.severity === 2).length, 0)); } catch(e) { console.log(0); }")
+        else
+          WARNINGS=0
+          ERRORS=0
+        fi
+
+        echo "warnings=$WARNINGS" >> $GITHUB_OUTPUT
+        echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+        echo "ESLint 警告数: $WARNINGS"
+        echo "ESLint 错误数: $ERRORS"
+    
+    - name: TypeScript type check
+      id: tsc
+      continue-on-error: true
+      run: |
+        echo "🔍 运行 TypeScript 类型检查..."
+        pnpm run type-check 2>&1 | tee tsc-output.txt || true
+        
+        TSC_ERRORS=$(grep -c "error TS" tsc-output.txt 2>/dev/null || echo 0)
+        echo "tsc_errors=$TSC_ERRORS" >> $GITHUB_OUTPUT
+        echo "TypeScript 错误数: $TSC_ERRORS"
+    
+    - name: Auto fix if needed
+      if: steps.eslint.outputs.warnings != '0'
+      run: |
+        echo "🔄 运行 ESLint 自动修复..."
+        npx eslint . --fix || true
+
+        echo "🧹 运行终极清理脚本..."
+        node scripts/ultimate-cleanup.js || true
+    
+    - name: Check for changes
+      id: git-check
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        git add .
+        if git diff --staged --quiet; then
+          echo "has-changes=false" >> $GITHUB_OUTPUT
+          echo "✅ 没有检测到代码变更"
+        else
+          echo "has-changes=true" >> $GITHUB_OUTPUT
+          echo "📝 检测到代码变更"
+          git status --short
+        fi
+    
+    - name: Run type-check after fixes
+      if: steps.git-check.outputs.has-changes == 'true'
+      run: |
+        echo "🔍 验证修复后的代码..."
+        pnpm run type-check
+    
+    - name: Create Pull Request
+      if: steps.git-check.outputs.has-changes == 'true'
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: '🤖 自动代码质量维护'
+        title: '🤖 每日代码质量自动优化'
+        body: |
+          ## 🤖 自动维护报告
+          
+          ### 📊 本次修复内容
+          - 运行 ESLint 自动修复
+          - 清理未使用的变量和导入
+          - 优化代码格式
+          
+          ### 📈 效果统计
+          - 修复前警告: ${{ steps.eslint.outputs.warnings }}
+          - 修复前错误: ${{ steps.eslint.outputs.errors }}
+          - TypeScript 错误: ${{ steps.tsc.outputs.tsc_errors }}
+          - 运行时间: ${{ github.event.repository.updated_at }}
+          
+          ### ✅ 验证
+          - TypeScript 类型检查已通过
+          - ESLint 自动修复已运行
+          
+          ### 📝 请审查
+          请审查这些自动优化，确保功能正常。如有问题可回滚。
+        branch: auto-maintain/quality-${{ github.run_number }}
+        base: main
+        labels: auto-pr, quality, eslint
+        delete-branch: true
+    
+    - name: Create Issue if threshold exceeded
+      if: steps.eslint.outputs.warnings > '50' || steps.eslint.outputs.errors > '5' || steps.tsc.outputs.tsc_errors > '0'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const warnings = parseInt('${{ steps.eslint.outputs.warnings }}');
+          const errors = parseInt('${{ steps.eslint.outputs.errors }}');
+          const tscErrors = parseInt('${{ steps.tsc.outputs.tsc_errors }}');
+          
+          let title = '🚨 代码质量告警';
+          let issues = [];
+          
+          if (warnings > 50) {
+            issues.push(`- ESLint 警告数: ${warnings} (阈值: 50)`);
+          }
+          if (errors > 5) {
+            issues.push(`- ESLint 错误数: ${errors} (阈值: 5)`);
+          }
+          if (tscErrors > 0) {
+            issues.push(`- TypeScript 错误数: ${tscErrors}`);
+          }
+          
+          const body = `## ⚠️ 质量阈值告警
+          
+          ### 当前状态
+          ${issues.join('\\n')}
+          
+          ### 建议行动
+          1. 运行 \`pnpm run maintain\` 查看详细报告
+          2. 运行 \`node scripts/ultimate-cleanup.js\` 进行清理
+          3. 检查新代码是否引入问题
+          
+          ### 自动报告
+          查看 [工作流日志](../../actions/runs/${{ github.run_id }})
+          
+          ---
+          *此 Issue 由 GitHub Actions 自动创建*
+          `;
+          
+          // 检查是否已有相同标题的开放 Issue
+          const { data: issues } = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            labels: 'quality, threshold-exceeded'
+          });
+          
+          const existingIssue = issues.find(issue => issue.title === title);
+          
+          if (existingIssue) {
+            // 更新现有 Issue
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: existingIssue.number,
+              body: body
+            });
+          } else {
+            // 创建新 Issue
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['quality', 'threshold-exceeded']
+            });
+          }

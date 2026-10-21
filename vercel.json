@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "@next_public_supabase_url",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@next_public_supabase_anon_key",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
+    "DEEPSEEK_API_KEY": "@deepseek_api_key",
+    "DEEPSEEK_BASE_URL": "https://api.deepseek.com/v1",
+    "DEEPSEEK_MODEL": "deepseek-chat",
+    "LAOZHANG_API_KEY": "@laozhang_api_key",
+    "LAOZHANG_BASE_URL": "https://api.laozhang.ai/v1",
+    "LAOZHANG_MODEL": "gemini-2.5-flash"
+  },
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 60
+    }
+  },
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "development": false
+    }
+  }
+}

@@ -1,0 +1,47 @@
+name: Weekly ESLint Warning Cleanup
+
+on:
+  schedule:
+    # 每周一早上9点运行 (UTC 时间)
+    - cron: '0 1 * * 1'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  check-warnings:
+    name: Track ESLint Warnings
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Track ESLint warnings
+        run: node scripts/track-eslint-warnings.js
+
+      - name: Upload report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-warnings-report-${{ github.run_number }}
+          path: eslint-warnings-report.json
+          retention-days: 90
+
+      - name: Create summary
+        run: |
+          echo "## 📊 ESLint 警告报告" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "报告已生成并上传为工件。" >> $GITHUB_STEP_SUMMARY
+          echo "下载报告查看详细信息。" >> $GITHUB_STEP_SUMMARY

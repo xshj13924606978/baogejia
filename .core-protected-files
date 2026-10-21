@@ -1,0 +1,10 @@
+# PDF解析相关
+src/utils/pdf-parser-enhanced.ts
+src/app/api/documents/parse/route.ts
+src/app/api/quotes/export-pdf/route.ts
+
+# 表格解析相关
+src/app/api/tables/products/import/route.ts
+src/app/api/tables/products/list/route.ts
+src/app/api/tables/products/search/route.ts
+src/app/api/tables/products/field-configs/route.ts

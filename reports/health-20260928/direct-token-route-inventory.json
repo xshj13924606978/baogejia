@@ -1,0 +1,29 @@
+{
+  "api_route_count": 385,
+  "direct_token_routes": [
+    {
+      "path": "src/app/api/socket/route.ts",
+      "mentions_role": false,
+      "uses_current_user_helper": false,
+      "uses_revocation_helper": false
+    },
+    {
+      "path": "src/app/api/auth/verify-session/route.ts",
+      "mentions_role": false,
+      "uses_current_user_helper": false,
+      "uses_revocation_helper": true
+    },
+    {
+      "path": "src/app/api/auth/unlink/route.ts",
+      "mentions_role": false,
+      "uses_current_user_helper": false,
+      "uses_revocation_helper": true
+    },
+    {
+      "path": "src/app/api/auth/sync-user/route.ts",
+      "mentions_role": true,
+      "uses_current_user_helper": false,
+      "uses_revocation_helper": false
+    }
+  ]
+}

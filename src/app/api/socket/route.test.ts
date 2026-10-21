@@ -1,0 +1,21 @@
+import { afterEach, expect, it, vi } from 'vitest';
+import { NextRequest } from 'next/server';
+import { GET } from './route';
+const { revoked, callbacks, db } = vi.hoisted(() => ({ revoked: vi.fn(), callbacks: new Map<string, Function>(), db: vi.fn() }));
+vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({ from: db }) }));
+vi.mock('@/lib/session-token', () => ({ verifySessionToken: () => ({ userId: 'u1', sessionVersion: 0 }) }));
+vi.mock('@/lib/session-version', () => ({ isSessionRevoked: revoked }));
+vi.mock('socket.io', () => ({ Server: class { on(event: string, callback: Function) { callbacks.set(event, callback); } } }));
+afterEach(() => { global._socketServer = null; global._httpServer = undefined; callbacks.clear(); vi.resetAllMocks(); });
+it('does not register or write a user whose session was revoked', async () => {
+  global._httpServer = { address: () => ({ port: 0 }) };
+  revoked.mockResolvedValue(true);
+  expect((await GET(new NextRequest('http://localhost/api/socket'))).status).toBe(200);
+  const events = new Map<string, Function>();
+  const socket = { on: (event: string, callback: Function) => events.set(event, callback), emit: vi.fn(), data: {} as Record<string, unknown> };
+  callbacks.get('connection')!(socket);
+  await events.get('authenticate')!('signed');
+  expect(socket.emit).toHaveBeenCalledWith('error', { message: 'Invalid or expired session token' });
+  expect(socket.data.userId).toBeUndefined();
+  expect(db).not.toHaveBeenCalled();
+});

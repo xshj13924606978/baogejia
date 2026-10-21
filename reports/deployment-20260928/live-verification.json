@@ -1,0 +1,273 @@
+[
+  {
+    "url": "https://xs-bj.com/",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/login?redirect=%2F",
+    "location": null
+  },
+  {
+    "url": "https://xs-bj.com/login",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/login",
+    "location": null
+  },
+  {
+    "url": "https://xs-bj.com/register",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/register",
+    "location": null
+  },
+  {
+    "url": "https://xs-bj.com/manifest.json",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/manifest.json",
+    "location": null
+  },
+  {
+    "url": "https://xs-bj.com/robots.txt",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/robots.txt",
+    "location": null
+  },
+  {
+    "url": "https://xs-bj.com/api/health",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/api/health",
+    "location": null,
+    "health": {
+      "status": "healthy",
+      "timestamp": "2026-09-28T06:57:32.885Z",
+      "responseTime": "1014ms",
+      "services": {
+        "database": "healthy",
+        "storage": "healthy"
+      },
+      "tools": {
+        "pdftotext": "available",
+        "tesseract": "available"
+      },
+      "environment": "production",
+      "version": "1.0.0"
+    }
+  },
+  {
+    "url": "https://www.xs-bj.com/login",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://www.xs-bj.com/login",
+    "location": null
+  },
+  {
+    "url": "https://xs-bj.com/api/auth/verify-session",
+    "expected": 401,
+    "status": 401,
+    "pass": true,
+    "final_url": "https://xs-bj.com/api/auth/verify-session",
+    "location": null
+  },
+  {
+    "url": "https://xs-bj.com/api/auth/sync-user",
+    "expected": 401,
+    "status": 401,
+    "pass": true,
+    "final_url": "https://xs-bj.com/api/auth/sync-user",
+    "location": null
+  },
+  {
+    "url": "https://xs-bj.com/api/admin/users?limit=1",
+    "expected": 307,
+    "status": 307,
+    "pass": true,
+    "final_url": "https://xs-bj.com/api/admin/users?limit=1",
+    "location": "/login?redirect=%2Fapi%2Fadmin%2Fusers%3Flimit%3D1"
+  },
+  {
+    "url": "https://xs-bj.com/api/admin/users?limit=1",
+    "expected": 401,
+    "status": 401,
+    "pass": true,
+    "final_url": "https://xs-bj.com/api/admin/users?limit=1",
+    "location": null
+  },
+  {
+    "url": "https://xs-bj.com/api/migrate",
+    "expected": 410,
+    "status": 410,
+    "pass": true,
+    "final_url": "https://xs-bj.com/api/migrate",
+    "location": null
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/11110-e72c0d9bb37af44d.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/11110-e72c0d9bb37af44d.js",
+    "location": null,
+    "sha256": "62e01ae3dbe98eef751411bdd267a656d78bde35789f0df1609df9fd7092eac6",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/19115-cb34abc6dfa97d51.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/19115-cb34abc6dfa97d51.js",
+    "location": null,
+    "sha256": "8124cb8cf5b60a5c59073cf70783c8298730243282405772c827b17b73bb3edc",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/21404-8c1b6e565a4a5d7c.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/21404-8c1b6e565a4a5d7c.js",
+    "location": null,
+    "sha256": "166ec122ab31f40bd906ea056fac32147fd2c228401b43d925d219a7f6ebd8b5",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/25259-cd277b2bc2f73123.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/25259-cd277b2bc2f73123.js",
+    "location": null,
+    "sha256": "dca3e8b53ceb9a24c2f779e3fdaa1ef9fdce49610a4900dd7ad8383b22cef0b7",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/35930-6a1d54e4b90a35d5.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/35930-6a1d54e4b90a35d5.js",
+    "location": null,
+    "sha256": "39ee2a8d99f10c0262f6b0090da1174e9f418244ae93c877e7b0652df5e71d7d",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/37620-c1b6ef3b4aabe6aa.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/37620-c1b6ef3b4aabe6aa.js",
+    "location": null,
+    "sha256": "525399a2ea20276b1d24ba8c26434fd92b75d2e82bde3e6968f0cb2da8a8ed1f",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/6027-1d478ce81fb3e40b.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/6027-1d478ce81fb3e40b.js",
+    "location": null,
+    "sha256": "f14dc10bbdb8daf491da1ec7171c95f02a851cb942fa7fc96de077161f651075",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/72014-5166dd7e4a281e87.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/72014-5166dd7e4a281e87.js",
+    "location": null,
+    "sha256": "759ce551776d3de8f1221ce3b199515fb744f65121e69ab0a67a584289bbf965",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/98651-4874c55ff9f32060.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/98651-4874c55ff9f32060.js",
+    "location": null,
+    "sha256": "40428a51e09639fadabe5c74fe1f63e618c742549f58c5f836110581c3214aa4",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/app/global-error-d227491711e65987.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/app/global-error-d227491711e65987.js",
+    "location": null,
+    "sha256": "591759c8f17078ae92d37eeb11282492a7b603d382cebebc87e32c0553bb5870",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/app/layout-31b4fe56918adeca.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/app/layout-31b4fe56918adeca.js",
+    "location": null,
+    "sha256": "51b0b3ea4213e71ad626ca9b1044c241cd5f869a85c1119987819ad9230c4919",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/app/login/page-10076523ad30f6bf.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/app/login/page-10076523ad30f6bf.js",
+    "location": null,
+    "sha256": "455e4041c1269270f262f5946b511f3be5e336d6c510371fc3c8500554a0ba8b",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/b4b02202-8788cedbae1cf775.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/b4b02202-8788cedbae1cf775.js",
+    "location": null,
+    "sha256": "e08e3a727079a9bddaa6193706ef3139602a28a1ff402b3d9702f969d0a379c4",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/main-app-e1c015fd2acc3a93.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/main-app-e1c015fd2acc3a93.js",
+    "location": null,
+    "sha256": "e9299bc0c3a8b7a27a3aef5377ce56d97698e85da128c92e49e94aefdbe67f0e",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/polyfills-42372ed130431b0a.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/polyfills-42372ed130431b0a.js",
+    "location": null,
+    "sha256": "0973c1d64c88adc8e3c950410cb58b288f72118d5965b78049438deb8f2f9683",
+    "matches_release": true
+  },
+  {
+    "url": "https://xs-bj.com/_next/static/chunks/webpack-4894278ecd22a8a2.js",
+    "expected": 200,
+    "status": 200,
+    "pass": true,
+    "final_url": "https://xs-bj.com/_next/static/chunks/webpack-4894278ecd22a8a2.js",
+    "location": null,
+    "sha256": "d172c3d056d7ac345922dc6fb0f4e13a0eb9598b503ae5bed52aac1e71813866",
+    "matches_release": true
+  }
+]

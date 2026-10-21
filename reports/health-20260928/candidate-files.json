@@ -1,0 +1,21 @@
+{
+  "next-env.d.ts": "532b8257fa60400ff991ec1a687329a96d23d0d1b9a324c8beb10b519adecff7",
+  "package.json": "1a064687e326c2f99860a31794b062e98065f6dc17ec02874f02ec3ebea8a395",
+  "pnpm-lock.yaml": "300af727c361c9519694af93802fe56dcc05b154ab4b054919edc874cbd5529b",
+  "scripts/build-production.sh": "991543e39c44fd6be4ad68620de4ad28b362c66da8a7b225947321d60d520ba0",
+  "scripts/build.sh": "027a8423a03b30d6581c8a9a9e19d58fecb2433b882724ad04aab3dd38b1bf17",
+  "src/app/api/auth/sync-user/route.ts": "c5b719fce6d5173913823d331b184180431e22be6a14381dbc5824f9c0dc8979",
+  "src/app/api/auth/verify-session/route.ts": "2e1921bcdb4e2d922d6915ec8c1e3eb09dba7c5083082ceb15a74ddd363b9c78",
+  "src/app/api/socket/route.ts": "3508fa590977f4268a3190aff1cd119cb6e77fcfaa6595af9ed72500ae3e016b",
+  "src/lib/auth-utils.test.ts": "78fc955b22f760d4bb758c52e53f4ecea5788c998f2881e3dca21d128f0a0c25",
+  "src/lib/auth-utils.ts": "c4cee48f1e8bf6663e9536a261e707951c71d61eb7fd4f5048d727f3ebfaa311",
+  "src/lib/input-processor.test.ts": "db849ac747ea5bfe98784001679803f84a3f26d5f0a97154dec0342abfb1af1a",
+  "src/lib/session-token-guard.test.ts": "568afb802b43c3a8d0726e41fc0acc494bfbae67033ec82a9b7b260de3510d98",
+  "src/lib/session-version.ts": "38b4cda892ccd35c3402398e66146135d3a9b401a8680ece94b1281baca05f6a",
+  "src/lib/session-version.test.ts": "111c1ec152876a6b3871c7b1aa124a18b34ac5bc7b1bcce11da6bad4052aa62a",
+  "src/lib/spreadsheet-compatibility.test.ts": "dcd6a1371720890a88cba4c2186be4b0713f11f9b7c9d2f203bdf3ffc20a5702",
+  "src/app/api/auth/verify-session/route.test.ts": "eddb39a6474d6feaf6e5c373b31809faad454784b20d268b1fd4f3f160090bca",
+  "src/app/api/auth/sync-user/route.test.ts": "4edb0fc10175134981542aa054d610ec84823c0ed8ed13d8702f65501d63acdb",
+  "src/app/api/socket/route.test.ts": "63c135b6a69b50f1a130a21b8a39b3c4e6f4b0494c01ee6a6b88ec834bb0425c",
+  "scripts/test-build-safety.py": "135cc6d45c7d199539cc615fd8acec6645a62b5c876d11adea2c37f709108ba6"
+}

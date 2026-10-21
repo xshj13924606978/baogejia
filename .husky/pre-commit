@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo ""
+echo "🔒 ===== 功能保护锁 ===== 🔒"
+echo ""
+
+# 保护文件列表
+PROTECTED_FILES="src/app/api/tables/products/search/route.ts src/components/knowledge-center/price-library.tsx"
+
+check_protected_files() {
+  MODIFIED=0
+  MODIFIED_FILES=""
+  
+  for file in $PROTECTED_FILES; do
+    if git diff --cached --name-only | grep -q "^$file$"; then
+      MODIFIED=1
+      MODIFIED_FILES="${MODIFIED_FILES}  - $file\n"
+    fi
+  done
+  
+  if [ $MODIFIED -eq 1 ]; then
+    echo "❌ 错误：以下核心文件被修改！"
+    printf "$MODIFIED_FILES"
+    echo ""
+    echo "⛔ 这些文件是已锁定的功能，禁止随意修改！"
+    echo "如需修改，请使用: git commit --no-verify"
+    exit 1
+  fi
+}
+
+check_protected_files

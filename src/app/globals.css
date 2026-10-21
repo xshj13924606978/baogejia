@@ -1,0 +1,749 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-danger: var(--brand-danger);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --font-sans:
+    'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', ui-sans-serif,
+    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  --font-serif:
+    'Noto Serif SC', 'Songti SC', 'SimSun', ui-serif, Georgia, Cambria,
+    'Times New Roman', Times, serif;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --brand-primary: oklch(0.312 0.081 220);
+  --brand-secondary: oklch(0.583 0.108 195);
+  --brand-accent: oklch(0.798 0.174 80);
+  --brand-danger: oklch(0.527 0.181 29);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+  --brand-primary: oklch(0.463 0.1 220);
+  --brand-secondary: oklch(0.672 0.108 195);
+  --brand-accent: oklch(0.837 0.174 80);
+  --brand-danger: oklch(0.677 0.181 29);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  
+  html, body {
+    @apply bg-background text-foreground;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* #__next 已移除：App Router 直接使用 body，不需要 #__next 包裹 */
+}
+
+@layer utilities {
+  /* 自定义滚动条样式 */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgb(203 213 225);
+    border-radius: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgb(148 163 184);
+  }
+
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgb(71 85 105);
+  }
+
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgb(100 116 139);
+  }
+
+  /* 报价单表格自适应样式 */
+  .quote-table-container {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    margin-bottom: 20px;
+    scrollbar-width: none;
+    max-height: none;
+  }
+
+  .quote-table-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* PDF导出模式下，表格容器彻底移除overflow */
+  .pdf-export-mode .quote-table-container {
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  .config-table {
+    width: 100%;
+    table-layout: fixed !important;
+    border-collapse: collapse;
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  /* 表头和单元格统一样式 */
+  .config-table th,
+  .config-table td {
+    padding: 12px 8px;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.4;
+  }
+
+  /* 强制表格使用固定布局，确保列宽精确控制 */
+  .config-table {
+    table-layout: fixed !important;
+    width: 100% !important;
+    border-collapse: collapse;
+    page-break-inside: auto !important;
+  }
+
+  /* 确保表格行不被拆分到不同页面 */
+  .config-table tbody tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* 确保表格单元格不被拆分 */
+  .config-table tbody td {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* 精确分配列宽（百分比，总和100%） - 按照最新需求重新分配 */
+  /* 注意：表格顺序为：序号、产品名称、规格型号、品牌、单位、数量、单价、总价、市场参考价、操作 */
+  .config-table th:nth-child(1) { width: 4% !important; min-width: 40px; }
+  .config-table th:nth-child(2) { width: 14% !important; min-width: 100px; }
+  .config-table th:nth-child(3) { width: 22% !important; min-width: 160px; }
+  .config-table th:nth-child(4) { width: 8% !important; min-width: 70px; }
+  .config-table th:nth-child(5) { width: 5% !important; min-width: 45px; }
+  .config-table th:nth-child(6) { width: 6% !important; min-width: 50px; }
+  .config-table th:nth-child(7) { width: 12% !important; min-width: 80px; }
+  .config-table th:nth-child(8) { width: 15% !important; min-width: 100px; }
+  .config-table th:nth-child(9) { width: 9% !important; min-width: 70px; }
+  .config-table th:nth-child(10) { width: 5% !important; min-width: 50px; }
+
+  /* 强制所有列超宽时换行（除了金额列） */
+  .config-table td:nth-child(2),
+  .config-table td:nth-child(3),
+  .config-table td:nth-child(4),
+  .config-table td:nth-child(5),
+  .config-table td:nth-child(6) {
+    word-break: break-word !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+  }
+
+  /* 强制所有表头垂直水平都居中 */
+  .config-table th {
+    text-align: center !important;
+    vertical-align: middle !important;
+  }
+
+  /* 产品名称列内容垂直居中、水平左对齐 */
+  .config-table td:nth-child(2) {
+    text-align: left !important;
+    vertical-align: middle !important;
+  }
+
+  /* 规格型号列内容垂直居中、水平左对齐 */
+  .config-table td:nth-child(3) {
+    text-align: left !important;
+    vertical-align: middle !important;
+  }
+
+  /* 金额列（单价、总价、市场参考价）内容垂直居中、水平右对齐 */
+  .config-table td:nth-child(7),
+  .config-table td:nth-child(8),
+  .config-table td:nth-child(9) {
+    text-align: right !important;
+    vertical-align: middle !important;
+    padding-right: 20px;
+    white-space: nowrap !important;
+    font-family: 'Arial', 'Microsoft YaHei', sans-serif;
+  }
+
+  /* 其他列内容垂直水平都居中：序号、品牌、单位、数量、操作 */
+  .config-table td:nth-child(1),
+  .config-table td:nth-child(4),
+  .config-table td:nth-child(5),
+  .config-table td:nth-child(6),
+  .config-table td:nth-child(10) {
+    text-align: center !important;
+    vertical-align: middle !important;
+  }
+
+  /* 规格型号列完整显示 - 增强版 */
+  .config-table td:nth-child(3) {
+    word-break: break-word !important;
+    white-space: normal !important;
+    line-height: 1.5 !important;
+    padding: 10px 6px !important;
+    min-height: 50px !important;
+    vertical-align: middle !important;
+    overflow: visible !important;
+  }
+
+  /* 确保表格行有最小高度 */
+  .config-table tr {
+    min-height: 40px;
+  }
+
+  /* 数量列输入框宽度限制 */
+  .config-table td[data-column-key="quantity"] input {
+    max-width: 100% !important;
+    width: 60px !important;
+    padding: 4px 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* PDF导出时隐藏数量输入框的样式 */
+  .pdf-export-mode .config-table td[data-column-key="quantity"] input {
+    width: 60px !important;
+    max-width: 100% !important;
+  }
+
+  /* 分页标记样式 */
+  .page-break-marker {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 2px !important;
+    background: transparent !important;
+    z-index: 9999 !important;
+    pointer-events: none !important;
+  }
+
+  /* 续表标识样式 */
+  .continue-table-indicator {
+    font-size: 12px !important;
+    color: #666 !important;
+    font-weight: normal !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* PDF导出模式样式 - 增强版 */
+  .pdf-export-mode,
+  .pdf-export-mode body,
+  .pdf-export-mode html,
+  .pdf-export-mode .quote-table-container,
+  .pdf-export-mode .page-container,
+  .pdf-export-mode .export-container,
+  .pdf-export-mode * {
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    max-height: none !important;
+    max-width: none !important;
+    height: auto !important;
+    width: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  /* 彻底隐藏所有滚动条 */
+  .pdf-export-mode::-webkit-scrollbar,
+  .pdf-export-mode *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    -webkit-appearance: none !important;
+  }
+
+  /* 确保所有容器都有足够的高度显示内容 */
+  .pdf-export-mode .quote-table-container {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+  }
+
+  .pdf-export-mode .config-table {
+    table-layout: fixed !important;
+    width: 100% !important;
+    page-break-inside: auto !important;
+  }
+
+  /* 确保表格行不被拆分到不同页面 */
+  .pdf-export-mode .config-table tbody tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* 确保表格单元格不被拆分 */
+  .pdf-export-mode .config-table tbody td {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* PDF导出时金额列保持不换行 */
+  .pdf-export-mode .config-table td:nth-child(7),
+  .pdf-export-mode .config-table td:nth-child(8) {
+    white-space: nowrap !important;
+    overflow: visible !important;
+  }
+
+  /* PDF导出时规格型号列保持完整显示 - 增强版 */
+  .pdf-export-mode .config-table td:nth-child(3) {
+    word-break: break-word !important;
+    white-space: normal !important;
+    line-height: 1.5 !important;
+    padding: 10px 6px !important;
+    min-height: 50px !important;
+    vertical-align: top !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* PDF导出时表格行有最小高度 */
+  .pdf-export-mode .config-table tr {
+    min-height: 50px !important;
+  }
+
+  /* 隐藏所有滚动条（PDF导出时） */
+  .pdf-export-mode ::-webkit-scrollbar,
+  .pdf-export-mode::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  .pdf-export-mode {
+    scrollbar-width: none !important;
+  }
+
+  /* 悬浮按钮移动端适配 */
+  @media (max-width: 768px) {
+    .floating-switcher {
+      bottom: 20px !important;
+      right: 20px !important;
+    }
+
+    .floating-switcher button {
+      width: 48px !important;
+      height: 48px !important;
+    }
+
+    .floating-switcher .absolute.bottom-16 {
+      bottom: 60px !important;
+      right: 0 !important;
+      min-width: 180px !important;
+    }
+  }
+
+  /* 确保悬浮按钮不影响内容点击 */
+  .floating-switcher {
+    pointer-events: none;
+  }
+
+  .floating-switcher * {
+    pointer-events: auto;
+  }
+
+  /* 内容区域留出底部空间，避免被悬浮按钮遮挡 */
+  .chat-messages-container {
+    padding-bottom: 80px;
+  }
+
+  /* 输入框区域确保不被遮挡 */
+  .chat-input-container {
+    position: relative;
+    z-index: 50;
+    background-color: white;
+    border-top: 1px solid #e5e7eb;
+    padding: 16px;
+    margin-bottom: 0;
+  }
+
+  /* 确保输入框可点击 */
+  .chat-input-container textarea,
+  .chat-input-container button {
+    position: relative;
+    z-index: 51;
+    pointer-events: auto !important;
+  }
+
+  /* 防止内容生成时缩放 */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input, textarea, [contenteditable="true"] {
+    -webkit-user-select: auto;
+    user-select: auto;
+  }
+
+  /* 进度条动画 */
+  @keyframes progress {
+    0% { width: 0%; }
+    20% { width: 20%; }
+    50% { width: 60%; }
+    70% { width: 80%; }
+    100% { width: 100%; }
+  }
+
+  .animate-progress {
+    animation: progress 2s ease-in-out infinite;
+  }
+
+  /* 分页控制 */
+  .page-break-before {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .config-table tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* 根据屏幕宽度动态调整字体 */
+  @media screen and (max-width: 1200px) {
+    .config-table {
+      font-size: 13px;
+    }
+
+    .config-table th,
+    .config-table td {
+      padding: 8px 5px;
+    }
+  }
+
+  @media screen and (max-width: 900px) {
+    .config-table {
+      font-size: 12px;
+    }
+  }
+
+  /* 打印样式 */
+  @media print {
+    .config-table {
+      font-size: 10px;
+    }
+
+    .config-table th,
+    .config-table td {
+      padding: 4px 2px;
+    }
+
+    .quote-table-container {
+      overflow: visible !important;
+    }
+
+    .config-table tbody tr.page-break-before {
+      page-break-before: always !important;
+      break-before: page !important;
+    }
+
+    .config-table tbody tr {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+  }
+
+  /* ===== 移动端响应式优化 ===== */
+
+  /* iOS 安全区域适配 */
+  @supports (padding: max(0px)) {
+    .pb-safe {
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+    .pt-safe {
+      padding-top: max(12px, env(safe-area-inset-top));
+    }
+  }
+
+  /* 移动端触控区域优化 */
+  @media (max-width: 768px) {
+    /* 最小触控区域：clamp 动态适配（320px 屏≈36px，390px 屏≈39px，440px+ 44px）
+       （排除复选框/选取框/下拉触发器，避免选取框过大、布局松散） */
+    button:not(.prose button):not([data-slot="checkbox"]):not([data-slot="select-trigger"]),
+    a:not(.prose a),
+    select {
+      min-height: clamp(36px, 10vw, 44px);
+      min-width: clamp(36px, 10vw, 44px);
+    }
+
+    /* iOS 输入框缩放防护：font-size < 16px 会触发自动缩放 */
+    textarea, input[type="text"], input[type="search"] {
+      font-size: 16px !important;
+    }
+
+    /* 禁用非必要 hover 效果 */
+    .hover\:scale-105:hover {
+      transform: none !important;
+    }
+
+    /* ===== 移动端全局紧凑化（#[20260829-1630]-2） ===== */
+
+    /* 选取框（Radix 复选框 + 原生复选框/单选）随屏宽动态适配：
+       320px 屏≈11px，390px 屏≈11px，480px+ 14px */
+    button[data-slot="checkbox"],
+    input[type="checkbox"],
+    input[type="radio"] {
+      width: clamp(11px, 2.8vw, 14px) !important;
+      height: clamp(11px, 2.8vw, 14px) !important;
+      min-width: clamp(11px, 2.8vw, 14px) !important;
+      min-height: clamp(11px, 2.8vw, 14px) !important;
+    }
+
+    /* 勾选图标按比例自适应 */
+    [data-slot="checkbox-indicator"] svg {
+      width: clamp(6px, 1.6vw, 8px) !important;
+      height: clamp(6px, 1.6vw, 8px) !important;
+    }
+
+    /* 表格字体紧凑化：14px → 12px */
+    table,
+    table tbody,
+    table thead {
+      font-size: 12px !important;
+    }
+
+    /* 表格单元格内边距紧凑化：px-4 py-3(16px/12px) → 5px/8px */
+    table th,
+    table td {
+      padding: 5px 8px !important;
+    }
+
+    /* Badge 紧凑化 */
+    [data-slot="badge"] {
+      font-size: 11px !important;
+      padding: 1px 5px !important;
+    }
+
+    /* 表格内按钮/链接紧凑化（30px 触控区，仍易点按） */
+    table td button,
+    table td a {
+      min-height: 30px !important;
+      min-width: 30px !important;
+      padding: 2px 5px !important;
+    }
+  }
+
+  /* PDF导出模式下的分页控制 */
+  .pdf-export-mode .config-table tbody tr.page-break-before {
+    page-break-before: always !important;
+    break-before: page !important;
+    margin-top: 0 !important;
+  }
+
+  /* Markdown表格样式 - 增强表格显示效果 */
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .prose thead {
+    background-color: var(--muted);
+    border-bottom: 2px solid var(--border);
+  }
+
+  .prose th {
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--foreground);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prose tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.2s;
+  }
+
+  .prose tbody tr:hover {
+    background-color: var(--muted);
+  }
+
+  .prose tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .prose td {
+    padding: 12px 8px;
+    color: var(--muted-foreground);
+    vertical-align: middle;
+    word-break: break-word;
+  }
+
+  /* Markdown表格居中对齐 */
+  .prose th.text-center,
+  .prose td.text-center {
+    text-align: center;
+  }
+
+  .prose th.text-right,
+  .prose td.text-right {
+    text-align: right;
+  }
+
+  /* 表格行高优化 */
+  .prose tr {
+    min-height: 40px;
+  }
+
+  /* 小屏幕适配 */
+  @media (max-width: 768px) {
+    .prose table {
+      font-size: 13px;
+    }
+
+    .prose th,
+    .prose td {
+      padding: 8px 6px;
+    }
+  }
+}
+
+body {
+  @apply font-sans;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* #__next 已移除：App Router 直接使用 body，不需要 #__next 包裹 */

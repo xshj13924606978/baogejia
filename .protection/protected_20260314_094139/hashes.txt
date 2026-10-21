@@ -1,0 +1,6 @@
+# 保护文件哈希值 - Sat Mar 14 09:41:43 CST 2026
+bf2b765020f0dc29f36c9fd0de12b42b03a124878fe4e3b923bfbe1d96df58b5  src/utils/pdf-table-enhancer.ts
+4c87f6d83c17cd92630db887cd7ec856a2bdd2ef561db0d68e099181ba2caadb  src/utils/string-cleaner-enhanced.ts
+e63ca405546740f8d54a3f046739466a83456ea67674116fc17649c77f2cf76a  src/utils/pdf-parse-logger.ts
+faf90037de8a6a89937a971cfa66b6d4c1e9dc8c17295cd71ae57ba201293ac9  src/utils/test-pdf-enhancement.ts
+d882e111f03954af057baf00256b0898c7828ab44498200a7c53cceff79183a5  src/utils/pdf-parser-enhanced.ts

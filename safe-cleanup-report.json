@@ -1,0 +1,274 @@
+{
+  "timestamp": "2026-03-13T02:23:40.388Z",
+  "prefixedVars": 143,
+  "deletedImports": 19,
+  "fixedFiles": 66,
+  "remainingUnusedWarnings": 173,
+  "totalRemainingWarnings": 178,
+  "fileDetails": [
+    {
+      "file": "src/app/api/admin/migrate-permissions/route.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/app/api/auth/register/route.ts",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/app/api/chat/route.ts",
+      "fixedCount": 32
+    },
+    {
+      "file": "src/app/api/coze/route.ts",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/app/api/knowledge/parse-cloud-link/route.ts",
+      "fixedCount": 3
+    },
+    {
+      "file": "src/app/api/quotes/export/route.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/app/api/teams/[id]/invites/route.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/app/api/teams/[id]/shared-quotes/route.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/app/api/test/schema-refresh/route.ts",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/app/api/verify-email/route.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/app/login/page.tsx",
+      "fixedCount": 6
+    },
+    {
+      "file": "src/app/page.tsx",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/app/team/[id]/page.tsx",
+      "fixedCount": 23
+    },
+    {
+      "file": "src/app/team/page.tsx",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/components/admin/levels/LevelEditor.tsx",
+      "fixedCount": 11
+    },
+    {
+      "file": "src/components/admin/levels/LevelList.tsx",
+      "fixedCount": 10
+    },
+    {
+      "file": "src/components/admin/points/PointsConfig.tsx",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/components/admin/points/PointsLog.tsx",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/components/auth/EmailBindDialog.tsx",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/components/auth/PhoneChangeDialog.tsx",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/components/auth/VerificationDialog.tsx",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/components/auth/WechatBindDialog.tsx",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/components/auth/login-modal-with-oauth.tsx",
+      "fixedCount": 5
+    },
+    {
+      "file": "src/components/auth/login-modal.tsx",
+      "fixedCount": 5
+    },
+    {
+      "file": "src/components/chat-area.tsx",
+      "fixedCount": 20
+    },
+    {
+      "file": "src/components/chat-message.tsx",
+      "fixedCount": 5
+    },
+    {
+      "file": "src/components/conversation-list.tsx",
+      "fixedCount": 4
+    },
+    {
+      "file": "src/components/floating-switcher.tsx",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/components/knowledge-center/price-library.tsx",
+      "fixedCount": 7
+    },
+    {
+      "file": "src/components/knowledge-center/quota-library.tsx",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/components/manufacturer-payment-panel.tsx",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/components/message-read-receipt/message-read-receipt.tsx",
+      "fixedCount": 6
+    },
+    {
+      "file": "src/components/quote-table.tsx",
+      "fixedCount": 6
+    },
+    {
+      "file": "src/components/realtime/message-read-receipt.tsx",
+      "fixedCount": 6
+    },
+    {
+      "file": "src/components/realtime/online-indicator.tsx",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/components/shared/profile-dialog.tsx",
+      "fixedCount": 4
+    },
+    {
+      "file": "src/components/sidebar.tsx",
+      "fixedCount": 7
+    },
+    {
+      "file": "src/components/team/comment-section.tsx",
+      "fixedCount": 7
+    },
+    {
+      "file": "src/components/ui/use-toast.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/components/user/PermissionPanel.tsx",
+      "fixedCount": 4
+    },
+    {
+      "file": "src/components/user/customer-list-panel.tsx",
+      "fixedCount": 4
+    },
+    {
+      "file": "src/components/user/customer-panel.tsx",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/components/user/invite-friends.tsx",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/components/user/notifications-panel.tsx",
+      "fixedCount": 3
+    },
+    {
+      "file": "src/components/user/notifications.tsx",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/components/user/points-mall.tsx",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/components/user/points-panel.tsx",
+      "fixedCount": 4
+    },
+    {
+      "file": "src/components/user/user-menu.tsx",
+      "fixedCount": 17
+    },
+    {
+      "file": "src/contexts/QuoteContext.tsx",
+      "fixedCount": 5
+    },
+    {
+      "file": "src/contexts/UserContext.tsx",
+      "fixedCount": 6
+    },
+    {
+      "file": "src/hooks/useSocket.tsx",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/lib/ai-service-selector.ts",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/lib/auth-utils.ts",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/lib/brand-ranking-service.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/lib/deepseek-client.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/lib/input-processor.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/lib/payment-service.ts",
+      "fixedCount": 10
+    },
+    {
+      "file": "src/lib/price-matching.ts",
+      "fixedCount": 5
+    },
+    {
+      "file": "src/lib/quote-utils.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/lib/team-service.ts",
+      "fixedCount": 2
+    },
+    {
+      "file": "src/lib/token-billing-service.ts",
+      "fixedCount": 4
+    },
+    {
+      "file": "src/lib/upload-processor.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/services/enterpriseAuth.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/storage/database/points-utils.ts",
+      "fixedCount": 1
+    },
+    {
+      "file": "src/utils/ocr-helper.ts",
+      "fixedCount": 3
+    },
+    {
+      "file": "src/utils/pdf-parser-enhanced.ts",
+      "fixedCount": 4
+    }
+  ]
+}

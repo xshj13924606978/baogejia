@@ -1,0 +1,8 @@
+# 保护文件哈希值 - Fri Mar 13 22:23:07 CST 2026
+# Console 日志优化功能保护
+
+bc7d342c1e0b1747918f9b5f51d9d2131e33c728111b230321e810558381bd57  src/lib/logger.ts
+3fe701307de950da373bb6e2195293c00a3121c4c9bc1b1f581ebbd00a3b9158  src/components/chat-area.tsx
+5b23f630cea0f5f9a23e48d8b6ebdc948c6d1206bc39b1091cc9eb3c7aa4ba71  src/components/floating-switcher.tsx
+3119c79cfcd4129261cef4b21b03772ae928701c0ff03329b5e996304121a3d2  src/lib/console-filter.ts
+fef1147a2225301b22151d71058a7df2bcd4d38bd96480b52f3931e813757ce1  src/app/layout.tsx

@@ -1,0 +1,26 @@
+{
+  "hashes": {
+    "public/icon-512.png": "4ff9ef472b7efe5adb3972d3391cf9ebb5239df483682ea8e6845aac335f82be",
+    "public/logo.png": "2982de707c07c10e6436c0e9ff7187ff15c3e09891ba40d5874dd4a6844022ae",
+    "public/file.svg": "2b67812c325c199a02536cdbeea0c593a72f707d323b72ee3e08dbab06753bd4",
+    "public/manifest.json": "c2c5e31e9950a7ba0d202f2e9c9d9e848b2efd5b5f24dde546bd29dd34abebb1",
+    "public/window.svg": "644768c4aaeb4767bce293344eeb0c125fb804a94d801440424072202d85e3a1",
+    "public/globe.svg": "b614b9bf183925957661ac851498fe1d8029fd43a62fbfed86f9e2624a57e7cf",
+    "public/next.svg": "55995dfad6ecb4945a1e856ddca03c5e16aa5bf13fd21b4df6a74ae79357bcfc",
+    "public/4dyrkuPhUp.txt": "15fdf30e7d0be7a602a43af53ecb42efaf7480427212d34e77e70b3c8534d5a8",
+    "public/icon-192.png": "8c0a600bbef6f674ee2b6e8798c532493a6e838e8dd862ac0e2862ac8b20ee53",
+    "public/vercel.svg": "f081337b2fee635b455b63275406a3e7f39d6a014e25ad90dab5a67e62a12ac4",
+    "public/fonts/wqy-microhei.ttc": "2420e8078af796b19a3f6ef13de527a1a91c1e7171eea115926c614ced1009b3",
+    "public/fonts/font_0.ttf": "2463e6cb14701d5185c0b420900782517fb7d1e5665a66c43e62a6f59043de50",
+    "public/fonts/font_1.ttf": "6f48a50f5d2d91df8937b75633e3a454d90dbd6ebe86192c955bd8d40e77501e",
+    "src/lib/kimi-client.ts": "e4f3f0bb9d905ea93605ad31dfb9c0bd031c635b7379d17925bc353c92de7d05",
+    "src/lib/proposal-generator.ts": "4a5872c60d229237d978f84f0e2400394649cc88775db42ff1554e8ff313cf54",
+    "src/lib/deepseek-v4-pro-client.ts": "61d3345355603d4965a2dd7443b7f6f6d23872e8ce2c4ef06578cafcb2aff279",
+    "src/lib/octopus-rpa-client.ts": "731386c51702819e6d51cc3258d0c4a802514ec7e9ead00c6e152fc142254b66",
+    "src/lib/minimax-client.ts": "d810530511af7c98307495b0a04bbed1c10b3714f65cfdd5b39d9cd48b13f665",
+    "src/lib/glm-client.ts": "9d347927660e0adf7ffdd84dac4a4d238e3fb575aea647d4582b08a2557f2221",
+    "src/lib/openclaw-cnc/bridge.py": "1a9fb9da0e5e2a29e222acce135d68e62a2e3403e748a6b785c7adf37e609062",
+    "src/lib/export/ppt-exporter.ts": "4a65d482d9ac40bd08ea4d05e7f17986861b350474f53f4c0c7e1223a77c3667"
+  },
+  "different_from_candidate": []
+}

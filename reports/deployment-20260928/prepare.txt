@@ -1,0 +1,5 @@
+/home/ubuntu/apps/quote-project/releases/health-20260928-145003.verified.sh: OK
+/home/ubuntu/apps/quote-project/releases/health-20260928-145003.tgz: OK
+NATIVE_MODULES_OK
+curl: (7) Failed to connect to 127.0.0.1 port 5001 after 0 ms: Connection refused
+PREPARE_PASS

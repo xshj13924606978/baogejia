@@ -1,0 +1,1 @@
+{"build_id":"Kbz0sj5NhKzTgdCWmlHJE","next_version":"16.3.6","processes":[{"name":"ocr-service","status":"online","restarts":2,"uptime_seconds":3106537,"memory_bytes":539095040},{"name":"quote-app","status":"online","restarts":13,"uptime_seconds":177,"memory_bytes":189861888}]}

@@ -1,0 +1,7 @@
+# 保护文件哈希值 - Sat Mar 14 17:20:20 CST 2026
+05f8c12b670598fe5acac269554ca53a9bce225c20ee911772e549456d076139  src/app/admin/products/page.tsx
+6b5f3156961430972c96840e08b75b055af40ff9ffc928a13ae90e14828be59a  src/components/admin/duplicate-check-config.tsx
+710c65ada5d32edad15cff126bf4d2979285aa8f302b139443350483a2b1fe59  src/components/admin/import-logs-viewer.tsx
+4b31e9ff4e7e1ddd95658d9c826ce0dfdb2c643f65b58f12e4fc22267a44e7be  src/lib/duplicate-check-templates.ts
+1db667124cb9cf7f594a7bb9e68a2a7e586e1d2007931f59051cfdb52be321c6  src/lib/proposal-enhancer.ts
+dc3d5226aca13b5fcd5afa6b648ceb7a2c9e9268666139c5cb9e951c573f36ef  src/components/knowledge-center/import-field-mapping.tsx

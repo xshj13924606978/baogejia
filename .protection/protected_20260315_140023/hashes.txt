@@ -1,0 +1,3 @@
+# 保护文件哈希值 - Sun Mar 15 14:00:49 CST 2026
+55f116e35876da1802ccdb51ec0fd46fff2ac805b6b26cce5f5a1afdd968f28b  src/app/api/tables/products/search/route.ts
+ad758f6478c7506e9fdbf715722e10b1d4fa9fe3d2bb62a5efbed9b5915af8aa  src/components/knowledge-center/price-library.tsx

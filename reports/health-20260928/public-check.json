@@ -1,0 +1,75 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "type": "text/html; charset=utf-8"
+  },
+  {
+    "path": "/login",
+    "status": 200,
+    "type": "text/html; charset=utf-8"
+  },
+  {
+    "path": "/register",
+    "status": 200,
+    "type": "text/html; charset=utf-8"
+  },
+  {
+    "path": "/manifest.json",
+    "status": 200,
+    "type": "application/json; charset=UTF-8"
+  },
+  {
+    "path": "/robots.txt",
+    "status": 200,
+    "type": "text/plain"
+  },
+  {
+    "path": "/_next/static/chunks/3774-04578ce77119b6d6.js",
+    "status": 200
+  },
+  {
+    "path": "/_next/static/chunks/45535-754128e1b8d250af.js",
+    "status": 200
+  },
+  {
+    "path": "/_next/static/chunks/48504-464617a19c9954c7.js",
+    "status": 200
+  },
+  {
+    "path": "/_next/static/chunks/60843-cbea6fc67a9a74a8.js",
+    "status": 200
+  },
+  {
+    "path": "/_next/static/chunks/65022-5c8b26351fc1c749.js",
+    "status": 200
+  },
+  {
+    "path": "/_next/static/chunks/83226-dbeae7314cbf024a.js",
+    "status": 200
+  },
+  {
+    "path": "/_next/static/chunks/83230-bf52851972ffe57f.js",
+    "status": 200
+  },
+  {
+    "path": "/_next/static/chunks/83293-dab5416b12ee0c37.js",
+    "status": 200
+  },
+  {
+    "path": "/_next/static/chunks/92922-dc9defc4868d413f.js",
+    "status": 200
+  },
+  {
+    "path": "/_next/static/chunks/app/global-error-935ff9e71565b617.js",
+    "status": 200
+  },
+  {
+    "path": "/_next/static/chunks/app/layout-f9c5b52cc873e058.js",
+    "status": 200
+  },
+  {
+    "path": "/_next/static/chunks/app/login/page-ff5c7cb1262f921e.js",
+    "status": 200
+  }
+]

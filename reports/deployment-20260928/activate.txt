@@ -1,0 +1,14 @@
+/home/ubuntu/apps/quote-project/releases/health-20260928-145003.verified.sh: OK
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [quote-app](ids: [ 8 ])
+[PM2] [quote-app](8) ✓
+┌────┬────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name           │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 2  │ ocr-service    │ default     │ 0.1.0   │ fork    │ 1416552  │ 35D    │ 2    │ online    │ 0.6%     │ 514.1mb  │ ubuntu   │ disabled │
+│ 8  │ quote-app      │ default     │ N/A     │ fork    │ 973766   │ 0s     │ 13   │ online    │ 0%       │ 20.4mb   │ ubuntu   │ disabled │
+└────┴────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+host metrics | cpu: 1.1% | ram usage: 24% | eth0: ⇓ 0.001mb/s ⇑ 0.014mb/s | disk: ⇓ 0.182mb/s ⇑ 8.329mb/s |
+curl: (7) Failed to connect to 127.0.0.1 port 5000 after 0 ms: Connection refused
+ACTIVATE_PASS
+BACKUP=/home/ubuntu/apps/quote-project/quote-app.backup-health-20260928-145003

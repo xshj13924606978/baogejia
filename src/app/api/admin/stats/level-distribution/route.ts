@@ -1,0 +1,223 @@
+export const dynamic = "force-dynamic";
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseServiceClient } from '@/storage/database/supabase-client';
+import { requireReportView } from '@/lib/permission-gate';
+
+/**
+ * 等级分布统计API（管理员 / 持有 report_view 权限的用户，#20260901-0900 P2-2）
+ *
+ * GET: 获取用户等级分布、等级转化趋势、等级升级时间统计
+ */
+
+export async function GET(request: NextRequest) {
+  try {
+    const gate = await requireReportView(request);
+    if (gate.errorResponse) return gate.errorResponse;
+
+    const supabase = getSupabaseServiceClient();
+
+    // 获取用户等级数据
+    let { data: userLevels, error: levelsError } = await supabase
+      .from('user_levels')
+      .select('user_id, level, level_up_at, created_at');
+
+    if (levelsError) {
+      console.error('[LevelDistribution API] 查询 user_levels 失败:', levelsError);
+      userLevels = [];
+    }
+
+    // 获取真实等级名称映射（消除前端硬编码）
+    const { data: memberLevels } = await supabase
+      .from('member_levels')
+      .select('level_code, level_name, sort_order')
+      .order('sort_order', { ascending: true });
+
+    const levelNamesMap: Record<number, string> = {};
+    if (memberLevels && memberLevels.length > 0) {
+      memberLevels.forEach((ml) => {
+        const num = ml.sort_order;
+        if (num) levelNamesMap[num] = ml.level_name;
+      });
+    }
+    // fallback：如果 member_levels 无数据，尝试 level_definitions
+    if (Object.keys(levelNamesMap).length === 0) {
+      const { data: levelDefs } = await supabase
+        .from('level_definitions')
+        .select('level, level_name')
+        .order('level');
+      levelDefs?.forEach((ld) => {
+        levelNamesMap[ld.level] = ld.level_name;
+      });
+    }
+
+    // 获取用户基本信息
+    const { data: _users, error: usersError } = await supabase
+      .from('users')
+      .select('id, created_at');
+
+    if (usersError) {
+      console.error('[LevelDistribution API] 查询 users 失败:', usersError);
+      return NextResponse.json(emptyDistribution());
+    }
+
+    // 合并数据：users 表中所有用户都纳入统计，没有等级记录的用户默认等级为1
+    const levelMap = new Map((userLevels || []).map((u: any) => [u.user_id, u]));
+    userLevels = (_users || []).map((u: any) => {
+      const record = levelMap.get(u.id);
+      return {
+        user_id: u.id,
+        level: record?.level || 1,
+        level_up_at: record?.level_up_at || null,
+        created_at: record?.created_at || u.created_at,
+      };
+    });
+
+      // 合并数据
+      const distribution = {
+        levels: [] as Array<{
+          level: number;
+          count: number;
+          percentage: number;
+          cumulativePercentage: number;
+        }>,
+        trends: [] as Array<{ date: string; level: number; count: number }>,
+        conversion: {} as Record<string, { rate: number; count: number }>,
+        upgradeTime: {} as Record<number, { avgDays: number; minDays: number; maxDays: number }>,
+        summary: {
+          totalUsers: _users?.length || 0,
+          averageLevel: 0,
+          mostCommonLevel: 1,
+          upgradeRate: 0}};
+
+      const totalUsers = userLevels?.length || 0;
+      if (totalUsers === 0) {
+        return NextResponse.json({ ...distribution, levelNamesMap });
+      }
+
+      // 统计各等级人数
+      const levelCount = new Map<number, number>();
+      userLevels?.forEach((u) => {
+        const level = u.level || 1;
+        levelCount.set(level, (levelCount.get(level) || 0) + 1);
+      });
+
+      // 计算平均等级
+      let totalLevelSum = 0;
+      let maxCount = 0;
+      let mostCommonLevel = 1;
+
+      distribution.levels = Array.from(levelCount.entries())
+        .sort(([a], [b]) => a - b)
+        .map(([level, count], index, array) => {
+          const percentage = Math.round((count / totalUsers) * 100);
+          let cumulativePercentage = 0;
+
+          // 计算累计百分比
+          for (let i = 0; i <= index; i++) {
+            cumulativePercentage += (array[i][1] / totalUsers) * 100;
+          }
+          cumulativePercentage = Math.round(cumulativePercentage);
+
+          totalLevelSum += level * count;
+
+          if (count > maxCount) {
+            maxCount = count;
+            mostCommonLevel = level;
+          }
+
+          return { level, count, percentage, cumulativePercentage };
+        });
+
+      distribution.summary.averageLevel = Number((totalLevelSum / totalUsers).toFixed(2));
+      distribution.summary.mostCommonLevel = mostCommonLevel;
+
+      // 计算等级转化率
+      const maxLevel = 5;
+      for (let i = 1; i < maxLevel; i++) {
+        const fromLevel = levelCount.get(i) || 0;
+        const toLevel = levelCount.get(i + 1) || 0;
+        const rate = fromLevel ? Math.round((toLevel / fromLevel) * 100) : 0;
+
+        distribution.conversion[`${i}->${i + 1}`] = {
+          rate,
+          count: toLevel};
+      }
+
+      // 计算升级所需时间
+      const upgradeTimeMap = new Map<number, number[]>();
+
+      userLevels?.forEach((u) => {
+        if (u.level > 1 && u.level_up_at) {
+          const level = u.level;
+          const upgradeDate = new Date(u.level_up_at);
+          const createdDate = new Date(u.created_at);
+          const daysDiff = Math.floor(
+            (upgradeDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          if (!upgradeTimeMap.has(level)) {
+            upgradeTimeMap.set(level, []);
+          }
+          upgradeTimeMap.get(level)!.push(daysDiff);
+        }
+      });
+
+      // 计算升级时间统计
+      upgradeTimeMap.forEach((daysArray, level) => {
+        if (daysArray.length > 0) {
+          const sum = daysArray.reduce((a, b) => a + b, 0);
+          const avgDays = Math.round(sum / daysArray.length);
+          const minDays = Math.min(...daysArray);
+          const maxDays = Math.max(...daysArray);
+
+          distribution.upgradeTime[level] = {
+            avgDays,
+            minDays,
+            maxDays};
+        }
+      });
+
+      // 计算总升级率（曾经升级过的用户比例）
+      const upgradedUsers = userLevels?.filter((u) => u.level > 1).length || 0;
+      distribution.summary.upgradeRate = Math.round((upgradedUsers / totalUsers) * 100);
+
+      // 生成趋势数据（按月统计）
+      const monthlyMap = new Map<string, Map<number, number>>();
+
+      userLevels?.forEach((u) => {
+        const date = new Date(u.created_at);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+        if (!monthlyMap.has(monthKey)) {
+          monthlyMap.set(monthKey, new Map());
+        }
+
+        const monthData = monthlyMap.get(monthKey)!;
+        const level = u.level || 1;
+        monthData.set(level, (monthData.get(level) || 0) + 1);
+      });
+
+      distribution.trends = Array.from(monthlyMap.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .flatMap(([date, levelMap]) =>
+          Array.from(levelMap.entries()).map(([level, count]) => ({
+            date,
+            level,
+            count}))
+        );
+
+      return NextResponse.json({ ...distribution, levelNamesMap });
+    } catch (error) {
+      console.error('[LevelDistribution API] 获取等级分布失败:', error);
+      return NextResponse.json({ error: '获取失败' }, { status: 500 });
+    }
+}
+
+function emptyDistribution() {
+  return {
+    levels: [], trends: [], conversion: {}, upgradeTime: {},
+    summary: { totalUsers: 0, averageLevel: 0, mostCommonLevel: 1, upgradeRate: 0 },
+    levelNamesMap: {},
+  };
+}

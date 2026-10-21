@@ -1,0 +1,536 @@
+'use client';
+
+import { confirmDialog } from '@/components/ui/confirm-dialog';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Loader2,
+  Save,
+  RefreshCw,
+  AlertTriangle,
+  Database,
+  CheckCircle2,
+  RotateCcw,
+  TestTube,
+} from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
+import { duplicateCheckTemplates, getDefaultTemplate, generateRuleDescription } from '@/lib/duplicate-check-templates';
+import { DuplicateChecker } from '@/lib/duplicate-checker';
+
+interface FieldConfig {
+  id: string;
+  field_key: string;
+  field_name?: string;
+  display_name?: string;  // 向后兼容
+  field_label: string;
+  is_required: boolean;
+  is_duplicate_check?: boolean;
+  display_order?: number;
+}
+
+interface DuplicateCheckConfigProps {
+  onUpdate?: () => void;
+}
+
+export function DuplicateCheckConfig({ onUpdate }: DuplicateCheckConfigProps) {
+  const [allFields, setAllFields] = useState<FieldConfig[]>([]);
+  const [selectedFields, setSelectedFields] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [needsInit, setNeedsInit] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+
+
+  // 加载配置
+  const loadConfig = async () => {
+    setLoading(true);
+    setError(null);
+    setNeedsInit(false);
+    try {
+      const response = await fetch('/api/tables/products/duplicate-check-config');
+      const result = await response.json();
+
+      if (result.success) {
+        setAllFields(result.data.allFields || []);
+        setSelectedFields(result.data.duplicateCheckFields?.map((f: FieldConfig) => f.field_key) || []);
+      } else {
+        setError(result.error || '加载配置失败');
+        // #[E1_13_BYPASS_SCOPE_CLOSURE] The component never requests, renders,
+        // copies or downloads SQL and never points at the SQL Editor. A missing
+        // table/column is a fail-closed state that requires the audited
+        // Migration Runner.
+        if (result.needInit || result.requiresAuditedMigration) {
+          setNeedsInit(true);
+        }
+      }
+    } catch (err) {
+      setError('加载配置失败：' + (err instanceof Error ? err.message : '未知错误'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadConfig();
+  }, []);
+
+  // 处理字段选择
+  const handleFieldToggle = (fieldKey: string, checked: boolean) => {
+    if (checked) {
+      setSelectedFields([...selectedFields, fieldKey]);
+    } else {
+      setSelectedFields(selectedFields.filter((key) => key !== fieldKey));
+    }
+  };
+
+  // 保存配置
+  const handleSave = async () => {
+    if (selectedFields.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: '保存失败',
+        description: '至少需要选择一个判重字段',
+      });
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/tables/products/duplicate-check-config', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          duplicateCheckFields: selectedFields,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: '保存成功',
+          description: result.message,
+        });
+        onUpdate?.();
+        await loadConfig(); // 重新加载配置
+      } else {
+        setError(result.error || '保存失败');
+        toast({
+          variant: 'destructive',
+          title: '保存失败',
+          description: result.error,
+        });
+      }
+    } catch (err) {
+      const errorMsg = '保存失败：' + (err instanceof Error ? err.message : '未知错误');
+      setError(errorMsg);
+      toast({
+        variant: 'destructive',
+        title: '保存失败',
+        description: errorMsg,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 测试判重规则
+  const handleTestConfig = async () => {
+    if (selectedFields.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: '测试失败',
+        description: '请先选择至少一个判重字段',
+      });
+      return;
+    }
+
+    setTesting(true);
+    try {
+      // 模拟测试数据
+      const testData = {
+        name: '测试产品',
+        model: 'TEST-001',
+        brand: '测试品牌',
+        parameter_description: '测试参数',
+      };
+
+      // 创建判重检查器
+      const checker = new DuplicateChecker({
+        fields: selectedFields,
+        matchRule: 'and',
+      });
+
+      const description = generateRuleDescription(selectedFields);
+
+      toast({
+        title: '✅ 判重规则测试通过',
+        description: (
+          <div className="mt-2 space-y-1">
+            <p className="text-sm font-medium">当前规则：</p>
+            <p className="text-sm text-muted-foreground">{description}</p>
+            <p className="text-sm font-medium mt-2">使用字段：{selectedFields.length} 个</p>
+          </div>
+        ),
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: '测试失败',
+        description: err instanceof Error ? err.message : '未知错误',
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  // 恢复默认配置
+  const handleResetToDefault = async () => {
+    const defaultTemplate = getDefaultTemplate();
+
+    if (!await confirmDialog({ title: `确定要恢复到默认配置吗？\n\n默认规则：${defaultTemplate.description}`, destructive: true })) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await fetch('/api/tables/products/duplicate-check-config', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          duplicateCheckFields: defaultTemplate.fields,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: '✅ 已恢复默认配置',
+          description: defaultTemplate.description,
+        });
+        onUpdate?.();
+        await loadConfig();
+      } else {
+        toast({
+          variant: 'destructive',
+          title: '恢复失败',
+          description: result.error,
+        });
+      }
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: '恢复失败',
+        description: err instanceof Error ? err.message : '未知错误',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 应用模板
+  const handleApplyTemplate = (templateId: string) => {
+    const template = duplicateCheckTemplates.find(t => t.id === templateId);
+
+    if (!template) {
+      return;
+    }
+
+    setSelectedFields(template.fields);
+    setSelectedTemplate(templateId);
+
+    toast({
+      title: '✅ 已选择模板',
+      description: template.description,
+    });
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-muted-foreground">加载配置中...</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // 数据库结构未通过受审迁移准备完成时的 fail-closed 状态。
+  // #[E1_13_BYPASS_SCOPE_CLOSURE] 不提供任何可执行 SQL、复制、下载或 SQL Editor 指引，
+  // 结构变更只能由受审 Migration Runner 执行。
+  if (needsInit) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            数据库结构未就绪
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              数据库结构尚未通过受审迁移准备完成（database schema requires an audited migration），请联系部署管理员执行正式 Migration Runner 流程。
+            </AlertDescription>
+          </Alert>
+
+          {error && (
+            <Alert>
+              <AlertDescription className="text-sm">{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <p className="text-sm text-muted-foreground">
+            参考文档：<code>docs/MIGRATION_RUNNER.md</code>
+          </p>
+
+          <Button onClick={loadConfig} variant="default" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                检查中...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                重新检查
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // 字段名称映射 - 完整中文化
+  const fieldLabelMap: Record<string, string> = {
+    // 产品基本信息
+    name: '产品名称',
+    product_name: '产品名称',
+    model: '规格型号',
+    brand: '品牌',
+    category: '产品分类',
+    specifications: '参数描述',
+    parameter_description: '参数描述',
+    description: '产品描述',
+
+    // 价格信息
+    price: '指导价',
+    list_price: '挂牌价',
+    selling_price: '销售价',
+    cost_price: '成本价',
+    min_price: '最低售价',
+    max_price: '最高售价',
+
+    // 供应商信息
+    supplier: '供应商',
+    manufacturer: '制造商',
+    contact_person: '联系人',
+    contact_phone: '联系电话',
+    contact_email: '联系邮箱',
+
+    // 库存和物流
+    unit: '单位',
+    stock: '库存数量',
+    warehouse: '仓库位置',
+    shelf_life: '保质期',
+    weight: '重量',
+    dimensions: '尺寸',
+
+    // 图片和附件
+    image_url: '产品图片',
+    attachment_url: '附件链接',
+
+    // 其他字段
+    barcode: '条形码',
+    sku: 'SKU编码',
+    mpn: 'MPN编码',
+    upc: 'UPC编码',
+    ean: 'EAN编码',
+    created_at: '创建时间',
+    updated_at: '更新时间',
+  };
+
+  // 获取字段显示名称（支持新旧两种字段名）
+  const getFieldDisplayName = (field: FieldConfig): string => {
+    return fieldLabelMap[field.field_key] ||
+           field.field_name ||
+           field.display_name ||
+           field.field_label ||
+           field.field_key;
+  };
+
+  return (
+    <Card className="shadow-sm border-muted/50 h-full flex flex-col">
+      <CardHeader className="pb-4 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-primary/10 rounded-lg">
+              <Database className="h-4 w-4 text-primary" />
+            </div>
+            <CardTitle className="text-lg">判重字段配置</CardTitle>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadConfig} className="gap-2 h-8">
+            <RefreshCw className="h-4 w-4" />
+            刷新
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5 flex-1 overflow-auto">
+        <div className="h-full flex flex-col">
+        {/* 配置说明区 - 优化视觉效果 */}
+        <Alert className="bg-muted/50 border-muted/50">
+          <AlertDescription className="text-sm leading-relaxed">
+            选择用于判断产品重复的字段组合。系统会根据选中的字段组合来判断产品是否已存在，
+            建议至少选择"产品名称"和"规格型号"。
+          </AlertDescription>
+        </Alert>
+
+        {/* 规则模板选择器 - 优化样式 */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">快速应用模板</Label>
+          <Select
+            value={selectedTemplate}
+            onValueChange={handleApplyTemplate}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="选择判重规则模板..." />
+            </SelectTrigger>
+            <SelectContent>
+              {duplicateCheckTemplates.map((template) => (
+                <SelectItem key={template.id} value={template.id}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{template.icon}</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-sm">{template.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {template.description}
+                      </span>
+                    </div>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* 当前规则描述 - 优化视觉效果 */}
+        {selectedFields.length > 0 && (
+          <Alert className="bg-primary/5 border-primary/20">
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm">
+              <span className="font-medium">当前规则：</span>
+              {generateRuleDescription(selectedFields)}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-sm">{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* 字段选择区 - 优化布局和视觉效果 */}
+        <div className="space-y-2">
+          {allFields.map((field) => (
+            <div
+              key={field.field_key}
+              className="flex items-center gap-3 p-3 rounded-lg border border-muted/50 hover:border-primary/30 hover:bg-muted/30 transition-colors"
+            >
+              <Checkbox
+                id={`field-${field.field_key}`}
+                checked={selectedFields.includes(field.field_key)}
+                onCheckedChange={(checked) =>
+                  handleFieldToggle(field.field_key, checked as boolean)
+                }
+              />
+              <Label
+                htmlFor={`field-${field.field_key}`}
+                className="flex-1 cursor-pointer font-normal"
+              >
+                <span className="text-sm">{getFieldDisplayName(field)}</span>
+                {field.is_required && (
+                  <span className="ml-1.5 text-xs text-destructive/80 bg-destructive/10 px-1.5 py-0.5 rounded">
+                    必填
+                  </span>
+                )}
+              </Label>
+            </div>
+          ))}
+        </div>
+
+        {/* 操作按钮区 - 优化布局和视觉层次 */}
+        <div className="pt-4 border-t border-muted/50 flex-shrink-0 mt-auto">
+          <div className="flex flex-col gap-3">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary" />
+              已选择 <span className="font-semibold text-foreground">{selectedFields.length}</span> 个判重字段
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetToDefault}
+                disabled={saving}
+                className="gap-2 flex-1"
+              >
+                <RotateCcw className="h-4 w-4" />
+                恢复默认
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestConfig}
+                disabled={testing || selectedFields.length === 0}
+                className="gap-2 flex-1"
+              >
+                {testing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <TestTube className="h-4 w-4" />
+                )}
+                测试规则
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="gap-2 flex-1"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                保存配置
+              </Button>
+            </div>
+          </div>
+        </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

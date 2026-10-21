@@ -1,0 +1,9 @@
+
+ RUN  v4.1.0 /home/xshj/quote-project-v2-e1-migration-runner
+
+
+ Test Files  26 passed (26)
+      Tests  484 passed (484)
+   Start at  12:47:40
+   Duration  10.44s (transform 851ms, setup 1.74s, import 1.19s, tests 1.14s, environment 20.59s)
+

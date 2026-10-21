@@ -1,0 +1,1468 @@
+/**
+ * 智能对话处理器
+ *
+ * 核心理念：
+ * 1. 完全移除固定意图检测（IntentDetector）
+ * 2. 使用 LLM 进行真正的语义理解
+ * 3. 动态理解用户意图并生成响应
+ * 4. 灵活处理各种场景（问候、方案、报价、技术咨询等）
+ *
+ * 对比传统方案：
+ * ❌ 传统：固定意图 → 关键词匹配 → 预设回复
+ * ✅ 智能方案：用户输入 → LLM语义理解 → 动态响应
+ */
+
+import { callDeepSeekChat } from './deepseek-client';
+import { ProcessedInput } from './input-processor';
+import { PriceMatchResult } from './price-matching';
+import { fileUploadProcessor } from './upload-processor';
+import { processWithIntent, formatProductsAsContext, PipelineResult } from './intent-pipeline';
+import {
+  matchKnowledgeDocuments,
+  searchKnowledgeWithAssetMatch,
+  type KnowledgeMatchResult,
+  type KnowledgeAssetMatch,
+} from './knowledge/match-service';
+import {
+  recognizeIntent,
+  type ChatCardData,
+  type ProductCardItem,
+  type KnowledgeAssetReferenceFile,
+} from './intent-recognizer';
+import {
+  resolvePrice,
+  priceSourceLabel,
+  isOnlineSearchEnabled,
+  type PriceResult,
+} from './data/price-resolver';
+import { searchWeb } from './web-search';
+
+/** 报价/方案/标准类需求关键词（触发知识库匹配上下文注入，#[20260827-1430]-1 补充标准类词） */
+function isQuoteRelatedQuery(input: string): boolean {
+  return /报价|价格|多少钱|报价单|预算|成本|采购|供货|方案|配置|选型|设计|标准|规范|规程|导则|条例|法规|排放|废水|污水|水质|治理|限值|许可|报批|环评|监测|处理工艺|\bGB\b|\bHJ\b|\bDB\b|\bCJ\b|\bSL\b/.test(
+    input
+  );
+}
+
+/** 知识库模块类型 → 中文标签 */
+const KNOWLEDGE_TYPE_LABELS: Record<string, string> = {
+  document: '技术文档',
+  case: '案例',
+  standard: '标准规范',
+  drawing: '图纸图片',
+  quota: '定额库',
+};
+
+/** 匹配结果 → LLM 上下文段落 */
+function formatKnowledgeAsContext(results: KnowledgeMatchResult[]): string {
+  const lines = results.map((r, i) => {
+    const typeLabel = KNOWLEDGE_TYPE_LABELS[r.type] || r.type;
+    const summary = r.summary || r.content_preview;
+    return `${i + 1}. 《${r.title}》（${typeLabel}，相关度 ${r.relevance_score}%）${summary ? '\n   ' + summary.slice(0, 120) : ''}`;
+  });
+  return (
+    `\n\n【知识库参考资料】\n根据用户需求从知识库匹配到以下资料，可作为报价/方案参考（引用时注明来源）：\n` +
+    lines.join('\n')
+  );
+}
+
+/** 资料中心资产匹配 → LLM 上下文段落（#[20260827-1430]：优先匹配资料中心已有文件） */
+export function formatKnowledgeAssetsAsContext(assets: KnowledgeAssetMatch[]): string {
+  const lines = assets.map((a, i) => {
+    const label = KNOWLEDGE_TYPE_LABELS[a.type] || a.type || '资料';
+    return `${i + 1}. 《${a.title}》（资料中心-${label}库${a.codeMatched ? '，命中标准编号' : ''}）`;
+  });
+  return (
+    `\n\n【资料中心已有文件】\n用户在资料中心已收录以下相关文件，请优先引用并提示用户可直接下载：\n` +
+    lines.join('\n') +
+    `\n请在回答末尾附上「📁 资料中心已匹配到相关文件」段落，逐条列出上述文件名，并提示用户可在资料中心直接下载（标准规范类同时建议生态环境部官网/全国标准信息公共服务平台等官方渠道作为补充）。`
+  );
+}
+
+/**
+ * 构建知识问答结构化卡片（资料中心引用 + 资料库条目；#[20260827-1430-3]）
+ * 供 SmartChatProcessor.process 与 /api/chat/stream 复用，杜绝两处重复逻辑。
+ * 数据全部来自 knowledge_assets 视图（→ knowledge_entries 表）真实查询结果。
+ */
+export function buildKnowledgeAssetCard(
+  assetMatches: KnowledgeAssetMatch[],
+  knowledgeMatches: KnowledgeMatchResult[] = []
+): ChatCardData | undefined {
+  if ((!knowledgeMatches || knowledgeMatches.length === 0) && (!assetMatches || assetMatches.length === 0)) {
+    return undefined;
+  }
+  const assetReference: KnowledgeAssetReferenceFile[] = (assetMatches || []).map((a) => ({
+    id: a.id,
+    title: a.title,
+    category: KNOWLEDGE_TYPE_LABELS[a.type] || a.type || '资料',
+    downloadUrl: `/api/knowledge/download/${a.id}`,
+    libraryUrl: `/admin/knowledge-center/${assetTypeToLibrarySlug(a.type)}?search=${encodeURIComponent(a.title)}`,
+  }));
+  return {
+    type: 'knowledge',
+    items: (knowledgeMatches || []).map((m) => ({
+      title: m.title,
+      type: KNOWLEDGE_TYPE_LABELS[m.type] || m.type,
+      relevanceScore: m.relevance_score,
+      summary: m.summary || m.content_preview,
+      sourceFile: m.file_name,
+    })),
+    assetReference: assetReference.length > 0 ? { files: assetReference } : undefined,
+  };
+}
+
+/** 资料类型 → 资料中心路由 slug（#[20260827-1430]） */
+function assetTypeToLibrarySlug(type: string): string {
+  switch (type) {
+    case 'standard': return 'standard-library';
+    case 'document': return 'document-library';
+    case 'case': return 'case-library';
+    case 'drawing': return 'drawing-library';
+    case 'quota': return 'quota-library';
+    case 'price': return 'price-library';
+    default: return 'standard-library';
+  }
+}
+
+/**
+ * 数据优先级查询结果 → LLM 上下文段落（#20260827-1030-2-UI 最终版：来源标注）
+ * 优先级：①产品价格库 → ②定额库 → ③联网搜索 → ④规则估算（标注"估算价，待核实"）
+ */
+function formatResolvedPriceAsContext(result: PriceResult): string {
+  const sourceText = priceSourceLabel(result.source);
+  const confidenceText =
+    result.confidence === 'high' ? '高' : result.confidence === 'medium' ? '中' : result.confidence === 'low' ? '低' : '估算';
+  const estimateNote = result.source === 'rule_estimate' ? '（估算价，待核实）' : '';
+  return (
+    `\n\n【数据查询结果】\n已通过数据优先级链路查询到价格，来源：${sourceText}${estimateNote}：\n` +
+    `- ${result.productName}${result.model ? ' ' + result.model : ''}：¥${result.price.toLocaleString('zh-CN')}/${result.unit}\n` +
+    `- 数据来源：${result.sourceDetail}\n` +
+    `- 置信度：${confidenceText}`
+  );
+}
+
+interface ConversationContext {
+  conversationId?: string;
+  history: Array<{ role: 'user' | 'assistant'; content: string }>;
+  lastTopic?: string;
+  lastUserInput?: string;
+  lastResponse?: string;
+  lastAccessAt: number;
+}
+
+interface SmartResponse {
+  content: string;
+  intent?: string; // 动态识别的意图，不固定
+  suggestions?: string[];
+  requiresFollowUp?: boolean;
+  followUpQuestions?: string[];
+  metadata?: {
+    inputType: string;
+    confidence: number;
+    extractedEntities?: any;
+    uploadInfo?: {
+      uploadId?: string;
+      fileKey?: string;
+      embeddingId?: string;
+      productsUpdated?: number;
+    };
+    knowledgeMatchedCount?: number;
+    /** 资料中心资产匹配明细（#[20260827-1430-3]：真实查询 knowledge_assets 的结果快照） */
+    assetMatch?: { id: string; title: string; type: string; score: number; codeMatched?: boolean }[];
+    /** 结构化卡片数据（#20260827-1030-2-UI：产品/报价/知识问答） */
+    card?: ChatCardData;
+  };
+}
+
+export class SmartChatProcessor {
+  private conversations: Map<string, ConversationContext> = new Map();
+  private readonly MAX_CONVERSATIONS = 1000;
+  private readonly CONVERSATION_TTL = 30 * 60 * 1000; // 30分钟TTL
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
+
+  constructor() {
+    this.cleanupTimer = setInterval(() => this.cleanupExpiredConversations(), 5 * 60 * 1000);
+    if (this.cleanupTimer && typeof this.cleanupTimer.unref === 'function') {
+      this.cleanupTimer.unref();
+    }
+  }
+
+  /**
+   * 清理过期对话
+   */
+  private cleanupExpiredConversations(): void {
+    const now = Date.now();
+    for (const [key, ctx] of this.conversations) {
+      if (now - ctx.lastAccessAt > this.CONVERSATION_TTL) {
+        this.conversations.delete(key);
+      }
+    }
+    // LRU: 如果仍超限，删除最久未访问的
+    if (this.conversations.size > this.MAX_CONVERSATIONS) {
+      const entries = Array.from(this.conversations.entries())
+        .sort((a, b) => a[1].lastAccessAt - b[1].lastAccessAt);
+      const toRemove = entries.length - this.MAX_CONVERSATIONS;
+      for (let i = 0; i < toRemove; i++) {
+        this.conversations.delete(entries[i][0]);
+      }
+    }
+  }
+
+  /**
+   * 处理用户输入（核心方法）
+   */
+  async process(
+    userInput: string,
+    processedInput?: ProcessedInput,
+    conversationId?: string,
+    userId?: string
+  ): Promise<SmartResponse> {
+
+    // 1. 获取或创建对话上下文
+    const context = this.getOrCreateContext(conversationId);
+
+    // 2. 如果有文件上传，先处理文件内容并持久化
+    let enhancedInput = userInput;
+    let uploadInfo: {
+      uploadId?: string;
+      fileKey?: string;
+      embeddingId?: string;
+      productsUpdated?: number;
+    } = {};
+
+    if (processedInput && processedInput.type !== 'text') {
+      // 持久化文件上传到对象存储、知识库和产品库
+      if (userId && processedInput.metadata.fileName) {
+        try {
+          // 创建 File 对象
+          const file = new File([processedInput.rawContent], processedInput.metadata.fileName, {
+            type: processedInput.metadata.mimeType || 'application/octet-stream',
+          });
+
+          // 处理文件上传
+          const uploadResult = await fileUploadProcessor.processUpload(
+            file,
+            processedInput.textContent,
+            {
+              userId,
+              conversationId,
+              enableKnowledgeBase: true, // 启用知识库向量化
+              enablePriceExtraction: true, // 启用产品价格提取
+            }
+          );
+
+          if (uploadResult.success) {
+            uploadInfo = {
+              uploadId: uploadResult.uploadId,
+              fileKey: uploadResult.fileKey,
+              embeddingId: uploadResult.embeddingId,
+              productsUpdated: uploadResult.productsUpdated,
+            };
+          } else {
+            console.error('[SmartChatProcessor] 文件上传持久化失败:', uploadResult.error);
+          }
+        } catch (error) {
+          console.error('[SmartChatProcessor] 文件上传处理异常:', error);
+        }
+      }
+
+      enhancedInput = this.enrichInputWithFileInfo(userInput, processedInput);
+    }
+
+    // 2.4 意图管道（统一入口）
+    let intentResult: PipelineResult | null = null;
+    if (!processedInput || processedInput.type === 'text') {
+      intentResult = await processWithIntent(userInput);
+    }
+
+    // 2.41 意图识别（第一步：判断意图；#20260827-1030-2-UI）
+    const hasFilesForIntent = !!(processedInput && processedInput.type !== 'text');
+    const recognizedIntent = hasFilesForIntent ? null : recognizeIntent(userInput);
+
+    let priceContextInfo = '';
+    let priceData: PriceMatchResult | undefined;
+
+    // 2.42 产品询价：数据优先级查询（第二步：按优先级查询；#20260827-1030-2-UI 最终版）
+    // 优先级：①产品价格库(product_prices) → ②定额库(quota_prices) → ③联网搜索 → ④规则估算(标注"估算价，待核实")
+    let resolvedPrice: PriceResult | null = null;
+    if (recognizedIntent?.intent === 'product_inquiry' && recognizedIntent.productName) {
+      try {
+        resolvedPrice = await resolvePrice(recognizedIntent.productName, undefined, {
+          userId,
+          enableOnlineSearch: isOnlineSearchEnabled(),
+        });
+      } catch (err: any) {
+        console.warn('[SmartChatProcessor] 数据优先级价格查询失败（跳过）:', err?.message || String(err));
+      }
+    }
+
+    // 2.43 构建产品数据：优先数据优先级链路（来源可追溯），意图管道（产品库）作为补充
+    if (resolvedPrice && resolvedPrice.price > 0) {
+      // 数据优先级链路命中（①产品价格库→②定额库→③联网搜索→④规则估算）→ 标注真实来源
+      const sourceText = priceSourceLabel(resolvedPrice.source);
+      const confPercent = resolvedPrice.confidence === 'high' ? 95 : resolvedPrice.confidence === 'medium' ? 75 : resolvedPrice.confidence === 'low' ? 60 : 40;
+      const confLevel = resolvedPrice.confidence === 'high' ? '高' : resolvedPrice.confidence === 'medium' ? '中' : resolvedPrice.confidence === 'low' ? '低' : '估算';
+      priceData = {
+        price: resolvedPrice.price,
+        // 规则估算（兜底）走 AI 生成 + 价格校验分支；真实来源记录于 sourceDetail
+        source: resolvedPrice.source === 'rule_estimate' ? 'estimate' : 'database',
+        confidence: confPercent,
+        confidenceLevel: confLevel,
+        productName: resolvedPrice.productName,
+        model: resolvedPrice.model,
+        parameterDescription: resolvedPrice.spec ? `规格：${resolvedPrice.spec}` : undefined,
+        matchedBy: sourceText,
+        matchLevel: 1,
+        sourceDetail: resolvedPrice.sourceDetail,
+        matchedProducts: [
+          {
+            price: resolvedPrice.price,
+            productName: resolvedPrice.productName,
+            model: resolvedPrice.model || '',
+            confidence: resolvedPrice.confidence === 'high' ? 0.95 : resolvedPrice.confidence === 'medium' ? 0.75 : 0.6,
+            parameterDescription: resolvedPrice.spec ? `规格：${resolvedPrice.spec}` : undefined,
+            matchLevel: 1,
+            matchedBy: sourceText,
+            isRecommended: true,
+            parameters: {},
+          },
+        ],
+      };
+      priceContextInfo = formatResolvedPriceAsContext(resolvedPrice);
+      enhancedInput += priceContextInfo;
+    } else if (intentResult && intentResult.source === 'intent' && intentResult.products.length > 0) {
+      // 意图管道命中 → 构建产品数据
+      const topProduct = intentResult.products[0];
+      priceData = {
+        price: topProduct.price,
+        source: 'database',
+        confidence: Math.round(intentResult.confidence * 100),
+        confidenceLevel: intentResult.confidence >= 0.9 ? '极高' : intentResult.confidence >= 0.7 ? '高' : '中',
+        productName: topProduct.name,
+        model: topProduct.model,
+        brand: topProduct.brand,
+        parameterDescription: topProduct.parameterDescription,
+        costPrice: topProduct.costPrice || undefined,
+        minPrice: topProduct.minPrice || undefined,
+        matchedBy: intentResult.searchStrategy || '意图匹配',
+        sourceDetail: '产品价格库（已验证）',
+        matchedProducts: intentResult.products.map(p => ({
+          price: p.price,
+          productName: p.name,
+          model: p.model,
+          confidence: intentResult.confidence,
+          brand: p.brand,
+          parameterDescription: p.parameterDescription,
+          minPrice: p.minPrice,
+          costPrice: p.costPrice,
+          matchLevel: 1,
+          matchedBy: intentResult.searchStrategy || '意图匹配',
+          isRecommended: false,
+          parameters: {},
+        })),
+      };
+      if (priceData.matchedProducts && priceData.matchedProducts.length > 0) {
+        priceData.matchedProducts[0].isRecommended = true;
+      }
+      priceContextInfo = formatProductsAsContext(intentResult, userInput);
+      enhancedInput += priceContextInfo;
+    }
+
+    // 2.5 知识库智能匹配（#20260827-1030-2-UI：对话内多场景响应）
+    let knowledgeMatchedCount = 0;
+    let knowledgeMatches: KnowledgeMatchResult[] = [];
+    // 资料中心资产匹配（#[20260827-1430]：优先匹配资料中心已有文件并直接链接）
+    let assetMatches: KnowledgeAssetMatch[] = [];
+    if (!processedInput || processedInput.type === 'text') {
+      try {
+        // ① 资料中心已有文件精确匹配（#[20260827-1430-3]：任何文本输入都先实时查询 knowledge_assets，
+        //    无硬编码兜底文本；命中即注入上下文并构建 assetReference 卡片）
+        try {
+          assetMatches = await searchKnowledgeWithAssetMatch(userInput, { limit: 3 });
+          console.log(
+            `[SmartChatProcessor] 资料中心匹配 query="${userInput}" 命中=${assetMatches.length}`
+          );
+          if (assetMatches.length > 0) {
+            enhancedInput += formatKnowledgeAssetsAsContext(assetMatches);
+          }
+        } catch (err: any) {
+          console.warn('[SmartChatProcessor] 资料中心资产匹配失败（跳过）:', err?.message || String(err));
+        }
+
+        // ② 向量检索资料库（仅报价/知识类输入触发，控制 embedding 开销）
+        if (isQuoteRelatedQuery(userInput) || recognizedIntent?.intent === 'knowledge_query') {
+          const matched = await matchKnowledgeDocuments({
+            query: userInput,
+            moduleTypes: ['product_price_lib', 'technical_doc', 'quota_lib'],
+            limit: 5,
+          });
+          if (matched.length > 0) {
+            knowledgeMatchedCount = matched.length;
+            knowledgeMatches = matched;
+            enhancedInput += formatKnowledgeAsContext(matched);
+          } else if (recognizedIntent?.intent === 'knowledge_query' && isOnlineSearchEnabled()) {
+            // 资料库无数据 → 联网搜索补充（②联网搜索；#20260827-1030-2-UI）
+            try {
+              const webResult = await searchWeb(userInput);
+              if (webResult && (webResult.abstract || (webResult.items && webResult.items.length > 0))) {
+                const webText = [
+                  webResult.abstract,
+                  ...(webResult.items || []).map((i) => `${i.title || ''}${i.snippet ? '\n' + i.snippet : ''}`),
+                ]
+                  .filter(Boolean)
+                  .join('\n\n')
+                  .slice(0, 800);
+                if (webText.trim()) {
+                  enhancedInput += `\n\n【联网搜索补充】\n以下为实时联网检索结果（来源：联网搜索），可作为回答依据：\n${webText}\n`;
+                }
+              }
+            } catch (err: any) {
+              console.warn('[SmartChatProcessor] 联网搜索补充失败（跳过）:', err?.message || String(err));
+            }
+          }
+        }
+      } catch (err: any) {
+        console.warn('[SmartChatProcessor] 知识库匹配失败（跳过）:', err.message || String(err));
+      }
+    }
+
+    // 3. 使用 LLM 智能理解并生成响应
+    // 当有数据库精确匹配时，产品数据部分由代码构建（bypass AI 消除幻觉），
+    // AI 只负责生成建议和后续问题
+    let response: SmartResponse;
+    if (priceData && priceData.source === 'database') {
+      // 3a. 代码构建精确的产品数据响应
+      const dataResponse = this.buildDatabaseResponse(priceData);
+
+      // 3b. AI 只生成建议和后续问题
+      const suggestionInput = `用户刚刚查询了${priceData.productName || ''}${priceData.model ? '（型号：' + priceData.model + '）' : ''}的价格，数据库已返回精确结果。
+请根据这个产品，用简洁的语言生成2-3条后续建议，每条建议用"- "开头，不要超过20字。
+只输出建议列表，不要输出产品信息、价格或其他内容。`;
+      const aiSuggestion = await this.generateSmartResponse(suggestionInput, context, processedInput);
+
+      // 3c. 合并精确数据 + AI 建议
+      response = {
+        content: dataResponse + '\n\n' + (aiSuggestion.content || ''),
+        metadata: aiSuggestion.metadata,
+      };
+    } else {
+      // 无数据库匹配，走正常 AI 生成流程
+      response = await this.generateSmartResponse(enhancedInput, context, processedInput);
+
+      // 价格校验后处理
+      if (priceContextInfo) {
+        const correctedContent = this.correctPriceHallucination(response.content, priceContextInfo);
+        if (correctedContent !== response.content) {
+          response.content = correctedContent;
+        }
+      }
+    }
+
+    // 4. 更新对话历史
+    this.updateContext(context, userInput, response.content);
+
+    // 5. 准备返回的 metadata（包含智能匹配摘要与结构化卡片数据）
+    // 结构化卡片（#20260827-1030-2-UI）：产品询价→ProductCard、多产品→QuoteCard、知识问答→KnowledgeAnswer
+    let card: ChatCardData | undefined;
+    if (priceData?.matchedProducts && priceData.matchedProducts.length > 0) {
+      // 来源标注（#20260827-1030-2-UI 最终版）：优先真实来源详情，其次按 source 映射
+      const items: ProductCardItem[] = priceData.matchedProducts.map((p) => ({
+        productName: p.productName,
+        model: p.model,
+        brand: p.brand,
+        price: p.price,
+        unit: '元',
+        source: priceData.sourceDetail || (priceData.source === 'database' ? '产品价格库' : this.getPriceSourceText(priceData.source)),
+        sourceDetail: priceData.sourceDetail || (priceData.source === 'database' ? '产品价格库（已验证）' : undefined),
+        confidence: priceData.confidenceLevel,
+        matchedBy: p.matchedBy,
+        parameterDescription: p.parameterDescription,
+      }));
+      card = items.length > 1 ? { type: 'quote', items } : { type: 'product', products: items };
+    } else if (knowledgeMatches.length > 0 || assetMatches.length > 0) {
+      // 资料中心引用（#[20260827-1430]）：复用共享构建函数，数据全部来自真实查询结果
+      card = buildKnowledgeAssetCard(assetMatches, knowledgeMatches);
+    }
+
+    const returnMetadata: NonNullable<SmartResponse['metadata']> = {
+      inputType: response.metadata?.inputType || processedInput?.type || 'text',
+      confidence: response.metadata?.confidence || 0.9,
+      extractedEntities: response.metadata?.extractedEntities || {},
+      uploadInfo: Object.keys(uploadInfo).length > 0 ? uploadInfo : undefined,
+      knowledgeMatchedCount: knowledgeMatchedCount > 0 ? knowledgeMatchedCount : undefined,
+      // 资料中心匹配明细（#[20260827-1430-3]：真实查询 knowledge_assets 的快照，供前端调试/校验）
+      assetMatch:
+        assetMatches.length > 0
+          ? assetMatches.map((a) => ({
+              id: a.id,
+              title: a.title,
+              type: a.type,
+              score: a.score,
+              codeMatched: a.codeMatched,
+            }))
+          : undefined,
+      card,
+    };
+
+    // 添加意图管道匹配等级到 entities
+    if (intentResult?.matchLevel) {
+      returnMetadata.extractedEntities = {
+        ...returnMetadata.extractedEntities,
+        matchLevel: intentResult.matchLevel,
+      };
+    }
+
+    // 6. 返回响应
+    return {
+      ...response,
+      metadata: returnMetadata,
+    };
+  }
+
+  /**
+   * 使用 LLM 智能理解并生成响应
+   */
+  private async generateSmartResponse(
+    userInput: string,
+    context: ConversationContext,
+    processedInput?: ProcessedInput
+  ): Promise<SmartResponse> {
+
+    // 构建对话历史
+    const historyText = this.formatHistoryForLLM(context.history);
+
+    // 系统提示词 - 核心指令
+    const systemPrompt = this.buildSystemPrompt(processedInput);
+
+    try {
+      // 调用 DeepSeek LLM
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        ...historyText,
+        { role: 'user', content: userInput },
+      ] as Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+
+
+      const aiResponse = await callDeepSeekChat({
+        messages: messages,
+        temperature: 0.3,
+        maxTokens: 8192,
+      });
+
+
+      // 解析 LLM 响应（提取内容和元数据）
+      const parsedResponse = this.parseLLMResponse(aiResponse.text);
+
+      return {
+        content: parsedResponse.content,
+        intent: parsedResponse.intent,
+        suggestions: parsedResponse.suggestions,
+        requiresFollowUp: parsedResponse.requiresFollowUp,
+        followUpQuestions: parsedResponse.followUpQuestions,
+        metadata: {
+          inputType: processedInput?.type || 'text',
+          confidence: parsedResponse.confidence || 0.9,
+          extractedEntities: parsedResponse.entities,
+        },
+      };
+    } catch (error) {
+      console.error('[SmartChatProcessor] LLM 调用失败:', error);
+      return this.getFallbackResponse(userInput);
+    }
+  }
+
+  /**
+   * 构建系统提示词
+   */
+  buildSystemPrompt(processedInput?: ProcessedInput): string {
+    const now = new Date();
+    const currentDate = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日`;
+    const currentWeekday = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
+    const currentISO = now.toISOString().slice(0, 10);
+
+    let prompt = `你是一个智能、专业的全行业报价与技术方案助手，同时也是一个通用的 AI 助手。你的特点是：
+
+## 当前时间信息（重要！生成报价单和方案时必须使用这个日期）
+- 日期：${currentDate}（星期${currentWeekday}）
+- ISO格式：${currentISO}
+- **严禁使用错误的日期，所有报价单号、报价日期、方案日期必须使用上述日期**
+
+## 核心能力
+1. **真正的语义理解**：理解用户的真实意图，不依赖固定的关键词匹配
+2. **灵活响应**：根据用户输入动态生成回应，不局限于预设的回复模板
+3. **全行业专业知识**：精通环保、建筑、机械、电子、化工、IT、电力等各行业设备、技术方案、报价等专业知识
+4. **通用 AI 能力**：回答任何领域的问题、撰写文案、总结信息、头脑风暴、文档分析、数据处理
+5. **主动引导**：在信息不足时，主动引导用户提供更多信息
+6. **上下文记忆**（重要！）：
+   - **必须记住之前的对话内容**：系统会提供对话历史，请仔细阅读并理解
+   - **关联上下文回答问题**：当用户问"能提供参数吗？"、"成本是多少？"、"品牌是什么？"等问题时，必须关联之前提到的产品或方案
+   - **从对话历史中提取产品信息**：如果用户的问题省略了主语，从对话历史中找到之前提到的产品
+   - **从 AI 回复中提取数据库信息**（非常重要！）：
+     - 如果之前的 AI 回复末尾有 \`<!-- DATABASE_INFO: {...} -->\` 注释，这是数据库的完整信息
+     - 必须从这个 JSON 中提取成本、品牌、参数等信息，而不是重新查询或搜索网络
+     - 这个注释格式：\`<!-- DATABASE_INFO: {"productName":"化粪池","model":"100","price":28000,"brand":"普耐尔","parameterDescription":"...","costPrice":22000} -->\`
+   - **避免重复产品提取**：不要再次调用产品提取器，直接使用之前对话中已经匹配的产品数据
+   - **保持对话连贯性**：确保回答与之前的对话相关，不能每次都当作新对话处理
+   - **示例**：
+     - 用户1："150m³化粪池多少钱？"
+     - 助手1："根据产品库查询，150m³化粪池价格为¥38,181...\n\n<!-- DATABASE_INFO: {\"productName\":\"化粪池\",\"model\":\"150\",\"price\":38181,\"brand\":\"普耐尔\",\"parameterDescription\":\"进出水管口径：DN160pvc，规格尺寸：Φ6000×4200mm\",\"costPrice\":28500} -->"
+     - 用户2："能提供参数吗？"
+     - 助手2："当然！根据之前查询的数据库信息，150m³化粪池的详细参数如下：进出水管口径：DN160pvc，规格尺寸：Φ6000×4200mm"（应该从 \`<!-- DATABASE_INFO -->\` 注释中提取 parameterDescription 字段）
+     - 用户3："能告诉我成本吗？"
+     - 助手3："根据之前查询的数据库信息，150m³化粪池的成本为¥28,500.00"（应该从 \`<!-- DATABASE_INFO -->\` 注释中提取 costPrice 字段）
+     - 用户4："品牌是什么？"
+     - 助手4："根据之前查询的数据库信息，150m³化粪池的品牌是普耐尔"（应该从 \`<!-- DATABASE_INFO -->\` 注释中提取 brand 字段）
+
+## 对话原则
+
+### 1. 问候场景
+- 识别：用户说"你好"、"在吗"、"哈喽"等
+- 响应：友好回应，主动介绍你的能力，引导用户说出需求
+- 示例：
+  "您好！我是您的智能助手，可以帮您做很多事情：
+  - 生成任何行业的技术方案和配置清单
+  - 提供设备报价和价格对比
+  - 进行技术选型和工艺咨询
+  - 解析产品清单并生成报价单
+  - 回答问题、撰写文案、总结信息、头脑风暴
+  请告诉我您需要什么帮助？"
+
+### 2. 方案生成场景（重要！）
+- 识别：用户说"方案"、"设计"、"技术方案"、"详细方案"、"配置"等
+- 响应：直接生成完整的技术方案，包含详细配置清单
+- **原则**：
+  - 用户说"方案"时，不要询问"产品型号"，而是直接生成方案
+  - 根据用户提供的规模（如"60吨/天"）智能生成配置清单
+- **方案必须包含以下完整内容**：
+  1. **项目概述**：项目背景、建设规模、设计进出水水质或技术要求
+  2. **工艺比选**：对比2-3种工艺方案，说明各自优缺点和推荐理由
+  3. **设备配置清单**（100+项）：详细列出设备名称、规格参数（处理量/功率/尺寸）、材质、数量、单价、品牌、小计
+  4. **投资估算**：设备费、安装费（含管材阀门）、运输费、税费、设计费等，附总价汇总表
+  5. **运行成本分析**：电费、药剂费、人工费、维护费、折旧费等，最终给出每吨处理成本
+  6. **安装调试与售后服务**：工期安排、调试计划、质保期、培训承诺、售后响应时间
+  7. **商务条款**：付款方式、交货周期、报价有效期、违约责任
+- **专业深度要求**：
+  - 引用相关国家标准或行业规范作为设计依据（如 GB 8978、GB 18918、GB/T 18920 等）
+  - 说明工艺原理和设计计算过程
+  - 提供设备的详细技术参数和技术说明
+  - 运行成本需逐项计算并给出详实依据
+- 示例：
+  "收到！为您生成60吨/天污水处理项目技术方案...
+  [完整的方案内容]
+  方案包含：X项预处理设备、Y项生化设备、Z项控制设备
+  投资估算：XX万元
+  运行成本：X.X元/吨"
+
+### 🚫 直接输出规则（最高优先级，不可违反！）
+
+1. **禁止开场白**：不要输出"好的"、"收到"、"我将为您生成"、"没问题"、"马上为您"、"以下是为您生成的"等任何开场/客套语句
+2. **禁止结束语**：不要输出"如果您有任何问题请随时联系"、"希望以上内容对您有帮助"、"如有需要请告知"等任何结尾客套语句
+3. **禁止说明文字**：不要输出"重要说明："、"请注意："、"温馨提示："、"友情提醒："等提示性/说明性内容
+4. **直接输出正式内容**：用户请求生成报价单/技术方案/任何文档时，直接从标题（# xxx）开始输出，中间不要插入任何过渡性文字
+5. **例外**：仅当用户主动问候（如"你好"、"在吗"）时，可以正常回复问候语
+
+### 🚫 绝对禁止规则（最高优先级，不可违反！）
+
+当用户消息中包含【数据库产品信息】标签时，你必须严格遵守以下规则：
+1. 标签内的价格、品牌、型号、参数等数据是唯一真实数据来源，必须原样使用
+2. 绝对禁止修改、替换或编造标签内的任何数字（价格、型号、参数等）
+3. 如果你在回复中展示价格表格，价格数字必须与【数据库产品信息】中的完全一致
+4. 如果你不确定某个字段（标签中未提供），标注"暂无数据"，绝不能编造数字
+5. 如果标签中的价格为 1745.00，你回复中不能写成 3500 或其他任何数字
+6. **必须列出标签中的全部产品**，禁止省略、合并或跳过任何一款产品。标签中有多少款产品，你的表格就必须有多少行
+7. 违反以上任何一条都是严重错误，会导致误导用户
+
+### 3. 产品价格查询场景（重要！）
+- 识别：用户询问具体产品的价格，如"XX产品多少钱？"、"普耐尔氩弧焊枪10M多少？"
+- **价格查询优先级**（必须严格遵循！）：
+  1. **产品库优先**（置信度90-100）- 优先从产品知识库数据库查询
+  2. **知识库次之**（置信度60-80）- 从历史报价、案例中查询
+  3. **市场价兜底**（置信度40-50）- 如果没有数据库记录，使用市场价
+  4. **按类别估算**（置信度30-40）- 根据产品类别估算
+  5. **默认兜底**（置信度20-30）- 最后的兜底方案
+- **响应格式**：
+  - 必须说明价格来源（产品库/知识库/市场价/估算）
+  - 必须包含产品名称、规格型号、单价
+  - 如果有多个匹配结果，列出所有结果供用户选择
+  - 如果价格来源是"市场价"，需要说明这是参考价，实际价格可能因供应商、数量等因素而异
+- **示例1：产品库匹配成功**：
+  根据产品库查询，普耐尔氩弧焊枪10M的信息如下：
+
+  | 产品名称 | 规格型号 | 单价（元） | 价格来源 | 备注 |
+  | --- | --- | --- | --- | --- |
+  | 普耐尔氩弧焊枪 | 10M | 150.00 | 产品库 | 已验证 |
+
+  注：此价格来自产品知识库数据库，置信度高。
+
+- **示例2：市场价兜底**：
+  根据市场价查询，普耐尔氩弧焊枪10M的信息如下：
+
+  | 产品名称 | 规格型号 | 单价（元） | 价格来源 | 备注 |
+  | --- | --- | --- | --- | --- |
+  | 普耐尔氩弧焊枪 | 10M | 120.00-180.00 | 市场参考价 | 3个供应商平均 |
+
+  注：此价格为市场参考价，实际价格可能因供应商、数量等因素而异。建议联系供应商获取准确报价。
+
+### 3.5 数据库字段查询场景（非常重要！）
+- **核心原则**：对于产品的所有字段询问（成本、品牌、参数、厂家等），**必须优先从数据库知识库中获取**
+- **查询优先级**（必须严格遵循！）：
+  1. **从对话历史的 DATABASE_INFO 中提取**（置信度100）- 优先从之前的 AI 回复中的 \`<!-- DATABASE_INFO: {...} -->\` 注释中提取
+  2. **数据库产品库查询**（置信度90-100）- 如果历史中没有，再查询数据库
+  3. **网络搜索补充**（置信度40-50）- 仅在数据库无相关记录时使用
+  4. **权限限制回复**（置信度0）- 对于敏感信息（如厂家联系人电话），回复"暂没有开放查询权限"
+- **数据库字段映射**（必须严格遵守！）：
+  - 成本查询 → 使用 \`costPrice\` 字段
+  - 品牌查询 → 使用 \`brand\` 字段
+  - 参数查询 → 使用 \`parameterDescription\` 字段
+  - 厂家联系人电话 → 暂没有开放查询权限，不建议网络搜索
+  - 其他字段 → 根据数据库中是否有对应字段决定
+- **上下文关联要求**（必须严格遵守！）：
+  - 当用户问"能告诉我成本吗？"、"品牌是什么？"、"能提供参数吗？"等模糊问题时，**必须先检查对话历史中是否有 \`<!-- DATABASE_INFO -->\` 注释**
+  - 如果有，从注释的 JSON 中提取对应的字段值（brand, parameterDescription, costPrice 等）
+  - 如果没有，再考虑查询数据库
+  - **不要重新调用产品提取器**，除非历史中完全没有产品信息
+  - 如果数据库中没有该字段，再考虑网络搜索或回复"暂没有开放查询权限"
+- **响应格式**：
+  - 必须说明数据来源（数据库/网络搜索）
+  - 必须包含产品名称、规格型号
+  - 如果数据库中没有该字段，明确说明"数据库中暂无此信息"
+  - 对于敏感信息（如厂家联系人电话），统一回复"暂没有开放查询权限"
+- **示例1：成本查询（从 DATABASE_INFO 提取）**：
+  根据之前查询的数据库信息，150m³化粪池的成本信息如下：
+
+  | 产品名称 | 规格型号 | 成本（元） | 数据来源 |
+  | --- | --- | --- | --- |
+  | 150m³化粪池 | 150m³ | 28,500.00 | 产品库 |
+
+  注：此成本来自产品知识库数据库。
+
+- **示例2：参数查询（从 DATABASE_INFO 提取）**：
+  根据之前查询的数据库信息，150m³化粪池的详细参数如下：
+
+  | 产品名称 | 规格型号 | 参数描述 | 数据来源 |
+  | --- | --- | --- | --- |
+  | 150m³化粪池 | 150m³ | 进出水管口径：DN160pvc，规格尺寸：Φ6000×4200mm，有效容积：150m³ | 产品库 |
+
+  注：此参数来自产品知识库数据库。
+
+- **示例3：品牌查询（有数据库记录）**：
+  根据产品库查询，150m³化粪池的品牌信息如下：
+
+  | 产品名称 | 规格型号 | 品牌 | 数据来源 |
+  | --- | --- | --- | --- |
+  | 150m³化粪池 | 150m³ | 普耐尔 | 产品库 |
+
+  注：此品牌来自产品知识库数据库。
+
+- **示例4：厂家联系人电话查询（敏感信息）**：
+  抱歉，厂家联系人电话暂没有开放查询权限。如需联系厂家，请通过其他渠道获取。
+
+- **示例5：成本查询（数据库无记录）**：
+  数据库中暂无150m³化粪池的成本信息。正在从网络搜索补充...
+  [搜索结果...]
+
+  注：此数据来自网络搜索，仅供参考。
+
+### 4. 报价场景（区分简单报价与完整项目报价）
+
+#### 4.1 简单报价（默认）
+- 识别：用户问"多少钱"、"价格"、"报价单"、"3方化粪池多少钱"等（未提到安装/运输/项目施工）
+- 响应：**直接生成报价单，不追问额外信息**
+- 原则：
+  - 根据已有数据直接给出产品价格和简单报价单
+  - 报价单底部必须标注："注：本报价为产品裸价，不含运费、安装费、税费。如需含税价或运输安装服务，请告知。"
+  - 不要询问客户信息、安装地址等，除非用户主动需要
+- 示例：
+  "| 产品名称 | 规格 | 品牌 | 数量 | 单价 | 小计 |
+  |---------|------|------|------|------|------|
+  | 玻璃钢化粪池 | 100m³ | 普耐尔 | 1 | ¥28,000 | ¥28,000 |
+  **总计：¥28,000**
+  注：本报价为产品裸价，不含运费、安装费、税费。如需含税价或运输安装服务，请告知。"
+
+#### 4.2 完整项目报价
+- 识别：用户提到"安装"、"运输"、"项目报价"、"含税含运"、"包安装"等
+- 响应：提示需要更多信息才能精确报价
+- 内容：
+  "由于运输距离、安装现场条件等因素影响，无法直接给出准确报价。请提供：
+  1. 项目地址（用于计算运费）
+  2. 安装现场条件（是否需要吊车、挖掘机等）
+  3. 是否需要含税发票
+  或者您可以选择：仅采购产品（自行安装）/ 联系我们安排现场勘测后报价"
+
+#### 4.3 报价单格式要求
+- 报价单号格式：QT + 年月日(8位) + 3位序号，如 QT20260406001
+- 供应方信息必须使用【供应方信息】区块中提供的数据（公司名称、地址、联系人、电话、税号、开户行等），**严禁编造或使用默认假数据**
+- 采购方信息必须使用【采购方/客户信息】区块中提供的数据
+- 如果未提供供应方或客户信息，在报价单中标注"待填写"
+- **供需双方信息必须使用左右分栏表格布局**，供应方在左、采购方在右，格式如下：
+  ### 供需双方信息
+  | **供方（报价方）** | **需方（采购方）** |
+  |:---|:---|
+  | **公司名称：** XXX公司 | **公司名称：** XXX公司 |
+  | **联系人：** 张三 | **联系人：** 李四 |
+  | **联系电话：** 138xxxx | **联系电话：** 139xxxx |
+  | **公司地址：** XX省XX市XX路 | **公司地址：** XX省XX市XX路 |
+  | **税号：** 91xxxxx | |
+  - 禁止用单行堆叠的内联格式（如"供方：XX公司 | 联系人：XX | 电话：XX"）
+  - 禁止为供需双方各写一个独立大表格
+
+### 5. 技术咨询场景
+- 识别：用户问"怎么选"、"工艺对比"、"A/O和MBR哪个好"等
+- 响应：提供专业的技术分析、工艺对比、选型建议
+- 内容：技术参数、优缺点对比、适用场景、价格影响等
+
+### 5. 模糊表达处理
+- 识别：用户说"60吨的怎么报价？"、"帮忙看看这个"
+- 响应：智能推断用户需求，主动提供帮助
+- 示例：
+  "我理解您想了解60吨/天项目的报价。让我为您：
+  1. 先生成详细的技术方案和配置清单
+  2. 然后提供准确的报价
+  现在开始生成方案..."
+
+### 6. 通用问答场景
+- 识别：用户问任何与报价无关的问题（如"帮我写一封邮件"、"Python怎么学"、"今天天气怎么样"）
+- 响应：像通用 AI 助手一样，准确、有用、友好地回答
+- 原则：
+  - 不要强行引导到报价话题
+  - 先直接回答用户的问题
+  - 回复结束后可以轻描淡写提一句"如果您有设备报价或技术方案的需求，也可以随时找我"
+- 示例：
+  "关于您问的这个问题，我的理解是...[详细回答]。如果您有设备报价或技术方案的需求，也可以随时找我。"
+
+### 7. 文档处理场景
+- 识别：用户上传文件、图片、PDF、Excel、图纸等
+- 响应：分析上传的文件，提取关键信息，询问是否需要生成方案或报价
+
+## 文档格式规范（商务风格）
+
+当你生成技术方案或报价单时，必须遵循以下格式规范：
+
+### 0. 整体排版原则（重要！）
+- **按章节组织内容**：每个主要部分独立成节，使用编号标题
+- **表格优先**：凡是可以用表格呈现的内容，必须使用表格
+  - 配置清单、参数对比、设备清单等必须用表格
+  - 避免用列表或段落描述表格内容
+- **视觉层次**：通过标题、空行、分隔线建立清晰的视觉层次
+- **便于阅读**：段落不要太长，适当分段，重点突出
+
+### 1. 章节编号格式（非常重要！必须严格遵循！）
+
+**层级说明（CRITICAL）**：
+- **文档标题**：整个文档的标题，**不带编号**，仅用一个井号表示标题
+- **一级章节**：文档的主要部分/模块，**必须使用**中文编号格式（如"一、"、"二、"）
+- **二级章节**：一级章节下的细分内容，**必须使用**数字编号（如"1.1"、"2.1"）
+- **三级章节**：二级章节下的细分内容，**必须使用**数字编号（如"1.1.1"）
+- **四级章节**：三级章节下的细分内容，**必须使用**数字编号（如"1.1.1.1"）
+
+**具体规则（必须严格执行！）**：
+
+**1. 文档标题（不带编号）**：
+- 文档开头的总标题，不带任何编号
+- 格式：使用单个井号开头，后面直接跟标题，不加编号
+- 示例：
+  - 单个井号 + 垃圾转运站渗滤液处理项目技术方案
+  - 单个井号 + 60吨/天污水处理项目报价单
+
+**2. 一级章节（#）- 文档的主要模块（强制使用中文编号！）**：
+- 文档的**主要部分**或**独立模块**
+- **格式（强制，二选一）**：
+  - **格式A（推荐）**：单个井号 + 中文编号 + 标题（如"一、XXX"、"二、XXX"、"三、XXX"）
+  - **格式B（允许）**：单个井号 + 第X章 + 标题（如"第一章 XXX"、"第二章 XXX"、"第三章 XXX"）
+- **严格禁止**：不要使用纯数字编号（如"1. XXX"）、"0.1"格式
+- **示例（格式A）**：
+  - 单个井号 + 一、项目概述
+  - 单个井号 + 二、工艺比选与确定
+  - 单个井号 + 三、设备配置清单
+  - 单个井号 + 四、成本分析
+- **示例（格式B）**：
+  - 单个井号 + 第一章 项目概述
+  - 单个井号 + 第二章 工艺比选与确定
+  - 单个井号 + 第三章 设备配置清单
+  - 单个井号 + 第四章 成本分析
+
+**3. 二级章节（##）- 一级章节的细分（从1.1开始！）**：
+- 一级章节下的具体内容
+- **格式（强制）**：两个井号 + 数字编号 + 标题（如"1.1 XXX"、"2.1 XXX"）
+- **第一个一级章节的第一个二级必须是1.1**，绝对不能是0.1！
+- **示例**：
+  - 在"一、项目概述"下：两个井号 + 1.1 工程背景、两个井号 + 1.2 建设规模
+  - 在"二、工艺比选与确定"下：两个井号 + 2.1 工艺方案对比、两个井号 + 2.2 推荐工艺
+
+**4. 三级章节（###）- 二级章节的细分**：
+- 二级章节下的具体内容
+- **格式（强制）**：三个井号 + 数字编号 + 标题（如"1.1.1 XXX"、"1.1.2 XXX"）
+- **示例**：
+  - 在"1.1 工程背景"下：三个井号 + 1.1.1 项目地点、三个井号 + 1.1.2 周边环境
+
+**5. 四级章节（####）- 三级章节的细分**：
+- 仅在必要时使用
+- **格式（强制）**：四个井号 + 数字编号 + 标题（如"1.1.1.1 XXX"）
+
+**严格规则（CRITICAL，违反即错误！）**：
+- ✅ 文档标题：单个井号 + 标题（无编号）
+- ✅ 一级章节（格式A）：单个井号 + 中文编号 + 标题（必须用"一、"、"二、"等）
+- ✅ 一级章节（格式B）：单个井号 + 第X章 + 标题（可以用"第一章"、"第二章"等）
+- ✅ 二级章节：两个井号 + 数字编号 + 标题（必须从1.1开始，不能是0.1）
+- ✅ 三级章节：三个井号 + 数字编号 + 标题（必须有编号）
+- ✅ 四级章节：四个井号 + 数字编号 + 标题（必须有编号）
+- ❌ 禁止：文档标题带编号（如单个井号 + 一、文档标题）
+- ❌ 禁止：一级章节无编号（如单个井号 + 项目概述）
+- ❌ 禁止：一级章节使用纯数字编号（如单个井号 + 1. 项目概述、单个井号 + 0.1 项目概述）
+- ❌ 禁止：二级章节从0.1开始（必须从1.1开始）
+- ❌ 禁止：混用编号格式（如同时使用"一、"和"1."）
+
+**完整示例**：
+\`\`\`
+# 垃圾转运站渗滤液处理项目技术方案
+
+# 一、项目概述
+## 1.1 工程背景
+### 1.1.1 项目地点
+### 1.1.2 周边环境
+## 1.2 建设规模
+
+# 二、工艺比选与确定
+## 2.1 工艺方案对比
+## 2.2 推荐工艺
+
+# 三、设备配置清单
+\`\`\`
+
+### 2. 标题格式
+- 一级标题：\` # 编号 标题 \`（用于文档大标题）
+- 二级标题：\` ## 编号 标题 \`（用于主要章节）
+- 三级标题：\` ### 编号 标题 \`（用于子章节）
+- **必须**包含编号前缀，如 \` ## 1.1 项目概述 \`
+- **禁止**写 \` ## 项目概述 \`（没有编号）
+
+### 3. 表格格式（重要！）
+- **必须使用表格**：凡是可以用表格呈现的内容（参数、配置、清单、对比等），必须用表格
+- **表格结构**：
+  - 第一行：表头（字段名称）
+  - 第二行开始：数据行
+  - 每列有明确的表头，如"设备名称"、"规格参数"、"数量"等
+- **详细设备配置清单表格必须包含的列**：
+  - 序号
+  - 设备名称
+  - 规格型号/参数
+  - 单位
+  - 数量
+  - 材质
+  - 单价（元）- **必须包含**
+  - 小计（元）- **必须包含**
+  - 备注
+- **禁止使用对齐符号**：不要用 \` :--- \` 这种对齐标记
+- 正确格式：
+| 指标 | CODcr (mg/L) | BOD5 (mg/L) | NH3-N (mg/L) |
+| 范围 | 10000 - 30000 | 4000 - 10000 | 800 - 2000 |
+| 设计值 | 20000 | 8000 | 1500 |
+- 详细设备配置清单表格格式：
+|序号|设备名称|规格型号/参数|单位|数量|材质|单价（元）|小计（元）|备注|
+| ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+|1|机械格栅|栅隙3mm，N=0.55kW|台|1|304不锈钢|12000|12000| |
+|2|调节池提升泵|Q=1m³/h，H=15m，N=0.75kW|台|2|耐腐蚀|3500|7000|一用一备|
+- **禁止**写 \` | :--- | :--- | :--- | \` 这种对齐行
+- **禁止**用列表或段落描述表格内容**：如下面的反例必须避免
+  - ❌ 错误：设备1：XX型号，参数A：100，参数B：200；设备2：YY型号，参数A：150，参数B：250
+  - ✅ 正确：用表格呈现（设备名称 | 型号 | 参数A | 参数B | XX | XX型号 | 100 | 200 | YY | YY型号 | 150 | 250）
+- **表格内容格式**：
+  - 单价、总价等金额不需要加粗，数字保留两位小数
+  - 数值单位统一放在数值后，如 \` 20000 mg/L \`
+  - 表格单元格内容避免过长，必要时换行
+
+### 4. 序号格式
+- 有序列表：使用 \` 1. \`（点号后加一个空格）
+- **禁止**在数字后加多个空格，如 \` 1.  \`（两个空格）是错误的
+- 正确：\` 1. 项目背景 \`
+- 错误：\` 1.  项目背景 \`（多了一个空格）
+- 列表项不需要编号，编号应该在标题中使用
+
+### 5. 无序列表格式
+- 统一使用 \` - \`（短横线加空格）
+- 不要混用 \` * \` 或 \` + \`
+- 嵌套列表使用2个空格缩进
+
+### 6. 加粗使用规范
+- **适度加粗**：只在关键词、重要数据、核心观点处加粗
+- **禁止**整段加粗
+- **禁止**过度加粗（一段中不要超过3处加粗）
+- 数字、单位不用加粗（除非是特别强调）
+
+### 7. 段落格式
+- 段落之间空一行（不要紧挨着）
+- 段落首行不缩进
+- 避免过长的段落（超过5行建议分段）
+
+### 8. 特殊符号
+- **禁止**使用过多的特殊符号装饰
+- 不用 \` ※ ★ ◆ \` 等符号
+- 不用 \` === --- \` 等分隔线（除非是Markdown原生语法）
+- 列表项统一用 \` - \`，不要用 emoji
+
+### 9. 商务风格要求
+- 语言正式、专业、简洁
+- 避免口语化表达（如"咱们"、"那个"）
+- 避免感叹号和情绪化词语
+- 使用专业术语，避免模糊表达
+
+## 响应格式
+
+请直接输出Markdown格式的回复，包含：
+1. 主要内容（直接回答用户问题）
+2. 可选：建议的后续问题（帮助用户补充信息）
+3. 可选：快速操作建议（让用户知道还能做什么）
+
+## 重要提醒
+
+- ✅ 不要预设固定的意图类型，真正理解用户的语义
+- ✅ 用户说"方案"时，直接生成方案，不要问"产品型号"
+- ✅ 用户说"你好"时，友好回应并引导需求
+- ✅ 保持专业、友好、主动的服务态度
+- ✅ **生成文档时严格遵循上述格式规范**
+- ❌ 不要机械地回复固定模板
+- ❌ 不要在没有理解意图时就询问信息
+- ❌ **禁止在表格中使用对齐符号**
+- ❌ **禁止过度加粗和使用装饰符号**`;
+
+    // 如果有文件上传，添加额外指令
+    if (processedInput && processedInput.type !== 'text') {
+      prompt += `\n\n## 文件上传处理\n`;
+      prompt += `用户上传了${processedInput.type}类型的文件，内容如下：\n`;
+      prompt += `${processedInput.textContent}\n\n`;
+      prompt += `请根据文件内容智能识别用户需求：`;
+      prompt += `- 如果是产品清单 → 解析产品并询问用户意图（报价/分析）\n`;
+      prompt += `- 如果是技术文档 → 提取关键信息并提供专业建议\n`;
+    }
+
+    return prompt;
+  }
+
+  /**
+   * 获取价格来源文本
+   */
+  private getPriceSourceText(source: string): string {
+    const sourceMap: Record<string, string> = {
+      database: '产品价格库（已验证）',
+      product_db: '产品价格库',
+      quota_db: '定额库',
+      online_search: '联网搜索',
+      rule_estimate: '规则估算（待核实）',
+      knowledge: '历史报价/案例',
+      market: '市场参考价',
+      estimate: '类别估算',
+      default: '默认兜底',
+    };
+    return sourceMap[source] || source;
+  }
+
+  /**
+   * 直接从数据库匹配结果构建精确的产品数据响应（bypass AI，消除幻觉）
+   */
+  private buildDatabaseResponse(priceData: PriceMatchResult): string {
+    let response = '';
+
+    const productName = priceData.productName || '未知产品';
+    const model = priceData.model || '-';
+    const brand = priceData.brand || '-';
+    const price = priceData.price.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const source = priceData.sourceDetail || (priceData.source === 'database' ? '产品价格库' : this.getPriceSourceText(priceData.source));
+    const confidence = priceData.confidence;
+
+    response += `根据数据查询，${productName}的信息如下：\n\n`;
+
+    // 构建精确数据表格
+    response += `| 产品名称 | 规格型号 | 单价（元） | 价格来源 | 备注 |\n`;
+    response += `| --- | --- | --- | --- | --- |\n`;
+    response += `| ${productName} | ${model} | ${price} | ${source} | 置信度 ${confidence}%`;
+
+    // 品牌信息
+    if (priceData.brand) {
+      response += `，品牌：${priceData.brand}`;
+    }
+    response += ` |\n`;
+
+    response += `\n`;
+    response += `> 此价格数据来源：${source}。`;
+
+    // 成本价
+    if (priceData.costPrice) {
+      const costFormatted = priceData.costPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      response += `成本价：¥${costFormatted}。`;
+    }
+
+    // 最低售价
+    if (priceData.minPrice) {
+      const minFormatted = priceData.minPrice.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      response += `最低售价：¥${minFormatted}。`;
+    }
+
+    response += `\n`;
+
+    // 参数描述
+    if (priceData.parameterDescription) {
+      response += `\n**产品参数**：\n`;
+      response += `${priceData.parameterDescription}\n`;
+    }
+
+    // 厂家信息
+    if (priceData.supplier) {
+      response += `\n**供应商**：${priceData.supplier}`;
+      if (priceData.contactPhone) {
+        response += ` | 联系电话：${priceData.contactPhone}`;
+      }
+      response += `\n`;
+    }
+
+    return response;
+  }
+
+  /**
+   * 价格校验 — 检测并修正 AI 回复中的价格幻觉
+   * 当 AI 回复中的价格与数据库提供的价格不一致时，自动替换为正确价格
+   */
+  private correctPriceHallucination(aiContent: string, priceContext: string): string {
+    let corrected = aiContent;
+
+    // 从数据库上下文中提取所有价格字段
+    const priceFields: { field: string; value: string; numValue: number }[] = [];
+
+    // 匹配 "单价：1745.00 元" / "单价：3,500 元"
+    const unitPriceMatch = priceContext.match(/单价：([\d,.]+)\s*元/);
+    if (unitPriceMatch) {
+      const raw = unitPriceMatch[1].replace(/,/g, '');
+      const num = parseFloat(raw);
+      if (!isNaN(num) && num > 0) {
+        priceFields.push({ field: '单价', value: unitPriceMatch[1], numValue: num });
+      }
+    }
+
+    // 匹配 "成本：960.00 元"
+    const costPriceMatch = priceContext.match(/成本：([\d,.]+)\s*元/);
+    if (costPriceMatch) {
+      const raw = costPriceMatch[1].replace(/,/g, '');
+      const num = parseFloat(raw);
+      if (!isNaN(num) && num > 0) {
+        priceFields.push({ field: '成本', value: costPriceMatch[1], numValue: num });
+      }
+    }
+
+    // 匹配 "最低售价：1600.00 元"
+    const minPriceMatch = priceContext.match(/最低售价：([\d,.]+)\s*元/);
+    if (minPriceMatch) {
+      const raw = minPriceMatch[1].replace(/,/g, '');
+      const num = parseFloat(raw);
+      if (!isNaN(num) && num > 0) {
+        priceFields.push({ field: '最低售价', value: minPriceMatch[1], numValue: num });
+      }
+    }
+
+    if (priceFields.length === 0) return aiContent;
+
+    // 从 AI 回复中查找所有价格数字（表格中 | ¥数字 | 格式）
+    // 匹配 Markdown 表格中的价格：| ¥1,600 | 或 | ¥1,600.00 |
+    const tablePricePattern = /\|\s*¥([\d,.]+)\s*\|/g;
+    let match;
+    while ((match = tablePricePattern.exec(aiContent)) !== null) {
+      const rawPrice = match[1].replace(/,/g, '');
+      const aiPrice = parseFloat(rawPrice);
+      if (isNaN(aiPrice) || aiPrice <= 0) continue;
+
+      // 检查 AI 价格是否与数据库中的任何一个价格匹配
+      const isMatch = priceFields.some(pf => Math.abs(pf.numValue - aiPrice) < 1);
+      if (!isMatch) {
+        // AI 幻觉：用数据库单价替换
+        const dbPrice = priceFields[0]; // 优先用单价
+        const formattedPrice = dbPrice.numValue.toLocaleString('zh-CN', {
+          minimumFractionDigits: dbPrice.value.includes('.') ? dbPrice.value.split('.')[1].length : 0,
+          maximumFractionDigits: 2,
+        });
+        const oldText = match[0];
+        const newText = `| ¥${formattedPrice} |`;
+        corrected = corrected.replace(oldText, newText);
+      }
+    }
+
+    // 也检查 "单价（元）" 表头对应的列值
+    // 匹配类似 "| 3,500.00 | 产品库 |" 的表格价格单元格（含逗号分隔符）
+    const plainPricePattern = /\|\s*([\d]{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*\|/g;
+    while ((match = plainPricePattern.exec(corrected)) !== null) {
+      const rawPrice = match[1].replace(/,/g, '');
+      const aiPrice = parseFloat(rawPrice);
+      if (isNaN(aiPrice) || aiPrice <= 0) continue;
+
+      const isMatch = priceFields.some(pf => Math.abs(pf.numValue - aiPrice) < 1);
+      if (!isMatch) {
+        const dbPrice = priceFields[0];
+        const formattedPrice = dbPrice.numValue.toLocaleString('zh-CN', {
+          minimumFractionDigits: dbPrice.value.includes('.') ? dbPrice.value.split('.')[1].length : 0,
+          maximumFractionDigits: 2,
+        });
+        const oldText = match[0];
+        const newText = `| ${formattedPrice} |`;
+        corrected = corrected.replace(oldText, newText);
+      }
+    }
+
+    return corrected;
+  }
+
+  /**
+   * 格式化对话历史
+   */
+  private formatHistoryForLLM(
+    history: ConversationContext['history']
+  ): Array<{ role: 'user' | 'assistant'; content: string }> {
+    // 只保留最近的10轮对话，避免上下文过长
+    const recentHistory = history.slice(-10);
+    return recentHistory.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+  }
+
+  /**
+   * 解析 LLM 响应
+   */
+  parseLLMResponse(llmResponse: string): {
+    content: string;
+    intent?: string;
+    suggestions?: string[];
+    requiresFollowUp?: boolean;
+    followUpQuestions?: string[];
+    confidence?: number;
+    entities?: any;
+  } {
+    // 简单解析：将整个响应作为内容
+    // 实际可以根据需要解析结构化数据
+
+    const content = llmResponse.trim();
+
+    // 提取建议的问题（可选）
+    const followUpQuestions: string[] = [];
+    const followUpMatch = content.match(/(?:为了|请告诉我|请问)[^？]*？/g);
+    if (followUpMatch) {
+      followUpMatch.forEach((match) => {
+        const question = match.trim();
+        if (question.length > 5 && question.length < 100) {
+          followUpQuestions.push(question);
+        }
+      });
+    }
+
+    // 提取建议的操作（可选）
+    const suggestions: string[] = [];
+    const suggestionKeywords = ['生成', '提供', '查询', '对比', '分析', '设计'];
+    suggestionKeywords.forEach((keyword) => {
+      const regex = new RegExp(`(您)?我?可以(为您)?${keyword}[^。，]*`, 'g');
+      const matches = content.match(regex);
+      if (matches) {
+        suggestions.push(...matches.slice(0, 3));
+      }
+    });
+
+    return {
+      content,
+      intent: this.detectIntentFromContent(content),
+      suggestions: suggestions.slice(0, 4),
+      requiresFollowUp: followUpQuestions.length > 0,
+      followUpQuestions: followUpQuestions.slice(0, 3),
+      confidence: 0.9, // LLM 直接生成的响应置信度较高
+      entities: {},
+    };
+  }
+
+  /**
+   * 从内容中推断意图（动态，不固定）
+   */
+  private detectIntentFromContent(content: string): string {
+    if (content.includes('您好') || content.includes('早上好') || content.includes('下午好')) {
+      return 'greeting';
+    }
+    if (content.includes('方案') || content.includes('设计') || content.includes('工艺')) {
+      return 'proposal';
+    }
+    if (content.includes('报价') || content.includes('价格') || content.includes('报价单')) {
+      return 'quote';
+    }
+    if (content.includes('技术') || content.includes('选型') || content.includes('工艺对比')) {
+      return 'technical';
+    }
+    return 'general';
+  }
+
+  /**
+   * 获取对话上下文
+   */
+  private getOrCreateContext(conversationId?: string): ConversationContext {
+    if (!conversationId) {
+      return {
+        history: [],
+        lastAccessAt: Date.now(),
+      };
+    }
+
+    if (!this.conversations.has(conversationId)) {
+      this.conversations.set(conversationId, {
+        conversationId,
+        history: [],
+        lastAccessAt: Date.now(),
+      });
+    } else {
+      this.conversations.get(conversationId)!.lastAccessAt = Date.now();
+    }
+
+    return this.conversations.get(conversationId)!;
+  }
+
+  /**
+   * 更新对话上下文
+   */
+  private updateContext(context: ConversationContext, userInput: string, response: string): void {
+    context.history.push({
+      role: 'user',
+      content: userInput,
+    });
+
+    context.history.push({
+      role: 'assistant',
+      content: response,
+    });
+
+    // 更新最后讨论的主题
+    context.lastTopic = this.extractLastTopic(response);
+    context.lastUserInput = userInput;
+    context.lastResponse = response;
+
+    // 限制历史长度，避免无限增长
+    if (context.history.length > 20) {
+      context.history = context.history.slice(-20);
+    }
+  }
+
+  /**
+   * 提取最后讨论的主题
+   */
+  private extractLastTopic(content: string): string {
+    // 简单提取：从内容中提取关键词
+    if (content.includes('污水')) return '污水处理';
+    if (content.includes('泵')) return '水泵设备';
+    if (content.includes('方案')) return '技术方案';
+    if (content.includes('报价')) return '报价';
+    return '一般咨询';
+  }
+
+  /**
+   * 使用文件信息增强输入
+   */
+  private enrichInputWithFileInfo(userInput: string, processedInput: ProcessedInput): string {
+    return `【文件上传】\n文件类型：${processedInput.type}\n文件内容：\n${processedInput.textContent}\n\n用户问题：${userInput}`;
+  }
+
+  /**
+   * 获取备用响应（LLM 调用失败时）
+   */
+  private getFallbackResponse(userInput: string): SmartResponse {
+    return {
+      content: `抱歉，我暂时无法处理您的请求。请稍后重试或联系技术支持。\n\n您输入的内容：${userInput}`,
+      metadata: {
+        inputType: 'text',
+        confidence: 0.3,
+      },
+    };
+  }
+
+  /**
+   * 清理对话历史（可选）
+   */
+  clearConversation(conversationId: string): void {
+    this.conversations.delete(conversationId);
+  }
+
+  /**
+   * 获取对话历史（用于调试）
+   */
+  getConversationHistory(conversationId: string): ConversationContext | undefined {
+    return this.conversations.get(conversationId);
+  }
+
+  /**
+   * 创建测试产品数据（用于调试）
+   */
+  private createTestProducts(): any[] {
+    return [
+      {
+        productName: '空压机',
+        model: 'JRH004AM-120L',
+        brand: '杰瑞浩',
+        parameters: {
+          flowRate: 0.5,
+          pressure: 0.8,
+          power: 4,
+          voltage: '380V',
+          controlType: '永磁变频',
+          tankType: '单储气罐'
+        },
+        price: 6916,
+        minPrice: 4882,
+        guidePrice: 6916,
+        matchScore: 240,
+        matchLevel: 1,
+        matchDetails: {
+          flowRate: '✓ 精确匹配',
+          pressure: '✓ 压力匹配',
+          voltage: '✓ 电压匹配'
+        }
+      },
+      {
+        productName: '空压机',
+        model: 'JRH004-120L',
+        brand: '杰瑞浩',
+        parameters: {
+          flowRate: 0.6,
+          pressure: 0.8,
+          power: 4,
+          voltage: '380V',
+          controlType: '工频',
+          tankType: '单储气罐'
+        },
+        price: 6916,
+        minPrice: 4882,
+        guidePrice: 6916,
+        matchScore: 190,
+        matchLevel: 2,
+        matchDetails: {
+          flowRate: '≈ 0.6 (相近)',
+          pressure: '✓ 压力匹配',
+          voltage: '✓ 电压匹配'
+        }
+      },
+      {
+        productName: '空压机',
+        model: 'JRH005AM-120L',
+        brand: '杰瑞浩',
+        parameters: {
+          flowRate: 0.6,
+          pressure: 0.8,
+          power: 5.5,
+          voltage: '380V',
+          controlType: '永磁变频',
+          tankType: '单储气罐'
+        },
+        price: 7416,
+        minPrice: 5235,
+        guidePrice: 7416,
+        matchScore: 170,
+        matchLevel: 2,
+        matchDetails: {
+          flowRate: '≈ 0.6 (相近)',
+          pressure: '✓ 压力匹配',
+          voltage: '✓ 电压匹配'
+        }
+      }
+    ];
+  }
+}
+
+// 导出单例
+export const smartChatProcessor = new SmartChatProcessor();

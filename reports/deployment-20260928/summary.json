@@ -1,0 +1,22 @@
+{
+  "status": "DEPLOYED_AND_SCOPED_ACCEPTANCE_PASSED",
+  "release": "health-20260928-145003",
+  "build_id": "Kbz0sj5NhKzTgdCWmlHJE",
+  "previous_build_id": "7iC9-mjjrYx6bOCaovUaL",
+  "next_version": "16.3.6",
+  "server_artifacts_identical": 2157,
+  "public_checks": {
+    "passed": 28,
+    "total": 28
+  },
+  "production_configuration": "preserved byte-for-byte",
+  "backup": "/home/ubuntu/apps/quote-project/quote-app.backup-health-20260928-145003",
+  "database_migrations": "NOT_RUN",
+  "initdb": "NOT_RUN",
+  "rollback_triggered": false,
+  "remaining_dependency_advisories": {
+    "high": 5,
+    "moderate": 1
+  },
+  "authenticated_business_flows": "NOT_TESTED_WITH_REAL_ACCOUNT"
+}

@@ -1,0 +1,329 @@
+{
+  "actions": [
+    {
+      "action": "update",
+      "resolves": [
+        {
+          "id": 1119441,
+          "path": ".>coze-coding-dev-sdk>@langchain/core>langsmith>uuid",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "module": "@langchain/core",
+      "target": "1.2.13",
+      "depth": 3
+    },
+    {
+      "action": "update",
+      "resolves": [
+        {
+          "id": 1120161,
+          "path": ".>coze-coding-dev-sdk>@langchain/core>langsmith",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "module": "langsmith",
+      "target": "0.10.5",
+      "depth": 4
+    },
+    {
+      "action": "review",
+      "module": "extract-zip",
+      "resolves": [
+        {
+          "id": 1139346,
+          "path": ".>puppeteer>@puppeteer/browsers>extract-zip",
+          "dev": false,
+          "bundled": false,
+          "optional": false
+        },
+        {
+          "id": 1193685,
+          "path": ".>puppeteer>@puppeteer/browsers>extract-zip",
+          "dev": false,
+          "bundled": false,
+          "optional": false
+        }
+      ]
+    },
+    {
+      "action": "review",
+      "module": "image-size",
+      "resolves": [
+        {
+          "id": 1239765,
+          "path": ".>pptxgenjs>image-size",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        },
+        {
+          "id": 1239766,
+          "path": ".>pptxgenjs>image-size",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ]
+    }
+  ],
+  "advisories": {
+    "1119441": {
+      "findings": [
+        {
+          "version": "10.0.0",
+          "paths": [
+            ". > coze-coding-dev-sdk@0.7.17 > @langchain/core@1.1.32 > langsmith@0.5.19 > uuid@10.0.0",
+            ". > coze-coding-dev-sdk@0.7.17 > @langchain/openai@1.2.13 > @langchain/core@1.1.32 > langsmith@0.5.19 > uuid@10.0.0"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/uuidjs/uuid/security/advisories/GHSA-w5hq-g745-h8pq\n- https://github.com/uuidjs/uuid/commit/3d2c5b0342f0fcb52a5ac681c3d47c13e7444b34\n- https://github.com/uuidjs/uuid/releases/tag/v14.0.0\n- https://nvd.nist.gov/vuln/detail/CVE-2026-41907\n- https://github.com/uuidjs/uuid/commit/32389c887c9e75f90442ee4cc95bbab0c4e8346e\n- https://github.com/uuidjs/uuid/commit/3d61d6ac1f782cf6b1dd8661c60f11722cd49a0d\n- https://github.com/uuidjs/uuid/commit/9d27ddf7046ce496ef39569ff84d948eeff9cb2a\n- https://github.com/uuidjs/uuid/releases/tag/v11.1.1\n- https://github.com/uuidjs/uuid/releases/tag/v12.0.1\n- https://github.com/uuidjs/uuid/releases/tag/v13.0.1\n- https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+      "created": "2026-04-22T20:53:24.000Z",
+      "id": 1119441,
+      "npm_advisory_id": null,
+      "overview": "### Summary\n\nThe `v3()`, `v5()`, and `v6()` [API methods](https://github.com/uuidjs/uuid#api-summary) (not `uuid` release versions) accept external output buffers but do not reject out-of-range writes (small `buf` or large `offset`).  \nBy contrast, `v4()`, `v1()`, and `v7()` API methods explicitly throw `RangeError` on invalid bounds.\n\nThis inconsistency allows **silent partial writes** into caller-provided buffers.\n\n\n### Affected code\n\n- `src/v35.ts` (`v3()`/`v5()` path) writes `buf[offset + i]` without bounds validation.\n- `src/v6.ts` writes `buf[offset + i]` without bounds validation.\n\n### Reproducible PoC\n\n```bash\ncd /home/StrawHat/uuid\nnpm ci\nnpm run build\n\nnode --input-type=module -e \"\nimport {v4,v5,v6} from './dist-node/index.js';\nconst ns='6ba7b810-9dad-11d1-80b4-00c04fd430c8';\nfor (const [name,fn] of [\n  ['v4()',()=>v4({},new Uint8Array(8),4)],\n  ['v5()',()=>v5('x',ns,new Uint8Array(8),4)],\n  ['v6()',()=>v6({},new Uint8Array(8),4)],\n]) {\n  try { fn(); console.log(name,'NO_THROW'); }\n  catch(e){ console.log(name,'THREW',e.name); }\n}\"\n```\n\nObserved:\n\n- `v4() THREW RangeError`\n- `v5() NO_THROW`\n- `v6() NO_THROW`\n\nExample partial overwrite evidence captured during audit:\n\n```text\nsame true buf [\n  170, 170, 170, 170,\n   75, 224, 100,  63\n]\nv6 [\n  187, 187, 187, 187,\n   31,  19, 185,  64\n]\n```\n\n### Security impact\n\n- **Primary**: integrity/robustness issue (silent partial output).\n- If an application assumes full UUID writes into preallocated buffers, this can produce malformed/truncated/partially stale identifiers without error.\n- In systems where caller-controlled offsets/buffer sizes are exposed indirectly, this may become a security-relevant logic flaw.\n\n### Suggested fix\n\nAdd the same guard used by `v4()`/`v1()`/`v7()`:\n\n```ts\nif (offset < 0 || offset + 16 > buf.length) {\n  throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);\n}\n```\n\nApply to:\n\n- `src/v35.ts` (covers `v3()` and `v5()`)\n- `src/v6.ts`",
+      "reported_by": null,
+      "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-41907"
+      ],
+      "access": "public",
+      "severity": "moderate",
+      "module_name": "uuid",
+      "vulnerable_versions": "<11.1.1",
+      "github_advisory_id": "GHSA-w5hq-g745-h8pq",
+      "recommendation": "Upgrade to version 11.1.1 or later",
+      "patched_versions": ">=11.1.1",
+      "updated": "2026-05-21T18:25:57.000Z",
+      "cvss": {
+        "score": 7.5,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
+      },
+      "cwe": [
+        "CWE-787",
+        "CWE-1285"
+      ],
+      "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq"
+    },
+    "1120161": {
+      "findings": [
+        {
+          "version": "0.5.19",
+          "paths": [
+            ". > coze-coding-dev-sdk@0.7.17 > @langchain/core@1.1.32 > langsmith@0.5.19",
+            ". > coze-coding-dev-sdk@0.7.17 > @langchain/openai@1.2.13 > @langchain/core@1.1.32 > langsmith@0.5.19"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/langchain-ai/langsmith-sdk/security/advisories/GHSA-3644-q5cj-c5c7\n- https://nvd.nist.gov/vuln/detail/CVE-2026-45134\n- https://github.com/advisories/GHSA-3644-q5cj-c5c7",
+      "created": "2026-05-13T15:29:30.000Z",
+      "id": 1120161,
+      "npm_advisory_id": null,
+      "overview": "## Description\n\nThe LangSmith SDK's prompt pull methods (`pull_prompt` / `pull_prompt_commit` in Python, `pullPrompt` / `pullPromptCommit` in JS/TS) fetch and deserialize prompt manifests from the LangSmith Hub. These manifests may contain serialized LangChain objects and model configuration that affect runtime behavior. When pulling a public prompt by `owner/name` identifier, the manifest content is controlled by an external party, but prior versions of the SDK did not distinguish this from pulling a prompt within the caller's own organization.\n\nPrompt manifests can intentionally configure a model with a custom base URL, default headers, model name, or other constructor arguments. These are supported features, but they also mean the prompt contents should be treated as executable configuration rather than plain text. A prompt can also include serialized LangChain `Runnable` or `PromptTemplate` objects with attacker-controlled constructor kwargs, or secret references that, if `secrets_from_env` is enabled, read environment variables at deserialization time.\nApplications are exposed when all of the following are true:\n\n- The application calls `pull_prompt` or `pull_prompt_commit` (Python) or `pullPrompt` or `pullPromptCommit` (JS/TS) with a public `owner/name` prompt identifier.\n- The prompt was published or modified by an untrusted or compromised account.\n- The application uses the pulled prompt without independently validating its contents.\n\nApplications that only pull prompts from their own organization (referenced by name only, without an `owner/` prefix) are not affected by the public prompt trust boundary issue described above. However, same-organization prompts carry their own risk. If an attacker gains write access to the organization (for example, through a leaked `LANGSMITH_API_KEY` or a compromised team member account), they can push a malicious prompt that is pulled and deserialized without any additional warning.\n\n## Impact\n\nAn attacker who publishes a malicious prompt to LangSmith Hub may be able to affect applications that pull that prompt by `owner/name`. If the prompt manifest reaches the SDK's deserialization path, the SDK will instantiate the referenced LangChain objects with the attacker-supplied constructor arguments rather than treating the manifest as inert data.\n\nRealistic impacts include:\n\n- Server-side request forgery (SSRF), outbound request redirection, and interception of LLM traffic if a prompt manifest configures an LLM client with an attacker-controlled `base_url`, proxy, or equivalent endpoint-setting parameter. In typical deployments, redirected requests may include prompt contents, system prompts, retrieved context, model parameters, provider credentials, or other secrets and may disclose them to the attacker-controlled endpoint.\n- Prompt injection or behavior manipulation if a manifest embeds attacker-controlled system messages, prompt templates, or model parameters that alter the application's behavior.\n- Additional deserialization risk when `include_model=True` is passed, because this expands the allowlist to partner integration classes. This is not the default, but it materially increases risk when pulling prompts from outside the caller's organization.\n\n## Remediation\n\nThe LangSmith SDK now blocks pulling public prompts by `owner/name` by default. Callers must explicitly opt in by passing `dangerously_pull_public_prompt=True` (Python) or `dangerouslyPullPublicPrompt: true` (JS/TS) to acknowledge the trust boundary. This flag should only be set after reviewing and trusting the prompt contents, not merely the publishing account.\n\nUpgrade to LangSmith SDK **Python >= 0.8.0** or **JS/TS >= 0.6.0**.\n\n### Guidance for prompt pull methods\n\nThe prompt pull methods (`pull_prompt` / `pull_prompt_commit` in Python, `pullPrompt` / `pullPromptCommit` in JS/TS) should be used only with trusted prompts. Do not pull public prompts by `owner/name` from untrusted or unreviewed sources without understanding that the manifest contents will be deserialized and may affect runtime behavior.\n\nWhen pulling prompts that include model configuration (`include_model=True` in Python, `includeModel: true` in JS/TS), the deserialization allowlist expands to include partner integration classes. Because this mode is not the default and is often unnecessary for third-party prompts, prefer the default (`false`) when pulling prompts from sources outside your organization.\n\nAvoid passing `secrets_from_env=True` (Python) when pulling untrusted prompts. This parameter allows prompt manifests to read environment variables during deserialization. Only use it with trusted prompts from your own organization.\n\n### Same-organization prompts\n\nPrompts pulled from the caller's own organization (referenced by name only, without an `owner/` prefix) are not gated by the new `dangerously_pull_public_prompt` flag, but they are not inherently safe. If an attacker gains write access to the organization (for example, through a leaked `LANGSMITH_API_KEY` or a compromised team member account), they can push a malicious prompt that redirects LLM traffic to attacker-controlled infrastructure and may disclose any credentials attached to those requests.\n\nThe security of same-organization prompts follows a shared responsibility model. The LangSmith SDK enforces trust boundaries for public prompts pulled from external accounts, but it cannot protect against compromised credentials or accounts within the caller's own organization. Securing API keys, managing team member access, and reviewing prompt contents before production deployment are the responsibility of the organization. Organizations should treat prompts as executable configuration and apply the same review and audit practices they would apply to application code.\n\n## Credits\n\nFirst reported by @Moaaz-0x.",
+      "reported_by": null,
+      "title": "LangSmith SDK: Public prompt pull deserializes untrusted manifests without trust boundary warning",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-45134"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "langsmith",
+      "vulnerable_versions": "<0.6.0",
+      "github_advisory_id": "GHSA-3644-q5cj-c5c7",
+      "recommendation": "Upgrade to version 0.6.0 or later",
+      "patched_versions": ">=0.6.0",
+      "updated": "2026-06-08T23:54:04.000Z",
+      "cvss": {
+        "score": 7.1,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:L/A:N"
+      },
+      "cwe": [
+        "CWE-502"
+      ],
+      "url": "https://github.com/advisories/GHSA-3644-q5cj-c5c7"
+    },
+    "1139346": {
+      "findings": [
+        {
+          "version": "2.0.1",
+          "paths": [
+            ". > puppeteer@22.13.0 > @puppeteer/browsers@2.2.3 > extract-zip@2.0.1",
+            ". > puppeteer@22.13.0 > puppeteer-core@22.13.0 > @puppeteer/browsers@2.2.3 > extract-zip@2.0.1"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/ziad626/extract-zip-security-research/security/advisories/GHSA-x7jf-2287-qcpf\n- https://nvd.nist.gov/vuln/detail/CVE-2026-56876\n- https://raw.githubusercontent.com/cisagov/CSAF/develop/csaf_files/IT/white/2026/va-26-177-01.json\n- https://www.cve.org/CVERecord?id=CVE-2026-56876\n- https://github.com/advisories/GHSA-jmr9-qjv8-65gv",
+      "created": "2026-06-26T18:34:00.000Z",
+      "id": 1139346,
+      "npm_advisory_id": null,
+      "overview": "extract-zip does not validate symlink targets when extracting zip archives. When processing a malicious zip file containing a symlink with a relative path like '../../../../etc/passwd', extract-zip will extract the symlink without validation, allowing it to point outside the extraction directory. Depending on how extract-zip is used, an attacker could read or write to arbitrary files.",
+      "reported_by": null,
+      "title": "extract-zip unvalidated symlink path traversal",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-56876"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "extract-zip",
+      "vulnerable_versions": "<=2.0.1",
+      "github_advisory_id": "GHSA-jmr9-qjv8-65gv",
+      "recommendation": "None",
+      "patched_versions": "<0.0.0",
+      "updated": "2026-08-12T19:22:04.000Z",
+      "cvss": {
+        "score": 8.1,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N"
+      },
+      "cwe": [
+        "CWE-22"
+      ],
+      "url": "https://github.com/advisories/GHSA-jmr9-qjv8-65gv"
+    },
+    "1193685": {
+      "findings": [
+        {
+          "version": "2.0.1",
+          "paths": [
+            ". > puppeteer@22.13.0 > @puppeteer/browsers@2.2.3 > extract-zip@2.0.1",
+            ". > puppeteer@22.13.0 > puppeteer-core@22.13.0 > @puppeteer/browsers@2.2.3 > extract-zip@2.0.1"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://nvd.nist.gov/vuln/detail/CVE-2026-19693\n- https://github.com/max-mapper/extract-zip\n- https://www.npmjs.com/package/extract-zip\n- https://github.com/max-mapper/extract-zip/pull/160\n- https://github.com/advisories/GHSA-7pqw-9j4j-h8q3",
+      "created": "2026-08-17T15:30:40.000Z",
+      "id": 1193685,
+      "npm_advisory_id": null,
+      "overview": "extract-zip through 2.0.1 containment-checks only the parent directory of each archive entry and never the entry's own final path component, so an archive containing two entries with identical names - a symlink whose target is outside the destination, followed by a regular file - writes through the planted symlink and yields an arbitrary file write outside the destination directory.",
+      "reported_by": null,
+      "title": "extract-zip allows arbitrary file writes through symlink archive entries",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-19693"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "extract-zip",
+      "vulnerable_versions": "<=2.0.1",
+      "github_advisory_id": "GHSA-7pqw-9j4j-h8q3",
+      "recommendation": "None",
+      "patched_versions": "<0.0.0",
+      "updated": "2026-09-08T20:42:53.000Z",
+      "cvss": {
+        "score": 8.1,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:H/A:H"
+      },
+      "cwe": [
+        "CWE-22"
+      ],
+      "url": "https://github.com/advisories/GHSA-7pqw-9j4j-h8q3"
+    },
+    "1239765": {
+      "findings": [
+        {
+          "version": "1.2.1",
+          "paths": [
+            ". > pptxgenjs@4.0.1 > image-size@1.2.1"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://nvd.nist.gov/vuln/detail/CVE-2025-71329\n- https://joshua.hu/image-size-infinite-loop-dos-vulnerabilities\n- https://web.archive.org/web/20260224152152/https://github.com/image-size/image-size/pull/439\n- https://www.vulncheck.com/advisories/image-size-denial-of-service-via-infinite-loop-in-jxl-heif-parser\n- https://codeberg.org/image-size/image-size/commit/e6e83a5578961de81f6d5834d90fb7430d8f29a5\n- https://github.com/advisories/GHSA-5p2g-fcmc-qvqq",
+      "created": "2026-06-10T15:31:30.000Z",
+      "id": 1239765,
+      "npm_advisory_id": null,
+      "overview": "image-size through 2.0.2 contains a denial of service vulnerability that allows remote attackers to permanently block the Node.js event loop by supplying a specially crafted image buffer with a zero-valued size field in a recognized box-type. Attackers can trigger an infinite loop in the JXL or HEIF image parsers by providing a crafted image containing a box with a size of zero, causing the offset to never advance and permanently hanging the application.",
+      "reported_by": null,
+      "title": "image-size: JXL and HEIF parsers allow denial of service through infinite loops",
+      "metadata": null,
+      "cves": [
+        "CVE-2025-71329"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "image-size",
+      "vulnerable_versions": ">=1.2.0 <=2.0.2",
+      "github_advisory_id": "GHSA-5p2g-fcmc-qvqq",
+      "recommendation": "Upgrade to version 2.0.3 or later",
+      "patched_versions": ">=2.0.3",
+      "updated": "2026-09-24T18:28:06.000Z",
+      "cvss": {
+        "score": 7.5,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+      },
+      "cwe": [
+        "CWE-835"
+      ],
+      "url": "https://github.com/advisories/GHSA-5p2g-fcmc-qvqq"
+    },
+    "1239766": {
+      "findings": [
+        {
+          "version": "1.2.1",
+          "paths": [
+            ". > pptxgenjs@4.0.1 > image-size@1.2.1"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://nvd.nist.gov/vuln/detail/CVE-2025-71330\n- https://joshua.hu/image-size-infinite-loop-dos-vulnerabilities\n- https://web.archive.org/web/20260224152152/https://github.com/image-size/image-size/pull/439\n- https://www.vulncheck.com/advisories/image-size-denial-of-service-via-malformed-icns-image-parsing\n- https://codeberg.org/image-size/image-size/commit/e6e83a5578961de81f6d5834d90fb7430d8f29a5\n- https://github.com/advisories/GHSA-w3rx-r6r6-pgpr",
+      "created": "2026-06-10T15:31:30.000Z",
+      "id": 1239766,
+      "npm_advisory_id": null,
+      "overview": "image-size through 2.0.2 contains a denial of service vulnerability that allows remote attackers to permanently block the Node.js event loop by supplying a specially crafted ICNS image buffer. Attackers can craft an ICNS buffer containing valid magic bytes and a zero-valued entry length field to trigger an infinite loop in the ICNS parser, as the offset is never incremented when the entry length field is 0, causing the while loop condition to remain true indefinitely.",
+      "reported_by": null,
+      "title": "image-size: ICNS parser allows denial of service through an infinite loop",
+      "metadata": null,
+      "cves": [
+        "CVE-2025-71330"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "image-size",
+      "vulnerable_versions": ">=0.6.3 <=2.0.2",
+      "github_advisory_id": "GHSA-w3rx-r6r6-pgpr",
+      "recommendation": "Upgrade to version 2.0.3 or later",
+      "patched_versions": ">=2.0.3",
+      "updated": "2026-09-24T18:23:12.000Z",
+      "cvss": {
+        "score": 7.5,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+      },
+      "cwe": [
+        "CWE-835"
+      ],
+      "url": "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr"
+    }
+  },
+  "muted": [],
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 1,
+      "high": 5,
+      "critical": 0
+    },
+    "dependencies": 723,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 723
+  }
+}

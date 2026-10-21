@@ -1,0 +1,24 @@
+{
+  "status": "LOCAL_FIXES_VERIFIED__PRODUCTION_ACCEPTANCE_INCOMPLETE",
+  "unit_tests": "484/484",
+  "typecheck": "PASS",
+  "source_lint": {
+    "errors": 0,
+    "warnings": 9
+  },
+  "build_wrapper_tests": "5/5",
+  "isolated_build": "PASS_NOT_DEPLOYABLE",
+  "public_http_checks": "17/17",
+  "migration_gates": "12/12",
+  "active_locks": 54,
+  "dependency_advisories": {
+    "critical": 0,
+    "high": 5,
+    "moderate": 1,
+    "low": 0
+  },
+  "deployment": "NOT_PERFORMED",
+  "production_ssh": "ACCESS_DENIED",
+  "database_started": false,
+  "unique_runtime_attempt_consumed": false
+}

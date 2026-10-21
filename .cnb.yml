@@ -1,0 +1,67 @@
+main:
+  push:
+    - stages:
+        - name: 构建项目
+          image: node:20-slim
+          script:
+            # ===== 核心 Supabase 配置 =====
+            - export NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+            - export NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+            - export COZE_SUPABASE_URL=${COZE_SUPABASE_URL}
+            - export COZE_SUPABASE_ANON_KEY=${COZE_SUPABASE_ANON_KEY}
+            - export SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+            - export DATABASE_URL=${DATABASE_URL}
+            - export PGDATABASE_URL=${PGDATABASE_URL}
+
+            # ===== 应用配置 =====
+            - export NEXT_PUBLIC_APP_URL=http://localhost:3000
+            - export NEXT_PUBLIC_ALLOWED_DOMAINS=localhost
+            - export SESSION_TOKEN_SECRET=${SESSION_TOKEN_SECRET}
+
+            # ===== AI 模型配置（使用示例值，构建时只需要存在即可） =====
+            - export DEEPSEEK_API_KEY=dummy-key-for-build
+            - export DEEPSEEK_BASE_URL=https://api.deepseek.com
+            - export DEEPSEEK_MODEL=deepseek-chat
+            - export LAOZHANG_API_KEY=dummy-key-for-build
+            - export LAOZHANG_BASE_URL=https://api.laozhang.ai/v1
+            - export LAOZHANG_MODEL=dall-e-3
+            - export WEB_SEARCH_MODEL=deepseek-chat
+
+            # ===== 功能开关 =====
+            - export ENABLE_COZE_TOOLS=true
+            - export ENABLE_COZE_WEB_SEARCH=true
+            - export ENABLE_COZE_EMBEDDING=true
+            - export ENABLE_COZE_IMAGE_GENERATION=true
+            - export NUMERIC_MATCH_TOLERANCE_EXACT=0.01
+            - export NUMERIC_MATCH_TOLERANCE_CLOSE=0.05
+            - export ENABLE_PRODUCT_GROUPING=true
+            - export MAX_PRODUCTS_PER_GROUP=10
+            - export ENABLE_GENERIC_MATCHING=true
+            - export ENABLE_DYNAMIC_COMPARISON=true
+
+            # ===== 其他 AI 服务（示例值） =====
+            - export GEMMA_ENABLED=false
+            - export GEMMA_API_URL=http://localhost:11434
+            - export GEMMA_MODEL=gemma2
+            - export GEMMA_MAX_TOKENS=4096
+            - export GEMMA_TIMEOUT=30000
+            - export DEEPSEEK_V4_PRO_API_KEY=dummy-key
+            - export DEEPSEEK_V4_PRO_API_URL=https://api.deepseek.com
+            - export DEEPSEEK_V4_PRO_MODEL=deepseek-v4
+            - export MINIMAX_M2_HER_API_KEY=dummy-key
+            - export MINIMAX_M2_HER_API_URL=https://api.minimax.chat
+            - export MINIMAX_M2_HER_MODEL=m2-her
+            - export KIMI_K2_7_CODE_API_KEY=dummy-key
+            - export KIMI_K2_7_CODE_API_URL=https://api.moonshot.cn
+            - export KIMI_K2_7_CODE_MODEL=k2-7-code
+            - export OCTOPUS_RPA_API_KEY=dummy-key
+            - export OCTOPUS_RPA_API_URL=https://api.octopus.rpa
+            - export GLM_API_KEY=dummy-key
+            - export GLM_API_URL=https://open.bigmodel.cn/api/paas/v4
+            - export GLM_MODEL=glm-4
+
+            # ===== 执行构建 =====
+            - corepack enable
+            - corepack prepare pnpm@8 --activate
+            - pnpm install --frozen-lockfile
+            - pnpm run build

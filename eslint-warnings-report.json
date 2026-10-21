@@ -1,0 +1,832 @@
+{
+  "timestamp": "2026-03-13T01:27:54.512Z",
+  "summary": {
+    "totalWarnings": 423,
+    "totalErrors": 0,
+    "filesWithWarnings": 144
+  },
+  "topFiles": [
+    {
+      "file": "src/app/api/chat/route.ts",
+      "count": 32,
+      "percentage": "7.57"
+    },
+    {
+      "file": "src/app/team/[id]/page.tsx",
+      "count": 23,
+      "percentage": "5.44"
+    },
+    {
+      "file": "src/components/chat-area.tsx",
+      "count": 20,
+      "percentage": "4.73"
+    },
+    {
+      "file": "src/components/user/user-menu.tsx",
+      "count": 17,
+      "percentage": "4.02"
+    },
+    {
+      "file": "src/components/admin/levels/LevelList.tsx",
+      "count": 13,
+      "percentage": "3.07"
+    },
+    {
+      "file": "src/components/admin/levels/LevelEditor.tsx",
+      "count": 11,
+      "percentage": "2.60"
+    },
+    {
+      "file": "src/lib/payment-service.ts",
+      "count": 10,
+      "percentage": "2.36"
+    },
+    {
+      "file": "src/app/api/admin/users/demo/route.ts",
+      "count": 8,
+      "percentage": "1.89"
+    },
+    {
+      "file": "src/app/api/coze/route.ts",
+      "count": 8,
+      "percentage": "1.89"
+    },
+    {
+      "file": "src/components/knowledge-center/price-library.tsx",
+      "count": 7,
+      "percentage": "1.65"
+    },
+    {
+      "file": "src/components/sidebar.tsx",
+      "count": 7,
+      "percentage": "1.65"
+    },
+    {
+      "file": "src/components/team/comment-section.tsx",
+      "count": 7,
+      "percentage": "1.65"
+    },
+    {
+      "file": "src/app/login/page.tsx",
+      "count": 6,
+      "percentage": "1.42"
+    },
+    {
+      "file": "src/components/message-read-receipt/message-read-receipt.tsx",
+      "count": 6,
+      "percentage": "1.42"
+    },
+    {
+      "file": "src/components/quote-table.tsx",
+      "count": 6,
+      "percentage": "1.42"
+    },
+    {
+      "file": "src/components/realtime/message-read-receipt.tsx",
+      "count": 6,
+      "percentage": "1.42"
+    },
+    {
+      "file": "src/contexts/UserContext.tsx",
+      "count": 6,
+      "percentage": "1.42"
+    },
+    {
+      "file": "src/app/api/admin/quotes/demo/route.ts",
+      "count": 5,
+      "percentage": "1.18"
+    },
+    {
+      "file": "src/app/api/quotes/export/route.ts",
+      "count": 5,
+      "percentage": "1.18"
+    },
+    {
+      "file": "src/components/auth/login-modal-with-oauth.tsx",
+      "count": 5,
+      "percentage": "1.18"
+    }
+  ],
+  "allFiles": [
+    {
+      "file": "src/app/api/chat/route.ts",
+      "count": 32,
+      "percentage": "7.57"
+    },
+    {
+      "file": "src/app/team/[id]/page.tsx",
+      "count": 23,
+      "percentage": "5.44"
+    },
+    {
+      "file": "src/components/chat-area.tsx",
+      "count": 20,
+      "percentage": "4.73"
+    },
+    {
+      "file": "src/components/user/user-menu.tsx",
+      "count": 17,
+      "percentage": "4.02"
+    },
+    {
+      "file": "src/components/admin/levels/LevelList.tsx",
+      "count": 13,
+      "percentage": "3.07"
+    },
+    {
+      "file": "src/components/admin/levels/LevelEditor.tsx",
+      "count": 11,
+      "percentage": "2.60"
+    },
+    {
+      "file": "src/lib/payment-service.ts",
+      "count": 10,
+      "percentage": "2.36"
+    },
+    {
+      "file": "src/app/api/admin/users/demo/route.ts",
+      "count": 8,
+      "percentage": "1.89"
+    },
+    {
+      "file": "src/app/api/coze/route.ts",
+      "count": 8,
+      "percentage": "1.89"
+    },
+    {
+      "file": "src/components/knowledge-center/price-library.tsx",
+      "count": 7,
+      "percentage": "1.65"
+    },
+    {
+      "file": "src/components/sidebar.tsx",
+      "count": 7,
+      "percentage": "1.65"
+    },
+    {
+      "file": "src/components/team/comment-section.tsx",
+      "count": 7,
+      "percentage": "1.65"
+    },
+    {
+      "file": "src/app/login/page.tsx",
+      "count": 6,
+      "percentage": "1.42"
+    },
+    {
+      "file": "src/components/message-read-receipt/message-read-receipt.tsx",
+      "count": 6,
+      "percentage": "1.42"
+    },
+    {
+      "file": "src/components/quote-table.tsx",
+      "count": 6,
+      "percentage": "1.42"
+    },
+    {
+      "file": "src/components/realtime/message-read-receipt.tsx",
+      "count": 6,
+      "percentage": "1.42"
+    },
+    {
+      "file": "src/contexts/UserContext.tsx",
+      "count": 6,
+      "percentage": "1.42"
+    },
+    {
+      "file": "src/app/api/admin/quotes/demo/route.ts",
+      "count": 5,
+      "percentage": "1.18"
+    },
+    {
+      "file": "src/app/api/quotes/export/route.ts",
+      "count": 5,
+      "percentage": "1.18"
+    },
+    {
+      "file": "src/components/auth/login-modal-with-oauth.tsx",
+      "count": 5,
+      "percentage": "1.18"
+    },
+    {
+      "file": "src/components/auth/login-modal.tsx",
+      "count": 5,
+      "percentage": "1.18"
+    },
+    {
+      "file": "src/components/chat-message.tsx",
+      "count": 5,
+      "percentage": "1.18"
+    },
+    {
+      "file": "src/components/team/shared-quotes-list.tsx",
+      "count": 5,
+      "percentage": "1.18"
+    },
+    {
+      "file": "src/contexts/QuoteContext.tsx",
+      "count": 5,
+      "percentage": "1.18"
+    },
+    {
+      "file": "src/lib/price-matching.ts",
+      "count": 5,
+      "percentage": "1.18"
+    },
+    {
+      "file": "src/utils/pdf-parser-enhanced.ts",
+      "count": 5,
+      "percentage": "1.18"
+    },
+    {
+      "file": "src/app/api/admin/products/demo/route.ts",
+      "count": 4,
+      "percentage": "0.95"
+    },
+    {
+      "file": "src/components/conversation-list.tsx",
+      "count": 4,
+      "percentage": "0.95"
+    },
+    {
+      "file": "src/components/shared/profile-dialog.tsx",
+      "count": 4,
+      "percentage": "0.95"
+    },
+    {
+      "file": "src/components/user/PermissionPanel.tsx",
+      "count": 4,
+      "percentage": "0.95"
+    },
+    {
+      "file": "src/components/user/customer-list-panel.tsx",
+      "count": 4,
+      "percentage": "0.95"
+    },
+    {
+      "file": "src/components/user/points-panel.tsx",
+      "count": 4,
+      "percentage": "0.95"
+    },
+    {
+      "file": "src/lib/token-billing-service.ts",
+      "count": 4,
+      "percentage": "0.95"
+    },
+    {
+      "file": "src/app/api/admin/migrate-permissions/route.ts",
+      "count": 3,
+      "percentage": "0.71"
+    },
+    {
+      "file": "src/app/api/business-info/route.ts",
+      "count": 3,
+      "percentage": "0.71"
+    },
+    {
+      "file": "src/app/api/knowledge/parse-cloud-link/route.ts",
+      "count": 3,
+      "percentage": "0.71"
+    },
+    {
+      "file": "src/app/api/knowledge/upload/route.ts",
+      "count": 3,
+      "percentage": "0.71"
+    },
+    {
+      "file": "src/app/api/upload/route.ts",
+      "count": 3,
+      "percentage": "0.71"
+    },
+    {
+      "file": "src/app/api/verify-email/route.ts",
+      "count": 3,
+      "percentage": "0.71"
+    },
+    {
+      "file": "src/components/user/notifications-panel.tsx",
+      "count": 3,
+      "percentage": "0.71"
+    },
+    {
+      "file": "src/utils/ocr-helper.ts",
+      "count": 3,
+      "percentage": "0.71"
+    },
+    {
+      "file": "src/app/api/admin/billing/config/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/admin/levels/[level]/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/admin/permission-test/all/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/admin/stats/level-distribution/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/admin/stats/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/admin/templates/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/admin/test-permission/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/admin/users/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/auth/register/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/documents/parse/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/manufacturer/payment/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/quotes/export-pdf/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/socket/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/stats/usage/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/test-real-upload/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/test-supabase/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/test/schema-refresh/route.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/page.tsx",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/realtime-demo/page.tsx",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/team/page.tsx",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/components/admin/points/PointsConfig.tsx",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/components/auth/EmailBindDialog.tsx",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/components/intent-selector.tsx",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/components/manufacturer-payment-panel.tsx",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/components/realtime/online-indicator.tsx",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/components/user/customer-panel.tsx",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/hooks/useSocket.tsx",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/lib/ai-service-selector.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/lib/auth-utils.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/lib/oauth-service.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/lib/team-service.ts",
+      "count": 2,
+      "percentage": "0.47"
+    },
+    {
+      "file": "src/app/api/admin/audit/[id]/approve/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/audit/[id]/reject/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/audit/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/init-test-users/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/levels/[level]/history/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/levels/batch/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/levels/defaults/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/levels/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/modules/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/permissions/preview/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/points/logs/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/stats/permissions/heatmap/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/stats/revenue/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/users/[id]/disable/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/users/[id]/points/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/admin/users/[id]/role/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/auth/qq/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/auth/wechat/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/chat/stream/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/comments/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/conversations/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/health/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/invite-rewards/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/invites/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/payment/plans/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/payment/wechat/notify/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/products/batch/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/products/template/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/quotes/market-price/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/suppliers/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/tables/products/field-configs/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/teams/[id]/invites/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/teams/[id]/shared-quotes/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/teams/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/terms/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/test-db/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/test-full-upload/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/test-service-key/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/test/full-import/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/test/simulate-import/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/user/stats/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/api/websocket/route.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/app/test-user/page.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/admin/points/PointsLog.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/auth/PhoneChangeDialog.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/auth/VerificationDialog.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/auth/WechatBindDialog.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/common/PermissionDenied.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/floating-switcher.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/knowledge-center/import-field-mapping.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/knowledge-center/quota-library.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/online-status/online-indicator.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/realtime/websocket-provider.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/team/permission-management.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/ui/use-toast.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/user/invite-friends.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/user/notifications.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/user/points-mall.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/user/supplier-panel.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/components/user/user-sidebar.tsx",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/lib/analytics.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/lib/brand-ranking-service.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/lib/deepseek-client.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/lib/input-processor.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/lib/order-service.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/lib/proposal-enhancer.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/lib/quote-enhancer.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/lib/quote-utils.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/lib/upload-processor.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/lib/user-level-service.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/services/enterpriseAuth.ts",
+      "count": 1,
+      "percentage": "0.24"
+    },
+    {
+      "file": "src/storage/database/points-utils.ts",
+      "count": 1,
+      "percentage": "0.24"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+name: Glob Match Benchmark
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.PAT_TOKEN }}
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Run unit and performance tests
+      run: python3 -m unittest scripts._glob_match_test -v
+
+    - name: Generate benchmark report
+      run: python3 scripts/_glob_match_test.py --benchmark > benchmark-report.txt
+
+    - name: Add report to job summary
+      run: cat benchmark-report.txt >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Comment benchmark results on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('benchmark-report.txt', 'utf8').trim();
+
+          const body = `## 📊 Glob 匹配性能基准测试
+
+          ${report}
+          `;
+
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: body
+          });
